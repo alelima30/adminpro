@@ -1215,6 +1215,8 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
   /* ── Flyout vira segunda página do drawer ── */
   .sb-flyout{ left:0; width:260px; z-index:600; box-shadow:4px 0 40px rgba(0,0,0,0.5) }
+  /* 2ª coluna (Cadastro → Unidades/Classificações…) abre por cima, não deslocada p/ fora da tela */
+  .sb-flyout.lvl2{ left:0 !important; width:260px; z-index:601 }
   .sb-flyout-ov{ z-index:599 }
 
   /* ── Main sem margem lateral ── */
