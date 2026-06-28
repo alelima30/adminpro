@@ -1431,6 +1431,44 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
   /* ══ SCROLLBAR mobile: mais fina ══ */
   ::-webkit-scrollbar { width: 4px; height: 4px }
+
+  /* ════════════════════════════════════════════
+     CADASTRO / ADMINISTRATIVO — formulários novos no celular
+     Colapsa os grids/flex inline que estavam vazando da tela
+     ════════════════════════════════════════════ */
+  #panel-condominos     [style*="grid-template-columns"],
+  #panel-unidades       [style*="grid-template-columns"],
+  #panel-localizacoes   [style*="grid-template-columns"],
+  #panel-classificacoes [style*="grid-template-columns"],
+  #m-pesq-con           [style*="grid-template-columns"]{
+    grid-template-columns:1fr !important;
+  }
+
+  /* Condômino — Dados Pessoais: foto em cima, campos embaixo */
+  #con-vw-pessoais{ flex-direction:column !important; gap:16px !important; }
+  #con-vw-pessoais > div{ width:100% !important; min-width:0 !important; }
+  #con-vw-pessoais > div:first-child{ max-width:190px; margin:0 auto; }
+
+  /* Condômino — Dependentes: foto acima do mini-form */
+  #con-vw-dependentes div[style*="align-items:flex-start"]{
+    flex-direction:column !important; align-items:stretch !important;
+  }
+  #con-vw-dependentes div[style*="align-items:flex-start"] > div:first-child{ align-self:center }
+
+  /* Pesquisa de condôminos — modal cabe na tela e filtros empilham */
+  #m-pesq-con .modal{ width:100% !important; max-width:100% !important; }
+  #m-pesq-con .modal > div[style*="display:flex"]{ flex-wrap:wrap !important; row-gap:10px }
+  #m-pesq-con [style*="border-left"]{ border-left:none !important; padding-left:0 !important; }
+
+  /* Unidades — selects de vínculo e botões full width */
+  #uni-proprietario, #uni-morador{ width:100% }
+  #panel-unidades  .modal-actions,
+  #panel-condominos .modal-actions,
+  #panel-localizacoes .modal-actions,
+  #panel-classificacoes .modal-actions{ flex-wrap:wrap; gap:8px }
+
+  /* Rede de segurança: nada vaza horizontalmente */
+  .content{ overflow-x:hidden }
 }
 
 @media(max-width:400px){
