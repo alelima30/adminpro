@@ -1276,6 +1276,12 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   }
   .form-grid{ grid-template-columns:1fr }
   .fg.full{ grid-column:1 }
+  /* Permite os campos encolherem dentro do grid/modal (senão um select longo estica tudo) */
+  .form-grid > *{ min-width:0 }
+  .modal .fg{ min-width:0 }
+  .modal .fg input, .modal .fg select, .modal .fg textarea{ min-width:0; max-width:100%; width:100% }
+  /* Itens com grid-column:1/-1 inline ainda ocupam a coluna única */
+  .form-grid > .fg[style*="grid-column"]{ grid-column:1 !important }
 
   /* ── Login card ── */
   .login-card{ width:92%; padding:32px 24px }
