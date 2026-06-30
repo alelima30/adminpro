@@ -1475,6 +1475,17 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   #panel-localizacoes .modal-actions,
   #panel-classificacoes .modal-actions{ flex-wrap:wrap; gap:8px }
 
+  /* Busca/filtros das tabelas de cadastro: largura total e empilhados */
+  #panel-localizacoes   .card-head > div[style*="margin-left:auto"],
+  #panel-unidades       .card-head > div[style*="margin-left:auto"],
+  #panel-classificacoes .card-head > div[style*="margin-left:auto"]{
+    width:100% !important; flex-direction:column !important;
+    align-items:stretch !important; margin-left:0 !important; gap:8px !important;
+  }
+  #loc-busca, #loc-filtro-tipo,
+  #uni-busca, #uni-filtro-tipo,
+  #cla-busca{ width:100% !important; box-sizing:border-box }
+
   /* Rede de segurança: nada vaza horizontalmente */
   .content{ overflow-x:hidden }
 }
@@ -1735,6 +1746,8 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           </div>
           <div class="ph-actions">
             <span id="uni-count" style="font-size:12px;color:var(--text-3);margin-right:8px"></span>
+            <!-- BOTÃO TEMPORÁRIO DE IMPORTAÇÃO (remover após importar) -->
+            <button class="btn btn-ghost" id="uni-btn-importar" onclick="importarDadosIniciais()" title="Importar lotes do relatório (uma vez)" style="border-color:var(--green);color:var(--green-l)"><i class="fa-solid fa-file-import"></i> Importar do PDF</button>
             <button class="btn btn-gold" id="uni-btn-novo" onclick="uniNovaUnidade()">+ Nova Unidade</button>
           </div>
         </div>
@@ -4309,6 +4322,25 @@ function renderUnidades(){
     const terrenos = allCods.filter(c=>dados[c]&&dados[c].tipo==='Terreno').length;
     cnt.textContent = `${allCods.length} unidades · ${casas} casas · ${terrenos} terrenos`;
   }
+}
+
+// ── Importação única dos lotes/condôminos do relatório (PDF) ──
+function importarDadosIniciais(){
+  const D = window.DADOS_INICIAIS;
+  if(!D || !D.unidades){ toast('⚠️ Dados de importação não encontrados.'); return; }
+  const nU = Object.keys(D.unidades).length;
+  const nC = Object.keys(D.condominos||{}).length;
+  let nD = 0; Object.values(D.condominos||{}).forEach(c=>nD+=(c.dependentes||[]).length);
+  if(!confirm(`Importar ${nU} lotes, ${nC} condôminos e ${nD} dependentes?\n\nOs registros com o mesmo código serão atualizados. Esta ação grava no banco (Firebase).`)) return;
+  // Merge unidades
+  const un = getUnidades(); Object.assign(un, D.unidades); S('unidades', un);
+  // Merge condôminos
+  const co = getCondominos(); Object.assign(co, D.condominos||{}); S('condominos', co);
+  // Sequenciador de código
+  const seqAtual = parseInt(G('condseq'),10)||0;
+  if((D.condseq||0) > seqAtual) S('condseq', D.condseq);
+  toast(`✅ Importado: ${nU} lotes e ${nC} condôminos!`);
+  setTimeout(()=>location.reload(), 1600);
 }
 
 function salvarUnidade(){
@@ -9343,6 +9375,10 @@ async function excluirUsuario(docId){
     }
   });
 })();
+</script>
+<!-- ===== DADOS INICIAIS (importação única dos lotes do PDF) ===== -->
+<script>
+window.DADOS_INICIAIS = {}; // dados pessoais removidos do historico
 </script>
 </body>
 </html>
