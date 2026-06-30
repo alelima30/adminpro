@@ -4325,22 +4325,41 @@ function renderUnidades(){
 }
 
 // ── Importação única dos lotes/condôminos do relatório (PDF) ──
-function importarDadosIniciais(){
+async function importarDadosIniciais(){
   const D = window.DADOS_INICIAIS;
   if(!D || !D.unidades){ toast('⚠️ Dados de importação não encontrados.'); return; }
   const nU = Object.keys(D.unidades).length;
   const nC = Object.keys(D.condominos||{}).length;
   let nD = 0; Object.values(D.condominos||{}).forEach(c=>nD+=(c.dependentes||[]).length);
-  if(!confirm(`Importar ${nU} lotes, ${nC} condôminos e ${nD} dependentes?\n\nOs registros com o mesmo código serão atualizados. Esta ação grava no banco (Firebase).`)) return;
-  // Merge unidades
-  const un = getUnidades(); Object.assign(un, D.unidades); S('unidades', un);
-  // Merge condôminos
-  const co = getCondominos(); Object.assign(co, D.condominos||{}); S('condominos', co);
-  // Sequenciador de código
+  if(!confirm(`Importar ${nU} lotes, ${nC} condôminos e ${nD} dependentes?\n\nOs registros com o mesmo código serão atualizados.`)) return;
+
+  // Merge (cache + localStorage imediato)
+  const un = getUnidades(); Object.assign(un, D.unidades);
+  const co = getCondominos(); Object.assign(co, D.condominos||{});
   const seqAtual = parseInt(G('condseq'),10)||0;
-  if((D.condseq||0) > seqAtual) S('condseq', D.condseq);
-  toast(`✅ Importado: ${nU} lotes e ${nC} condôminos!`);
-  setTimeout(()=>location.reload(), 1600);
+  const novoSeq  = (D.condseq||0) > seqAtual ? D.condseq : seqAtual;
+  S('unidades', un); S('condominos', co); S('condseq', novoSeq);
+
+  const btn = $('uni-btn-importar');
+  // GARANTE a gravação no Firebase antes de qualquer reload (await)
+  if(window._fbOnline && window.db){
+    try{
+      if(btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Salvando...'; }
+      toast('⏳ Salvando no banco, aguarde...');
+      await window.db.collection('apvc_data').doc('unidades').set({ value: JSON.stringify(un) });
+      await window.db.collection('apvc_data').doc('condominos').set({ value: JSON.stringify(co) });
+      await window.db.collection('apvc_data').doc('condseq').set({ value: JSON.stringify(novoSeq) });
+      toast(`✅ Salvo no banco: ${nU} lotes e ${nC} condôminos!`);
+      setTimeout(()=>location.reload(), 900);
+    }catch(e){
+      if(btn){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-file-import"></i> Importar do PDF'; }
+      toast('⚠️ Erro ao salvar no banco: '+(e.message||e)+'. Salvo localmente — tente de novo.');
+      renderUnidades();
+    }
+  } else {
+    toast('⚠️ Sem conexão com o banco — salvo só neste aparelho. Conecte e importe de novo.');
+    renderUnidades();
+  }
 }
 
 function salvarUnidade(){
