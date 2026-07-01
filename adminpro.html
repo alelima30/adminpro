@@ -729,6 +729,45 @@ html.light .sb-flyout{background:#1A2847}
 
 /* ══ CHART ROW ══ */
 .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+
+/* ══ DASHBOARD BI (Reservas) ══ */
+.bikpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.bikpi{
+  border-radius:14px;padding:16px 18px;color:#fff;position:relative;overflow:hidden;
+  box-shadow:0 8px 22px rgba(0,0,0,0.25);
+}
+.bikpi::after{ /* brilho decorativo */
+  content:'';position:absolute;right:-30px;top:-30px;width:110px;height:110px;
+  border-radius:50%;background:rgba(255,255,255,0.14);
+}
+.bikpi .bk-label{font-size:10.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;opacity:.92;margin-bottom:6px}
+.bikpi .bk-val{font-size:24px;font-weight:800;line-height:1.1;text-shadow:0 1px 3px rgba(0,0,0,0.18)}
+.bikpi .bk-badge{
+  display:inline-flex;align-items:center;gap:4px;margin-top:9px;
+  font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;
+  background:rgba(0,0,0,0.22);
+}
+.bikpi.g-gold {background:linear-gradient(135deg,#B85E0F 0%,#E87722 55%,#FF9A40 100%)}
+.bikpi.g-blue {background:linear-gradient(135deg,#1B3E8A 0%,#2470C8 55%,#5B9CF6 100%)}
+.bikpi.g-green{background:linear-gradient(135deg,#0C6B44 0%,#18A068 55%,#28C882 100%)}
+.bikpi.g-teal {background:linear-gradient(135deg,#0F5C56 0%,#0F9488 55%,#2DD4BF 100%)}
+.bi-row{display:grid;grid-template-columns:1.55fr 1fr;gap:14px;margin-bottom:16px}
+.bi-row-inv{grid-template-columns:1fr 1.55fr}
+.bi-ranklist{display:flex;flex-direction:column;gap:11px;padding-top:4px}
+.bi-rank-item .br-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:8px}
+.bi-rank-item .br-name{font-size:12.5px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bi-rank-item .br-val{
+  font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;
+  background:var(--ink-3);border:1px solid var(--border);border-radius:6px;padding:2px 8px;
+}
+.bi-rank-item .br-bar{height:9px;border-radius:6px;background:var(--ink-3);overflow:hidden}
+.bi-rank-item .br-fill{height:100%;border-radius:6px;min-width:3px;transition:width .5s ease}
+.bi-spark{display:block}
+@media(max-width:1050px){
+  .bikpi-grid{grid-template-columns:repeat(2,1fr)}
+  .bi-row,.bi-row-inv{grid-template-columns:1fr}
+}
+@media(max-width:560px){ .bikpi-grid{grid-template-columns:1fr} }
 .chart-card{
   background:var(--card);
   border:1px solid var(--border);
@@ -2514,34 +2553,38 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         </div>
         <div class="kpi-grid" id="res-kpi"></div>
 
-        <!-- Dashboard analítico (admin/gestor) -->
+        <!-- Dashboard analítico estilo BI (admin/gestor) -->
         <div id="res-dash" style="display:none">
-          <div class="chart-row">
+          <!-- Cards KPI com gradiente -->
+          <div id="res-bi-kpis" class="bikpi-grid"></div>
+
+          <!-- Reservas por mês (barras) + ranking por espaço -->
+          <div class="bi-row">
+            <div class="chart-card">
+              <div class="cc-label">Reservas por Mês <span style="font-weight:400;letter-spacing:0;text-transform:none;color:var(--text-3)">· variação vs mês anterior</span></div>
+              <div style="position:relative;height:250px"><canvas id="ch-res-mes"></canvas></div>
+            </div>
             <div class="chart-card">
               <div class="cc-label">Reservas por Espaço</div>
-              <div style="position:relative;height:230px"><canvas id="ch-res-espaco"></canvas></div>
-            </div>
-            <div class="chart-card">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-                <div class="cc-label" style="margin:0">Distribuição por Status</div>
-                <div id="res-donut-total" style="font-size:11px;color:var(--text-3)"></div>
-              </div>
-              <div style="position:relative;height:230px"><canvas id="ch-res-status"></canvas></div>
+              <div id="res-esp-list" class="bi-ranklist"></div>
             </div>
           </div>
-          <div class="chart-row" style="grid-template-columns:1fr">
+
+          <!-- Status + Top solicitantes -->
+          <div class="bi-row bi-row-inv">
             <div class="chart-card">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-                <div class="cc-label" style="margin:0">Tendência — últimos 6 meses</div>
-                <div style="display:flex;gap:14px;font-size:11px;color:var(--text-3)">
-                  <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--gold);display:inline-block"></span> Reservas</span>
-                  <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--green);display:inline-block"></span> Receita (taxas pagas)</span>
-                </div>
+              <div class="cc-label">Por Status</div>
+              <div id="res-status-list" class="bi-ranklist"></div>
+            </div>
+            <div class="chart-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+                <div class="cc-label" style="margin:0">🏆 Top Solicitantes</div>
+                <div style="font-size:11px;color:var(--text-3)">últimos 6 meses por linha</div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px" id="res-trend-grid">
-                <div style="position:relative;height:200px"><canvas id="ch-res-trend"></canvas></div>
-                <div style="position:relative;height:200px"><canvas id="ch-res-receita"></canvas></div>
-              </div>
+              <div class="tbl-wrap"><table id="res-top-tbl" style="font-size:12.5px">
+                <thead><tr><th style="width:34px">#</th><th>Solicitante</th><th>Reservas</th><th>Receita</th><th>Tendência</th></tr></thead>
+                <tbody></tbody>
+              </table></div>
             </div>
           </div>
         </div>
@@ -6239,61 +6282,131 @@ function _resChartTheme(){
   };
 }
 
-// Painel analítico de Reservas (3 visões: por espaço, por status, tendências)
+// Painel analítico de Reservas — estilo BI (cards gradiente, barras com variação, rankings, top solicitantes)
 function renderResDashboard(base){
   const T=_resChartTheme();
   const hoje=new Date();
+  const brl=v=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+  const mesKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 
-  // ── 1) Reservas por Espaço (barra horizontal, magnitude, hue único) ──
-  const porEsp={};
-  base.forEach(r=>{ const e=(r.espaco||'—'); if(r.status!=='cancelada') porEsp[e]=(porEsp[e]||0)+1; });
-  const espEntries=Object.entries(porEsp).sort((a,b)=>b[1]-a[1]);
-  mkChart('ch-res-espaco',{type:'bar',data:{
-    labels:espEntries.map(e=>e[0]),
-    datasets:[{data:espEntries.map(e=>e[1]),backgroundColor:T.gold,
-      borderRadius:4,borderSkipped:false,barPercentage:0.72,categoryPercentage:0.82,
-      maxBarThickness:26}]
-  },options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.parsed.x} reserva(s)`}}},
-    scales:{
-      x:{ticks:{color:T.mut,precision:0},grid:{color:T.grid},beginAtZero:true},
-      y:{ticks:{color:T.txt,font:{size:11}},grid:{display:false}}
-    }}});
-
-  // ── 2) Distribuição por Status (doughnut, composição, cores de status) ──
-  const stDefs=[['confirmada','Confirmada',T.green],['pendente','Pendente',T.amber],
-    ['realizada','Realizada',T.blue],['concluida','Concluída',T.teal],['cancelada','Cancelada',T.red]];
-  const stData=stDefs.map(s=>base.filter(r=>r.status===s[0]).length);
-  const stTotal=stData.reduce((a,b)=>a+b,0);
-  const totEl=$('res-donut-total'); if(totEl) totEl.textContent=`${stTotal} no total`;
-  mkChart('ch-res-status',{type:'doughnut',data:{
-    labels:stDefs.map(s=>s[1]),
-    datasets:[{data:stData,backgroundColor:stDefs.map(s=>s[2]),
-      borderColor:T.surf,borderWidth:3,hoverOffset:6}]
-  },options:{responsive:true,maintainAspectRatio:false,cutout:'66%',
-    plugins:{legend:{position:'right',labels:{color:T.txt,font:{size:11},padding:12,usePointStyle:true,pointStyle:'circle',boxWidth:8}},
-      tooltip:{callbacks:{label:c=>{const pct=stTotal?Math.round(c.parsed/stTotal*100):0;return ` ${c.label}: ${c.parsed} (${pct}%)`;}}}}}});
-
-  // ── 3) Tendências — últimos 6 meses (duas visões, um eixo cada) ──
-  const meses=[]; for(let i=5;i>=0;i--){ const d=new Date(hoje.getFullYear(),hoje.getMonth()-i,1); meses.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); }
-  const lblMes=meses.map(mShort);
+  // Série dos últimos 12 meses (contagem sem canceladas + receita paga)
+  const meses=[]; for(let i=11;i>=0;i--) meses.push(mesKey(new Date(hoje.getFullYear(),hoje.getMonth()-i,1)));
   const cntMes=meses.map(m=>base.filter(r=>(r.data||'').slice(0,7)===m && r.status!=='cancelada').length);
   const recMes=meses.map(m=>base.filter(r=>(r.data||'').slice(0,7)===m && r.pgto==='pago').reduce((s,r)=>s+(parseFloat(r.taxa)||0),0));
 
-  const areaLine=(id,labels,data,cor,rgba,fmtTip)=>mkChart(id,{type:'line',data:{
-    labels,datasets:[{data,borderColor:cor,backgroundColor:rgba,fill:true,tension:0.4,
-      borderWidth:2,pointBackgroundColor:cor,pointBorderColor:T.surf,pointBorderWidth:2,
-      pointRadius:4,pointHoverRadius:6}]
-  },options:{responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:fmtTip}}},
-    scales:{
-      x:{ticks:{color:T.mut,font:{size:11}},grid:{display:false}},
-      y:{ticks:{color:T.mut,precision:0},grid:{color:T.grid},beginAtZero:true}
-    }}});
+  // ── 1) Cards KPI com comparação vs mês anterior ──
+  const iAtu=11, iAnt=10;
+  const pct=(a,b)=>b>0?Math.round((a-b)/b*100):(a>0?100:0);
+  const badge=(delta,invert)=>{
+    const up=delta>0, flat=delta===0;
+    const good=invert?!up:up;
+    const arrow=flat?'•':(up?'⬆':'⬇');
+    return `<span class="bk-badge">${arrow} ${Math.abs(delta)}% vs mês anterior</span>`;
+  };
+  const totAtivas=base.filter(r=>r.status!=='cancelada').length;
+  const recTotal=base.reduce((s,r)=>(r.pgto==='pago'?s+(parseFloat(r.taxa)||0):s),0);
+  const confAtu=base.filter(r=>(r.data||'').slice(0,7)===meses[iAtu]&&r.status==='confirmada').length;
+  const pendTot=base.filter(r=>r.status==='pendente').length;
+  const dPct=pct(cntMes[iAtu],cntMes[iAnt]);
+  const dRec=pct(Math.round(recMes[iAtu]),Math.round(recMes[iAnt]));
+  $('res-bi-kpis').innerHTML=`
+    <div class="bikpi g-gold"><div class="bk-label">Reservas no Mês</div><div class="bk-val">${cntMes[iAtu]}</div>${badge(dPct)}</div>
+    <div class="bikpi g-green"><div class="bk-label">Receita no Mês</div><div class="bk-val">${brl(recMes[iAtu])}</div>${badge(dRec)}</div>
+    <div class="bikpi g-blue"><div class="bk-label">Confirmadas no Mês</div><div class="bk-val">${confAtu}</div><span class="bk-badge">📋 ${totAtivas} ativas no total</span></div>
+    <div class="bikpi g-teal"><div class="bk-label">Receita Acumulada</div><div class="bk-val">${brl(recTotal)}</div><span class="bk-badge">${pendTot>0?'⏳ '+pendTot+' pendente(s)':'✓ sem pendências'}</span></div>`;
 
-  areaLine('ch-res-trend',lblMes,cntMes,T.gold,'rgba(232,119,34,0.10)',c=>` ${c.parsed.y} reserva(s)`);
-  areaLine('ch-res-receita',lblMes,recMes,T.green,'rgba(24,160,104,0.10)',
-    c=>' '+c.parsed.y.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}));
+  // ── 2) Barras mensais com rótulo de valor + variação % (estilo BI) ──
+  const lblPlugin={id:'resLbl',afterDatasetsDraw(chart){
+    const {ctx}=chart; const meta=chart.getDatasetMeta(0);
+    meta.data.forEach((bar,i)=>{
+      const v=cntMes[i]; if(v===undefined) return;
+      ctx.save(); ctx.textAlign='center';
+      // valor (dentro/acima da barra)
+      ctx.font='700 11px Inter,system-ui,sans-serif'; ctx.fillStyle=T.txt;
+      ctx.fillText(String(v), bar.x, bar.y-6);
+      // variação vs mês anterior
+      if(i>0){
+        const d=pct(v,cntMes[i-1]);
+        if(cntMes[i-1]>0||v>0){
+          ctx.font='600 9.5px Inter,system-ui,sans-serif';
+          ctx.fillStyle=d>0?T.green:(d<0?T.red:T.mut);
+          ctx.fillText((d>0?'⬆':(d<0?'⬇':'•'))+Math.abs(d)+'%', bar.x, bar.y-19);
+        }
+      }
+      ctx.restore();
+    });
+  }};
+  const grad=ctx=>{ const g=ctx.createLinearGradient(0,0,0,250); g.addColorStop(0,'#FF9A40'); g.addColorStop(1,'#B85E0F'); return g; };
+  mkChart('ch-res-mes',{type:'bar',
+    data:{labels:meses.map(mShort),datasets:[{data:cntMes,
+      backgroundColor:c=>grad(c.chart.ctx),hoverBackgroundColor:'#FFB067',
+      borderRadius:6,borderSkipped:false,maxBarThickness:34,barPercentage:0.7,categoryPercentage:0.85}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      layout:{padding:{top:34}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:c=>` ${c.parsed.y} reserva(s) · ${brl(recMes[c.dataIndex])} em taxas`}}},
+      scales:{
+        x:{ticks:{color:T.mut,font:{size:10.5}},grid:{display:false}},
+        y:{display:false,beginAtZero:true,grace:'8%'}
+      }},
+    plugins:[lblPlugin]});
+
+  // ── 3) Ranking por espaço (barras HTML com valor à direita) ──
+  const porEsp={};
+  base.forEach(r=>{ if(r.status!=='cancelada'){ const e=r.espaco||'—'; porEsp[e]=(porEsp[e]||0)+1; }});
+  const espArr=Object.entries(porEsp).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const espMax=espArr.length?espArr[0][1]:1;
+  const espTot=espArr.reduce((s,e)=>s+e[1],0);
+  $('res-esp-list').innerHTML=espArr.length?espArr.map(([nome,v],i)=>`
+    <div class="bi-rank-item">
+      <div class="br-top"><span class="br-name">${escU(nome)}</span>
+        <span class="br-val" ${i===0?'style="color:#FF9A40;border-color:rgba(232,119,34,0.4)"':''}>${v} · ${espTot?Math.round(v/espTot*100):0}%</span></div>
+      <div class="br-bar"><div class="br-fill" style="width:${Math.round(v/espMax*100)}%;background:${i===0?'linear-gradient(90deg,#B85E0F,#FF9A40)':'linear-gradient(90deg,#1B3E8A,#5B9CF6)'}"></div></div>
+    </div>`).join('')
+    :'<div style="color:var(--text-3);font-size:12px;padding:12px 0">Sem reservas para exibir.</div>';
+
+  // ── 4) Por status (barras HTML com cores semânticas) ──
+  const stDefs=[['confirmada','Confirmada',T.green],['pendente','Pendente',T.amber],
+    ['realizada','Realizada',T.blue],['concluida','Concluída',T.teal],['cancelada','Cancelada',T.red]];
+  const stTot=base.length||1;
+  const stMax=Math.max(...stDefs.map(s=>base.filter(r=>r.status===s[0]).length),1);
+  $('res-status-list').innerHTML=stDefs.map(([k,label,cor])=>{
+    const v=base.filter(r=>r.status===k).length;
+    return `<div class="bi-rank-item">
+      <div class="br-top"><span class="br-name" style="display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:${cor};display:inline-block"></span>${label}</span>
+        <span class="br-val">${v} · ${Math.round(v/stTot*100)}%</span></div>
+      <div class="br-bar"><div class="br-fill" style="width:${Math.round(v/stMax*100)}%;background:${cor}"></div></div>
+    </div>`;}).join('');
+
+  // ── 5) Top solicitantes (tabela com barra embutida + sparkline 6 meses) ──
+  const porSol={};
+  base.forEach(r=>{ if(r.status==='cancelada')return;
+    const key=((r.nome||'—')+'|'+(r.lote||'')).trim();
+    (porSol[key]=porSol[key]||{nome:r.nome||'—',lote:r.lote||'',n:0,rec:0,rs:[]});
+    porSol[key].n++; if(r.pgto==='pago') porSol[key].rec+=(parseFloat(r.taxa)||0);
+    porSol[key].rs.push(r); });
+  const top=Object.values(porSol).sort((a,b)=>b.n-a.n||b.rec-a.rec).slice(0,6);
+  const topMax=top.length?top[0].n:1;
+  const m6=meses.slice(6);
+  const spark=rs=>{
+    const serie=m6.map(m=>rs.filter(r=>(r.data||'').slice(0,7)===m).length);
+    const mx=Math.max(...serie,1), W=86, H=22;
+    const pts=serie.map((v,i)=>`${(i*(W-6)/(serie.length-1)+3).toFixed(1)},${(H-3-(v/mx)*(H-7)).toFixed(1)}`).join(' ');
+    return `<svg class="bi-spark" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+      <polyline points="${pts}" fill="none" stroke="#5B9CF6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${pts.split(' ').pop().split(',')[0]}" cy="${pts.split(' ').pop().split(',')[1]}" r="2.4" fill="#FF9A40"/></svg>`;
+  };
+  const medal=i=>['🥇','🥈','🥉'][i]||`<span style="color:var(--text-3)">${i+1}</span>`;
+  $('res-top-tbl').querySelector('tbody').innerHTML=top.length?top.map((s,i)=>`<tr>
+      <td style="text-align:center">${medal(i)}</td>
+      <td><div style="font-weight:600;color:var(--text)">${escU(s.nome)}</div>${s.lote?`<div style="font-size:10.5px;color:var(--text-3)">Lote ${escU(s.lote)}</div>`:''}</td>
+      <td style="min-width:120px"><div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;height:8px;border-radius:5px;background:var(--ink-3);overflow:hidden"><div style="height:100%;width:${Math.round(s.n/topMax*100)}%;border-radius:5px;background:linear-gradient(90deg,#1B3E8A,#5B9CF6)"></div></div>
+        <span style="font-weight:700;font-size:12px">${s.n}</span></div></td>
+      <td style="white-space:nowrap;color:var(--green-l);font-weight:600">${brl(s.rec)}</td>
+      <td>${spark(s.rs)}</td>
+    </tr>`).join('')
+    :'<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:18px">Sem dados suficientes.</td></tr>';
 }
 
 function renderReservas(){
@@ -6377,10 +6490,11 @@ function renderReservas(){
     <div class="kpi green"><div class="kpi-label">Receita (taxas pagas)</div><div class="kpi-val" style="font-size:16px">${receitaTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div></div>
   `;
 
-  // Dashboard analítico — apenas admin/gestor
+  // Dashboard analítico — apenas admin/gestor (os cards BI substituem a grade de KPIs)
   const dash=$('res-dash');
   if(dash){
     dash.style.display = isMorador ? 'none' : '';
+    const kpiGrid=$('res-kpi'); if(kpiGrid) kpiGrid.style.display = isMorador ? '' : 'none';
     if(!isMorador) renderResDashboard(kpiBase);
   }
 
