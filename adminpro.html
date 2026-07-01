@@ -2985,9 +2985,9 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       </label>
       <div style="display:flex;gap:14px;align-items:center;border-left:1px solid var(--border);padding-left:18px">
         <span style="color:var(--text-3);font-size:12px">Vínculo:</span>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pq-ativo" value="ativos" checked onchange="pesquisaResetLista()" style="accent-color:var(--blue)"> Ativos</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pq-ativo" value="ativos" onchange="pesquisaResetLista()" style="accent-color:var(--blue)"> Ativos</label>
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pq-ativo" value="inativos" onchange="pesquisaResetLista()" style="accent-color:var(--blue)"> Inativos</label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pq-ativo" value="ambos" onchange="pesquisaResetLista()" style="accent-color:var(--blue)"> Ambos</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pq-ativo" value="ambos" checked onchange="pesquisaResetLista()" style="accent-color:var(--blue)"> Ambos</label>
       </div>
       <div style="display:flex;gap:14px;align-items:center;border-left:1px solid var(--border);padding-left:18px">
         <span style="color:var(--text-3);font-size:12px">Tipo:</span>
@@ -5022,9 +5022,11 @@ function abrirPesquisaCondomino(){
   $('m-pesq-con').classList.add('open');
   // limpa os campos de texto
   ['pq-nome','pq-cpf','pq-rg','pq-unidade'].forEach(id=>{ if($(id)) $(id).value=''; });
-  // Tipo padrão = Ambos
+  // Tipo e Vínculo padrão = Ambos (mostra todos ao abrir)
   const rTipo=document.querySelector('input[name="pq-tipo"][value="ambos"]');
   if(rTipo) rTipo.checked=true;
+  const rAtivo=document.querySelector('input[name="pq-ativo"][value="ambos"]');
+  if(rAtivo) rAtivo.checked=true;
   // já mostra a lista completa ao abrir
   _pqMostrou = true;
   pesquisarCondominos();
