@@ -1317,6 +1317,9 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
     grid-template-columns:1fr !important;
   }
 
+  /* ── Reservas: gráficos de tendência empilham ── */
+  #res-trend-grid{ grid-template-columns:1fr !important; }
+
   /* ══ COMUNICADOS / VIEWER PDF ══ */
   /* Layout desktop: flex row (pdf + coluna direita) → mobile: flex column */
   #panel-comunicados > div {
@@ -2510,6 +2513,38 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           </div>
         </div>
         <div class="kpi-grid" id="res-kpi"></div>
+
+        <!-- Dashboard analítico (admin/gestor) -->
+        <div id="res-dash" style="display:none">
+          <div class="chart-row">
+            <div class="chart-card">
+              <div class="cc-label">Reservas por Espaço</div>
+              <div style="position:relative;height:230px"><canvas id="ch-res-espaco"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                <div class="cc-label" style="margin:0">Distribuição por Status</div>
+                <div id="res-donut-total" style="font-size:11px;color:var(--text-3)"></div>
+              </div>
+              <div style="position:relative;height:230px"><canvas id="ch-res-status"></canvas></div>
+            </div>
+          </div>
+          <div class="chart-row" style="grid-template-columns:1fr">
+            <div class="chart-card">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+                <div class="cc-label" style="margin:0">Tendência — últimos 6 meses</div>
+                <div style="display:flex;gap:14px;font-size:11px;color:var(--text-3)">
+                  <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--gold);display:inline-block"></span> Reservas</span>
+                  <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:var(--green);display:inline-block"></span> Receita (taxas pagas)</span>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px" id="res-trend-grid">
+                <div style="position:relative;height:200px"><canvas id="ch-res-trend"></canvas></div>
+                <div style="position:relative;height:200px"><canvas id="ch-res-receita"></canvas></div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- Banner de Alertas de Reservas Próximas -->
         <div id="res-alertas-banner" style="display:none"></div>
@@ -6188,6 +6223,79 @@ const ESPACOS_EMOJI={};
 function initRes(){
   if(!G('reservas')) S('reservas',[]);
 }
+// Lê variáveis de tema para os gráficos se adaptarem a claro/escuro
+function _resChartTheme(){
+  const cs=getComputedStyle(document.documentElement);
+  const v=n=>cs.getPropertyValue(n).trim();
+  return {
+    txt: v('--text-2')||'#8A9BBB',
+    mut: v('--text-3')||'#4E6080',
+    surf: v('--card')||'#1A2847',
+    grid: (document.documentElement.classList.contains('light')||document.body.classList.contains('light'))
+           ? 'rgba(27,43,94,0.08)' : 'rgba(255,255,255,0.05)',
+    gold: v('--gold')||'#E87722', green: v('--green')||'#18A068',
+    amber: v('--amber')||'#F0A843', red: v('--red')||'#E05252',
+    blue: v('--blue')||'#4A90D9', teal:'#14B8A6'
+  };
+}
+
+// Painel analítico de Reservas (3 visões: por espaço, por status, tendências)
+function renderResDashboard(base){
+  const T=_resChartTheme();
+  const hoje=new Date();
+
+  // ── 1) Reservas por Espaço (barra horizontal, magnitude, hue único) ──
+  const porEsp={};
+  base.forEach(r=>{ const e=(r.espaco||'—'); if(r.status!=='cancelada') porEsp[e]=(porEsp[e]||0)+1; });
+  const espEntries=Object.entries(porEsp).sort((a,b)=>b[1]-a[1]);
+  mkChart('ch-res-espaco',{type:'bar',data:{
+    labels:espEntries.map(e=>e[0]),
+    datasets:[{data:espEntries.map(e=>e[1]),backgroundColor:T.gold,
+      borderRadius:4,borderSkipped:false,barPercentage:0.72,categoryPercentage:0.82,
+      maxBarThickness:26}]
+  },options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.parsed.x} reserva(s)`}}},
+    scales:{
+      x:{ticks:{color:T.mut,precision:0},grid:{color:T.grid},beginAtZero:true},
+      y:{ticks:{color:T.txt,font:{size:11}},grid:{display:false}}
+    }}});
+
+  // ── 2) Distribuição por Status (doughnut, composição, cores de status) ──
+  const stDefs=[['confirmada','Confirmada',T.green],['pendente','Pendente',T.amber],
+    ['realizada','Realizada',T.blue],['concluida','Concluída',T.teal],['cancelada','Cancelada',T.red]];
+  const stData=stDefs.map(s=>base.filter(r=>r.status===s[0]).length);
+  const stTotal=stData.reduce((a,b)=>a+b,0);
+  const totEl=$('res-donut-total'); if(totEl) totEl.textContent=`${stTotal} no total`;
+  mkChart('ch-res-status',{type:'doughnut',data:{
+    labels:stDefs.map(s=>s[1]),
+    datasets:[{data:stData,backgroundColor:stDefs.map(s=>s[2]),
+      borderColor:T.surf,borderWidth:3,hoverOffset:6}]
+  },options:{responsive:true,maintainAspectRatio:false,cutout:'66%',
+    plugins:{legend:{position:'right',labels:{color:T.txt,font:{size:11},padding:12,usePointStyle:true,pointStyle:'circle',boxWidth:8}},
+      tooltip:{callbacks:{label:c=>{const pct=stTotal?Math.round(c.parsed/stTotal*100):0;return ` ${c.label}: ${c.parsed} (${pct}%)`;}}}}}});
+
+  // ── 3) Tendências — últimos 6 meses (duas visões, um eixo cada) ──
+  const meses=[]; for(let i=5;i>=0;i--){ const d=new Date(hoje.getFullYear(),hoje.getMonth()-i,1); meses.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); }
+  const lblMes=meses.map(mShort);
+  const cntMes=meses.map(m=>base.filter(r=>(r.data||'').slice(0,7)===m && r.status!=='cancelada').length);
+  const recMes=meses.map(m=>base.filter(r=>(r.data||'').slice(0,7)===m && r.pgto==='pago').reduce((s,r)=>s+(parseFloat(r.taxa)||0),0));
+
+  const areaLine=(id,labels,data,cor,rgba,fmtTip)=>mkChart(id,{type:'line',data:{
+    labels,datasets:[{data,borderColor:cor,backgroundColor:rgba,fill:true,tension:0.4,
+      borderWidth:2,pointBackgroundColor:cor,pointBorderColor:T.surf,pointBorderWidth:2,
+      pointRadius:4,pointHoverRadius:6}]
+  },options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:fmtTip}}},
+    scales:{
+      x:{ticks:{color:T.mut,font:{size:11}},grid:{display:false}},
+      y:{ticks:{color:T.mut,precision:0},grid:{color:T.grid},beginAtZero:true}
+    }}});
+
+  areaLine('ch-res-trend',lblMes,cntMes,T.gold,'rgba(232,119,34,0.10)',c=>` ${c.parsed.y} reserva(s)`);
+  areaLine('ch-res-receita',lblMes,recMes,T.green,'rgba(24,160,104,0.10)',
+    c=>' '+c.parsed.y.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}));
+}
+
 function renderReservas(){
   // Fallback: tenta carregar do localStorage se o cache estiver vazio
   if(!G('reservas')){
@@ -6268,6 +6376,13 @@ function renderReservas(){
     <div class="kpi gold"><div class="kpi-label">Hoje</div><div class="kpi-val">${hj}</div></div>
     <div class="kpi green"><div class="kpi-label">Receita (taxas pagas)</div><div class="kpi-val" style="font-size:16px">${receitaTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div></div>
   `;
+
+  // Dashboard analítico — apenas admin/gestor
+  const dash=$('res-dash');
+  if(dash){
+    dash.style.display = isMorador ? 'none' : '';
+    if(!isMorador) renderResDashboard(kpiBase);
+  }
 
   const lista=$('res-lista'); lista.innerHTML='';
 
