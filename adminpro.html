@@ -4718,8 +4718,8 @@ let _conTels = []; // [{tipo:'Celular', numero:'(00) 00000-0000'}]
 const CON_TEL_TIPOS = ['Celular','Residencial','Comercial','Recado','WhatsApp','Outro'];
 
 // Adiciona uma linha de telefone (vazia por padrão)
-function conAddTel(tipo, numero){
-  _conTels.push({ tipo: tipo || 'Celular', numero: numero || '' });
+function conAddTel(tipo, numero, nome){
+  _conTels.push({ tipo: tipo || 'Celular', nome: nome || '', numero: numero || '' });
   conRenderTels();
   // foca o número recém-adicionado
   const inps=document.querySelectorAll('#con-tels-list .con-tel-num');
@@ -4738,10 +4738,11 @@ function conRenderTels(){
     return;
   }
   box.innerHTML=_conTels.map((t,i)=>`
-    <div style="display:grid;grid-template-columns:150px 1fr 38px;gap:8px;align-items:center">
+    <div style="display:grid;grid-template-columns:150px 1fr 1fr 38px;gap:8px;align-items:center">
       <select onchange="conSyncTel(${i},'tipo',this.value)" style="height:38px">
         ${CON_TEL_TIPOS.map(op=>`<option value="${op}"${t.tipo===op?' selected':''}>${op}</option>`).join('')}
       </select>
+      <input type="text" value="${escU(t.nome||'')}" placeholder="De quem? (ex: João, Esposa)" oninput="conSyncTel(${i},'nome',this.value)">
       <input type="text" class="con-tel-num" value="${escU(t.numero||'')}" placeholder="(00) 99999-9999" oninput="conSyncTel(${i},'numero',this.value)">
       <button type="button" class="btn btn-ghost" onclick="conRemoveTel(${i})" title="Remover" style="height:38px;padding:0;color:var(--red)"><i class="fa-solid fa-trash"></i></button>
     </div>`).join('');
@@ -4986,8 +4987,8 @@ function editarCondomino(cod){
   if($('con-email'))      $('con-email').value=d.email||'';
   // telefones: usa o array novo; se não houver, migra o campo antigo (string única)
   _conTels = Array.isArray(d.telefones) && d.telefones.length
-    ? d.telefones.map(t=>({tipo:t.tipo||'Celular', numero:t.numero||''}))
-    : (d.telefone ? [{tipo:'Celular', numero:d.telefone}] : []);
+    ? d.telefones.map(t=>({tipo:t.tipo||'Celular', nome:t.nome||'', numero:t.numero||''}))
+    : (d.telefone ? [{tipo:'Celular', nome:'', numero:d.telefone}] : []);
   conRenderTels();
   _conDependentes=[...(d.dependentes||[])];
   if($('con-form-title')) $('con-form-title').textContent='Editar Cond\u00f4mino \u2014 '+cod;
