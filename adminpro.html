@@ -1836,7 +1836,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
               Unidades Cadastradas
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto">
-              <input type="text" id="uni-busca" placeholder="Buscar unidade, cidade..." oninput="renderUnidades()"
+              <input type="text" id="uni-busca" placeholder="Buscar unidade, cidade, proprietário, morador..." oninput="renderUnidades()"
                 style="padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:210px;outline:none;">
               <select id="uni-filtro-tipo" onchange="renderUnidades()"
                 style="padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;">
@@ -2973,11 +2973,11 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
     <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:12px;margin-bottom:12px">
       <div class="fg" style="margin:0">
         <label>Nome</label>
-        <input type="text" id="pq-nome" placeholder="" onkeydown="if(event.key==='Enter'){event.preventDefault();pesquisaExecutar();}else if(event.key==='Tab'){pesquisaExecutar();}">
+        <input type="text" id="pq-nome" placeholder="" oninput="pesquisaExecutar()">
       </div>
-      <div class="fg" style="margin:0"><label>CPF</label><input type="text" id="pq-cpf" placeholder="" onkeydown="if(event.key==='Enter'){event.preventDefault();pesquisaExecutar();}else if(event.key==='Tab'){pesquisaExecutar();}"></div>
-      <div class="fg" style="margin:0"><label>RG</label><input type="text" id="pq-rg" placeholder="" onkeydown="if(event.key==='Enter'){event.preventDefault();pesquisaExecutar();}else if(event.key==='Tab'){pesquisaExecutar();}"></div>
-      <div class="fg" style="margin:0"><label>Unidade</label><input type="text" id="pq-unidade" placeholder="" onkeydown="if(event.key==='Enter'){event.preventDefault();pesquisaExecutar();}else if(event.key==='Tab'){pesquisaExecutar();}" style="text-transform:uppercase"></div>
+      <div class="fg" style="margin:0"><label>CPF</label><input type="text" id="pq-cpf" placeholder="" oninput="pesquisaExecutar()"></div>
+      <div class="fg" style="margin:0"><label>RG</label><input type="text" id="pq-rg" placeholder="" oninput="pesquisaExecutar()"></div>
+      <div class="fg" style="margin:0"><label>Unidade</label><input type="text" id="pq-unidade" placeholder="" oninput="pesquisaExecutar()" style="text-transform:uppercase"></div>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin-bottom:12px;font-size:13px">
       <label style="display:flex;align-items:center;gap:7px;cursor:pointer">
@@ -2991,9 +2991,9 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       </div>
       <div style="display:flex;gap:14px;align-items:center;border-left:1px solid var(--border);padding-left:18px">
         <span style="color:var(--text-3);font-size:12px">Tipo:</span>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pq-tipo" value="condominos" checked onchange="pesquisaResetLista()" style="accent-color:var(--gold)"> Condôminos</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pq-tipo" value="condominos" onchange="pesquisaResetLista()" style="accent-color:var(--gold)"> Condôminos</label>
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pq-tipo" value="dependentes" onchange="pesquisaResetLista()" style="accent-color:var(--gold)"> Dependentes</label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pq-tipo" value="ambos" onchange="pesquisaResetLista()" style="accent-color:var(--gold)"> Ambos</label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="pq-tipo" value="ambos" checked onchange="pesquisaResetLista()" style="accent-color:var(--gold)"> Ambos</label>
       </div>
     </div>
 
@@ -4298,7 +4298,9 @@ function renderUnidades(){
       semAcento(l.cod).includes(busca) ||
       semAcento(l.cidade).includes(busca) ||
       semAcento(l.bairro).includes(busca) ||
-      semAcento(l.rua).includes(busca));
+      semAcento(l.rua).includes(busca) ||
+      semAcento(condominoNome(l.proprietario)).includes(busca) ||
+      semAcento(condominoNome(l.morador)).includes(busca));
   }
 
   const dash = v => v ? escU(v) : '<span style="color:var(--text-3)">—</span>';
@@ -5018,30 +5020,34 @@ let _pqMostrou = false; // a lista só aparece após buscar/listar
 
 function abrirPesquisaCondomino(){
   $('m-pesq-con').classList.add('open');
-  // limpa filtros e NÃO mostra a lista ainda
+  // limpa os campos de texto
   ['pq-nome','pq-cpf','pq-rg','pq-unidade'].forEach(id=>{ if($(id)) $(id).value=''; });
-  _pqMostrou = false;
-  pqPlaceholder();
+  // Tipo padrão = Ambos
+  const rTipo=document.querySelector('input[name="pq-tipo"][value="ambos"]');
+  if(rTipo) rTipo.checked=true;
+  // já mostra a lista completa ao abrir
+  _pqMostrou = true;
+  pesquisarCondominos();
   setTimeout(()=>{ if($('pq-nome')) $('pq-nome').focus(); }, 50);
 }
 
 // Mensagem inicial enquanto nada foi pesquisado
 function pqPlaceholder(){
   const tb=$('pq-tbody');
-  if(tb) tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:28px">Digite um filtro e pressione <strong>Enter</strong> ou <strong>Tab</strong> — ou clique no cabeçalho para listar todos.</td></tr>';
+  if(tb) tb.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:28px">Digite um filtro para pesquisar.</td></tr>';
   const cnt=$('pq-count'); if(cnt) cnt.textContent='';
 }
 
-// Executa a busca a partir dos campos (Enter/Tab)
+// Filtragem em tempo real (ao digitar em qualquer campo ou trocar filtros)
 function pesquisaExecutar(){
   _pqMostrou = true;
   pesquisarCondominos();
 }
 
-// Alterar radios/checkbox esconde a lista — só reaparece ao clicar na barra ou Enter/Tab
+// Trocar radios/checkbox refiltra mantendo a lista visível
 function pesquisaResetLista(){
-  _pqMostrou = false;
-  pqPlaceholder();
+  _pqMostrou = true;
+  pesquisarCondominos();
 }
 
 function pesquisarCondominos(){
