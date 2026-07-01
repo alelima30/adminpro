@@ -79,7 +79,13 @@
   .burger{display:none}
 
   /* ── Hero ── */
-  .hero{background:linear-gradient(160deg,#FBEBD9,#F7EEE1 60%,#EFE1CE);position:relative;overflow:hidden}
+  .hero{
+    position:relative;overflow:hidden;
+    background:
+      linear-gradient(100deg, rgba(253,248,240,.975) 0%, rgba(251,235,217,.93) 32%, rgba(247,238,225,.66) 55%, rgba(239,225,206,.38) 100%),
+      #F4E7D4 url('https://images.pexels.com/photos/16855157/pexels-photo-16855157.jpeg?auto=compress&cs=tinysrgb&w=1500') center/cover no-repeat;
+  }
+  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(239,225,206,.5),transparent 30%);pointer-events:none}
   .hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:2rem;align-items:center;padding:3.4rem 0 3.6rem}
   .hero .eyebrow{display:inline-flex;align-items:center;gap:.4rem;background:#fff;color:var(--sage-dark);font-weight:800;font-size:.8rem;padding:.4rem .9rem;border-radius:100px;box-shadow:var(--shadow-sm);margin-bottom:1rem}
   .hero h1{font-size:clamp(2.2rem,5vw,3.6rem);color:var(--ink)}
@@ -88,11 +94,18 @@
   .hero-cta{display:flex;gap:.8rem;flex-wrap:wrap}
   .hero-art{position:relative;display:grid;place-items:center}
   .hero-art .blob{position:absolute;inset:0;margin:auto;width:92%;aspect-ratio:1;background:radial-gradient(circle at 50% 40%,#F4C9A6,transparent 70%);filter:blur(6px)}
-  .hero-card{position:relative;background:#fff;border-radius:30px;box-shadow:var(--shadow);padding:1.2rem;transform:rotate(-3deg)}
-  .hero-card svg{width:100%;height:auto}
+  .hero-card{position:relative;background:#fff;border-radius:20px;box-shadow:0 26px 55px rgba(74,63,53,.22);padding:16px 16px 0;transform:rotate(-3deg);transition:.4s cubic-bezier(.4,0,.2,1);z-index:2}
+  .hero-card:hover{transform:rotate(-1.5deg) translateY(-6px)}
+  .hero-card::before{content:"";position:absolute;top:-13px;left:50%;transform:translateX(-50%) rotate(-4deg);width:96px;height:26px;background:rgba(227,168,87,.6);border:1px solid rgba(227,168,87,.5);border-radius:3px;box-shadow:var(--shadow-sm)}
+  .hero-card .ph{position:relative;border-radius:12px;overflow:hidden;background:#F7EEE1;aspect-ratio:1/1.04}
+  .hero-card .ph svg{position:absolute;inset:0;width:100%;height:100%}
+  .hero-card .ph .hero-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s}
+  .hero-card .ph .hero-photo.ok{opacity:1}
+  .hero-card .cap{font-family:var(--head);font-weight:700;color:var(--ink-soft);text-align:center;padding:.8rem 0 .95rem;font-size:1.05rem;letter-spacing:.2px}
+  .hero-card .cap b{color:var(--terra)}
   .floaty{position:absolute;background:#fff;border-radius:16px;box-shadow:var(--shadow-sm);padding:.6rem .8rem;font-weight:800;font-size:.85rem;display:flex;align-items:center;gap:.4rem}
-  .floaty.one{top:6%;right:2%;color:var(--terra)}
-  .floaty.two{bottom:4%;left:-2%;color:var(--sage-dark)}
+  .floaty.one{top:8%;left:-1%;right:auto;color:var(--terra);z-index:3}
+  .floaty.two{bottom:16%;right:-4%;left:auto;color:var(--sage-dark);z-index:3}
   .floaty .em{font-size:1.2rem}
 
   /* ── Marquee benefits ── */
@@ -333,7 +346,8 @@
       <div class="floaty one"><span class="em">🌿</span> 100% algodão</div>
       <div class="floaty two"><span class="em">💛</span> +12 mil famílias</div>
       <div class="hero-card">
-        <!-- Illustration: baby onesie + owl -->
+        <div class="ph">
+        <!-- Ilustração de reserva (aparece se a foto não carregar / offline) -->
         <svg viewBox="0 0 320 300" aria-label="Ilustração de roupas infantis">
           <rect x="0" y="0" width="320" height="300" rx="24" fill="#F7EEE1"/>
           <!-- little cloud -->
@@ -357,6 +371,10 @@
           <!-- stars -->
           <g fill="#E3A857"><circle cx="40" cy="150" r="4"/><circle cx="285" cy="140" r="5"/><circle cx="270" cy="230" r="4"/><circle cx="50" cy="250" r="5"/></g>
         </svg>
+        <!-- Foto real da moldura -->
+        <img class="hero-photo" src="https://images.pexels.com/photos/161593/pexels-photo-161593.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=680&h=710" alt="Criança vestindo Sonia Kids" loading="eager" onload="this.classList.add('ok')" onerror="this.remove()">
+        </div>
+        <div class="cap">🦉 Coleção <b>Ninho</b> · Primavera</div>
       </div>
     </div>
   </div>
