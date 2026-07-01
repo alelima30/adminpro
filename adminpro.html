@@ -2578,7 +2578,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
             </div>
             <div class="chart-card">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-                <div class="cc-label" style="margin:0">🏆 Top Solicitantes</div>
+                <div class="cc-label" style="margin:0;display:flex;align-items:center;gap:7px"><i class="fa-solid fa-ranking-star" style="color:var(--gold)"></i>Top Solicitantes</div>
                 <div style="font-size:11px;color:var(--text-3)">últimos 6 meses por linha</div>
               </div>
               <div class="tbl-wrap"><table id="res-top-tbl" style="font-size:12.5px">
@@ -2593,7 +2593,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         <div id="res-alertas-banner" style="display:none"></div>
         <div class="card" style="margin-bottom:16px">
           <div class="card-head" style="flex-wrap:wrap;gap:10px">
-            <div class="card-title"><div class="card-icon">🔍</div>Pesquisa & Filtros</div>
+            <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-magnifying-glass"></i></div>Pesquisa & Filtros</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
               <input type="text" id="res-busca" placeholder="Nome, lote, observação..." oninput="renderReservas()"
                 style="padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:200px;outline:none;">
@@ -2636,7 +2636,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         <!-- Lista de Reservas -->
         <div class="card">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon">📋</div>Reservas</div>
+            <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-calendar-check"></i></div>Reservas</div>
             <div style="display:flex;gap:8px">
               <select id="res-ordem" onchange="renderReservas()"
                 style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;">
@@ -3328,18 +3328,18 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <div class="fg"><label>Forma de Pagamento</label>
             <select id="mres-forma-pgto">
               <option value="">Selecione...</option>
-              <option value="pix">💠 PIX</option>
-              <option value="dinheiro">💵 Dinheiro</option>
-              <option value="cartao_credito">💳 Cartão de Crédito</option>
-              <option value="cartao_debito">💳 Cartão de Débito</option>
-              <option value="transferencia">🏦 Transferência / TED</option>
+              <option value="pix">PIX</option>
+              <option value="dinheiro">Dinheiro</option>
+              <option value="cartao_credito">Cartão de Crédito</option>
+              <option value="cartao_debito">Cartão de Débito</option>
+              <option value="transferencia">Transferência / TED</option>
             </select>
           </div>
           <div class="fg"><label>Status do Pagamento</label>
             <select id="mres-pgto">
-              <option value="pendente">🟡 Pendente</option>
-              <option value="pago">💚 Pago</option>
-              <option value="isento">🔵 Isento</option>
+              <option value="pendente">Pendente</option>
+              <option value="pago">Pago</option>
+              <option value="isento">Isento</option>
             </select>
           </div>
           <div class="fg"><label>Data do Pagamento</label><input type="date" id="mres-data-pgto"></div>
@@ -3363,7 +3363,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         <!-- Termo de Responsabilidade — obrigatório para todos -->
         <div id="mres-termo-box" style="background:rgba(232,119,34,0.07);border:1px solid rgba(232,119,34,0.3);border-radius:12px;padding:16px 18px;margin-bottom:12px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <span style="font-size:20px">📝</span>
+            <i class="fa-solid fa-file-signature" style="font-size:18px;color:var(--gold)"></i>
             <div style="flex:1">
               <div style="font-size:13px;font-weight:700;color:var(--gold)">Termo de Responsabilidade de Uso</div>
               <div style="font-size:12px;color:var(--text-3)" id="mres-termo-espaco-nome">Selecione o espaço para ver o termo</div>
@@ -3374,36 +3374,36 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
             <input type="checkbox" id="mres-chk-termo" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer;margin-top:2px;flex-shrink:0">
             <span id="mres-termo-texto">Li e aceito o Termo de Responsabilidade de Uso deste espaço. Estou ciente das regras e responsabilidades.</span>
           </label>
-          <div id="mres-termo-aviso" style="display:none;margin-top:8px;font-size:12px;color:var(--red);font-weight:600">⚠️ O aceite do Termo de Responsabilidade é obrigatório para confirmar a reserva.</div>
+          <div id="mres-termo-aviso" style="display:none;margin-top:8px;font-size:12px;color:var(--red);font-weight:600"><i class="fa-solid fa-triangle-exclamation"></i> O aceite do Termo de Responsabilidade é obrigatório para confirmar a reserva.</div>
         </div>
         <!-- Checklist admin (vistoria etc) -->
         <div id="mres-chk-admin" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
           <label style="display:flex;align-items:center;gap:10px;background:var(--ink-3);padding:12px 14px;border-radius:10px;cursor:pointer;border:1px solid var(--border);text-transform:none;letter-spacing:0;font-size:14px;font-weight:500">
             <input type="checkbox" id="mres-chk-vistoria-pre" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer">
-            🔍 Vistoria Pré-Evento
+            <i class="fa-solid fa-magnifying-glass" style="color:var(--gold);width:16px;text-align:center"></i> Vistoria Pré-Evento
           </label>
           <label style="display:flex;align-items:center;gap:10px;background:var(--ink-3);padding:12px 14px;border-radius:10px;cursor:pointer;border:1px solid var(--border);text-transform:none;letter-spacing:0;font-size:14px;font-weight:500">
             <input type="checkbox" id="mres-chk-vistoria-pos" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer">
-            ✅ Vistoria Pós-Evento
+            <i class="fa-solid fa-clipboard-check" style="color:var(--gold);width:16px;text-align:center"></i> Vistoria Pós-Evento
           </label>
           <label style="display:flex;align-items:center;gap:10px;background:var(--ink-3);padding:12px 14px;border-radius:10px;cursor:pointer;border:1px solid var(--border);text-transform:none;letter-spacing:0;font-size:14px;font-weight:500">
             <input type="checkbox" id="mres-chk-caucao-dev" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer">
-            💰 Caução Devolvida
+            <i class="fa-solid fa-money-bill-wave" style="color:var(--gold);width:16px;text-align:center"></i> Caução Devolvida
           </label>
           <label style="display:flex;align-items:center;gap:10px;background:var(--ink-3);padding:12px 14px;border-radius:10px;cursor:pointer;border:1px solid var(--border);text-transform:none;letter-spacing:0;font-size:14px;font-weight:500">
             <input type="checkbox" id="mres-chk-regras" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer">
-            📋 Regras Informadas
+            <i class="fa-solid fa-list-check" style="color:var(--gold);width:16px;text-align:center"></i> Regras Informadas
           </label>
           <label style="display:flex;align-items:center;gap:10px;background:var(--ink-3);padding:12px 14px;border-radius:10px;cursor:pointer;border:1px solid var(--border);text-transform:none;letter-spacing:0;font-size:14px;font-weight:500">
             <input type="checkbox" id="mres-chk-devolucao" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer">
-            🔑 Chave Devolvida
+            <i class="fa-solid fa-key" style="color:var(--gold);width:16px;text-align:center"></i> Chave Devolvida
           </label>
         </div>
       </div>
 
       <!-- Alertas / Notificações -->
       <div class="fg full" style="grid-column:1/-1;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:4px;margin-top:8px">
-        <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold)">▸ 🔔 Alertas & Notificações</span>
+        <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold)"><i class="fa-solid fa-bell" style="margin-right:6px"></i>Alertas & Notificações</span>
       </div>
       <div class="fg full" style="grid-column:1/-1">
         <div style="background:rgba(232,119,34,0.06);border:1px solid rgba(232,119,34,0.18);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:16px">
@@ -3411,11 +3411,11 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <!-- Contatos -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div class="fg">
-              <label>📱 WhatsApp para Alerta</label>
+              <label><i class="fa-brands fa-whatsapp" style="color:var(--green-l)"></i> WhatsApp para Alerta</label>
               <input type="text" id="mres-alerta-whatsapp" placeholder="5511999999999 (DDI+DDD+número)">
             </div>
             <div class="fg">
-              <label>✉️ E-mails para Alerta</label>
+              <label><i class="fa-solid fa-envelope" style="color:var(--blue)"></i> E-mails para Alerta</label>
               <input type="text" id="mres-alerta-email" placeholder="email1@gmail.com, email2@gmail.com">
               <span style="font-size:11px;color:var(--text-3)">Separe múltiplos e-mails com vírgula</span>
             </div>
@@ -3423,28 +3423,28 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
           <!-- Alertas rápidos (checkboxes) -->
           <div>
-            <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-3);margin-bottom:10px">⚡ Alertas Rápidos — marque quantos quiser</div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-3);margin-bottom:10px"><i class="fa-solid fa-bolt" style="margin-right:5px"></i>Alertas Rápidos — marque quantos quiser</div>
             <div style="display:flex;flex-wrap:wrap;gap:8px" id="mres-alertas-rapidos">
               <label class="alerta-chip" data-mins="1440">
-                <input type="checkbox" value="1440" style="display:none"> 📅 1 dia antes
+                <input type="checkbox" value="1440" style="display:none"> 1 dia antes
               </label>
               <label class="alerta-chip" data-mins="720">
-                <input type="checkbox" value="720" style="display:none"> 🌙 12h antes
+                <input type="checkbox" value="720" style="display:none"> 12h antes
               </label>
               <label class="alerta-chip" data-mins="360">
-                <input type="checkbox" value="360" style="display:none"> ⏰ 6h antes
+                <input type="checkbox" value="360" style="display:none"> 6h antes
               </label>
               <label class="alerta-chip" data-mins="240">
-                <input type="checkbox" value="240" style="display:none"> ⏰ 4h antes
+                <input type="checkbox" value="240" style="display:none"> 4h antes
               </label>
               <label class="alerta-chip" data-mins="120">
-                <input type="checkbox" value="120" style="display:none"> ⏰ 2h antes
+                <input type="checkbox" value="120" style="display:none"> 2h antes
               </label>
               <label class="alerta-chip" data-mins="60">
-                <input type="checkbox" value="60" style="display:none"> ⏰ 1h antes
+                <input type="checkbox" value="60" style="display:none"> 1h antes
               </label>
               <label class="alerta-chip" data-mins="30">
-                <input type="checkbox" value="30" style="display:none"> ⏰ 30min antes
+                <input type="checkbox" value="30" style="display:none"> 30min antes
               </label>
             </div>
           </div>
@@ -3452,7 +3452,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <!-- Alertas em horário fixo -->
           <div>
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-3)">🕐 Alertar em Horário Específico</div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-3)"><i class="fa-regular fa-clock" style="margin-right:5px"></i>Alertar em Horário Específico</div>
               <button type="button" onclick="addAlertaHorario()" class="btn btn-ghost btn-sm" style="font-size:11px">+ Adicionar horário</button>
             </div>
             <div id="mres-alertas-horarios" style="display:flex;flex-direction:column;gap:8px"></div>
@@ -3471,7 +3471,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gold" onclick="salvarRes()">💾 Salvar Reserva</button>
+      <button class="btn btn-gold" onclick="salvarRes()"><i class="fa-solid fa-floppy-disk"></i> Salvar Reserva</button>
     </div>
   </div>
 </div>
@@ -6297,11 +6297,9 @@ function renderResDashboard(base){
   // ── 1) Cards KPI com comparação vs mês anterior ──
   const iAtu=11, iAnt=10;
   const pct=(a,b)=>b>0?Math.round((a-b)/b*100):(a>0?100:0);
-  const badge=(delta,invert)=>{
-    const up=delta>0, flat=delta===0;
-    const good=invert?!up:up;
-    const arrow=flat?'•':(up?'⬆':'⬇');
-    return `<span class="bk-badge">${arrow} ${Math.abs(delta)}% vs mês anterior</span>`;
+  const badge=delta=>{
+    const icon=delta===0?'fa-minus':(delta>0?'fa-arrow-trend-up':'fa-arrow-trend-down');
+    return `<span class="bk-badge"><i class="fa-solid ${icon}"></i> ${Math.abs(delta)}% vs mês anterior</span>`;
   };
   const totAtivas=base.filter(r=>r.status!=='cancelada').length;
   const recTotal=base.reduce((s,r)=>(r.pgto==='pago'?s+(parseFloat(r.taxa)||0):s),0);
@@ -6312,8 +6310,8 @@ function renderResDashboard(base){
   $('res-bi-kpis').innerHTML=`
     <div class="bikpi g-gold"><div class="bk-label">Reservas no Mês</div><div class="bk-val">${cntMes[iAtu]}</div>${badge(dPct)}</div>
     <div class="bikpi g-green"><div class="bk-label">Receita no Mês</div><div class="bk-val">${brl(recMes[iAtu])}</div>${badge(dRec)}</div>
-    <div class="bikpi g-blue"><div class="bk-label">Confirmadas no Mês</div><div class="bk-val">${confAtu}</div><span class="bk-badge">📋 ${totAtivas} ativas no total</span></div>
-    <div class="bikpi g-teal"><div class="bk-label">Receita Acumulada</div><div class="bk-val">${brl(recTotal)}</div><span class="bk-badge">${pendTot>0?'⏳ '+pendTot+' pendente(s)':'✓ sem pendências'}</span></div>`;
+    <div class="bikpi g-blue"><div class="bk-label">Confirmadas no Mês</div><div class="bk-val">${confAtu}</div><span class="bk-badge"><i class="fa-regular fa-calendar-check"></i> ${totAtivas} ativas no total</span></div>
+    <div class="bikpi g-teal"><div class="bk-label">Receita Acumulada</div><div class="bk-val">${brl(recTotal)}</div><span class="bk-badge">${pendTot>0?'<i class="fa-regular fa-clock"></i> '+pendTot+' pendente(s)':'<i class="fa-solid fa-check"></i> sem pendências'}</span></div>`;
 
   // ── 2) Barras mensais com rótulo de valor + variação % (estilo BI) ──
   const lblPlugin={id:'resLbl',afterDatasetsDraw(chart){
@@ -6330,7 +6328,7 @@ function renderResDashboard(base){
         if(cntMes[i-1]>0||v>0){
           ctx.font='600 9.5px Inter,system-ui,sans-serif';
           ctx.fillStyle=d>0?T.green:(d<0?T.red:T.mut);
-          ctx.fillText((d>0?'⬆':(d<0?'⬇':'•'))+Math.abs(d)+'%', bar.x, bar.y-19);
+          ctx.fillText((d>0?'▲ ':(d<0?'▼ ':'– '))+Math.abs(d)+'%', bar.x, bar.y-19);
         }
       }
       ctx.restore();
@@ -6396,7 +6394,10 @@ function renderResDashboard(base){
       <polyline points="${pts}" fill="none" stroke="#5B9CF6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
       <circle cx="${pts.split(' ').pop().split(',')[0]}" cy="${pts.split(' ').pop().split(',')[1]}" r="2.4" fill="#FF9A40"/></svg>`;
   };
-  const medal=i=>['🥇','🥈','🥉'][i]||`<span style="color:var(--text-3)">${i+1}</span>`;
+  const rankCores=['rgba(232,119,34,0.9)','rgba(138,155,187,0.55)','rgba(184,94,15,0.55)'];
+  const medal=i=>i<3
+    ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:${rankCores[i]};color:#fff;font-size:11px;font-weight:800">${i+1}</span>`
+    : `<span style="color:var(--text-3);font-weight:600">${i+1}</span>`;
   $('res-top-tbl').querySelector('tbody').innerHTML=top.length?top.map((s,i)=>`<tr>
       <td style="text-align:center">${medal(i)}</td>
       <td><div style="font-weight:600;color:var(--text)">${escU(s.nome)}</div>${s.lote?`<div style="font-size:10.5px;color:var(--text-3)">Lote ${escU(s.lote)}</div>`:''}</td>
@@ -6505,7 +6506,7 @@ function renderReservas(){
   if(isMorador){
     const bannerM=document.createElement('div');
     bannerM.style.cssText='display:flex;align-items:center;gap:12px;padding:12px 18px;border-radius:10px;margin-bottom:14px;background:rgba(232,119,34,0.08);border:1px solid rgba(232,119,34,0.2);';
-    bannerM.innerHTML=`<span style="font-size:20px">👋</span><div><div style="font-size:13px;font-weight:600;color:var(--gold)">Suas Reservas</div><div style="font-size:12px;color:var(--text-3)">Aqui você vê e gerencia suas próprias reservas. Para verificar disponibilidade, clique em Nova Reserva.</div></div>`;
+    bannerM.innerHTML=`<i class="fa-solid fa-circle-user" style="font-size:20px;color:var(--gold)"></i><div><div style="font-size:13px;font-weight:600;color:var(--gold)">Suas Reservas</div><div style="font-size:12px;color:var(--text-3)">Aqui você vê e gerencia suas próprias reservas. Para verificar disponibilidade, clique em Nova Reserva.</div></div>`;
     lista.appendChild(bannerM);
   }
 
@@ -6514,13 +6515,13 @@ function renderReservas(){
     banner.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 18px;border-radius:10px;margin-bottom:14px;background:rgba(91,156,246,0.08);border:1px solid rgba(91,156,246,0.25);';
     banner.innerHTML=`
       <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:18px">🗂️</span>
+        <i class="fa-solid fa-box-archive" style="font-size:17px;color:var(--blue)"></i>
         <div>
           <div style="font-size:13px;font-weight:600;color:var(--blue)">${passadasOcultas} reserva${passadasOcultas>1?'s':''} passada${passadasOcultas>1?'s':''} ocultada${passadasOcultas>1?'s':''}</div>
           <div style="font-size:11px;color:var(--text-3)">Exibindo apenas reservas de hoje em diante. Use o filtro para ver o histórico.</div>
         </div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="mostrarTodasRes()" style="white-space:nowrap;border-color:rgba(91,156,246,0.3);color:var(--blue)">📋 Ver histórico completo</button>
+      <button class="btn btn-ghost btn-sm" onclick="mostrarTodasRes()" style="white-space:nowrap;border-color:rgba(91,156,246,0.3);color:var(--blue)"><i class="fa-solid fa-clock-rotate-left"></i> Ver histórico completo</button>
     `;
     lista.appendChild(banner);
   }
@@ -6673,14 +6674,14 @@ function onEspacoChange(reservaExistente){
     if(aceiteTaxaWrap) aceiteTaxaWrap.style.display = taxaVal ? 'block' : 'none';
     if($('mres-fin-aceite-taxa-txt') && taxaVal)
       $('mres-fin-aceite-taxa-txt').textContent =
-        '✅ Estou ciente e aceito a taxa de '+fmtR(taxaVal)+' pelo uso do '+espaco+'.';
+        'Estou ciente e aceito a taxa de '+fmtR(taxaVal)+' pelo uso do '+espaco+'.';
 
     // Aceite de caução (quando há valor configurado)
     const aceiteCaucaoWrap = $('mres-fin-aceite-caucao-wrap');
     if(aceiteCaucaoWrap) aceiteCaucaoWrap.style.display = caucaoVal ? 'block' : 'none';
     if($('mres-fin-aceite-caucao-txt') && caucaoVal)
       $('mres-fin-aceite-caucao-txt').textContent =
-        '💰 Estou ciente e aceito o caução de '+fmtR(caucaoVal)+' como garantia, a ser devolvido após vistoria sem danos.';
+        'Estou ciente e aceito o caução de '+fmtR(caucaoVal)+' como garantia, a ser devolvido após vistoria sem danos.';
 
     // Restaura pgto/forma se for edição
     if(reservaExistente){
@@ -7031,13 +7032,13 @@ function verificarAlertas(){
       // Mostra alertas ativos (últimos 30min passados) e futuros (até 25h)
       if(diffMin>=-30&&diffMin<=1500){
         let urgencia,label;
-        if(diffMin<=0){urgencia='agora';label='🔴 Agora!';}
-        else if(diffMin<60){urgencia='urgente';label=`🟠 Em ${Math.round(diffMin)}min`;}
+        if(diffMin<=0){urgencia='agora';label='Agora!';}
+        else if(diffMin<60){urgencia='urgente';label=`Em ${Math.round(diffMin)}min`;}
         else if(diffMin<1440){
           const h=Math.floor(diffMin/60),m=Math.round(diffMin%60);
-          urgencia='hoje';label=`⏰ Em ${h}h${m?m+'min':''}`;
+          urgencia='hoje';label=`Em ${h}h${m?m+'min':''}`;
         } else {
-          urgencia='futuro';label=`📅 Em ${Math.round(diffMin/1440)}d`;
+          urgencia='futuro';label=`Em ${Math.round(diffMin/1440)}d`;
         }
         ativos.push({r,a,momento,urgencia,label,diffMin});
       }
@@ -7081,7 +7082,7 @@ function verificarAlertas(){
   banner.innerHTML=`
     <div class="alert-banner">
       <div class="alert-banner-head">
-        <div class="alert-banner-title">🔔 ${urgentes.length?`${urgentes.length} alerta${urgentes.length>1?'s':''} ativo${urgentes.length>1?'s':''}`:''} ${futuros.length?`${urgentes.length?'+ ':''}${futuros.length} próximo${futuros.length>1?'s':''}`:''}
+        <div class="alert-banner-title"><i class="fa-solid fa-bell" style="margin-right:6px"></i>${urgentes.length?`${urgentes.length} alerta${urgentes.length>1?'s':''} ativo${urgentes.length>1?'s':''}`:''} ${futuros.length?`${urgentes.length?'+ ':''}${futuros.length} próximo${futuros.length>1?'s':''}`:''}
         </div>
         <button onclick="dispensarAlertas()" class="btn btn-ghost btn-sm" style="margin-left:auto">✕ Dispensar</button>
       </div>
@@ -7095,7 +7096,7 @@ function verificarAlertas(){
       const chave='n_'+x.r.id+'_'+JSON.stringify(x.a);
       if(!sessionStorage.getItem(chave)){
         sessionStorage.setItem(chave,'1');
-        new Notification('🔔 Reserva APVC: '+x.r.espaco,{
+        new Notification('Reserva APVC: '+x.r.espaco,{
           body:(x.r.nome||'')+'  —  '+new Date(x.r.data+'T00:00').toLocaleDateString('pt-BR')+' às '+(x.r.horario||'—'),
           tag:chave
         });
