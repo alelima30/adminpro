@@ -2998,7 +2998,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <i class="fa-solid fa-arrow-down-a-z" style="color:var(--gold)"></i> Ordenar por:
           <select id="pq-ordem" onchange="pesquisarCondominos()" style="font-size:12px;padding:3px 6px">
             <option value="nome">Nome</option>
-            <option value="unidade">Quadra / Lote</option>
+            <option value="unidade">Unidade</option>
           </select>
         </label>
         <span style="font-size:11px;color:var(--gold)"><i class="fa-solid fa-arrow-pointer"></i> Clique no cabeçalho para listar todos</span>
@@ -4994,16 +4994,6 @@ function pesquisaResetLista(){
   pqPlaceholder();
 }
 
-// Extrai chave de ordenação (quadra + lote) da primeira unidade vinculada.
-// Ex.: "B07" -> {quadra:"B", lote:7}; "K15" -> {quadra:"K", lote:15}
-function uniSortKey(unidades){
-  if(!unidades || !unidades.length) return {vazio:1, quadra:'', lote:0};
-  const lista=[...unidades].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{numeric:true}));
-  const u=String(lista[0]).toUpperCase().trim();
-  const m=u.match(/^([A-Za-zÀ-ÿ]*)\s*0*(\d*)/);
-  return {vazio:0, quadra:(m&&m[1])||u, lote:(m&&m[2])?parseInt(m[2],10):0};
-}
-
 function pesquisarCondominos(){
   if(!_pqMostrou){ pqPlaceholder(); return; }
   const nome=semAcento($('pq-nome')?.value||'');
@@ -5044,14 +5034,13 @@ function pesquisarCondominos(){
   const ordem=$('pq-ordem')?.value||'nome';
   const porNome=(a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR');
   if(ordem==='unidade'){
-    // Ordena por quadra (letras) e depois lote (número); sem unidade vai ao final
+    // Ordena alfabeticamente pela unidade vinculada; sem unidade vai ao final
     res.sort((a,b)=>{
-      const ka=uniSortKey(a.unidades), kb=uniSortKey(b.unidades);
-      if(ka.vazio!==kb.vazio) return ka.vazio-kb.vazio;
-      const q=ka.quadra.localeCompare(kb.quadra,'pt-BR');
-      if(q) return q;
-      if(ka.lote!==kb.lote) return ka.lote-kb.lote;
-      return porNome(a,b);
+      const ua=(a.unidades&&a.unidades[0])||'', ub=(b.unidades&&b.unidades[0])||'';
+      if(!ua && ub) return 1;
+      if(ua && !ub) return -1;
+      const u=ua.localeCompare(ub,'pt-BR',{numeric:true,sensitivity:'base'});
+      return u || porNome(a,b);
     });
   } else {
     res.sort(porNome);
