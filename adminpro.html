@@ -2072,6 +2072,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <div class="tabs" style="margin-bottom:0">
             <button class="tab active" id="con-tab-pessoais" onclick="conSetTab('pessoais')">Dados Pessoais</button>
             <button class="tab" id="con-tab-dependentes" onclick="conSetTab('dependentes')">Dependentes</button>
+            <button class="tab" id="con-tab-unidades" onclick="conSetTab('unidades')">Unidade Cadastrada</button>
           </div>
 
           <!-- ABA: Dados Pessoais -->
@@ -2211,6 +2212,11 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- ABA: Unidade Cadastrada -->
+          <div id="con-vw-unidades" style="display:none;padding-top:20px">
+            <div id="con-unidades-lista"></div>
           </div>
 
           <!-- Ações bottom -->
@@ -4786,12 +4792,49 @@ function conLimparFoto(){
 }
 
 function conSetTab(tab){
-  ['pessoais','dependentes'].forEach(t=>{
+  ['pessoais','dependentes','unidades'].forEach(t=>{
     const vw=$('con-vw-'+t), btn=$('con-tab-'+t);
     if(vw) vw.style.display = t===tab ? (t==='pessoais'?'flex':'block') : 'none';
     if(btn) btn.classList.toggle('active', t===tab);
   });
   if(tab==='dependentes'){ conRenderDependentes(); conAtualizarCodDep(); }
+  if(tab==='unidades'){ conRenderUnidadesVinculadas(); }
+}
+
+// Mostra a(s) unidade(s) em que o condômino está cadastrado (como proprietário e/ou morador)
+function conRenderUnidadesVinculadas(){
+  const box=$('con-unidades-lista'); if(!box) return;
+  const cod=($('con-cod')?.value||'').trim().toUpperCase();
+  const us=getUnidades();
+  const linhas=[];
+  Object.entries(us).forEach(([u,d])=>{
+    const vinculos=[];
+    if(d.proprietario===cod) vinculos.push('Proprietário');
+    if(d.morador===cod)      vinculos.push('Morador');
+    if(vinculos.length) linhas.push({u,d,vinculos});
+  });
+  if(!linhas.length){
+    box.innerHTML='<div style="background:var(--ink-2);border:1px solid var(--border);border-radius:10px;padding:24px;text-align:center;color:var(--text-3)">'
+      +'<i class="fa-solid fa-house-circle-xmark" style="font-size:26px;display:block;margin-bottom:8px;opacity:.6"></i>'
+      +'Este condômino não está vinculado a nenhuma unidade.</div>';
+    return;
+  }
+  const endereco=d=>[d.rua,d.numero&&('nº '+d.numero),d.bairro,d.cidade,d.estado].filter(Boolean).join(', ');
+  box.innerHTML='<div style="display:flex;flex-direction:column;gap:12px">'+linhas.map(({u,d,vinculos})=>`
+    <div style="background:var(--ink-2);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;gap:16px;align-items:center">
+      <div style="flex-shrink:0;width:70px;height:70px;border-radius:12px;background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--gold)">
+        <i class="fa-solid fa-map-location-dot" style="font-size:20px"></i>
+        <span style="font-weight:800;font-size:15px;margin-top:2px">${escU(u)}</span>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+          ${vinculos.map(v=>`<span style="font-size:11px;font-weight:700;border-radius:6px;padding:2px 9px;${v==='Proprietário'?'color:var(--blue);background:rgba(74,144,217,0.14)':'color:var(--gold);background:rgba(232,119,34,0.14)'}">${v}</span>`).join('')}
+          ${d.tipo?`<span style="font-size:11px;color:var(--text-3);align-self:center">· ${escU(d.tipo)}</span>`:''}
+        </div>
+        <div style="font-size:13px;color:var(--text-2)">${endereco(d)?escU(endereco(d)):'<span style=\"color:var(--text-3)\">Endereço não informado</span>'}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="editarUnidade('${escU(u)}')" title="Abrir unidade"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+    </div>`).join('')+'</div>';
 }
 
 // Próximo código de dependente: <codCondomino>-NN
