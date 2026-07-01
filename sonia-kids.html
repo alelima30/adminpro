@@ -585,32 +585,83 @@
 
 <script>
 /* ═══════════ Ilustrações de produtos (SVG) ═══════════ */
+/* Estampas (poá, listras, estrelas, corações) desenhadas como pattern e recortadas na peça */
+function pat(u,m){
+  const a='#FDF8F0';
+  const P={
+    dots:`<pattern id="${u}" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="8" cy="8" r="2.3" fill="${a}" opacity=".9"/></pattern>`,
+    stars:`<pattern id="${u}" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M11 4l1.7 3.5 3.8.5-2.8 2.6.7 3.8L11 12.9 7.6 14.9l.7-3.8-2.8-2.6 3.8-.5z" fill="${a}" opacity=".9"/></pattern>`,
+    hearts:`<pattern id="${u}" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M10 15S4.5 11.4 4.5 8C4.5 6.3 5.8 5 7.4 5 8.6 5 9.6 5.9 10 6.7 10.4 5.9 11.4 5 12.6 5 14.2 5 15.5 6.3 15.5 8 15.5 11.4 10 15 10 15z" fill="${a}" opacity=".85"/></pattern>`,
+    stripes:`<pattern id="${u}" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="14" fill="${a}" opacity=".45"/></pattern>`,
+    floral:`<pattern id="${u}" width="24" height="24" patternUnits="userSpaceOnUse"><g fill="${a}" opacity=".85"><circle cx="12" cy="8" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="12" cy="16" r="2"/></g><circle cx="12" cy="12" r="1.8" fill="#E3A857" opacity=".9"/></pattern>`,
+  };
+  return P[m]||'';
+}
+/* helper: silhueta + estampa + detalhes */
+const G=(c,m,u,d,extra='')=>`<svg viewBox="0 0 120 120"><defs>${pat(u,m)}</defs><path d="${d}" fill="${c}"/>${(m&&P_HAS(m))?`<path d="${d}" fill="url(#${u})"/>`:''}${extra}</svg>`;
+const P_HAS=m=>['dots','stars','hearts','stripes','floral'].includes(m);
+const seam='rgba(0,0,0,.12)';
+
 const ART = {
-  body:(c)=>`<svg viewBox="0 0 120 120"><path d="M35 34 L52 22 Q60 30 68 22 L85 34 L78 50 L70 45 L70 92 Q60 100 50 92 L50 45 L42 50 Z" fill="${c}"/><path d="M52 22 Q60 30 68 22" fill="none" stroke="rgba(0,0,0,.12)" stroke-width="3"/><circle cx="60" cy="60" r="3" fill="#FDF8F0"/><circle cx="60" cy="72" r="3" fill="#FDF8F0"/><circle cx="60" cy="84" r="3" fill="#FDF8F0"/></svg>`,
-  tee:(c)=>`<svg viewBox="0 0 120 120"><path d="M30 38 L48 24 Q60 34 72 24 L90 38 L82 54 L74 48 V96 H46 V48 L38 54 Z" fill="${c}"/><path d="M48 24 Q60 34 72 24" fill="none" stroke="rgba(0,0,0,.12)" stroke-width="3"/><circle cx="60" cy="66" r="10" fill="#FDF8F0" opacity=".85"/><circle cx="56" cy="64" r="2" fill="${c}"/><circle cx="64" cy="64" r="2" fill="${c}"/><path d="M55 70q5 4 10 0" stroke="${c}" stroke-width="2" fill="none"/></svg>`,
-  dress:(c)=>`<svg viewBox="0 0 120 120"><path d="M40 30 L52 20 Q60 30 68 20 L80 30 L74 48 L70 44 L92 100 L28 100 L50 44 L46 48 Z" fill="${c}"/><path d="M52 20 Q60 30 68 20" fill="none" stroke="rgba(0,0,0,.12)" stroke-width="3"/><g fill="#FDF8F0"><circle cx="52" cy="66" r="3"/><circle cx="66" cy="72" r="3"/><circle cx="58" cy="84" r="3"/></g></svg>`,
-  pants:(c)=>`<svg viewBox="0 0 120 120"><path d="M42 26 H78 V44 L72 98 H62 L60 56 L58 98 H48 L42 44 Z" fill="${c}"/><rect x="42" y="26" width="36" height="8" fill="rgba(0,0,0,.12)"/></svg>`,
-  hoodie:(c)=>`<svg viewBox="0 0 120 120"><path d="M28 42 L46 26 Q60 40 74 26 L92 42 L84 58 L76 52 V98 H44 V52 L36 58 Z" fill="${c}"/><path d="M46 26 Q60 40 74 26 L74 40 Q60 50 46 40 Z" fill="rgba(0,0,0,.14)"/><rect x="56" y="56" width="8" height="28" rx="4" fill="rgba(0,0,0,.12)"/></svg>`,
-  overall:(c)=>`<svg viewBox="0 0 120 120"><path d="M44 30 V44 H76 V30 M40 44 H80 V96 H66 V70 H54 V96 H40 Z" fill="${c}"/><rect x="46" y="24" width="6" height="20" fill="${c}"/><rect x="68" y="24" width="6" height="20" fill="${c}"/><circle cx="49" cy="52" r="3" fill="#FDF8F0"/><circle cx="71" cy="52" r="3" fill="#FDF8F0"/></svg>`,
-  hat:(c)=>`<svg viewBox="0 0 120 120"><path d="M32 66 Q60 24 88 66 Q60 58 32 66Z" fill="${c}"/><rect x="34" y="64" width="52" height="16" rx="6" fill="${c}"/><circle cx="60" cy="40" r="6" fill="#FDF8F0"/><circle cx="60" cy="72" r="4" fill="#FDF8F0"/></svg>`,
-  socks:(c)=>`<svg viewBox="0 0 120 120"><path d="M48 26 H66 V60 Q66 74 80 74 H84 V90 H74 Q48 90 48 62 Z" fill="${c}"/><rect x="48" y="26" width="18" height="8" fill="rgba(0,0,0,.12)"/></svg>`,
+  body:(c,m,u)=>G(c,m,u,"M35 34 L52 22 Q60 30 68 22 L85 34 L78 50 L70 45 L70 92 Q60 100 50 92 L50 45 L42 50 Z",
+    `<path d="M52 22 Q60 30 68 22" fill="none" stroke="${seam}" stroke-width="3"/><g fill="#FDF8F0"><circle cx="60" cy="62" r="2.6"/><circle cx="60" cy="74" r="2.6"/><circle cx="60" cy="86" r="2.6"/></g>`),
+  tee:(c,m,u)=>G(c,m,u,"M30 38 L48 24 Q60 34 72 24 L90 38 L82 54 L74 48 V96 H46 V48 L38 54 Z",
+    `<path d="M48 24 Q60 34 72 24" fill="none" stroke="${seam}" stroke-width="3"/>`),
+  dress:(c,m,u)=>G(c,m,u,"M40 30 L52 20 Q60 30 68 20 L80 30 L74 48 L70 44 L92 100 L28 100 L50 44 L46 48 Z",
+    `<path d="M52 20 Q60 30 68 20" fill="none" stroke="${seam}" stroke-width="3"/><path d="M50 62 Q60 68 70 62" stroke="${seam}" stroke-width="2.5" fill="none"/>`),
+  pants:(c,m,u)=>G(c,m,u,"M42 26 H78 V44 L72 98 H62 L60 56 L58 98 H48 L42 44 Z",
+    `<rect x="42" y="26" width="36" height="8" fill="${seam}"/>`),
+  hoodie:(c,m,u)=>G(c,m,u,"M28 42 L46 26 Q60 40 74 26 L92 42 L84 58 L76 52 V98 H44 V52 L36 58 Z",
+    `<path d="M46 26 Q60 40 74 26 L74 40 Q60 50 46 40 Z" fill="${seam}"/><rect x="56" y="58" width="8" height="26" rx="4" fill="${seam}"/>`),
+  overall:(c,m,u)=>G(c,m,u,"M40 44 H80 V96 H66 V70 H54 V96 H40 Z",
+    `<rect x="44" y="30" width="32" height="14" fill="${c}"/><rect x="46" y="24" width="6" height="20" rx="3" fill="${c}"/><rect x="68" y="24" width="6" height="20" rx="3" fill="${c}"/><circle cx="49" cy="52" r="3" fill="#FDF8F0"/><circle cx="71" cy="52" r="3" fill="#FDF8F0"/>`),
+  romper:(c,m,u)=>G(c,m,u,"M36 34 L52 24 Q60 31 68 24 L84 34 L78 48 L71 44 V70 L82 88 H70 L63 74 H57 L50 88 H38 L49 70 V44 L42 48 Z",
+    `<path d="M52 24 Q60 31 68 24" fill="none" stroke="${seam}" stroke-width="3"/><g fill="#FDF8F0"><circle cx="60" cy="58" r="2.6"/><circle cx="60" cy="68" r="2.6"/></g>`),
+  skirt:(c,m,u)=>G(c,m,u,"M34 46 H86 L94 96 H26 Z",
+    `<rect x="34" y="38" width="52" height="10" rx="3" fill="${c}"/><rect x="34" y="40" width="52" height="4" fill="${seam}"/><path d="M26 96 Q40 88 60 96 T94 96" stroke="${seam}" stroke-width="2.5" fill="none"/>`),
+  jacket:(c,m,u)=>G(c,m,u,"M28 40 L46 26 Q60 34 74 26 L92 40 L84 56 L76 50 V98 H44 V50 L36 56 Z",
+    `<rect x="57" y="34" width="6" height="62" rx="3" fill="${seam}"/><path d="M46 26 L57 40 L57 34 M74 26 L63 40 L63 34" fill="${seam}"/><g fill="#FDF8F0"><circle cx="60" cy="60" r="2"/><circle cx="60" cy="72" r="2"/><circle cx="60" cy="84" r="2"/></g>`),
+  sweater:(c,m,u)=>G(c,m,u,"M30 40 L48 28 Q60 36 72 28 L90 40 L82 56 L74 50 V92 H46 V50 L38 56 Z",
+    `<path d="M48 28 Q60 36 72 28" fill="none" stroke="${seam}" stroke-width="3.5"/><rect x="46" y="86" width="28" height="6" fill="${seam}"/><g stroke="${seam}" stroke-width="1.5"><path d="M52 56 V86 M60 54 V88 M68 56 V86"/></g>`),
+  shorts:(c,m,u)=>G(c,m,u,"M40 30 H80 V46 L74 76 H62 L60 52 L58 76 H46 L40 46 Z",
+    `<rect x="40" y="30" width="40" height="7" fill="${seam}"/>`),
+  footie:(c,m,u)=>G(c,m,u,"M40 30 L52 22 Q60 29 68 22 L80 30 L74 46 L69 42 V72 Q69 82 74 90 H62 Q60 84 60 78 Q60 84 58 90 H46 Q51 82 51 72 V42 L46 46 Z",
+    `<path d="M52 22 Q60 29 68 22" fill="none" stroke="${seam}" stroke-width="3"/><ellipse cx="68" cy="90" rx="7" ry="4" fill="${c}"/><ellipse cx="52" cy="90" rx="7" ry="4" fill="${c}"/><g fill="#FDF8F0"><circle cx="60" cy="52" r="2.4"/><circle cx="60" cy="62" r="2.4"/></g>`),
+  hat:(c,m,u)=>G(c,m,u,"M32 66 Q60 24 88 66 Q60 58 32 66 Z",
+    `<rect x="34" y="64" width="52" height="16" rx="6" fill="${c}"/><ellipse cx="42" cy="34" rx="8" ry="10" fill="${c}"/><ellipse cx="78" cy="34" rx="8" ry="10" fill="${c}"/><circle cx="60" cy="72" r="4" fill="#FDF8F0"/>`),
+  socks:(c,m,u)=>G(c,m,u,"M48 26 H66 V60 Q66 74 80 74 H84 V90 H74 Q48 90 48 62 Z",
+    `<rect x="48" y="26" width="18" height="8" fill="${seam}"/><rect x="48" y="38" width="18" height="4" fill="${seam}"/>`),
+  bib:(c,m,u)=>G(c,m,u,"M42 40 A20 20 0 1 0 78 40 A9 9 0 0 0 69 33 A11 11 0 0 1 51 33 A9 9 0 0 0 42 40 Z",
+    `<circle cx="60" cy="34" r="6" fill="#FDF8F0"/><path d="M46 58 Q60 66 74 58" stroke="${seam}" stroke-width="2.5" fill="none"/>`),
+  shoes:(c,m,u)=>`<svg viewBox="0 0 120 120"><g><path d="M22 58 Q26 44 40 46 Q46 47 48 54 L52 64 Q52 72 44 72 H26 Q20 72 20 66 Z" fill="${c}"/><rect x="20" y="70" width="34" height="6" rx="3" fill="${seam}"/><path d="M32 52 l6 3 M36 49 l6 3" stroke="#FDF8F0" stroke-width="2"/></g><g><path d="M70 58 Q74 44 88 46 Q94 47 96 54 L100 64 Q100 72 92 72 H74 Q68 72 68 66 Z" fill="${c}"/><rect x="68" y="70" width="34" height="6" rx="3" fill="${seam}"/><path d="M80 52 l6 3 M84 49 l6 3" stroke="#FDF8F0" stroke-width="2"/></g></svg>`,
 };
-const PALETTE=['#C97B5A','#8CA087','#E3A857','#B4643F','#9DB0A8','#D98E63','#7E9A76','#E0B36B'];
+const PALETTE=['#C97B5A','#8CA087','#E3A857','#B4643F','#9DB0A8','#D98E63','#7E9A76','#E0B36B','#B78A9B','#6E9BA6'];
 
 /* ═══════════ Catálogo ═══════════ */
 const PRODUCTS=[
-  {id:1, name:'Body Ninho Manga Longa', cat:'Bebê', art:'body', c:0, price:59.90, old:79.90, tag:'-25%', sizes:['RN','P','M','G'], badge:'sale'},
-  {id:2, name:'Macacão Soninho Felpudo', cat:'Bebê', art:'overall', c:1, price:119.90, old:null, tag:'Novo', sizes:['RN','P','M'], badge:'new'},
-  {id:3, name:'Conjunto Explorador', cat:'Menino', art:'tee', c:2, price:99.90, old:129.90, tag:'-23%', sizes:['2','4','6','8'], badge:'sale'},
-  {id:4, name:'Vestido Florzinha do Campo', cat:'Menina', art:'dress', c:3, price:139.90, old:null, tag:'Novo', sizes:['2','4','6','8','10'], badge:'new'},
-  {id:5, name:'Moletom Corujinha', cat:'Menino', art:'hoodie', c:0, price:149.90, old:189.90, tag:'-21%', sizes:['4','6','8','10'], badge:'sale'},
-  {id:6, name:'Calça Jogger Brincar', cat:'Menina', art:'pants', c:1, price:89.90, old:null, tag:null, sizes:['2','4','6','8'], badge:null},
-  {id:7, name:'Touca Orelhinha', cat:'Acessórios', art:'hat', c:4, price:34.90, old:44.90, tag:'-22%', sizes:['Único'], badge:'sale'},
-  {id:8, name:'Kit 3 Meias Ninho', cat:'Acessórios', art:'socks', c:5, price:39.90, old:null, tag:'Novo', sizes:['RN','P','M'], badge:'new'},
-  {id:9, name:'Vestido Festa Girassol', cat:'Menina', art:'dress', c:7, price:169.90, old:null, tag:null, sizes:['2','4','6','8'], badge:null},
-  {id:10, name:'Camiseta Aventura', cat:'Menino', art:'tee', c:6, price:59.90, old:74.90, tag:'-20%', sizes:['2','4','6','8','10'], badge:'sale'},
-  {id:11, name:'Jardineira Sementinha', cat:'Bebê', art:'overall', c:5, price:109.90, old:null, tag:null, sizes:['P','M','G'], badge:null},
-  {id:12, name:'Body Estampado Bosque', cat:'Bebê', art:'body', c:2, price:64.90, old:null, tag:'Novo', sizes:['RN','P','M','G'], badge:'new'},
+  {id:1,  name:'Body Ninho Manga Longa',      cat:'Bebê',      art:'body',    c:0, motif:'stars',   price:59.90,  old:79.90,  tag:'-25%', sizes:['RN','P','M','G'], badge:'sale'},
+  {id:2,  name:'Macacão Soninho Felpudo',      cat:'Bebê',      art:'footie',  c:1, motif:'dots',    price:119.90, old:null,   tag:'Novo', sizes:['RN','P','M'], badge:'new'},
+  {id:3,  name:'Jardineira Sementinha',        cat:'Bebê',      art:'overall', c:5, motif:null,      price:109.90, old:null,   tag:null,   sizes:['P','M','G'], badge:null},
+  {id:4,  name:'Body Estampado Bosque',        cat:'Bebê',      art:'body',    c:2, motif:'floral',  price:64.90,  old:null,   tag:'Novo', sizes:['RN','P','M','G'], badge:'new'},
+  {id:5,  name:'Romper Passarinho',            cat:'Bebê',      art:'romper',  c:8, motif:'hearts',  price:74.90,  old:94.90,  tag:'-21%', sizes:['RN','P','M','G'], badge:'sale'},
+  {id:6,  name:'Babador Chuva de Amor',        cat:'Bebê',      art:'bib',     c:3, motif:'dots',    price:29.90,  old:null,   tag:null,   sizes:['Único'], badge:null},
+
+  {id:7,  name:'Vestido Florzinha do Campo',   cat:'Menina',    art:'dress',   c:3, motif:'floral',  price:139.90, old:null,   tag:'Novo', sizes:['2','4','6','8','10'], badge:'new'},
+  {id:8,  name:'Vestido Festa Girassol',       cat:'Menina',    art:'dress',   c:7, motif:'dots',    price:169.90, old:199.90, tag:'-15%', sizes:['2','4','6','8'], badge:'sale'},
+  {id:9,  name:'Saia Rodada Vento',            cat:'Menina',    art:'skirt',   c:8, motif:'stripes', price:79.90,  old:null,   tag:null,   sizes:['2','4','6','8'], badge:null},
+  {id:10, name:'Blusa Tricô Nuvem',            cat:'Menina',    art:'sweater', c:4, motif:null,      price:99.90,  old:129.90, tag:'-23%', sizes:['2','4','6','8'], badge:'sale'},
+  {id:11, name:'Calça Jogger Brincar',         cat:'Menina',    art:'pants',   c:1, motif:null,      price:89.90,  old:null,   tag:null,   sizes:['2','4','6','8'], badge:null},
+
+  {id:12, name:'Conjunto Explorador',          cat:'Menino',    art:'tee',     c:2, motif:'stripes', price:99.90,  old:129.90, tag:'-23%', sizes:['2','4','6','8'], badge:'sale'},
+  {id:13, name:'Moletom Corujinha',            cat:'Menino',    art:'hoodie',  c:0, motif:null,      price:149.90, old:189.90, tag:'-21%', sizes:['4','6','8','10'], badge:'sale'},
+  {id:14, name:'Camiseta Aventura',            cat:'Menino',    art:'tee',     c:6, motif:'stars',   price:59.90,  old:74.90,  tag:'-20%', sizes:['2','4','6','8','10'], badge:'sale'},
+  {id:15, name:'Jaqueta Corta-Vento Trilha',   cat:'Menino',    art:'jacket',  c:9, motif:null,      price:159.90, old:null,   tag:'Novo', sizes:['4','6','8','10'], badge:'new'},
+  {id:16, name:'Bermuda Cata-Vento',           cat:'Menino',    art:'shorts',  c:1, motif:'stripes', price:54.90,  old:null,   tag:null,   sizes:['2','4','6','8','10'], badge:null},
+
+  {id:17, name:'Touca Orelhinha',              cat:'Acessórios', art:'hat',    c:4, motif:'dots',    price:34.90,  old:44.90,  tag:'-22%', sizes:['Único'], badge:'sale'},
+  {id:18, name:'Kit 3 Meias Ninho',            cat:'Acessórios', art:'socks',  c:5, motif:'stripes', price:39.90,  old:null,   tag:'Novo', sizes:['RN','P','M'], badge:'new'},
+  {id:19, name:'Tênis Primeiros Passos',       cat:'Acessórios', art:'shoes',  c:0, motif:null,      price:89.90,  old:109.90, tag:'-18%', sizes:['17','18','19','20','21'], badge:'sale'},
+  {id:20, name:'Gorro Tricô Flocos',           cat:'Acessórios', art:'hat',    c:9, motif:'stars',   price:44.90,  old:null,   tag:null,   sizes:['Único'], badge:null},
 ];
 
 /* ═══════════ Estado ═══════════ */
@@ -631,7 +682,7 @@ function renderProducts(filter='Todos'){
       <div class="thumb" style="background:${color}1A">
         ${badge}
         <button class="wish" aria-label="Favoritar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-9.5-9C.5 8 3 4 6.5 4 9 4 11 6 12 7.5 13-6 15 4 17.5 4 21 4 23.5 8 21.5 12 19 16.5 12 21 12 21z"/></svg></button>
-        ${ART[p.art](color)}
+        ${ART[p.art](color, p.motif, 'g'+p.id)}
       </div>
       <div class="body">
         <span class="cat-lbl">${p.cat}</span>
@@ -698,7 +749,7 @@ function updateCart(){
     const p=PRODUCTS.find(x=>x.id===item.id);
     const line=p.price*item.qty; subtotal+=line;
     return `<div class="ci">
-      <div class="cim" style="background:${PALETTE[p.c]}1A">${ART[p.art](PALETTE[p.c])}</div>
+      <div class="cim" style="background:${PALETTE[p.c]}1A">${ART[p.art](PALETTE[p.c], p.motif, 'c'+p.id)}</div>
       <div class="cinfo">
         <b>${p.name}</b>
         <small>Tam: ${item.size} · ${money(p.price)}</small>
