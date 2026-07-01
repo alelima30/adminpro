@@ -3,34 +3,56 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sonia Costola</title>
+<title>Sonia Costola — Moda & Elegância</title>
 <meta name="description" content="Descubra as últimas tendências em moda feminina e masculina. Qualidade, estilo e elegância em cada peça.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --black: #0a0a0a;
+    --black: #0d0d0d;
     --white: #ffffff;
-    --gray-50: #fafafa;
-    --gray-100: #f5f5f5;
-    --gray-200: #eeeeee;
-    --gray-400: #bdbdbd;
-    --gray-600: #757575;
-    --gray-800: #424242;
-    --accent: #c9a96e;
-    --accent-dark: #a8895a;
-    --red: #e53935;
-    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --cream: #faf8f4;
+    --cream2: #f2ede4;
+    --gray-100: #f0ece6;
+    --gray-200: #e2dcd4;
+    --gray-400: #b8b0a6;
+    --gray-600: #7a7268;
+    --gray-800: #3d3830;
+    --gold: #b89660;
+    --gold-light: #d4b483;
+    --gold-dark: #8a6e42;
+    --rose: #c4726a;
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --sans: 'Jost', system-ui, sans-serif;
   }
 
   html { scroll-behavior: smooth; }
 
   body {
-    font-family: var(--font);
+    font-family: var(--sans);
     color: var(--black);
     background: var(--white);
     line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
   }
+
+  /* ── PROMO BAR ── */
+  .promo-bar {
+    background: var(--black);
+    color: rgba(255,255,255,.85);
+    text-align: center;
+    padding: 11px 16px;
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  .promo-bar span { color: var(--gold-light); }
 
   /* ── HEADER ── */
   header {
@@ -38,68 +60,99 @@
     top: 0;
     z-index: 100;
     background: rgba(255,255,255,0.97);
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--gray-200);
   }
 
   .header-inner {
-    max-width: 1280px;
+    max-width: 1320px;
     margin: 0 auto;
-    padding: 0 24px;
-    height: 70px;
+    padding: 0 40px;
+    height: 76px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
   }
 
   .logo {
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: 4px;
-    color: var(--black);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-decoration: none;
+    gap: 2px;
   }
 
-  nav { display: flex; gap: 32px; }
+  .logo-main {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: 6px;
+    color: var(--black);
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .logo-sub {
+    font-family: var(--sans);
+    font-size: 8.5px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 500;
+  }
+
+  nav { display: flex; gap: 36px; }
 
   nav a {
-    font-size: 13px;
+    font-family: var(--sans);
+    font-size: 11px;
     font-weight: 500;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
     text-transform: uppercase;
     color: var(--gray-800);
     text-decoration: none;
-    transition: color .2s;
+    position: relative;
+    padding-bottom: 3px;
+    transition: color .25s;
   }
 
-  nav a:hover { color: var(--accent); }
+  nav a::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 0; height: 1px;
+    background: var(--gold);
+    transition: width .3s ease;
+  }
 
-  .header-actions { display: flex; align-items: center; gap: 20px; }
+  nav a:hover { color: var(--gold-dark); }
+  nav a:hover::after { width: 100%; }
+
+  .header-actions { display: flex; align-items: center; gap: 22px; }
 
   .btn-icon {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 6px;
+    padding: 5px;
     color: var(--gray-800);
-    font-size: 20px;
+    font-size: 19px;
     position: relative;
-    transition: color .2s;
+    transition: color .2s, transform .2s;
+    line-height: 1;
   }
 
-  .btn-icon:hover { color: var(--accent); }
+  .btn-icon:hover { color: var(--gold-dark); transform: scale(1.12); }
 
   .cart-badge {
     position: absolute;
-    top: -2px;
-    right: -2px;
-    background: var(--accent);
+    top: -3px; right: -4px;
+    background: var(--gold);
     color: white;
-    font-size: 10px;
+    font-family: var(--sans);
+    font-size: 9px;
     font-weight: 700;
-    width: 17px;
-    height: 17px;
+    width: 16px; height: 16px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -109,8 +162,8 @@
   /* ── HERO ── */
   .hero {
     position: relative;
-    height: 92vh;
-    min-height: 560px;
+    height: 94vh;
+    min-height: 580px;
     overflow: hidden;
     display: flex;
     align-items: flex-end;
@@ -119,625 +172,292 @@
   .hero-img {
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     object-fit: cover;
-    object-position: center top;
+    object-position: center 20%;
   }
 
   .hero-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,.65) 0%, rgba(0,0,0,.15) 60%, transparent 100%);
+    background: linear-gradient(
+      105deg,
+      rgba(10,8,6,.72) 0%,
+      rgba(10,8,6,.3) 55%,
+      transparent 100%
+    );
   }
 
   .hero-content {
     position: relative;
     z-index: 2;
-    padding: 0 60px 80px;
+    padding: 0 80px 100px;
     color: white;
-    max-width: 640px;
+    max-width: 700px;
   }
 
   .hero-tag {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 16px;
-    display: block;
-  }
-
-  .hero-title {
-    font-size: clamp(36px, 5vw, 68px);
-    font-weight: 800;
-    line-height: 1.08;
-    margin-bottom: 20px;
-    letter-spacing: -1px;
-  }
-
-  .hero-sub {
-    font-size: 17px;
-    color: rgba(255,255,255,0.82);
-    margin-bottom: 36px;
-    line-height: 1.7;
-  }
-
-  .btn-primary {
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    background: var(--accent);
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    margin-bottom: 20px;
+  }
+
+  .hero-tag::before {
+    content: '';
+    display: block;
+    width: 32px; height: 1px;
+    background: var(--gold-light);
+  }
+
+  .hero-title {
+    font-family: var(--serif);
+    font-size: clamp(46px, 6.5vw, 88px);
+    font-weight: 300;
+    line-height: 1.05;
+    margin-bottom: 22px;
+    letter-spacing: -0.5px;
+  }
+
+  .hero-title em {
+    font-style: italic;
+    color: var(--gold-light);
+  }
+
+  .hero-sub {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 300;
+    color: rgba(255,255,255,.75);
+    margin-bottom: 42px;
+    line-height: 1.9;
+    max-width: 420px;
+  }
+
+  .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; }
+
+  .btn-gold {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--gold);
     color: white;
-    padding: 16px 36px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 2px;
+    padding: 15px 38px;
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
     text-transform: uppercase;
     text-decoration: none;
     border: none;
     cursor: pointer;
-    transition: background .2s, transform .15s;
+    transition: background .25s, transform .2s, box-shadow .25s;
   }
 
-  .btn-primary:hover { background: var(--accent-dark); transform: translateY(-2px); }
+  .btn-gold:hover {
+    background: var(--gold-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(184,150,96,.35);
+  }
 
-  .btn-outline {
+  .btn-ghost {
     display: inline-flex;
     align-items: center;
     gap: 10px;
     background: transparent;
-    color: var(--black);
-    padding: 14px 32px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 2px;
+    color: white;
+    padding: 14px 36px;
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
     text-transform: uppercase;
     text-decoration: none;
-    border: 2px solid var(--black);
+    border: 1px solid rgba(255,255,255,.5);
     cursor: pointer;
-    transition: background .2s, color .2s;
+    transition: border-color .25s, background .25s;
   }
 
-  .btn-outline:hover { background: var(--black); color: white; }
+  .btn-ghost:hover {
+    border-color: var(--gold-light);
+    background: rgba(255,255,255,.08);
+  }
 
-  /* ── ANNOUNCEMENT BAR ── */
-  .promo-bar {
-    background: var(--black);
-    color: white;
-    text-align: center;
-    padding: 10px 16px;
-    font-size: 12px;
-    letter-spacing: 2px;
+  /* scroll hint */
+  .scroll-hint {
+    position: absolute;
+    bottom: 36px;
+    right: 60px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: rgba(255,255,255,.5);
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 3px;
     text-transform: uppercase;
-    font-weight: 500;
+    transform: rotate(90deg);
+    transform-origin: right center;
+  }
+
+  .scroll-hint::after {
+    content: '';
+    display: block;
+    width: 48px; height: 1px;
+    background: rgba(255,255,255,.35);
   }
 
   /* ── SECTION COMMONS ── */
-  section { padding: 80px 0; }
+  section { padding: 96px 0; }
 
-  .container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+  .container { max-width: 1320px; margin: 0 auto; padding: 0 40px; }
 
-  .section-header { text-align: center; margin-bottom: 52px; }
+  .section-header { text-align: center; margin-bottom: 60px; }
 
-  .section-tag {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 3px;
+  .section-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 4px;
     text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 12px;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+
+  .section-eyebrow::before,
+  .section-eyebrow::after {
+    content: '';
     display: block;
+    width: 28px; height: 1px;
+    background: var(--gold);
   }
 
   .section-title {
-    font-size: clamp(28px, 3.5vw, 44px);
-    font-weight: 800;
-    letter-spacing: -0.5px;
+    font-family: var(--serif);
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 300;
+    letter-spacing: 0.5px;
     line-height: 1.15;
+    color: var(--black);
   }
 
+  .section-title em { font-style: italic; color: var(--gold-dark); }
+
   .section-sub {
-    font-size: 16px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 300;
     color: var(--gray-600);
-    margin-top: 12px;
+    margin-top: 14px;
+    line-height: 1.9;
   }
 
   /* ── CATEGORIES ── */
+  .categories-section { background: var(--cream); }
+
   .categories-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
+    gap: 12px;
   }
 
   .category-card {
     position: relative;
-    aspect-ratio: 3/4;
+    aspect-ratio: 2/3;
     overflow: hidden;
     cursor: pointer;
-    border-radius: 4px;
   }
 
   .category-card img {
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     object-fit: cover;
-    transition: transform .5s ease;
+    transition: transform .7s cubic-bezier(.4,0,.2,1);
+    filter: brightness(.92);
   }
 
-  .category-card:hover img { transform: scale(1.07); }
+  .category-card:hover img { transform: scale(1.08); filter: brightness(.82); }
 
-  .category-card .cat-overlay {
+  .cat-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,.6) 0%, transparent 60%);
+    background: linear-gradient(to top, rgba(8,6,4,.65) 0%, transparent 55%);
+    transition: opacity .4s;
   }
 
-  .category-card .cat-label {
+  .cat-label {
     position: absolute;
-    bottom: 24px;
-    left: 24px;
+    bottom: 0; left: 0; right: 0;
+    padding: 28px 24px;
     color: white;
   }
 
-  .cat-label span {
-    display: block;
-    font-size: 11px;
-    letter-spacing: 2px;
+  .cat-label .eyebrow {
+    font-family: var(--sans);
+    font-size: 9px;
+    letter-spacing: 3px;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.75);
-    margin-bottom: 4px;
+    color: var(--gold-light);
+    margin-bottom: 5px;
+    display: block;
   }
 
   .cat-label strong {
-    font-size: 20px;
-    font-weight: 700;
-  }
-
-  /* ── PRODUCTS ── */
-  .products-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 28px;
-  }
-
-  .product-card {
-    cursor: pointer;
-  }
-
-  .product-img-wrap {
-    position: relative;
-    aspect-ratio: 3/4;
-    overflow: hidden;
-    background: var(--gray-100);
-    border-radius: 4px;
-    margin-bottom: 16px;
-  }
-
-  .product-img-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform .5s ease;
-  }
-
-  .product-card:hover .product-img-wrap img { transform: scale(1.06); }
-
-  .product-badge {
-    position: absolute;
-    top: 14px;
-    left: 14px;
-    background: var(--red);
-    color: white;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    padding: 4px 10px;
-    text-transform: uppercase;
-  }
-
-  .product-badge.new { background: var(--black); }
-
-  .product-actions {
-    position: absolute;
-    bottom: 14px;
-    right: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    opacity: 0;
-    transform: translateX(10px);
-    transition: opacity .25s, transform .25s;
-  }
-
-  .product-card:hover .product-actions { opacity: 1; transform: translateX(0); }
-
-  .action-btn {
-    width: 40px;
-    height: 40px;
-    background: white;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.12);
-    transition: background .2s, transform .15s;
-  }
-
-  .action-btn:hover { background: var(--accent); transform: scale(1.1); }
-
-  .product-brand {
-    font-size: 11px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--gray-600);
-    margin-bottom: 4px;
-  }
-
-  .product-name {
-    font-size: 15px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    line-height: 1.4;
-  }
-
-  .product-price { display: flex; align-items: center; gap: 10px; }
-
-  .price-new { font-size: 17px; font-weight: 700; }
-
-  .price-old {
-    font-size: 14px;
-    color: var(--gray-400);
-    text-decoration: line-through;
-  }
-
-  .stars { color: var(--accent); font-size: 12px; margin-top: 6px; letter-spacing: 1px; }
-
-  /* ── BANNER ── */
-  .banner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-
-  .banner-card {
-    position: relative;
-    height: 380px;
-    overflow: hidden;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-
-  .banner-card img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform .5s;
-  }
-
-  .banner-card:hover img { transform: scale(1.04); }
-
-  .banner-card .banner-content {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 48px;
-    background: linear-gradient(to right, rgba(0,0,0,.55) 0%, transparent 70%);
-    color: white;
-  }
-
-  .banner-content .b-tag {
-    font-size: 11px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--accent);
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 400;
+    display: block;
     margin-bottom: 12px;
   }
 
-  .banner-content .b-title {
-    font-size: 30px;
-    font-weight: 800;
-    line-height: 1.2;
-    margin-bottom: 20px;
-  }
-
-  .btn-white {
+  .cat-cta {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    background: white;
-    color: var(--black);
-    padding: 12px 28px;
-    font-size: 12px;
-    font-weight: 700;
+    gap: 7px;
+    font-family: var(--sans);
+    font-size: 10px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    transition: background .2s, color .2s;
-    width: fit-content;
-  }
-
-  .btn-white:hover { background: var(--accent); color: white; }
-
-  /* ── FEATURES ── */
-  .features-section { background: var(--gray-50); }
-
-  .features-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 32px;
-    text-align: center;
-  }
-
-  .feature-item { padding: 24px 16px; }
-
-  .feature-icon {
-    font-size: 36px;
-    margin-bottom: 16px;
-    display: block;
-  }
-
-  .feature-title {
-    font-size: 15px;
-    font-weight: 700;
-    margin-bottom: 8px;
-    letter-spacing: 0.5px;
-  }
-
-  .feature-text { font-size: 13px; color: var(--gray-600); line-height: 1.7; }
-
-  /* ── NEWSLETTER ── */
-  .newsletter-section {
-    background: var(--black);
-    color: white;
-    text-align: center;
-    padding: 80px 24px;
-  }
-
-  .newsletter-section .section-title { color: white; }
-
-  .newsletter-section .section-sub { color: rgba(255,255,255,.6); }
-
-  .newsletter-form {
-    display: flex;
-    justify-content: center;
-    gap: 0;
-    margin-top: 36px;
-    max-width: 520px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .newsletter-form input {
-    flex: 1;
-    padding: 16px 24px;
-    font-size: 14px;
-    border: none;
-    outline: none;
-    background: rgba(255,255,255,.1);
-    color: white;
-    border: 1px solid rgba(255,255,255,.2);
-  }
-
-  .newsletter-form input::placeholder { color: rgba(255,255,255,.4); }
-
-  .newsletter-form button {
-    padding: 16px 32px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background .2s;
-  }
-
-  .newsletter-form button:hover { background: var(--accent-dark); }
-
-  /* ── FOOTER ── */
-  footer {
-    background: var(--gray-50);
-    border-top: 1px solid var(--gray-200);
-    padding: 64px 0 32px;
-  }
-
-  .footer-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    gap: 48px;
-    margin-bottom: 48px;
-  }
-
-  .footer-brand .logo { font-size: 22px; }
-
-  .footer-brand p {
-    font-size: 14px;
-    color: var(--gray-600);
-    margin-top: 16px;
-    line-height: 1.8;
-    max-width: 280px;
-  }
-
-  .social-links { display: flex; gap: 14px; margin-top: 24px; }
-
-  .social-links a {
-    width: 38px;
-    height: 38px;
-    border: 1px solid var(--gray-200);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    text-decoration: none;
-    color: var(--gray-600);
-    transition: all .2s;
-  }
-
-  .social-links a:hover { background: var(--accent); border-color: var(--accent); color: white; }
-
-  .footer-col h4 {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 20px;
-  }
-
-  .footer-col ul { list-style: none; }
-
-  .footer-col ul li { margin-bottom: 10px; }
-
-  .footer-col ul li a {
-    font-size: 14px;
-    color: var(--gray-600);
-    text-decoration: none;
-    transition: color .2s;
-  }
-
-  .footer-col ul li a:hover { color: var(--accent); }
-
-  .footer-bottom {
-    border-top: 1px solid var(--gray-200);
-    padding-top: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 13px;
-    color: var(--gray-600);
-  }
-
-  .payment-icons { display: flex; gap: 10px; font-size: 22px; }
-
-  /* ── CART SIDEBAR ── */
-  .cart-sidebar {
-    position: fixed;
-    top: 0;
-    right: -440px;
-    width: 440px;
-    height: 100vh;
-    background: white;
-    z-index: 200;
-    box-shadow: -8px 0 40px rgba(0,0,0,.1);
-    transition: right .35s cubic-bezier(.4,0,.2,1);
-    display: flex;
-    flex-direction: column;
-  }
-
-  .cart-sidebar.open { right: 0; }
-
-  .cart-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.4);
-    z-index: 150;
+    color: rgba(255,255,255,.75);
+    border-bottom: 1px solid rgba(255,255,255,.3);
+    padding-bottom: 2px;
     opacity: 0;
-    pointer-events: none;
-    transition: opacity .35s;
+    transform: translateY(6px);
+    transition: opacity .3s, transform .3s;
   }
 
-  .cart-overlay.show { opacity: 1; pointer-events: all; }
-
-  .cart-header {
-    padding: 24px 28px;
-    border-bottom: 1px solid var(--gray-200);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .cart-header h3 { font-size: 18px; font-weight: 700; }
-
-  .cart-close {
-    background: none;
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    color: var(--gray-600);
-    padding: 4px;
-  }
-
-  .cart-items { flex: 1; overflow-y: auto; padding: 24px 28px; }
-
-  .cart-empty {
-    text-align: center;
-    padding: 60px 0;
-    color: var(--gray-600);
-  }
-
-  .cart-empty span { font-size: 52px; display: block; margin-bottom: 16px; }
-
-  .cart-item {
-    display: flex;
-    gap: 16px;
-    padding: 16px 0;
-    border-bottom: 1px solid var(--gray-100);
-  }
-
-  .cart-item img {
-    width: 80px;
-    height: 100px;
-    object-fit: cover;
-    background: var(--gray-100);
-    border-radius: 4px;
-  }
-
-  .cart-item-info { flex: 1; }
-
-  .cart-item-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-
-  .cart-item-price { font-size: 15px; font-weight: 700; color: var(--accent); }
-
-  .cart-item-remove {
-    background: none;
-    border: none;
-    font-size: 18px;
-    cursor: pointer;
-    color: var(--gray-400);
-    padding: 0;
-    align-self: flex-start;
-  }
-
-  .cart-footer {
-    padding: 24px 28px;
-    border-top: 1px solid var(--gray-200);
-  }
-
-  .cart-total {
-    display: flex;
-    justify-content: space-between;
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 20px;
-  }
+  .category-card:hover .cat-cta { opacity: 1; transform: translateY(0); }
 
   /* ── FILTER TABS ── */
   .filter-tabs {
     display: flex;
     justify-content: center;
-    gap: 8px;
-    margin-bottom: 48px;
+    gap: 6px;
+    margin-bottom: 52px;
     flex-wrap: wrap;
   }
 
   .filter-btn {
-    padding: 10px 24px;
-    font-size: 12px;
+    padding: 10px 26px;
+    font-family: var(--sans);
+    font-size: 10px;
     font-weight: 600;
-    letter-spacing: 1.5px;
+    letter-spacing: 2.5px;
     text-transform: uppercase;
     border: 1px solid var(--gray-200);
     background: white;
     cursor: pointer;
-    transition: all .2s;
-    border-radius: 2px;
+    transition: all .25s;
+    color: var(--gray-600);
   }
 
   .filter-btn.active, .filter-btn:hover {
@@ -746,65 +466,748 @@
     border-color: var(--black);
   }
 
+  /* ── PRODUCTS ── */
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+  }
+
+  .product-card { cursor: pointer; }
+
+  .product-img-wrap {
+    position: relative;
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    background: var(--cream);
+    margin-bottom: 18px;
+  }
+
+  .product-img-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform .6s cubic-bezier(.4,0,.2,1);
+  }
+
+  .product-card:hover .product-img-wrap img { transform: scale(1.07); }
+
+  .product-badge {
+    position: absolute;
+    top: 14px; left: 14px;
+    background: var(--rose);
+    color: white;
+    font-family: var(--sans);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    padding: 5px 12px;
+    text-transform: uppercase;
+  }
+
+  .product-badge.new-badge {
+    background: var(--black);
+  }
+
+  .product-actions {
+    position: absolute;
+    bottom: 14px; right: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    opacity: 0;
+    transform: translateX(12px);
+    transition: opacity .28s, transform .28s;
+  }
+
+  .product-card:hover .product-actions { opacity: 1; transform: translateX(0); }
+
+  .action-btn {
+    width: 42px; height: 42px;
+    background: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    box-shadow: 0 2px 16px rgba(0,0,0,.1);
+    transition: background .2s, transform .2s;
+  }
+
+  .action-btn:hover { background: var(--gold); transform: scale(1.08); }
+
+  .product-brand {
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 5px;
+  }
+
+  .product-name {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 400;
+    margin-bottom: 10px;
+    line-height: 1.35;
+    color: var(--black);
+  }
+
+  .product-price { display: flex; align-items: center; gap: 10px; }
+
+  .price-new {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--black);
+  }
+
+  .price-old {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--gray-400);
+    text-decoration: line-through;
+  }
+
+  .stars {
+    color: var(--gold);
+    font-size: 12px;
+    margin-top: 7px;
+    letter-spacing: 1.5px;
+  }
+
+  /* ── EDITORIAL BANNER ── */
+  .editorial { background: var(--black); padding: 0; }
+
+  .editorial-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 540px;
+  }
+
+  .editorial-img {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .editorial-img img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform .7s;
+  }
+
+  .editorial-img:hover img { transform: scale(1.04); }
+
+  .editorial-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 72px 80px;
+    color: white;
+  }
+
+  .editorial-text .section-eyebrow { color: var(--gold-light); }
+  .editorial-text .section-eyebrow::before,
+  .editorial-text .section-eyebrow::after { background: var(--gold-light); }
+
+  .editorial-text .section-title { color: white; margin-bottom: 24px; }
+
+  .editorial-text p {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 300;
+    color: rgba(255,255,255,.65);
+    line-height: 2;
+    margin-bottom: 40px;
+  }
+
+  /* ── BANNERS ── */
+  .banners-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .banner-card {
+    position: relative;
+    height: 420px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .banner-card img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform .6s cubic-bezier(.4,0,.2,1);
+    filter: brightness(.88);
+  }
+
+  .banner-card:hover img { transform: scale(1.05); filter: brightness(.78); }
+
+  .banner-content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 44px 44px;
+    background: linear-gradient(to top, rgba(8,6,4,.65) 0%, transparent 60%);
+    color: white;
+  }
+
+  .banner-content .b-eyebrow {
+    font-family: var(--sans);
+    font-size: 10px;
+    letter-spacing: 3.5px;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    margin-bottom: 10px;
+  }
+
+  .banner-content .b-title {
+    font-family: var(--serif);
+    font-size: 36px;
+    font-weight: 300;
+    line-height: 1.2;
+    margin-bottom: 24px;
+  }
+
+  .btn-outline-white {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    color: white;
+    padding: 12px 28px;
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,.6);
+    cursor: pointer;
+    width: fit-content;
+    transition: background .25s, border-color .25s;
+  }
+
+  .btn-outline-white:hover {
+    background: var(--gold);
+    border-color: var(--gold);
+  }
+
+  /* ── FEATURES ── */
+  .features-section { background: var(--cream2); }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+  }
+
+  .feature-item {
+    padding: 48px 36px;
+    text-align: center;
+    background: var(--white);
+    transition: transform .25s;
+  }
+
+  .feature-item:hover { transform: translateY(-4px); }
+
+  .feature-icon {
+    font-size: 32px;
+    margin-bottom: 18px;
+    display: block;
+  }
+
+  .feature-title {
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: 400;
+    margin-bottom: 10px;
+    color: var(--black);
+  }
+
+  .feature-text {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--gray-600);
+    line-height: 1.85;
+  }
+
+  /* ── TESTIMONIALS ── */
+  .testimonials-section { background: var(--cream); }
+
+  .testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+
+  .testimonial-card {
+    background: white;
+    padding: 40px 36px;
+    border-bottom: 3px solid var(--gold);
+    transition: transform .25s, box-shadow .25s;
+  }
+
+  .testimonial-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,.07);
+  }
+
+  .t-stars { color: var(--gold); font-size: 14px; letter-spacing: 2px; margin-bottom: 18px; }
+
+  .t-text {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--gray-800);
+    line-height: 1.8;
+    margin-bottom: 24px;
+  }
+
+  .t-author {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .t-avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--cream2);
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .t-name {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--black);
+  }
+
+  .t-city {
+    font-family: var(--sans);
+    font-size: 11px;
+    color: var(--gray-400);
+    letter-spacing: 1px;
+  }
+
+  /* ── NEWSLETTER ── */
+  .newsletter-section {
+    background: var(--black);
+    padding: 100px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .newsletter-section::before {
+    content: 'SC';
+    position: absolute;
+    font-family: var(--serif);
+    font-size: 320px;
+    font-weight: 300;
+    color: rgba(255,255,255,.03);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    letter-spacing: 20px;
+    line-height: 1;
+  }
+
+  .newsletter-section .section-eyebrow { color: var(--gold-light); }
+  .newsletter-section .section-eyebrow::before,
+  .newsletter-section .section-eyebrow::after { background: var(--gold-light); }
+
+  .newsletter-section .section-title { color: white; }
+  .newsletter-section .section-sub { color: rgba(255,255,255,.5); }
+
+  .newsletter-form {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin-top: 40px;
+    max-width: 540px;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .newsletter-form input {
+    flex: 1;
+    padding: 18px 26px;
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 300;
+    border: 1px solid rgba(255,255,255,.15);
+    border-right: none;
+    outline: none;
+    background: rgba(255,255,255,.06);
+    color: white;
+    transition: border-color .25s, background .25s;
+  }
+
+  .newsletter-form input::placeholder { color: rgba(255,255,255,.35); }
+  .newsletter-form input:focus { border-color: var(--gold); background: rgba(255,255,255,.09); }
+
+  .newsletter-form button {
+    padding: 18px 36px;
+    background: var(--gold);
+    color: white;
+    border: none;
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .25s;
+  }
+
+  .newsletter-form button:hover { background: var(--gold-dark); }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--cream);
+    border-top: 1px solid var(--gray-200);
+    padding: 80px 0 36px;
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2.2fr 1fr 1fr 1fr;
+    gap: 56px;
+    margin-bottom: 60px;
+  }
+
+  .footer-brand p {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--gray-600);
+    margin-top: 20px;
+    line-height: 2;
+    max-width: 280px;
+  }
+
+  .social-links { display: flex; gap: 10px; margin-top: 28px; }
+
+  .social-links a {
+    width: 40px; height: 40px;
+    border: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    text-decoration: none;
+    color: var(--gray-600);
+    transition: all .25s;
+  }
+
+  .social-links a:hover {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .footer-col h4 {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--black);
+    margin-bottom: 24px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+
+  .footer-col ul { list-style: none; }
+
+  .footer-col ul li { margin-bottom: 12px; }
+
+  .footer-col ul li a {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 300;
+    color: var(--gray-600);
+    text-decoration: none;
+    transition: color .2s, padding-left .2s;
+    display: inline-block;
+  }
+
+  .footer-col ul li a:hover { color: var(--gold-dark); padding-left: 4px; }
+
+  .footer-divider { border: none; border-top: 1px solid var(--gray-200); margin-bottom: 28px; }
+
+  .footer-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-bottom p {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--gray-400);
+    letter-spacing: 0.5px;
+  }
+
+  .payment-icons { display: flex; gap: 12px; font-size: 24px; }
+
+  /* ── CART SIDEBAR ── */
+  .cart-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 150;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .35s;
+    backdrop-filter: blur(3px);
+  }
+
+  .cart-overlay.show { opacity: 1; pointer-events: all; }
+
+  .cart-sidebar {
+    position: fixed;
+    top: 0; right: -460px;
+    width: 460px; height: 100vh;
+    background: white;
+    z-index: 200;
+    box-shadow: -12px 0 60px rgba(0,0,0,.1);
+    transition: right .38s cubic-bezier(.4,0,.2,1);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cart-sidebar.open { right: 0; }
+
+  .cart-header {
+    padding: 28px 32px;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cart-header h3 {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 300;
+    letter-spacing: 1px;
+  }
+
+  .cart-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--gray-400);
+    transition: color .2s;
+    padding: 4px;
+  }
+
+  .cart-close:hover { color: var(--black); }
+
+  .cart-items { flex: 1; overflow-y: auto; padding: 24px 32px; }
+
+  .cart-empty {
+    text-align: center;
+    padding: 72px 0;
+    color: var(--gray-400);
+  }
+
+  .cart-empty span { font-size: 52px; display: block; margin-bottom: 16px; }
+
+  .cart-empty p {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-style: italic;
+    color: var(--gray-400);
+  }
+
+  .cart-item {
+    display: flex;
+    gap: 18px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  .cart-item img {
+    width: 78px; height: 100px;
+    object-fit: cover;
+    background: var(--cream);
+  }
+
+  .cart-item-info { flex: 1; }
+
+  .cart-item-brand {
+    font-family: var(--sans);
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 3px;
+  }
+
+  .cart-item-name {
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 400;
+    margin-bottom: 5px;
+    color: var(--black);
+  }
+
+  .cart-item-qty {
+    font-family: var(--sans);
+    font-size: 11px;
+    color: var(--gray-400);
+    margin-bottom: 6px;
+  }
+
+  .cart-item-price {
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--gold-dark);
+  }
+
+  .cart-item-remove {
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: var(--gray-300);
+    padding: 0;
+    align-self: flex-start;
+    transition: color .2s;
+  }
+
+  .cart-item-remove:hover { color: var(--rose); }
+
+  .cart-footer {
+    padding: 24px 32px 32px;
+    border-top: 1px solid var(--gray-100);
+  }
+
+  .cart-subtotal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--gray-600);
+  }
+
+  .cart-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 24px;
+    padding-top: 14px;
+    border-top: 1px solid var(--gray-200);
+  }
+
+  .cart-total-val { color: var(--gold-dark); }
+
   /* ── TOAST ── */
   .toast {
     position: fixed;
-    bottom: 32px;
+    bottom: 36px;
     left: 50%;
-    transform: translateX(-50%) translateY(80px);
+    transform: translateX(-50%) translateY(90px);
     background: var(--black);
-    color: white;
-    padding: 14px 28px;
-    font-size: 14px;
-    font-weight: 500;
-    border-radius: 4px;
+    color: rgba(255,255,255,.9);
+    padding: 14px 32px;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 1px;
     z-index: 300;
-    transition: transform .3s;
+    transition: transform .35s cubic-bezier(.4,0,.2,1);
     white-space: nowrap;
+    border-left: 3px solid var(--gold);
   }
 
   .toast.show { transform: translateX(-50%) translateY(0); }
 
   /* ── RESPONSIVE ── */
-  @media (max-width: 1024px) {
+  @media (max-width: 1100px) {
     .products-grid { grid-template-columns: repeat(3, 1fr); }
     .categories-grid { grid-template-columns: repeat(2, 1fr); }
-    .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+    .footer-grid { grid-template-columns: 1fr 1fr; gap: 36px; }
+    .editorial-text { padding: 56px 48px; }
+    .features-grid { grid-template-columns: repeat(2, 1fr); }
   }
 
   @media (max-width: 768px) {
     nav { display: none; }
+    .header-inner { padding: 0 24px; }
+    .container { padding: 0 24px; }
     .products-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .banner-grid { grid-template-columns: 1fr; }
-    .features-grid { grid-template-columns: repeat(2, 1fr); }
-    .hero-content { padding: 0 24px 60px; }
-    .footer-grid { grid-template-columns: 1fr; gap: 24px; }
+    .banners-grid { grid-template-columns: 1fr; }
+    .editorial-inner { grid-template-columns: 1fr; }
+    .editorial-img { height: 360px; }
+    .editorial-text { padding: 48px 32px; }
+    .hero-content { padding: 0 28px 64px; }
+    .footer-grid { grid-template-columns: 1fr; gap: 28px; }
     .cart-sidebar { width: 100%; right: -100%; }
     .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+    .testimonials-grid { grid-template-columns: 1fr; }
+    section { padding: 64px 0; }
+    .scroll-hint { display: none; }
   }
 
   @media (max-width: 480px) {
-    .products-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .newsletter-form { flex-direction: column; }
-    .categories-grid { grid-template-columns: repeat(2, 1fr); }
+    .hero-btns { flex-direction: column; }
+    .hero-title { font-size: 38px; }
   }
 </style>
 </head>
 <body>
 
-<!-- Announcement Bar -->
-<div class="promo-bar">🚀 Frete grátis em compras acima de R$199 · Até 30% OFF na nova coleção</div>
+<!-- Promo Bar -->
+<div class="promo-bar">
+  Frete grátis acima de R$299 &nbsp;·&nbsp; <span>Nova Coleção Verão 2026</span> &nbsp;·&nbsp; Até 40% OFF no Sale
+</div>
 
 <!-- Header -->
 <header>
   <div class="header-inner">
-    <a href="#" class="logo">Sonia Costola</a>
     <nav>
       <a href="#categorias">Categorias</a>
       <a href="#novidades">Novidades</a>
-      <a href="#destaque">Destaques</a>
+      <a href="#destaque">Editorial</a>
       <a href="#sale">Sale</a>
     </nav>
+
+    <a href="#" class="logo">
+      <span class="logo-main">Sonia Costola</span>
+      <span class="logo-sub">Moda &amp; Elegância</span>
+    </a>
+
     <div class="header-actions">
       <button class="btn-icon" title="Buscar">🔍</button>
       <button class="btn-icon" title="Favoritos">♡</button>
@@ -832,84 +1235,93 @@
     </div>
   </div>
   <div class="cart-footer">
+    <div class="cart-subtotal"><span>Subtotal</span><span id="cartSubtotal">R$ 0,00</span></div>
     <div class="cart-total">
       <span>Total</span>
-      <span id="cartTotal">R$ 0,00</span>
+      <span class="cart-total-val" id="cartTotal">R$ 0,00</span>
     </div>
-    <button class="btn-primary" style="width:100%;justify-content:center" onclick="checkout()">
+    <button class="btn-gold" style="width:100%;justify-content:center;font-size:11px" onclick="checkout()">
       Finalizar Compra →
     </button>
   </div>
 </div>
 
 <!-- Toast -->
-<div class="toast" id="toast">✓ Produto adicionado ao carrinho</div>
+<div class="toast" id="toast"></div>
 
-<!-- Hero -->
+<!-- ── HERO ── -->
 <section class="hero">
   <img class="hero-img"
     src="https://d8j0ntlcm91z4.cloudfront.net/user_3ExxmXczKSUDCIw0xzzXYsqc1CM/hf_20260701_013246_2b9ec9d2-b110-4883-8149-6b980e79cd17.png"
-    alt="Nova Coleção Verão 2026">
+    alt="Sonia Costola — Nova Coleção Verão 2026">
   <div class="hero-overlay"></div>
   <div class="hero-content">
     <span class="hero-tag">Nova Coleção · Verão 2026</span>
-    <h1 class="hero-title">Vista seu<br>melhor eu</h1>
-    <p class="hero-sub">Descubra as últimas tendências em moda feminina e masculina. Qualidade e estilo em cada detalhe.</p>
-    <a href="#novidades" class="btn-primary">Explorar Coleção →</a>
+    <h1 class="hero-title">Vista o seu<br><em>melhor eu</em></h1>
+    <p class="hero-sub">Peças exclusivas que celebram a feminilidade e a elegância contemporânea. Qualidade incomparável em cada detalhe.</p>
+    <div class="hero-btns">
+      <a href="#novidades" class="btn-gold">Explorar Coleção →</a>
+      <a href="#destaque" class="btn-ghost">Nossa História</a>
+    </div>
   </div>
+  <span class="scroll-hint">Scroll</span>
 </section>
 
-<!-- Categories -->
-<section id="categorias">
+<!-- ── CATEGORIES ── -->
+<section class="categories-section" id="categorias">
   <div class="container">
     <div class="section-header">
-      <span class="section-tag">Explore</span>
-      <h2 class="section-title">Nossas Categorias</h2>
+      <div class="section-eyebrow">Explore</div>
+      <h2 class="section-title">Nossas <em>Categorias</em></h2>
     </div>
     <div class="categories-grid">
-      <div class="category-card" onclick="filterProducts('feminino')">
+      <div class="category-card" onclick="filterProducts('feminino', null)">
         <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600&q=80" alt="Feminino">
         <div class="cat-overlay"></div>
         <div class="cat-label">
-          <span>Moda</span>
+          <span class="eyebrow">Moda</span>
           <strong>Feminino</strong>
+          <span class="cat-cta">Ver Coleção →</span>
         </div>
       </div>
-      <div class="category-card" onclick="filterProducts('masculino')">
+      <div class="category-card" onclick="filterProducts('masculino', null)">
         <img src="https://images.unsplash.com/photo-1617137968427-85924c800a22?w=600&q=80" alt="Masculino">
         <div class="cat-overlay"></div>
         <div class="cat-label">
-          <span>Moda</span>
+          <span class="eyebrow">Moda</span>
           <strong>Masculino</strong>
+          <span class="cat-cta">Ver Coleção →</span>
         </div>
       </div>
-      <div class="category-card" onclick="filterProducts('acessorios')">
+      <div class="category-card" onclick="filterProducts('acessorios', null)">
         <img src="https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=600&q=80" alt="Acessórios">
         <div class="cat-overlay"></div>
         <div class="cat-label">
-          <span>Moda</span>
+          <span class="eyebrow">Moda</span>
           <strong>Acessórios</strong>
+          <span class="cat-cta">Ver Coleção →</span>
         </div>
       </div>
-      <div class="category-card" onclick="filterProducts('sale')">
+      <div class="category-card" onclick="filterProducts('sale', null)">
         <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80" alt="Sale">
         <div class="cat-overlay"></div>
         <div class="cat-label">
-          <span>Até 50% off</span>
+          <span class="eyebrow">Até 50% off</span>
           <strong>Sale</strong>
+          <span class="cat-cta">Aproveitar →</span>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Products -->
-<section id="novidades" style="padding-top:40px">
+<!-- ── PRODUCTS ── -->
+<section id="novidades">
   <div class="container">
     <div class="section-header">
-      <span class="section-tag">Chegou</span>
-      <h2 class="section-title">Novidades</h2>
-      <p class="section-sub">As peças mais desejadas da temporada</p>
+      <div class="section-eyebrow">Chegou</div>
+      <h2 class="section-title">Novidades da <em>Temporada</em></h2>
+      <p class="section-sub">As peças mais desejadas, selecionadas com o melhor da moda contemporânea</p>
     </div>
 
     <div class="filter-tabs">
@@ -920,89 +1332,148 @@
       <button class="filter-btn" onclick="filterProducts('sale', this)">Sale</button>
     </div>
 
-    <div class="products-grid" id="productsGrid">
-      <!-- Produtos inseridos via JS -->
+    <div class="products-grid" id="productsGrid"></div>
+  </div>
+</section>
+
+<!-- ── EDITORIAL ── -->
+<section class="editorial" id="destaque">
+  <div class="editorial-inner">
+    <div class="editorial-img">
+      <img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=900&q=80" alt="Editorial Sonia Costola">
+    </div>
+    <div class="editorial-text">
+      <div class="section-eyebrow">Nossa História</div>
+      <h2 class="section-title">Moda com <em>propósito</em> e alma</h2>
+      <p>Cada peça da Sonia Costola nasce de uma paixão genuína pela moda que celebra a mulher. Usamos tecidos premium, processos sustentáveis e um design atemporal que atravessa estações.</p>
+      <a href="#novidades" class="btn-gold">Conhecer a Marca →</a>
     </div>
   </div>
 </section>
 
-<!-- Banner Grid -->
-<section id="destaque" style="padding-top:0">
+<!-- ── BANNERS ── -->
+<section id="sale" style="padding-top: 96px">
   <div class="container">
-    <div class="banner-grid">
+    <div class="banners-grid">
       <div class="banner-card">
-        <img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=800&q=80" alt="Coleção Verão">
+        <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=900&q=80" alt="Sale">
         <div class="banner-content">
-          <span class="b-tag">Coleção Especial</span>
-          <h3 class="b-title">Verão<br>2026</h3>
-          <a href="#novidades" class="btn-white">Ver Coleção →</a>
+          <span class="b-eyebrow">Promoção Especial</span>
+          <h3 class="b-title">Sale até<br>50% OFF</h3>
+          <a href="#novidades" class="btn-outline-white">Aproveitar →</a>
         </div>
       </div>
       <div class="banner-card">
-        <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80" alt="Sale">
+        <img src="https://images.unsplash.com/photo-1445205170230-053b83016050?w=900&q=80" alt="Coleção Verão">
         <div class="banner-content">
-          <span class="b-tag">Promoção</span>
-          <h3 class="b-title">Sale até<br>50% OFF</h3>
-          <a href="#novidades" class="btn-white">Aproveitar →</a>
+          <span class="b-eyebrow">Coleção Exclusiva</span>
+          <h3 class="b-title">Verão<br>2026</h3>
+          <a href="#novidades" class="btn-outline-white">Ver Coleção →</a>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Features -->
-<section class="features-section" id="sale">
+<!-- ── FEATURES ── -->
+<section class="features-section">
   <div class="container">
     <div class="features-grid">
       <div class="feature-item">
         <span class="feature-icon">🚚</span>
         <h4 class="feature-title">Frete Grátis</h4>
-        <p class="feature-text">Compras acima de R$199 recebem frete grátis para todo o Brasil.</p>
+        <p class="feature-text">Compras acima de R$299 recebem frete grátis para todo o Brasil.</p>
       </div>
       <div class="feature-item">
         <span class="feature-icon">🔄</span>
         <h4 class="feature-title">Troca Fácil</h4>
-        <p class="feature-text">30 dias para troca ou devolução sem complicação.</p>
+        <p class="feature-text">30 dias para troca ou devolução, sem complicação e sem custo.</p>
       </div>
       <div class="feature-item">
         <span class="feature-icon">🔒</span>
         <h4 class="feature-title">Pagamento Seguro</h4>
-        <p class="feature-text">Suas informações estão protegidas com criptografia SSL.</p>
+        <p class="feature-text">Suas informações protegidas com criptografia SSL de última geração.</p>
       </div>
       <div class="feature-item">
         <span class="feature-icon">💬</span>
         <h4 class="feature-title">Suporte 24h</h4>
-        <p class="feature-text">Nossa equipe está disponível para ajudar a qualquer hora.</p>
+        <p class="feature-text">Nossa equipe está disponível para ajudar você a qualquer hora.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Newsletter -->
-<div class="newsletter-section">
+<!-- ── TESTIMONIALS ── -->
+<section class="testimonials-section">
   <div class="container">
-    <span class="section-tag" style="color:var(--accent)">Newsletter</span>
-    <h2 class="section-title">Fique por dentro das novidades</h2>
-    <p class="section-sub">Cadastre-se e receba 10% de desconto na primeira compra</p>
-    <form class="newsletter-form" onsubmit="subscribeNewsletter(event)">
-      <input type="email" placeholder="Seu melhor e-mail" required>
-      <button type="submit">Quero desconto</button>
-    </form>
+    <div class="section-header">
+      <div class="section-eyebrow">Depoimentos</div>
+      <h2 class="section-title">O que nossas <em>clientes</em> dizem</h2>
+    </div>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <div class="t-stars">★★★★★</div>
+        <p class="t-text">"A qualidade é incomparável. Recebi meu vestido e fiquei encantada com cada detalhe — o acabamento, o tecido, tudo perfeito."</p>
+        <div class="t-author">
+          <div class="t-avatar">👩</div>
+          <div>
+            <div class="t-name">Ana Paula M.</div>
+            <div class="t-city">São Paulo, SP</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="t-stars">★★★★★</div>
+        <p class="t-text">"Comprei a jaqueta de couro e simplesmente amei. O atendimento foi impecável e chegou antes do prazo. Recomendo demais!"</p>
+        <div class="t-author">
+          <div class="t-avatar">👱‍♀️</div>
+          <div>
+            <div class="t-name">Carla Rodrigues</div>
+            <div class="t-city">Rio de Janeiro, RJ</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="t-stars">★★★★★</div>
+        <p class="t-text">"Primeira vez comprando e me apaixonei. As peças têm um charme único, elegante sem ser exagerado. Já voltei mais duas vezes!"</p>
+        <div class="t-author">
+          <div class="t-avatar">👩‍🦱</div>
+          <div>
+            <div class="t-name">Fernanda Lima</div>
+            <div class="t-city">Curitiba, PR</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+</section>
+
+<!-- ── NEWSLETTER ── -->
+<div class="newsletter-section">
+  <div class="section-eyebrow">Exclusividade</div>
+  <h2 class="section-title" style="color:white;margin:16px 0 12px">Faça parte do <em style="color:var(--gold-light)">nosso clube</em></h2>
+  <p class="section-sub" style="color:rgba(255,255,255,.5)">Cadastre-se e ganhe 10% de desconto na primeira compra + acesso antecipado às novidades</p>
+  <form class="newsletter-form" onsubmit="subscribeNewsletter(event)">
+    <input type="email" placeholder="Seu melhor e-mail" required>
+    <button type="submit">Quero desconto</button>
+  </form>
 </div>
 
-<!-- Footer -->
+<!-- ── FOOTER ── -->
 <footer>
   <div class="container">
     <div class="footer-grid">
       <div class="footer-brand">
-        <a href="#" class="logo">Sonia Costola</a>
-        <p>Moda com propósito. Cada peça é pensada para trazer confiança e estilo ao seu dia a dia.</p>
+        <a href="#" class="logo">
+          <span class="logo-main">Sonia Costola</span>
+          <span class="logo-sub">Moda &amp; Elegância</span>
+        </a>
+        <p>Moda com propósito. Cada peça é pensada para trazer confiança, elegância e beleza ao seu dia a dia.</p>
         <div class="social-links">
           <a href="#" title="Instagram">📸</a>
-          <a href="#" title="Facebook">👤</a>
           <a href="#" title="TikTok">🎵</a>
           <a href="#" title="Pinterest">📌</a>
+          <a href="#" title="Facebook">👤</a>
         </div>
       </div>
       <div class="footer-col">
@@ -1028,25 +1499,23 @@
       <div class="footer-col">
         <h4>Empresa</h4>
         <ul>
-          <li><a href="#">Sobre nós</a></li>
+          <li><a href="#">Sobre Nós</a></li>
           <li><a href="#">Sustentabilidade</a></li>
-          <li><a href="#">Trabalhe conosco</a></li>
+          <li><a href="#">Trabalhe Conosco</a></li>
           <li><a href="#">Privacidade</a></li>
-          <li><a href="#">Termos de uso</a></li>
+          <li><a href="#">Termos de Uso</a></li>
         </ul>
       </div>
     </div>
+    <hr class="footer-divider">
     <div class="footer-bottom">
-      <span>© 2026 Sonia Costola. Todos os direitos reservados.</span>
-      <div class="payment-icons" title="Formas de pagamento">
-        💳 🏦 📱 🅿️
-      </div>
+      <p>© 2026 Sonia Costola. Todos os direitos reservados.</p>
+      <div class="payment-icons" title="Formas de pagamento">💳 🏦 📱 🅿️</div>
     </div>
   </div>
 </footer>
 
 <script>
-// ── PRODUCTS DATA ──
 const products = [
   { id:1, name:'Vestido Midi Floral', brand:'Sonia Costola Studio', price:289, oldPrice:399, img:'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500&q=80', badge:'novo', category:'feminino', rating:5 },
   { id:2, name:'Jaqueta de Couro Preta', brand:'Sonia Costola Urban', price:549, oldPrice:749, img:'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&q=80', badge:'sale', category:'masculino', rating:4 },
@@ -1059,17 +1528,19 @@ const products = [
 ];
 
 let cart = [];
-let activeFilter = 'todos';
 
 function renderProducts(filter = 'todos') {
   const grid = document.getElementById('productsGrid');
-  const filtered = filter === 'todos' ? products : products.filter(p => p.category === filter || (filter === 'sale' && p.badge === 'sale'));
+  const filtered = filter === 'todos' ? products
+    : filter === 'sale' ? products.filter(p => p.badge === 'sale')
+    : products.filter(p => p.category === filter);
 
   grid.innerHTML = filtered.map(p => `
     <div class="product-card" data-id="${p.id}">
       <div class="product-img-wrap">
         <img src="${p.img}" alt="${p.name}" loading="lazy">
-        ${p.badge ? `<span class="product-badge ${p.badge === 'novo' ? 'new' : ''}">${p.badge === 'novo' ? 'Novo' : 'Sale'}</span>` : ''}
+        ${p.badge === 'sale' ? '<span class="product-badge">Sale</span>'
+          : '<span class="product-badge new-badge">Novo</span>'}
         <div class="product-actions">
           <button class="action-btn" onclick="addToCart(${p.id})" title="Adicionar ao carrinho">🛒</button>
           <button class="action-btn" title="Favoritar">♡</button>
@@ -1087,7 +1558,6 @@ function renderProducts(filter = 'todos') {
 }
 
 function filterProducts(filter, btn) {
-  activeFilter = filter;
   if (btn) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
@@ -1096,17 +1566,14 @@ function filterProducts(filter, btn) {
   document.getElementById('novidades').scrollIntoView({ behavior: 'smooth' });
 }
 
-// ── CART ──
+// Cart
 function addToCart(id) {
   const product = products.find(p => p.id === id);
   const existing = cart.find(c => c.id === id);
-  if (existing) {
-    existing.qty++;
-  } else {
-    cart.push({ ...product, qty: 1 });
-  }
+  if (existing) existing.qty++;
+  else cart.push({ ...product, qty: 1 });
   updateCart();
-  showToast(`✓ ${product.name} adicionado!`);
+  showToast(`✓  ${product.name} adicionado ao carrinho`);
   openCart();
 }
 
@@ -1118,21 +1585,24 @@ function removeFromCart(id) {
 function updateCart() {
   const count = cart.reduce((s, c) => s + c.qty, 0);
   const total = cart.reduce((s, c) => s + c.price * c.qty, 0);
+  const fmt = v => `R$ ${v.toFixed(2).replace('.', ',')}`;
 
   document.getElementById('cartCount').textContent = count;
-  document.getElementById('cartTotal').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+  document.getElementById('cartTotal').textContent = fmt(total);
+  document.getElementById('cartSubtotal').textContent = fmt(total);
 
   const itemsEl = document.getElementById('cartItems');
-  if (cart.length === 0) {
+  if (!cart.length) {
     itemsEl.innerHTML = '<div class="cart-empty"><span>🛍️</span><p>Seu carrinho está vazio</p></div>';
   } else {
     itemsEl.innerHTML = cart.map(c => `
       <div class="cart-item">
         <img src="${c.img}" alt="${c.name}">
         <div class="cart-item-info">
+          <div class="cart-item-brand">${c.brand}</div>
           <div class="cart-item-name">${c.name}</div>
-          <div style="font-size:12px;color:#757575;margin-bottom:6px">Qtd: ${c.qty}</div>
-          <div class="cart-item-price">R$ ${(c.price * c.qty).toFixed(2).replace('.', ',')}</div>
+          <div class="cart-item-qty">Qtd: ${c.qty}</div>
+          <div class="cart-item-price">${fmt(c.price * c.qty)}</div>
         </div>
         <button class="cart-item-remove" onclick="removeFromCart(${c.id})">✕</button>
       </div>
@@ -1154,31 +1624,44 @@ document.getElementById('cartBtn').addEventListener('click', openCart);
 document.getElementById('cartClose').addEventListener('click', closeCart);
 document.getElementById('cartOverlay').addEventListener('click', closeCart);
 
-// ── TOAST ──
 function showToast(msg) {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 3000);
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
 }
 
-// ── NEWSLETTER ──
 function subscribeNewsletter(e) {
   e.preventDefault();
-  showToast('✓ Cadastro realizado! Seu cupom de 10% foi enviado.');
+  showToast('✓  Cadastro realizado! Seu cupom de 10% foi enviado.');
   e.target.reset();
 }
 
-// ── CHECKOUT ──
 function checkout() {
-  if (cart.length === 0) return;
-  showToast('🎉 Pedido realizado com sucesso!');
+  if (!cart.length) return;
+  showToast('🎉  Pedido realizado com sucesso! Obrigada pela preferência.');
   cart = [];
   updateCart();
   closeCart();
 }
 
-// ── INIT ──
+// Animate sections on scroll
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.opacity = '1';
+      e.target.style.transform = 'translateY(0)';
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.product-card, .category-card, .testimonial-card, .feature-item').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(24px)';
+  el.style.transition = 'opacity .55s ease, transform .55s ease';
+  observer.observe(el);
+});
+
 renderProducts();
 </script>
 </body>
