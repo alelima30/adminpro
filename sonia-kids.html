@@ -131,11 +131,13 @@
   .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.4rem}
   .card{background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);border:1px solid var(--line);display:flex;flex-direction:column;transition:.25s}
   .card:hover{transform:translateY(-6px);box-shadow:var(--shadow)}
-  .card .thumb{aspect-ratio:1;position:relative;display:grid;place-items:center;padding:1.2rem}
+  .card .thumb{aspect-ratio:1;position:relative;display:grid;place-items:center;padding:1.2rem;overflow:hidden}
   .card .thumb svg{width:80%;height:auto}
-  .tag{position:absolute;top:.8rem;left:.8rem;background:var(--mustard);color:#fff;font-weight:800;font-size:.72rem;font-family:var(--head);padding:.25rem .7rem;border-radius:100px}
+  .card .thumb .pimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;background:inherit;opacity:0;transition:opacity .4s}
+  .card .thumb .pimg.ok{opacity:1}
+  .tag{position:absolute;top:.8rem;left:.8rem;z-index:2;background:var(--mustard);color:#fff;font-weight:800;font-size:.72rem;font-family:var(--head);padding:.25rem .7rem;border-radius:100px}
   .tag.new{background:var(--sage)}
-  .wish{position:absolute;top:.7rem;right:.7rem;width:36px;height:36px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:var(--shadow-sm);color:var(--ink-soft);transition:.2s}
+  .wish{position:absolute;top:.7rem;right:.7rem;z-index:2;width:36px;height:36px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:var(--shadow-sm);color:var(--ink-soft);transition:.2s}
   .wish:hover{color:var(--terra)}
   .wish.on{color:var(--terra)}
   .wish svg{width:18px;height:18px}
@@ -219,7 +221,8 @@
   .empty{text-align:center;color:var(--ink-soft);margin:auto 0;padding:2rem}
   .empty svg{width:80px;height:80px;margin:0 auto 1rem;opacity:.5}
   .ci{display:flex;gap:.9rem;background:#fff;border-radius:var(--radius-sm);padding:.8rem;box-shadow:var(--shadow-sm)}
-  .ci .cim{width:66px;height:66px;border-radius:12px;background:var(--cream-2);display:grid;place-items:center;flex:0 0 auto;padding:.3rem}
+  .ci .cim{width:66px;height:66px;border-radius:12px;background:var(--cream-2);display:grid;place-items:center;flex:0 0 auto;padding:.3rem;position:relative;overflow:hidden}
+  .ci .cim .pimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .ci .cim svg{width:100%;height:auto}
   .ci .cinfo{flex:1;min-width:0}
   .ci .cinfo b{font-family:var(--head);font-size:.98rem;display:block;line-height:1.2}
@@ -664,6 +667,22 @@ const PRODUCTS=[
   {id:20, name:'Gorro Tricô Flocos',           cat:'Acessórios', art:'hat',    c:9, motif:'stars',   price:44.90,  old:null,   tag:null,   sizes:['Único'], badge:null},
 ];
 
+/* ═══════════ Fotos reais dos produtos ═══════════
+   As fotos carregam do banco de imagens direto no navegador de quem abrir
+   a página. Se estiver offline (ou a imagem falhar), a ilustração desenhada
+   aparece como reserva. Para trocar por fotos próprias, basta pôr a URL/arquivo
+   da sua imagem no lugar da palavra-chave abaixo. */
+const PHOTO={
+  1:'baby,bodysuit', 2:'baby,pajamas',  3:'baby,overalls', 4:'baby,onesie',
+  5:'baby,romper',   6:'baby,bib',      7:'girl,dress',    8:'kids,dress',
+  9:'girl,skirt',    10:'kids,sweater', 11:'kids,pants',   12:'boy,tshirt',
+  13:'kids,hoodie',  14:'boy,tshirt',   15:'kids,jacket',  16:'kids,shorts',
+  17:'baby,hat',     18:'baby,socks',   19:'kids,sneakers',20:'kids,beanie'
+};
+const photoUrl=p=>`https://loremflickr.com/500/500/${PHOTO[p.id]||'kids,clothes'}?lock=${p.id}`;
+/* <img> com foto real + fallback para a ilustração se não carregar */
+const photoImg=(p,alt='')=>`<img class="pimg" src="${photoUrl(p)}" alt="${alt}" loading="lazy" onload="this.classList.add('ok')" onerror="this.remove()">`;
+
 /* ═══════════ Estado ═══════════ */
 const cart=[]; // {id, size, qty}
 const $=s=>document.querySelector(s);
@@ -683,6 +702,7 @@ function renderProducts(filter='Todos'){
         ${badge}
         <button class="wish" aria-label="Favoritar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-9.5-9C.5 8 3 4 6.5 4 9 4 11 6 12 7.5 13-6 15 4 17.5 4 21 4 23.5 8 21.5 12 19 16.5 12 21 12 21z"/></svg></button>
         ${ART[p.art](color, p.motif, 'g'+p.id)}
+        ${photoImg(p, p.name)}
       </div>
       <div class="body">
         <span class="cat-lbl">${p.cat}</span>
@@ -749,7 +769,7 @@ function updateCart(){
     const p=PRODUCTS.find(x=>x.id===item.id);
     const line=p.price*item.qty; subtotal+=line;
     return `<div class="ci">
-      <div class="cim" style="background:${PALETTE[p.c]}1A">${ART[p.art](PALETTE[p.c], p.motif, 'c'+p.id)}</div>
+      <div class="cim" style="background:${PALETTE[p.c]}1A">${ART[p.art](PALETTE[p.c], p.motif, 'c'+p.id)}${photoImg(p)}</div>
       <div class="cinfo">
         <b>${p.name}</b>
         <small>Tam: ${item.size} · ${money(p.price)}</small>
