@@ -2157,10 +2157,17 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
             </div>
 
             <!-- Contato -->
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:4px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:4px">
               <div class="fg"><label>Profissão</label><input type="text" id="con-prof" placeholder="Ex: Engenheiro"></div>
-              <div class="fg"><label>Telefone / Celular</label><input type="text" id="con-tel" placeholder="(00) 99999-9999"></div>
               <div class="fg"><label>E-mail</label><input type="email" id="con-email" placeholder="email@exemplo.com"></div>
+            </div>
+            <!-- Telefones (múltiplos) -->
+            <div class="fg" style="margin-bottom:4px">
+              <label style="display:flex;align-items:center;justify-content:space-between">
+                <span>Telefones</span>
+                <button type="button" class="btn btn-ghost" onclick="conAddTel()" style="height:30px;padding:2px 10px;font-size:12px"><i class="fa-solid fa-plus"></i> Adicionar telefone</button>
+              </label>
+              <div id="con-tels-list" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
             </div>
            </div><!-- /coluna campos -->
           </div>
@@ -4706,6 +4713,42 @@ function popClassificacaoSelect(){
 function getCondominos(){ const c=G('condominos'); return (c&&typeof c==='object'&&!Array.isArray(c))?c:{}; }
 
 let _conDependentes = [];
+let _conTels = []; // [{tipo:'Celular', numero:'(00) 00000-0000'}]
+
+const CON_TEL_TIPOS = ['Celular','Residencial','Comercial','Recado','WhatsApp','Outro'];
+
+// Adiciona uma linha de telefone (vazia por padrão)
+function conAddTel(tipo, numero){
+  _conTels.push({ tipo: tipo || 'Celular', numero: numero || '' });
+  conRenderTels();
+  // foca o número recém-adicionado
+  const inps=document.querySelectorAll('#con-tels-list .con-tel-num');
+  if(inps.length) inps[inps.length-1].focus();
+}
+
+function conRemoveTel(i){ _conTels.splice(i,1); conRenderTels(); }
+
+// Mantém o array sincronizado com os inputs enquanto o usuário digita
+function conSyncTel(i, campo, val){ if(_conTels[i]) _conTels[i][campo]=val; }
+
+function conRenderTels(){
+  const box=$('con-tels-list'); if(!box) return;
+  if(!_conTels.length){
+    box.innerHTML='<div style="color:var(--text-3);font-size:12px;padding:4px 0">Nenhum telefone. Clique em <strong>Adicionar telefone</strong>.</div>';
+    return;
+  }
+  box.innerHTML=_conTels.map((t,i)=>`
+    <div style="display:grid;grid-template-columns:150px 1fr 38px;gap:8px;align-items:center">
+      <select onchange="conSyncTel(${i},'tipo',this.value)" style="height:38px">
+        ${CON_TEL_TIPOS.map(op=>`<option value="${op}"${t.tipo===op?' selected':''}>${op}</option>`).join('')}
+      </select>
+      <input type="text" class="con-tel-num" value="${escU(t.numero||'')}" placeholder="(00) 99999-9999" oninput="conSyncTel(${i},'numero',this.value)">
+      <button type="button" class="btn btn-ghost" onclick="conRemoveTel(${i})" title="Remover" style="height:38px;padding:0;color:var(--red)"><i class="fa-solid fa-trash"></i></button>
+    </div>`).join('');
+}
+
+// Remove telefones em branco antes de salvar
+function conColetarTels(){ return _conTels.filter(t=>(t.numero||'').trim()); }
 
 // Próximo número de código (monotônico, nunca reutilizado) para relatórios/planilhas
 function conProximoCodigoNum(){
@@ -4895,7 +4938,9 @@ function salvarCondomino(){
     habilitado:!!$('con-habilitado')?.checked,
     cnh:($('con-cnh')?.value||'').trim(), cnhCategoria:($('con-cnh-cat')?.value||'').trim(),
     profissao:($('con-prof')?.value||'').trim(),
-    telefone:($('con-tel')?.value||'').trim(), email:($('con-email')?.value||'').trim(),
+    telefones: conColetarTels(),
+    telefone:(conColetarTels()[0]?.numero||'').trim(), // compat: 1º telefone para buscas/listagens antigas
+    email:($('con-email')?.value||'').trim(),
     dependentes:[..._conDependentes]
   };
   const dados=getCondominos(); dados[cod]=reg;
@@ -4938,8 +4983,12 @@ function editarCondomino(cod){
   if($('con-cnh-cat'))    $('con-cnh-cat').value=d.cnhCategoria||'';
   // contato
   if($('con-prof'))       $('con-prof').value=d.profissao||'';
-  if($('con-tel'))        $('con-tel').value=d.telefone||'';
   if($('con-email'))      $('con-email').value=d.email||'';
+  // telefones: usa o array novo; se não houver, migra o campo antigo (string única)
+  _conTels = Array.isArray(d.telefones) && d.telefones.length
+    ? d.telefones.map(t=>({tipo:t.tipo||'Celular', numero:t.numero||''}))
+    : (d.telefone ? [{tipo:'Celular', numero:d.telefone}] : []);
+  conRenderTels();
   _conDependentes=[...(d.dependentes||[])];
   if($('con-form-title')) $('con-form-title').textContent='Editar Cond\u00f4mino \u2014 '+cod;
   conSetTab('pessoais');
@@ -5078,13 +5127,14 @@ function pesquisaListarTodos(){
 
 function limparFormCondomino(){
   ['con-cod','con-nome','con-cpf','con-rg','con-org-exp','con-passaporte','con-nasc',
-   'con-cnpj','con-ie','con-cnh','con-cnh-cat','con-prof','con-tel','con-email',
+   'con-cnpj','con-ie','con-cnh','con-cnh-cat','con-prof','con-email',
    'dep-cod','dep-nome','dep-cpf','dep-rg','dep-nasc'].forEach(id=>{ if($(id)) $(id).value=''; });
   ['con-sexo','con-nac','con-class','dep-parent'].forEach(id=>{ if($(id)) $(id).value=''; });
   if($('con-pf'))       { $('con-pf').checked=true; conTipoPessoa(); }
   if($('con-habilitado')){ $('con-habilitado').checked=false; conToggleCNH(); }
   if($('con-form-title')) $('con-form-title').textContent='Novo Cond\u00f4mino';
   _conDependentes=[];
+  _conTels=[]; conRenderTels();
   conLimparFoto();
   conLimparFotoDep();
   const el=$('con-dep-lista'); if(el) el.innerHTML='';
