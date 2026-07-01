@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Sonia Kids · Moda Infantil — Roupas confortáveis para os pequenos</title>
+<meta name="description" content="Sonia Kids — moda infantil com conforto, algodão natural e muito carinho. Roupas para bebês e crianças de 0 a 10 anos.">
+<meta name="theme-color" content="#C97B5A">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A6%89%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FDF8F0;
+    --cream-2:#F7EEE1;
+    --sand:#EFE1CE;
+    --terra:#C97B5A;
+    --terra-dark:#B4643F;
+    --sage:#8CA087;
+    --sage-dark:#6E856A;
+    --mustard:#E3A857;
+    --ink:#4A3F35;
+    --ink-soft:#7A6C5D;
+    --line:#E7D9C6;
+    --white:#FFFFFF;
+    --shadow:0 12px 30px rgba(74,63,53,.10);
+    --shadow-sm:0 6px 16px rgba(74,63,53,.08);
+    --radius:22px;
+    --radius-sm:14px;
+    --head:'Baloo 2',system-ui,sans-serif;
+    --body:'Nunito',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;font-family:var(--body);color:var(--ink);
+    background:var(--cream);line-height:1.55;-webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{font-family:var(--head);line-height:1.15;margin:0;color:var(--ink)}
+  a{color:inherit;text-decoration:none}
+  img,svg{display:block;max-width:100%}
+  button{font-family:inherit;cursor:pointer;border:none;background:none}
+  .wrap{width:min(1200px,92%);margin:0 auto}
+  .btn{
+    display:inline-flex;align-items:center;gap:.5rem;justify-content:center;
+    background:var(--terra);color:#fff;font-weight:800;font-family:var(--head);
+    padding:.8rem 1.5rem;border-radius:100px;transition:.2s;font-size:1rem;
+    box-shadow:0 8px 18px rgba(201,123,90,.28);
+  }
+  .btn:hover{background:var(--terra-dark);transform:translateY(-2px)}
+  .btn.ghost{background:transparent;color:var(--terra);box-shadow:none;border:2px solid var(--terra)}
+  .btn.ghost:hover{background:var(--terra);color:#fff}
+  .btn.sage{background:var(--sage);box-shadow:0 8px 18px rgba(140,160,135,.3)}
+  .btn.sage:hover{background:var(--sage-dark)}
+
+  /* ── Announcement bar ── */
+  .topbar{
+    background:var(--sage-dark);color:#fff;text-align:center;
+    font-weight:700;font-size:.85rem;padding:.55rem 1rem;letter-spacing:.2px;
+  }
+  .topbar span{opacity:.95}
+
+  /* ── Header ── */
+  header{position:sticky;top:0;z-index:50;background:rgba(253,248,240,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;gap:1.2rem;padding:.7rem 0}
+  .brand{display:flex;align-items:center;gap:.55rem;font-family:var(--head);font-weight:800;font-size:1.5rem;color:var(--terra)}
+  .brand .owl{width:40px;height:40px;flex:0 0 auto}
+  .menu{display:flex;gap:1.4rem;margin-left:auto;font-weight:700;font-size:.98rem}
+  .menu a{padding:.3rem 0;position:relative;color:var(--ink)}
+  .menu a::after{content:"";position:absolute;left:0;bottom:-2px;height:2px;width:0;background:var(--terra);transition:.25s}
+  .menu a:hover{color:var(--terra)}
+  .menu a:hover::after{width:100%}
+  .icons{display:flex;align-items:center;gap:.4rem}
+  .iconbtn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--ink);transition:.2s;position:relative}
+  .iconbtn:hover{background:var(--sand);color:var(--terra)}
+  .iconbtn svg{width:22px;height:22px}
+  .cart-count{position:absolute;top:4px;right:4px;background:var(--terra);color:#fff;font-size:.68rem;font-weight:800;min-width:18px;height:18px;border-radius:20px;display:grid;place-items:center;padding:0 4px;font-family:var(--body)}
+  .burger{display:none}
+
+  /* ── Hero ── */
+  .hero{background:linear-gradient(160deg,#FBEBD9,#F7EEE1 60%,#EFE1CE);position:relative;overflow:hidden}
+  .hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:2rem;align-items:center;padding:3.4rem 0 3.6rem}
+  .hero .eyebrow{display:inline-flex;align-items:center;gap:.4rem;background:#fff;color:var(--sage-dark);font-weight:800;font-size:.8rem;padding:.4rem .9rem;border-radius:100px;box-shadow:var(--shadow-sm);margin-bottom:1rem}
+  .hero h1{font-size:clamp(2.2rem,5vw,3.6rem);color:var(--ink)}
+  .hero h1 b{color:var(--terra)}
+  .hero p{font-size:1.12rem;color:var(--ink-soft);max-width:34ch;margin:1rem 0 1.6rem}
+  .hero-cta{display:flex;gap:.8rem;flex-wrap:wrap}
+  .hero-art{position:relative;display:grid;place-items:center}
+  .hero-art .blob{position:absolute;inset:0;margin:auto;width:92%;aspect-ratio:1;background:radial-gradient(circle at 50% 40%,#F4C9A6,transparent 70%);filter:blur(6px)}
+  .hero-card{position:relative;background:#fff;border-radius:30px;box-shadow:var(--shadow);padding:1.2rem;transform:rotate(-3deg)}
+  .hero-card svg{width:100%;height:auto}
+  .floaty{position:absolute;background:#fff;border-radius:16px;box-shadow:var(--shadow-sm);padding:.6rem .8rem;font-weight:800;font-size:.85rem;display:flex;align-items:center;gap:.4rem}
+  .floaty.one{top:6%;right:2%;color:var(--terra)}
+  .floaty.two{bottom:4%;left:-2%;color:var(--sage-dark)}
+  .floaty .em{font-size:1.2rem}
+
+  /* ── Marquee benefits ── */
+  .benefits{background:var(--terra);color:#fff}
+  .benefits .wrap{display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;padding:1.1rem 0}
+  .benefit{display:flex;align-items:center;gap:.6rem;font-weight:700;font-size:.92rem;flex:1 1 200px;justify-content:center}
+  .benefit svg{width:26px;height:26px;flex:0 0 auto}
+
+  /* ── Section shell ── */
+  section.block{padding:3.6rem 0}
+  .head-row{text-align:center;max-width:640px;margin:0 auto 2.2rem}
+  .kicker{color:var(--terra);font-weight:800;font-family:var(--head);letter-spacing:.5px;text-transform:uppercase;font-size:.85rem}
+  .head-row h2{font-size:clamp(1.8rem,4vw,2.5rem);margin-top:.2rem}
+  .head-row p{color:var(--ink-soft);margin-top:.6rem}
+
+  /* ── Categories ── */
+  .cats{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem}
+  .cat{background:#fff;border-radius:var(--radius);padding:1.6rem 1rem;text-align:center;box-shadow:var(--shadow-sm);transition:.25s;border:1px solid var(--line)}
+  .cat:hover{transform:translateY(-6px);box-shadow:var(--shadow)}
+  .cat .ring{width:96px;height:96px;border-radius:50%;margin:0 auto .9rem;display:grid;place-items:center}
+  .cat:nth-child(1) .ring{background:#FBE3D2}
+  .cat:nth-child(2) .ring{background:#E3EDDD}
+  .cat:nth-child(3) .ring{background:#FBEFD5}
+  .cat:nth-child(4) .ring{background:#EFE1CE}
+  .cat .ring svg{width:54px;height:54px}
+  .cat h3{font-size:1.15rem}
+  .cat span{font-size:.85rem;color:var(--ink-soft);font-weight:600}
+
+  /* ── Filters ── */
+  .filters{display:flex;gap:.6rem;flex-wrap:wrap;justify-content:center;margin-bottom:2rem}
+  .chip{background:#fff;border:2px solid var(--line);color:var(--ink-soft);font-weight:800;font-family:var(--head);padding:.5rem 1.1rem;border-radius:100px;transition:.2s;font-size:.92rem}
+  .chip:hover{border-color:var(--terra);color:var(--terra)}
+  .chip.active{background:var(--terra);border-color:var(--terra);color:#fff}
+
+  /* ── Products ── */
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.4rem}
+  .card{background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);border:1px solid var(--line);display:flex;flex-direction:column;transition:.25s}
+  .card:hover{transform:translateY(-6px);box-shadow:var(--shadow)}
+  .card .thumb{aspect-ratio:1;position:relative;display:grid;place-items:center;padding:1.2rem}
+  .card .thumb svg{width:80%;height:auto}
+  .tag{position:absolute;top:.8rem;left:.8rem;background:var(--mustard);color:#fff;font-weight:800;font-size:.72rem;font-family:var(--head);padding:.25rem .7rem;border-radius:100px}
+  .tag.new{background:var(--sage)}
+  .wish{position:absolute;top:.7rem;right:.7rem;width:36px;height:36px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:var(--shadow-sm);color:var(--ink-soft);transition:.2s}
+  .wish:hover{color:var(--terra)}
+  .wish.on{color:var(--terra)}
+  .wish svg{width:18px;height:18px}
+  .card .body{padding:0 1.1rem 1.2rem;display:flex;flex-direction:column;gap:.5rem;flex:1}
+  .card .name{font-family:var(--head);font-weight:700;font-size:1.05rem;line-height:1.2}
+  .card .cat-lbl{font-size:.78rem;color:var(--sage-dark);font-weight:800;text-transform:uppercase;letter-spacing:.4px}
+  .sizes{display:flex;gap:.35rem;flex-wrap:wrap}
+  .size{border:1.5px solid var(--line);border-radius:8px;padding:.15rem .5rem;font-size:.75rem;font-weight:800;color:var(--ink-soft);cursor:pointer;transition:.15s}
+  .size:hover{border-color:var(--terra);color:var(--terra)}
+  .size.sel{background:var(--sage);border-color:var(--sage);color:#fff}
+  .price-row{display:flex;align-items:baseline;gap:.5rem;margin-top:auto}
+  .price{font-family:var(--head);font-weight:800;font-size:1.3rem;color:var(--terra)}
+  .price-old{font-size:.9rem;color:var(--ink-soft);text-decoration:line-through}
+  .add{margin-top:.3rem;width:100%;background:var(--ink);color:#fff;font-family:var(--head);font-weight:700;padding:.7rem;border-radius:100px;transition:.2s;display:flex;align-items:center;justify-content:center;gap:.4rem}
+  .add:hover{background:var(--terra)}
+  .add svg{width:18px;height:18px}
+
+  /* ── Collection banner ── */
+  .promo{background:var(--sage);color:#fff;border-radius:28px;overflow:hidden;display:grid;grid-template-columns:1.1fr .9fr;align-items:center;box-shadow:var(--shadow)}
+  .promo .txt{padding:2.8rem}
+  .promo h2{color:#fff;font-size:clamp(1.7rem,3.5vw,2.4rem)}
+  .promo p{margin:.8rem 0 1.4rem;opacity:.95;max-width:38ch}
+  .promo .art{align-self:stretch;display:grid;place-items:center;background:rgba(255,255,255,.12);padding:1.6rem}
+  .promo .art svg{width:min(320px,90%);height:auto}
+
+  /* ── Story ── */
+  .story{display:grid;grid-template-columns:.9fr 1.1fr;gap:2.4rem;align-items:center}
+  .story-art{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:1.6rem;position:relative}
+  .story-art svg{width:100%;height:auto}
+  .story h2{font-size:clamp(1.8rem,4vw,2.4rem)}
+  .story p{color:var(--ink-soft);margin:1rem 0}
+  .story ul{list-style:none;padding:0;margin:1rem 0 1.6rem;display:grid;gap:.7rem}
+  .story li{display:flex;align-items:center;gap:.7rem;font-weight:700}
+  .story li svg{width:24px;height:24px;color:var(--sage);flex:0 0 auto}
+
+  /* ── Reviews ── */
+  .reviews{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4rem}
+  .review{background:#fff;border-radius:var(--radius);padding:1.6rem;box-shadow:var(--shadow-sm);border:1px solid var(--line)}
+  .stars{color:var(--mustard);font-size:1.05rem;letter-spacing:2px;margin-bottom:.6rem}
+  .review p{font-style:italic;color:var(--ink);margin:0 0 1rem}
+  .who{display:flex;align-items:center;gap:.7rem}
+  .avatar{width:44px;height:44px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:var(--head);font-weight:800;color:var(--terra)}
+  .who b{display:block;font-size:.95rem}
+  .who span{font-size:.8rem;color:var(--ink-soft)}
+
+  /* ── Newsletter ── */
+  .news{background:linear-gradient(160deg,#FBEBD9,#EFE1CE);border-radius:28px;text-align:center;padding:3rem 1.5rem}
+  .news h2{font-size:clamp(1.7rem,3.5vw,2.3rem)}
+  .news p{color:var(--ink-soft);margin:.7rem auto 1.4rem;max-width:44ch}
+  .news form{display:flex;gap:.6rem;max-width:460px;margin:0 auto;flex-wrap:wrap;justify-content:center}
+  .news input{flex:1 1 240px;border:2px solid var(--line);border-radius:100px;padding:.85rem 1.3rem;font-family:var(--body);font-size:1rem;background:#fff;color:var(--ink)}
+  .news input:focus{outline:none;border-color:var(--terra)}
+  .news small{display:block;margin-top:1rem;color:var(--ink-soft)}
+
+  /* ── Footer ── */
+  footer{background:var(--ink);color:#EBDFD1;margin-top:1rem}
+  .foot{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:2rem;padding:3rem 0 2rem}
+  .foot .brand{color:#fff;margin-bottom:.8rem}
+  .foot p{color:#C4B4A2;font-size:.92rem;max-width:32ch}
+  .foot h4{color:#fff;font-size:1.05rem;margin-bottom:.9rem}
+  .foot ul{list-style:none;padding:0;margin:0;display:grid;gap:.55rem}
+  .foot a{color:#C4B4A2;font-size:.92rem;transition:.2s}
+  .foot a:hover{color:var(--mustard)}
+  .socials{display:flex;gap:.6rem;margin-top:1rem}
+  .socials a{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center;transition:.2s}
+  .socials a:hover{background:var(--terra);color:#fff}
+  .socials svg{width:20px;height:20px}
+  .foot-bottom{border-top:1px solid rgba(255,255,255,.1);padding:1.2rem 0;text-align:center;color:#9C8B79;font-size:.85rem}
+
+  /* ── Cart drawer ── */
+  .overlay{position:fixed;inset:0;background:rgba(74,63,53,.5);opacity:0;visibility:hidden;transition:.3s;z-index:80}
+  .overlay.show{opacity:1;visibility:visible}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:min(420px,100%);background:var(--cream);z-index:90;transform:translateX(100%);transition:.35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-10px 0 40px rgba(0,0,0,.15)}
+  .drawer.show{transform:translateX(0)}
+  .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:1.3rem 1.4rem;border-bottom:1px solid var(--line)}
+  .drawer-head h3{font-size:1.3rem}
+  .close{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;transition:.2s;color:var(--ink)}
+  .close:hover{background:var(--sand)}
+  .close svg{width:22px;height:22px}
+  .cart-items{flex:1;overflow-y:auto;padding:1rem 1.4rem;display:flex;flex-direction:column;gap:1rem}
+  .empty{text-align:center;color:var(--ink-soft);margin:auto 0;padding:2rem}
+  .empty svg{width:80px;height:80px;margin:0 auto 1rem;opacity:.5}
+  .ci{display:flex;gap:.9rem;background:#fff;border-radius:var(--radius-sm);padding:.8rem;box-shadow:var(--shadow-sm)}
+  .ci .cim{width:66px;height:66px;border-radius:12px;background:var(--cream-2);display:grid;place-items:center;flex:0 0 auto;padding:.3rem}
+  .ci .cim svg{width:100%;height:auto}
+  .ci .cinfo{flex:1;min-width:0}
+  .ci .cinfo b{font-family:var(--head);font-size:.98rem;display:block;line-height:1.2}
+  .ci .cinfo small{color:var(--ink-soft);font-weight:700}
+  .ci .cprice{color:var(--terra);font-weight:800;font-family:var(--head)}
+  .qty{display:inline-flex;align-items:center;gap:.6rem;margin-top:.4rem;background:var(--cream-2);border-radius:100px;padding:.2rem .5rem}
+  .qty button{width:24px;height:24px;border-radius:50%;background:#fff;display:grid;place-items:center;font-weight:800;color:var(--terra);font-size:1rem;line-height:1}
+  .qty span{font-weight:800;min-width:18px;text-align:center}
+  .ci .rm{color:var(--ink-soft);align-self:flex-start;font-size:.8rem;font-weight:700;text-decoration:underline}
+  .ci .rm:hover{color:var(--terra)}
+  .drawer-foot{border-top:1px solid var(--line);padding:1.3rem 1.4rem;background:#fff}
+  .sumline{display:flex;justify-content:space-between;font-weight:700;color:var(--ink-soft);margin-bottom:.4rem}
+  .sumline.total{color:var(--ink);font-size:1.3rem;font-family:var(--head);font-weight:800;margin:.6rem 0 1rem}
+  .sumline.total b{color:var(--terra)}
+  .checkout{width:100%;padding:.95rem}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(120%);background:var(--ink);color:#fff;padding:.85rem 1.4rem;border-radius:100px;font-weight:700;box-shadow:var(--shadow);z-index:100;transition:.35s;display:flex;align-items:center;gap:.5rem}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast svg{width:20px;height:20px;color:var(--sage)}
+
+  /* ── Mobile ── */
+  @media(max-width:900px){
+    .hero .wrap{grid-template-columns:1fr;text-align:center;padding:2.4rem 0}
+    .hero p{margin-left:auto;margin-right:auto}
+    .hero-cta{justify-content:center}
+    .hero-art{order:-1;max-width:340px;margin:0 auto}
+    .cats{grid-template-columns:repeat(2,1fr)}
+    .grid{grid-template-columns:repeat(2,1fr)}
+    .promo{grid-template-columns:1fr}
+    .promo .art{display:none}
+    .story{grid-template-columns:1fr}
+    .reviews{grid-template-columns:1fr}
+    .foot{grid-template-columns:1fr 1fr}
+    .menu{display:none;position:absolute;top:100%;left:0;right:0;background:var(--cream);flex-direction:column;padding:1rem 6%;gap:.4rem;box-shadow:var(--shadow);border-bottom:1px solid var(--line)}
+    .menu.open{display:flex}
+    .menu a{padding:.6rem 0;border-bottom:1px solid var(--line)}
+    .burger{display:grid}
+  }
+  @media(max-width:560px){
+    .grid{grid-template-columns:1fr}
+    .cats{grid-template-columns:1fr 1fr}
+    .foot{grid-template-columns:1fr}
+    .benefit{flex-basis:45%}
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ Announcement ══ -->
+<div class="topbar"><span>🚚 Frete grátis acima de R$ 199 &nbsp;·&nbsp; 🎁 Até 30% OFF na Coleção Primavera &nbsp;·&nbsp; 💳 10x sem juros</span></div>
+
+<!-- ══ Header ══ -->
+<header>
+  <nav class="nav wrap">
+    <a href="#top" class="brand" aria-label="Sonia Kids início">
+      <svg class="owl" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="34" r="26" fill="#C97B5A"/>
+        <path d="M10 20c-2-8 6-14 12-10M54 20c2-8-6-14-12-10" fill="#C97B5A"/>
+        <circle cx="23" cy="30" r="9" fill="#fff"/><circle cx="41" cy="30" r="9" fill="#fff"/>
+        <circle cx="23" cy="30" r="4" fill="#4A3F35"/><circle cx="41" cy="30" r="4" fill="#4A3F35"/>
+        <circle cx="24.5" cy="28.5" r="1.4" fill="#fff"/><circle cx="42.5" cy="28.5" r="1.4" fill="#fff"/>
+        <path d="M32 36l-4 4h8z" fill="#E3A857"/>
+        <path d="M22 48c4 4 16 4 20 0" stroke="#B4643F" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>
+      Sonia Kids
+    </a>
+    <div class="menu" id="menu">
+      <a href="#novidades">Novidades</a>
+      <a href="#categorias">Categorias</a>
+      <a href="#produtos">Loja</a>
+      <a href="#colecao">Coleção</a>
+      <a href="#sobre">Sobre</a>
+    </div>
+    <div class="icons">
+      <button class="iconbtn" aria-label="Buscar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+      </button>
+      <button class="iconbtn" aria-label="Favoritos">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-9.5-9C.5 8 3 4 6.5 4 9 4 11 6 12 7.5 13-6 15 4 17.5 4 21 4 23.5 8 21.5 12 19 16.5 12 21 12 21z"/></svg>
+      </button>
+      <button class="iconbtn" aria-label="Sacola" id="openCart">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+        <span class="cart-count" id="cartCount" hidden>0</span>
+      </button>
+      <button class="iconbtn burger" id="burger" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </nav>
+</header>
+
+<span id="top"></span>
+
+<!-- ══ Hero ══ -->
+<section class="hero" id="novidades">
+  <div class="wrap">
+    <div class="hero-txt">
+      <span class="eyebrow">🦉 Feito com algodão e carinho</span>
+      <h1>Conforto e fofura para os <b>pequenos exploradores</b></h1>
+      <p>Roupinhas macias, atemporais e cheias de personalidade — do primeiro soninho às maiores aventuras. Do RN ao 10 anos.</p>
+      <div class="hero-cta">
+        <a href="#produtos" class="btn">Ver a coleção</a>
+        <a href="#colecao" class="btn ghost">Novidades primavera</a>
+      </div>
+    </div>
+    <div class="hero-art">
+      <div class="blob"></div>
+      <div class="floaty one"><span class="em">🌿</span> 100% algodão</div>
+      <div class="floaty two"><span class="em">💛</span> +12 mil famílias</div>
+      <div class="hero-card">
+        <!-- Illustration: baby onesie + owl -->
+        <svg viewBox="0 0 320 300" aria-label="Ilustração de roupas infantis">
+          <rect x="0" y="0" width="320" height="300" rx="24" fill="#F7EEE1"/>
+          <!-- little cloud -->
+          <ellipse cx="70" cy="60" rx="34" ry="18" fill="#fff"/>
+          <ellipse cx="250" cy="50" rx="26" ry="14" fill="#fff"/>
+          <!-- onesie -->
+          <g transform="translate(96 70)">
+            <path d="M20 30 L45 10 Q64 26 83 10 L108 30 L96 60 L84 52 L84 150 Q64 168 44 150 L44 52 L32 60 Z" fill="#8CA087"/>
+            <path d="M45 10 Q64 26 83 10" fill="none" stroke="#6E856A" stroke-width="4"/>
+            <circle cx="64" cy="80" r="5" fill="#FBEFD5"/>
+            <circle cx="64" cy="100" r="5" fill="#FBEFD5"/>
+            <circle cx="64" cy="120" r="5" fill="#FBEFD5"/>
+            <!-- owl patch -->
+            <g transform="translate(48 40)">
+              <circle cx="16" cy="16" r="15" fill="#C97B5A"/>
+              <circle cx="10" cy="14" r="5" fill="#fff"/><circle cx="22" cy="14" r="5" fill="#fff"/>
+              <circle cx="10" cy="14" r="2" fill="#4A3F35"/><circle cx="22" cy="14" r="2" fill="#4A3F35"/>
+              <path d="M16 18l-2 2h4z" fill="#E3A857"/>
+            </g>
+          </g>
+          <!-- stars -->
+          <g fill="#E3A857"><circle cx="40" cy="150" r="4"/><circle cx="285" cy="140" r="5"/><circle cx="270" cy="230" r="4"/><circle cx="50" cy="250" r="5"/></g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Benefits bar ══ -->
+<div class="benefits">
+  <div class="wrap">
+    <div class="benefit"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h13v11H1zM14 7h4l3 3v4h-7z"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg> Frete grátis acima de R$199</div>
+    <div class="benefit"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg> Troca fácil em 30 dias</div>
+    <div class="benefit"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg> 10x sem juros</div>
+    <div class="benefit"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg> Algodão certificado</div>
+  </div>
+</div>
+
+<!-- ══ Categories ══ -->
+<section class="block wrap" id="categorias">
+  <div class="head-row">
+    <span class="kicker">Navegue por</span>
+    <h2>Categorias favoritas</h2>
+    <p>Do body do bebê ao conjunto da criançada — encontre a peça certa para cada fase.</p>
+  </div>
+  <div class="cats">
+    <button class="cat" data-jump="Bebê">
+      <div class="ring"><svg viewBox="0 0 64 64"><path d="M20 22 L28 16 Q32 20 36 16 L44 22 L40 30 L36 27 V52 Q32 56 28 52 V27 L24 30 Z" fill="#C97B5A"/><circle cx="32" cy="34" r="3" fill="#fff"/><circle cx="32" cy="42" r="3" fill="#fff"/></svg></div>
+      <h3>Bebê</h3><span>RN ao 24 meses</span>
+    </button>
+    <button class="cat" data-jump="Menina">
+      <div class="ring"><svg viewBox="0 0 64 64"><path d="M26 16 L38 16 L42 26 L38 30 L46 52 L18 52 L26 30 L22 26 Z" fill="#8CA087"/><circle cx="32" cy="22" r="3" fill="#fff"/></svg></div>
+      <h3>Menina</h3><span>2 aos 10 anos</span>
+    </button>
+    <button class="cat" data-jump="Menino">
+      <div class="ring"><svg viewBox="0 0 64 64"><path d="M22 18 L30 14 Q32 17 34 14 L42 18 L38 26 L35 24 V50 H29 V24 L26 26 Z" fill="#E3A857"/><rect x="29" y="34" width="6" height="10" fill="#fff" opacity=".7"/></svg></div>
+      <h3>Menino</h3><span>2 aos 10 anos</span>
+    </button>
+    <button class="cat" data-jump="Acessórios">
+      <div class="ring"><svg viewBox="0 0 64 64"><path d="M18 30 Q32 12 46 30 Q32 26 18 30Z" fill="#C97B5A"/><rect x="20" y="30" width="24" height="16" rx="4" fill="#B4643F"/><circle cx="32" cy="38" r="3" fill="#FBEFD5"/></svg></div>
+      <h3>Acessórios</h3><span>Toucas, meias e mais</span>
+    </button>
+  </div>
+</section>
+
+<!-- ══ Products ══ -->
+<section class="block wrap" id="produtos">
+  <div class="head-row">
+    <span class="kicker">Mais amados</span>
+    <h2>Nossa loja</h2>
+    <p>Peças pensadas para o conforto da criançada e a tranquilidade dos pais.</p>
+  </div>
+  <div class="filters" id="filters">
+    <button class="chip active" data-filter="Todos">Todos</button>
+    <button class="chip" data-filter="Bebê">Bebê</button>
+    <button class="chip" data-filter="Menina">Menina</button>
+    <button class="chip" data-filter="Menino">Menino</button>
+    <button class="chip" data-filter="Acessórios">Acessórios</button>
+  </div>
+  <div class="grid" id="grid"><!-- products injected --></div>
+</section>
+
+<!-- ══ Collection promo ══ -->
+<section class="block wrap" id="colecao">
+  <div class="promo">
+    <div class="txt">
+      <span class="kicker" style="color:#FBEFD5">Nova coleção</span>
+      <h2>Primavera dos Ninhos 🌸</h2>
+      <p>Estampas exclusivas inspiradas na natureza, tecidos leves e cores que combinam com o brincar. Até 30% OFF por tempo limitado.</p>
+      <a href="#produtos" class="btn" style="background:#fff;color:var(--sage-dark)">Explorar coleção</a>
+    </div>
+    <div class="art">
+      <svg viewBox="0 0 300 260" aria-label="Coleção primavera">
+        <circle cx="150" cy="130" r="110" fill="rgba(255,255,255,.15)"/>
+        <!-- dress -->
+        <path d="M110 60 L130 45 Q150 60 170 45 L190 60 L180 90 L172 84 L200 190 L100 190 L128 84 L120 90 Z" fill="#fff"/>
+        <path d="M130 45 Q150 60 170 45" fill="none" stroke="#EFE1CE" stroke-width="4"/>
+        <g fill="#E3A857"><circle cx="135" cy="120" r="5"/><circle cx="165" cy="135" r="5"/><circle cx="150" cy="160" r="5"/><circle cx="125" cy="150" r="4"/></g>
+        <!-- flowers -->
+        <g fill="#C97B5A"><circle cx="60" cy="70" r="10"/><circle cx="240" cy="60" r="8"/><circle cx="250" cy="200" r="10"/><circle cx="55" cy="200" r="8"/></g>
+        <g fill="#FBEFD5"><circle cx="60" cy="70" r="4"/><circle cx="240" cy="60" r="3"/><circle cx="250" cy="200" r="4"/><circle cx="55" cy="200" r="3"/></g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Story ══ -->
+<section class="block wrap" id="sobre">
+  <div class="story">
+    <div class="story-art">
+      <svg viewBox="0 0 320 280" aria-label="Sobre a Sonia Kids">
+        <rect width="320" height="280" rx="18" fill="#F7EEE1"/>
+        <!-- big owl -->
+        <g transform="translate(160 150)">
+          <circle r="80" fill="#C97B5A"/>
+          <path d="M-70 -55c-6-24 18-38 34-28M70 -55c6-24 -18-38 -34-28" fill="#C97B5A"/>
+          <circle cx="-28" cy="-14" r="26" fill="#fff"/><circle cx="28" cy="-14" r="26" fill="#fff"/>
+          <circle cx="-28" cy="-14" r="12" fill="#4A3F35"/><circle cx="28" cy="-14" r="12" fill="#4A3F35"/>
+          <circle cx="-24" cy="-18" r="4" fill="#fff"/><circle cx="32" cy="-18" r="4" fill="#fff"/>
+          <path d="M0 0l-9 10h18z" fill="#E3A857"/>
+          <path d="M-40 40q40 30 80 0" fill="#B4643F"/>
+          <g fill="#FBEFD5"><circle cx="-45" cy="35" r="6"/><circle cx="45" cy="35" r="6"/></g>
+        </g>
+        <g fill="#8CA087"><circle cx="40" cy="50" r="8"/><circle cx="280" cy="60" r="10"/><circle cx="270" cy="230" r="8"/><circle cx="45" cy="235" r="10"/></g>
+      </svg>
+    </div>
+    <div>
+      <span class="kicker">Nossa história</span>
+      <h2>Nascemos para vestir a infância com leveza</h2>
+      <p>A Sonia Kids começou num ninho pequenininho: pais em busca de roupas de verdade para os filhos — macias na pele, resistentes à brincadeira e bonitas de guardar de lembrança. Hoje somos uma família enorme.</p>
+      <ul>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Algodão macio e hipoalergênico</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Costura reforçada que aguenta o pique</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Produção consciente e sem crueldade</li>
+      </ul>
+      <a href="#produtos" class="btn sage">Conhecer as peças</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Reviews ══ -->
+<section class="block wrap">
+  <div class="head-row">
+    <span class="kicker">Quem veste, ama</span>
+    <h2>Famílias felizes</h2>
+  </div>
+  <div class="reviews">
+    <div class="review">
+      <div class="stars">★★★★★</div>
+      <p>"O body é absurdo de macio, meu bebê dorme muito melhor. A qualidade impressiona e já virei cliente fiel!"</p>
+      <div class="who"><div class="avatar">MA</div><div><b>Mariana A.</b><span>São Paulo · SP</span></div></div>
+    </div>
+    <div class="review">
+      <div class="stars">★★★★★</div>
+      <p>"Comprei o conjunto de moletom pro inverno e minha filha não quer tirar. Lavou várias vezes e não desbotou nada."</p>
+      <div class="who"><div class="avatar">RC</div><div><b>Rafael C.</b><span>Curitiba · PR</span></div></div>
+    </div>
+    <div class="review">
+      <div class="stars">★★★★★</div>
+      <p>"Entrega rápida, embalagem uma fofura e as estampas são lindas ao vivo. Recomendo de olhos fechados!"</p>
+      <div class="who"><div class="avatar">JS</div><div><b>Juliana S.</b><span>Recife · PE</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Newsletter ══ -->
+<section class="block wrap">
+  <div class="news">
+    <h2>Ganhe 10% no primeiro pedido 🎉</h2>
+    <p>Assine e receba novidades, dicas para os pequenos e ofertas exclusivas direto no seu e-mail.</p>
+    <form id="newsForm">
+      <input type="email" placeholder="Seu melhor e-mail" required aria-label="E-mail">
+      <button class="btn" type="submit">Quero meu cupom</button>
+    </form>
+    <small id="newsMsg">Sem spam. Só coisa boa. 💛</small>
+  </div>
+</section>
+
+<!-- ══ Footer ══ -->
+<footer>
+  <div class="foot wrap">
+    <div>
+      <div class="brand" style="font-size:1.4rem">
+        <svg class="owl" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="34" r="26" fill="#E3A857"/>
+          <circle cx="23" cy="30" r="9" fill="#fff"/><circle cx="41" cy="30" r="9" fill="#fff"/>
+          <circle cx="23" cy="30" r="4" fill="#4A3F35"/><circle cx="41" cy="30" r="4" fill="#4A3F35"/>
+          <path d="M32 36l-4 4h8z" fill="#C97B5A"/>
+        </svg> Sonia Kids
+      </div>
+      <p>Moda infantil feita com algodão, cuidado e muito amor. Vestindo a infância desde o primeiro ninho.</p>
+      <div class="socials">
+        <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></a>
+        <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 9h3V6h-3c-2 0-3 1-3 3v2H8v3h3v7h3v-7h3l1-3h-4V9c0-.5.5-1 1-1z"/></svg></a>
+        <a href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 3c.5 2.5 2 4 4.5 4.3v3C18.7 10 17 9.4 16 8.5V15a5.5 5.5 0 1 1-5.5-5.5c.3 0 .6 0 .9.1v3.1a2.5 2.5 0 1 0 1.6 2.3V3z"/></svg></a>
+        <a href="#" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2zm5.3 14c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3-.6s-3.4-2.9-3.5-3-.9-1.2-.9-2.3.6-1.6.8-1.8.4-.3.6-.3h.4c.2 0 .4 0 .6.5l.7 1.7c.1.2.1.4 0 .5l-.4.5c-.1.1-.3.3-.1.5s.5.9 1.1 1.4c.8.7 1.4.9 1.6 1s.4.1.5-.1l.6-.7c.2-.2.3-.2.5-.1l1.6.8c.2.1.4.2.4.3.1.1.1.6-.1 1.1z"/></svg></a>
+      </div>
+    </div>
+    <div>
+      <h4>Comprar</h4>
+      <ul>
+        <li><a href="#produtos">Bebê</a></li>
+        <li><a href="#produtos">Menina</a></li>
+        <li><a href="#produtos">Menino</a></li>
+        <li><a href="#produtos">Acessórios</a></li>
+        <li><a href="#colecao">Coleção Primavera</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Ajuda</h4>
+      <ul>
+        <li><a href="#">Trocas e devoluções</a></li>
+        <li><a href="#">Guia de tamanhos</a></li>
+        <li><a href="#">Prazo de entrega</a></li>
+        <li><a href="#">Formas de pagamento</a></li>
+        <li><a href="#">Fale conosco</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Sonia Kids</h4>
+      <ul>
+        <li><a href="#sobre">Nossa história</a></li>
+        <li><a href="#">Sustentabilidade</a></li>
+        <li><a href="#">Lojas físicas</a></li>
+        <li><a href="#">Trabalhe conosco</a></li>
+        <li><a href="#">Blog do ninho</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="foot-bottom wrap" style="width:100%">
+    © 2026 Sonia Kids Moda Infantil · CNPJ 00.000.000/0001-00 · Feito com 💛 para os pequenos
+  </div>
+</footer>
+
+<!-- ══ Cart drawer ══ -->
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer" aria-label="Sacola de compras">
+  <div class="drawer-head">
+    <h3>Sua sacola 🛍️</h3>
+    <button class="close" id="closeCart" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="cart-items" id="cartItems"></div>
+  <div class="drawer-foot" id="drawerFoot" hidden>
+    <div class="sumline"><span>Subtotal</span><span id="subtotal">R$ 0,00</span></div>
+    <div class="sumline"><span>Frete</span><span id="shipping">A calcular</span></div>
+    <div class="sumline total"><span>Total</span><b id="total">R$ 0,00</b></div>
+    <button class="btn checkout" id="checkout">Finalizar compra</button>
+  </div>
+</aside>
+
+<div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span id="toastMsg">Adicionado à sacola!</span></div>
+
+<script>
+/* ═══════════ Ilustrações de produtos (SVG) ═══════════ */
+const ART = {
+  body:(c)=>`<svg viewBox="0 0 120 120"><path d="M35 34 L52 22 Q60 30 68 22 L85 34 L78 50 L70 45 L70 92 Q60 100 50 92 L50 45 L42 50 Z" fill="${c}"/><path d="M52 22 Q60 30 68 22" fill="none" stroke="rgba(0,0,0,.12)" stroke-width="3"/><circle cx="60" cy="60" r="3" fill="#FDF8F0"/><circle cx="60" cy="72" r="3" fill="#FDF8F0"/><circle cx="60" cy="84" r="3" fill="#FDF8F0"/></svg>`,
+  tee:(c)=>`<svg viewBox="0 0 120 120"><path d="M30 38 L48 24 Q60 34 72 24 L90 38 L82 54 L74 48 V96 H46 V48 L38 54 Z" fill="${c}"/><path d="M48 24 Q60 34 72 24" fill="none" stroke="rgba(0,0,0,.12)" stroke-width="3"/><circle cx="60" cy="66" r="10" fill="#FDF8F0" opacity=".85"/><circle cx="56" cy="64" r="2" fill="${c}"/><circle cx="64" cy="64" r="2" fill="${c}"/><path d="M55 70q5 4 10 0" stroke="${c}" stroke-width="2" fill="none"/></svg>`,
+  dress:(c)=>`<svg viewBox="0 0 120 120"><path d="M40 30 L52 20 Q60 30 68 20 L80 30 L74 48 L70 44 L92 100 L28 100 L50 44 L46 48 Z" fill="${c}"/><path d="M52 20 Q60 30 68 20" fill="none" stroke="rgba(0,0,0,.12)" stroke-width="3"/><g fill="#FDF8F0"><circle cx="52" cy="66" r="3"/><circle cx="66" cy="72" r="3"/><circle cx="58" cy="84" r="3"/></g></svg>`,
+  pants:(c)=>`<svg viewBox="0 0 120 120"><path d="M42 26 H78 V44 L72 98 H62 L60 56 L58 98 H48 L42 44 Z" fill="${c}"/><rect x="42" y="26" width="36" height="8" fill="rgba(0,0,0,.12)"/></svg>`,
+  hoodie:(c)=>`<svg viewBox="0 0 120 120"><path d="M28 42 L46 26 Q60 40 74 26 L92 42 L84 58 L76 52 V98 H44 V52 L36 58 Z" fill="${c}"/><path d="M46 26 Q60 40 74 26 L74 40 Q60 50 46 40 Z" fill="rgba(0,0,0,.14)"/><rect x="56" y="56" width="8" height="28" rx="4" fill="rgba(0,0,0,.12)"/></svg>`,
+  overall:(c)=>`<svg viewBox="0 0 120 120"><path d="M44 30 V44 H76 V30 M40 44 H80 V96 H66 V70 H54 V96 H40 Z" fill="${c}"/><rect x="46" y="24" width="6" height="20" fill="${c}"/><rect x="68" y="24" width="6" height="20" fill="${c}"/><circle cx="49" cy="52" r="3" fill="#FDF8F0"/><circle cx="71" cy="52" r="3" fill="#FDF8F0"/></svg>`,
+  hat:(c)=>`<svg viewBox="0 0 120 120"><path d="M32 66 Q60 24 88 66 Q60 58 32 66Z" fill="${c}"/><rect x="34" y="64" width="52" height="16" rx="6" fill="${c}"/><circle cx="60" cy="40" r="6" fill="#FDF8F0"/><circle cx="60" cy="72" r="4" fill="#FDF8F0"/></svg>`,
+  socks:(c)=>`<svg viewBox="0 0 120 120"><path d="M48 26 H66 V60 Q66 74 80 74 H84 V90 H74 Q48 90 48 62 Z" fill="${c}"/><rect x="48" y="26" width="18" height="8" fill="rgba(0,0,0,.12)"/></svg>`,
+};
+const PALETTE=['#C97B5A','#8CA087','#E3A857','#B4643F','#9DB0A8','#D98E63','#7E9A76','#E0B36B'];
+
+/* ═══════════ Catálogo ═══════════ */
+const PRODUCTS=[
+  {id:1, name:'Body Ninho Manga Longa', cat:'Bebê', art:'body', c:0, price:59.90, old:79.90, tag:'-25%', sizes:['RN','P','M','G'], badge:'sale'},
+  {id:2, name:'Macacão Soninho Felpudo', cat:'Bebê', art:'overall', c:1, price:119.90, old:null, tag:'Novo', sizes:['RN','P','M'], badge:'new'},
+  {id:3, name:'Conjunto Explorador', cat:'Menino', art:'tee', c:2, price:99.90, old:129.90, tag:'-23%', sizes:['2','4','6','8'], badge:'sale'},
+  {id:4, name:'Vestido Florzinha do Campo', cat:'Menina', art:'dress', c:3, price:139.90, old:null, tag:'Novo', sizes:['2','4','6','8','10'], badge:'new'},
+  {id:5, name:'Moletom Corujinha', cat:'Menino', art:'hoodie', c:0, price:149.90, old:189.90, tag:'-21%', sizes:['4','6','8','10'], badge:'sale'},
+  {id:6, name:'Calça Jogger Brincar', cat:'Menina', art:'pants', c:1, price:89.90, old:null, tag:null, sizes:['2','4','6','8'], badge:null},
+  {id:7, name:'Touca Orelhinha', cat:'Acessórios', art:'hat', c:4, price:34.90, old:44.90, tag:'-22%', sizes:['Único'], badge:'sale'},
+  {id:8, name:'Kit 3 Meias Ninho', cat:'Acessórios', art:'socks', c:5, price:39.90, old:null, tag:'Novo', sizes:['RN','P','M'], badge:'new'},
+  {id:9, name:'Vestido Festa Girassol', cat:'Menina', art:'dress', c:7, price:169.90, old:null, tag:null, sizes:['2','4','6','8'], badge:null},
+  {id:10, name:'Camiseta Aventura', cat:'Menino', art:'tee', c:6, price:59.90, old:74.90, tag:'-20%', sizes:['2','4','6','8','10'], badge:'sale'},
+  {id:11, name:'Jardineira Sementinha', cat:'Bebê', art:'overall', c:5, price:109.90, old:null, tag:null, sizes:['P','M','G'], badge:null},
+  {id:12, name:'Body Estampado Bosque', cat:'Bebê', art:'body', c:2, price:64.90, old:null, tag:'Novo', sizes:['RN','P','M','G'], badge:'new'},
+];
+
+/* ═══════════ Estado ═══════════ */
+const cart=[]; // {id, size, qty}
+const $=s=>document.querySelector(s);
+const money=v=>'R$ '+v.toFixed(2).replace('.',',');
+
+/* ═══════════ Render produtos ═══════════ */
+function renderProducts(filter='Todos'){
+  const grid=$('#grid');
+  const list=filter==='Todos'?PRODUCTS:PRODUCTS.filter(p=>p.cat===filter);
+  grid.innerHTML=list.map(p=>{
+    const color=PALETTE[p.c];
+    const badge=p.tag?`<span class="tag ${p.badge==='new'?'new':''}">${p.tag}</span>`:'';
+    const sizes=p.sizes.map(s=>`<button class="size" data-size="${s}">${s}</button>`).join('');
+    const old=p.old?`<span class="price-old">${money(p.old)}</span>`:'';
+    return `<article class="card" data-id="${p.id}">
+      <div class="thumb" style="background:${color}1A">
+        ${badge}
+        <button class="wish" aria-label="Favoritar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-9.5-9C.5 8 3 4 6.5 4 9 4 11 6 12 7.5 13-6 15 4 17.5 4 21 4 23.5 8 21.5 12 19 16.5 12 21 12 21z"/></svg></button>
+        ${ART[p.art](color)}
+      </div>
+      <div class="body">
+        <span class="cat-lbl">${p.cat}</span>
+        <h3 class="name">${p.name}</h3>
+        <div class="sizes">${sizes}</div>
+        <div class="price-row"><span class="price">${money(p.price)}</span>${old}</div>
+        <button class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg> Adicionar</button>
+      </div>
+    </article>`;
+  }).join('');
+  if(!list.length) grid.innerHTML='<p style="grid-column:1/-1;text-align:center;color:var(--ink-soft)">Nenhum produto nesta categoria ainda. 🦉</p>';
+}
+
+/* ═══════════ Interações do grid ═══════════ */
+$('#grid').addEventListener('click',e=>{
+  const card=e.target.closest('.card'); if(!card) return;
+  const id=+card.dataset.id;
+  // selecionar tamanho
+  const sizeBtn=e.target.closest('.size');
+  if(sizeBtn){card.querySelectorAll('.size').forEach(s=>s.classList.remove('sel'));sizeBtn.classList.add('sel');return;}
+  // favoritar
+  const wish=e.target.closest('.wish');
+  if(wish){wish.classList.toggle('on');return;}
+  // adicionar
+  if(e.target.closest('.add')){
+    let sel=card.querySelector('.size.sel');
+    if(!sel){sel=card.querySelector('.size');sel.classList.add('sel');}
+    addToCart(id,sel.dataset.size);
+  }
+});
+
+/* ═══════════ Filtros ═══════════ */
+$('#filters').addEventListener('click',e=>{
+  const chip=e.target.closest('.chip'); if(!chip) return;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active');
+  renderProducts(chip.dataset.filter);
+});
+document.querySelectorAll('.cat[data-jump]').forEach(c=>c.addEventListener('click',()=>{
+  const f=c.dataset.jump;
+  document.querySelectorAll('.chip').forEach(ch=>ch.classList.toggle('active',ch.dataset.filter===f));
+  renderProducts(f);
+  document.getElementById('produtos').scrollIntoView({behavior:'smooth'});
+}));
+
+/* ═══════════ Carrinho ═══════════ */
+function addToCart(id,size){
+  const found=cart.find(i=>i.id===id&&i.size===size);
+  if(found) found.qty++; else cart.push({id,size,qty:1});
+  updateCart(); showToast(); pulseCart();
+}
+function updateCart(){
+  const wrap=$('#cartItems'), foot=$('#drawerFoot');
+  const count=cart.reduce((n,i)=>n+i.qty,0);
+  const badge=$('#cartCount');
+  badge.textContent=count; badge.hidden=count===0;
+  if(!cart.length){
+    wrap.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><p>Sua sacola está vazinha.<br>Que tal escolher algo fofo? 🦉</p></div>`;
+    foot.hidden=true; return;
+  }
+  foot.hidden=false;
+  let subtotal=0;
+  wrap.innerHTML=cart.map((item,idx)=>{
+    const p=PRODUCTS.find(x=>x.id===item.id);
+    const line=p.price*item.qty; subtotal+=line;
+    return `<div class="ci">
+      <div class="cim" style="background:${PALETTE[p.c]}1A">${ART[p.art](PALETTE[p.c])}</div>
+      <div class="cinfo">
+        <b>${p.name}</b>
+        <small>Tam: ${item.size} · ${money(p.price)}</small>
+        <div class="qty">
+          <button data-act="dec" data-i="${idx}">−</button>
+          <span>${item.qty}</span>
+          <button data-act="inc" data-i="${idx}">+</button>
+        </div>
+      </div>
+      <div style="text-align:right;display:flex;flex-direction:column;gap:.4rem">
+        <span class="cprice">${money(line)}</span>
+        <button class="rm" data-act="rm" data-i="${idx}">remover</button>
+      </div>
+    </div>`;
+  }).join('');
+  const shipping=subtotal>=199?0:(subtotal>0?24.90:0);
+  $('#subtotal').textContent=money(subtotal);
+  $('#shipping').textContent=shipping===0?'Grátis 🎉':money(shipping);
+  $('#total').textContent=money(subtotal+shipping);
+}
+$('#cartItems').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-act]'); if(!btn) return;
+  const i=+btn.dataset.i, act=btn.dataset.act;
+  if(act==='inc') cart[i].qty++;
+  else if(act==='dec'){cart[i].qty--; if(cart[i].qty<1)cart.splice(i,1);}
+  else if(act==='rm') cart.splice(i,1);
+  updateCart();
+});
+
+/* ═══════════ Drawer ═══════════ */
+function openCart(){$('#drawer').classList.add('show');$('#overlay').classList.add('show');document.body.style.overflow='hidden';}
+function closeCart(){$('#drawer').classList.remove('show');$('#overlay').classList.remove('show');document.body.style.overflow='';}
+$('#openCart').addEventListener('click',openCart);
+$('#closeCart').addEventListener('click',closeCart);
+$('#overlay').addEventListener('click',closeCart);
+$('#checkout').addEventListener('click',()=>{
+  const total=cart.reduce((s,i)=>{const p=PRODUCTS.find(x=>x.id===i.id);return s+p.price*i.qty;},0);
+  showToast('Pedido de '+money(total)+' pronto! 🦉 (demo)');
+});
+function pulseCart(){const b=$('#openCart');b.animate([{transform:'scale(1)'},{transform:'scale(1.2)'},{transform:'scale(1)'}],{duration:300});}
+
+/* ═══════════ Toast ═══════════ */
+let toastT;
+function showToast(msg='Adicionado à sacola!'){
+  $('#toastMsg').textContent=msg;
+  const t=$('#toast'); t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* ═══════════ Menu mobile ═══════════ */
+$('#burger').addEventListener('click',()=>$('#menu').classList.toggle('open'));
+document.querySelectorAll('#menu a').forEach(a=>a.addEventListener('click',()=>$('#menu').classList.remove('open')));
+
+/* ═══════════ Newsletter ═══════════ */
+$('#newsForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  $('#newsMsg').textContent='🎉 Prontinho! Use o cupom BEMVINDO10 no seu primeiro pedido.';
+  $('#newsMsg').style.color='var(--sage-dark)';
+  e.target.reset();
+});
+
+/* ═══════════ Init ═══════════ */
+renderProducts();
+updateCart();
+</script>
+</body>
+</html>
