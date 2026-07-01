@@ -6,7 +6,7 @@
 <title>Sonia Kids · Moda Infantil — Roupas confortáveis para os pequenos</title>
 <meta name="description" content="Sonia Kids — moda infantil com conforto, algodão natural e muito carinho. Roupas para bebês e crianças de 0 a 10 anos.">
 <meta name="theme-color" content="#C97B5A">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A6%89%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='34' r='27' fill='%23C97B5A'/%3E%3Ccircle cx='23' cy='30' r='9' fill='%23fff'/%3E%3Ccircle cx='41' cy='30' r='9' fill='%23fff'/%3E%3Ccircle cx='23' cy='30' r='4' fill='%234A3F35'/%3E%3Ccircle cx='41' cy='30' r='4' fill='%234A3F35'/%3E%3Cpath d='M32 36l-4 4h8z' fill='%23E3A857'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -87,7 +87,8 @@
   }
   .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(239,225,206,.5),transparent 30%);pointer-events:none}
   .hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:2rem;align-items:center;padding:3.4rem 0 3.6rem}
-  .hero .eyebrow{display:inline-flex;align-items:center;gap:.4rem;background:#fff;color:var(--sage-dark);font-weight:800;font-size:.8rem;padding:.4rem .9rem;border-radius:100px;box-shadow:var(--shadow-sm);margin-bottom:1rem}
+  .hero .eyebrow{display:inline-flex;align-items:center;gap:.45rem;background:#fff;color:var(--sage-dark);font-weight:800;font-size:.8rem;padding:.45rem .95rem;border-radius:100px;box-shadow:var(--shadow-sm);margin-bottom:1rem}
+  .hero .eyebrow svg{width:16px;height:16px}
   .hero h1{font-size:clamp(2.2rem,5vw,3.6rem);color:var(--ink)}
   .hero h1 b{color:var(--terra)}
   .hero p{font-size:1.12rem;color:var(--ink-soft);max-width:34ch;margin:1rem 0 1.6rem}
@@ -106,7 +107,7 @@
   .floaty{position:absolute;background:#fff;border-radius:16px;box-shadow:var(--shadow-sm);padding:.6rem .8rem;font-weight:800;font-size:.85rem;display:flex;align-items:center;gap:.4rem}
   .floaty.one{top:8%;left:-1%;right:auto;color:var(--terra);z-index:3}
   .floaty.two{bottom:16%;right:-4%;left:auto;color:var(--sage-dark);z-index:3}
-  .floaty .em{font-size:1.2rem}
+  .floaty .fi{width:18px;height:18px;flex:0 0 auto}
 
   /* ── Marquee benefits ── */
   .benefits{background:var(--terra);color:#fff}
@@ -173,13 +174,17 @@
   .promo .txt{padding:2.8rem}
   .promo h2{color:#fff;font-size:clamp(1.7rem,3.5vw,2.4rem)}
   .promo p{margin:.8rem 0 1.4rem;opacity:.95;max-width:38ch}
-  .promo .art{align-self:stretch;display:grid;place-items:center;background:rgba(255,255,255,.12);padding:1.6rem}
+  .promo .art{align-self:stretch;position:relative;overflow:hidden;display:grid;place-items:center;background:rgba(255,255,255,.12);padding:1.6rem}
   .promo .art svg{width:min(320px,90%);height:auto}
+  .promo .art .banner-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s}
+  .promo .art .banner-photo.ok{opacity:1}
 
   /* ── Story ── */
   .story{display:grid;grid-template-columns:.9fr 1.1fr;gap:2.4rem;align-items:center}
-  .story-art{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:1.6rem;position:relative}
+  .story-art{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:1.6rem;position:relative;overflow:hidden;min-height:280px}
   .story-art svg{width:100%;height:auto}
+  .story-art .story-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s}
+  .story-art .story-photo.ok{opacity:1}
   .story h2{font-size:clamp(1.8rem,4vw,2.4rem)}
   .story p{color:var(--ink-soft);margin:1rem 0}
   .story ul{list-style:none;padding:0;margin:1rem 0 1.6rem;display:grid;gap:.7rem}
@@ -189,7 +194,8 @@
   /* ── Reviews ── */
   .reviews{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4rem}
   .review{background:#fff;border-radius:var(--radius);padding:1.6rem;box-shadow:var(--shadow-sm);border:1px solid var(--line)}
-  .stars{color:var(--mustard);font-size:1.05rem;letter-spacing:2px;margin-bottom:.6rem}
+  .stars{color:var(--mustard);display:flex;gap:3px;margin-bottom:.7rem}
+  .stars svg{width:17px;height:17px;fill:currentColor}
   .review p{font-style:italic;color:var(--ink);margin:0 0 1rem}
   .who{display:flex;align-items:center;gap:.7rem}
   .avatar{width:44px;height:44px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:var(--head);font-weight:800;color:var(--terra)}
@@ -285,7 +291,7 @@
 <body>
 
 <!-- ══ Announcement ══ -->
-<div class="topbar"><span>🚚 Frete grátis acima de R$ 199 &nbsp;·&nbsp; 🎁 Até 30% OFF na Coleção Primavera &nbsp;·&nbsp; 💳 10x sem juros</span></div>
+<div class="topbar"><span>Frete grátis acima de R$199&nbsp;&nbsp;·&nbsp;&nbsp;Até 30% OFF na Coleção Primavera&nbsp;&nbsp;·&nbsp;&nbsp;10x sem juros no cartão</span></div>
 
 <!-- ══ Header ══ -->
 <header>
@@ -333,7 +339,7 @@
 <section class="hero" id="novidades">
   <div class="wrap">
     <div class="hero-txt">
-      <span class="eyebrow">🦉 Feito com algodão e carinho</span>
+      <span class="eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg> Algodão natural certificado</span>
       <h1>Conforto e fofura para os <b>pequenos exploradores</b></h1>
       <p>Roupinhas macias, atemporais e cheias de personalidade — do primeiro soninho às maiores aventuras. Do RN ao 10 anos.</p>
       <div class="hero-cta">
@@ -343,8 +349,8 @@
     </div>
     <div class="hero-art">
       <div class="blob"></div>
-      <div class="floaty one"><span class="em">🌿</span> 100% algodão</div>
-      <div class="floaty two"><span class="em">💛</span> +12 mil famílias</div>
+      <div class="floaty one"><svg class="fi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13C4 8 8 4 20 4c0 12-4 16-9 16z"/><path d="M4 20c3-6 7-9 12-10"/></svg> 100% algodão</div>
+      <div class="floaty two"><svg class="fi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg> +12 mil famílias</div>
       <div class="hero-card">
         <div class="ph">
         <!-- Ilustração de reserva (aparece se a foto não carregar / offline) -->
@@ -374,7 +380,7 @@
         <!-- Foto real da moldura -->
         <img class="hero-photo" src="https://images.pexels.com/photos/161593/pexels-photo-161593.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=680&h=710" alt="Criança vestindo Sonia Kids" loading="eager" onload="this.classList.add('ok')" onerror="this.remove()">
         </div>
-        <div class="cap">🦉 Coleção <b>Ninho</b> · Primavera</div>
+        <div class="cap">Coleção <b>Ninho</b> · Primavera 2026</div>
       </div>
     </div>
   </div>
@@ -439,8 +445,8 @@
   <div class="promo">
     <div class="txt">
       <span class="kicker" style="color:#FBEFD5">Nova coleção</span>
-      <h2>Primavera dos Ninhos 🌸</h2>
-      <p>Estampas exclusivas inspiradas na natureza, tecidos leves e cores que combinam com o brincar. Até 30% OFF por tempo limitado.</p>
+      <h2>Coleção Primavera</h2>
+      <p>Estampas exclusivas inspiradas na natureza, tecidos leves e cores pensadas para o dia a dia dos pequenos. Até 30% OFF por tempo limitado.</p>
       <a href="#produtos" class="btn" style="background:#fff;color:var(--sage-dark)">Explorar coleção</a>
     </div>
     <div class="art">
@@ -454,6 +460,7 @@
         <g fill="#C97B5A"><circle cx="60" cy="70" r="10"/><circle cx="240" cy="60" r="8"/><circle cx="250" cy="200" r="10"/><circle cx="55" cy="200" r="8"/></g>
         <g fill="#FBEFD5"><circle cx="60" cy="70" r="4"/><circle cx="240" cy="60" r="3"/><circle cx="250" cy="200" r="4"/><circle cx="55" cy="200" r="3"/></g>
       </svg>
+      <img class="banner-photo" src="https://images.pexels.com/photos/11523/pexels-photo-11523.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=760&h=620" alt="Coleção Primavera Sonia Kids" loading="lazy" onload="this.classList.add('ok')" onerror="this.remove()">
     </div>
   </div>
 </section>
@@ -477,6 +484,7 @@
         </g>
         <g fill="#8CA087"><circle cx="40" cy="50" r="8"/><circle cx="280" cy="60" r="10"/><circle cx="270" cy="230" r="8"/><circle cx="45" cy="235" r="10"/></g>
       </svg>
+      <img class="story-photo" src="https://images.pexels.com/photos/4543674/pexels-photo-4543674.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=720&h=640" alt="Família Sonia Kids" loading="lazy" onload="this.classList.add('ok')" onerror="this.remove()">
     </div>
     <div>
       <span class="kicker">Nossa história</span>
@@ -500,17 +508,17 @@
   </div>
   <div class="reviews">
     <div class="review">
-      <div class="stars">★★★★★</div>
+      <div class="stars"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg></div>
       <p>"O body é absurdo de macio, meu bebê dorme muito melhor. A qualidade impressiona e já virei cliente fiel!"</p>
       <div class="who"><div class="avatar">MA</div><div><b>Mariana A.</b><span>São Paulo · SP</span></div></div>
     </div>
     <div class="review">
-      <div class="stars">★★★★★</div>
+      <div class="stars"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg></div>
       <p>"Comprei o conjunto de moletom pro inverno e minha filha não quer tirar. Lavou várias vezes e não desbotou nada."</p>
       <div class="who"><div class="avatar">RC</div><div><b>Rafael C.</b><span>Curitiba · PR</span></div></div>
     </div>
     <div class="review">
-      <div class="stars">★★★★★</div>
+      <div class="stars"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 18.8 6.1 21.9l1.2-6.6L2.5 9l6.6-.9z"/></svg></div>
       <p>"Entrega rápida, embalagem uma fofura e as estampas são lindas ao vivo. Recomendo de olhos fechados!"</p>
       <div class="who"><div class="avatar">JS</div><div><b>Juliana S.</b><span>Recife · PE</span></div></div>
     </div>
@@ -520,13 +528,13 @@
 <!-- ══ Newsletter ══ -->
 <section class="block wrap">
   <div class="news">
-    <h2>Ganhe 10% no primeiro pedido 🎉</h2>
+    <h2>Ganhe 10% no primeiro pedido</h2>
     <p>Assine e receba novidades, dicas para os pequenos e ofertas exclusivas direto no seu e-mail.</p>
     <form id="newsForm">
       <input type="email" placeholder="Seu melhor e-mail" required aria-label="E-mail">
       <button class="btn" type="submit">Quero meu cupom</button>
     </form>
-    <small id="newsMsg">Sem spam. Só coisa boa. 💛</small>
+    <small id="newsMsg">Enviamos apenas novidades e ofertas exclusivas. Cancele quando quiser.</small>
   </div>
 </section>
 
@@ -582,7 +590,7 @@
     </div>
   </div>
   <div class="foot-bottom wrap" style="width:100%">
-    © 2026 Sonia Kids Moda Infantil · CNPJ 00.000.000/0001-00 · Feito com 💛 para os pequenos
+    © 2026 Sonia Kids Moda Infantil · CNPJ 00.000.000/0001-00 · Todos os direitos reservados
   </div>
 </footer>
 
@@ -590,7 +598,7 @@
 <div class="overlay" id="overlay"></div>
 <aside class="drawer" id="drawer" aria-label="Sacola de compras">
   <div class="drawer-head">
-    <h3>Sua sacola 🛍️</h3>
+    <h3>Sua sacola</h3>
     <button class="close" id="closeCart" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div class="cart-items" id="cartItems"></div>
@@ -735,7 +743,7 @@ function renderProducts(filter='Todos'){
       </div>
     </article>`;
   }).join('');
-  if(!list.length) grid.innerHTML='<p style="grid-column:1/-1;text-align:center;color:var(--ink-soft)">Nenhum produto nesta categoria ainda. 🦉</p>';
+  if(!list.length) grid.innerHTML='<p style="grid-column:1/-1;text-align:center;color:var(--ink-soft)">Nenhum produto encontrado nesta categoria.</p>';
 }
 
 /* ═══════════ Interações do grid ═══════════ */
@@ -782,7 +790,7 @@ function updateCart(){
   const badge=$('#cartCount');
   badge.textContent=count; badge.hidden=count===0;
   if(!cart.length){
-    wrap.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><p>Sua sacola está vazinha.<br>Que tal escolher algo fofo? 🦉</p></div>`;
+    wrap.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><p>Sua sacola está vazia.<br>Adicione peças da coleção para começar.</p></div>`;
     foot.hidden=true; return;
   }
   foot.hidden=false;
@@ -809,7 +817,7 @@ function updateCart(){
   }).join('');
   const shipping=subtotal>=199?0:(subtotal>0?24.90:0);
   $('#subtotal').textContent=money(subtotal);
-  $('#shipping').textContent=shipping===0?'Grátis 🎉':money(shipping);
+  $('#shipping').textContent=shipping===0?'Grátis':money(shipping);
   $('#total').textContent=money(subtotal+shipping);
 }
 $('#cartItems').addEventListener('click',e=>{
@@ -829,7 +837,7 @@ $('#closeCart').addEventListener('click',closeCart);
 $('#overlay').addEventListener('click',closeCart);
 $('#checkout').addEventListener('click',()=>{
   const total=cart.reduce((s,i)=>{const p=PRODUCTS.find(x=>x.id===i.id);return s+p.price*i.qty;},0);
-  showToast('Pedido de '+money(total)+' pronto! 🦉 (demo)');
+  showToast('Pedido de '+money(total)+' finalizado com sucesso (demonstração).');
 });
 function pulseCart(){const b=$('#openCart');b.animate([{transform:'scale(1)'},{transform:'scale(1.2)'},{transform:'scale(1)'}],{duration:300});}
 
@@ -848,7 +856,7 @@ document.querySelectorAll('#menu a').forEach(a=>a.addEventListener('click',()=>$
 /* ═══════════ Newsletter ═══════════ */
 $('#newsForm').addEventListener('submit',e=>{
   e.preventDefault();
-  $('#newsMsg').textContent='🎉 Prontinho! Use o cupom BEMVINDO10 no seu primeiro pedido.';
+  $('#newsMsg').textContent='Cadastro realizado. Use o cupom BEMVINDO10 no seu primeiro pedido.';
   $('#newsMsg').style.color='var(--sage-dark)';
   e.target.reset();
 });
