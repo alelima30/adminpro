@@ -668,18 +668,22 @@ const PRODUCTS=[
 ];
 
 /* ═══════════ Fotos reais dos produtos ═══════════
-   As fotos carregam do banco de imagens direto no navegador de quem abrir
-   a página. Se estiver offline (ou a imagem falhar), a ilustração desenhada
-   aparece como reserva. Para trocar por fotos próprias, basta pôr a URL/arquivo
-   da sua imagem no lugar da palavra-chave abaixo. */
+   Fotos reais de roupas infantis (banco Pexels, uso livre) que carregam
+   direto no navegador de quem abrir a página. Se estiver offline ou a imagem
+   falhar, a ilustração desenhada aparece como reserva.
+   Para usar SUA foto, é só trocar a URL abaixo pelo link ou arquivo dela. */
+const PX=id=>`https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&fit=crop&w=600&h=600`;
 const PHOTO={
-  1:'baby,bodysuit', 2:'baby,pajamas',  3:'baby,overalls', 4:'baby,onesie',
-  5:'baby,romper',   6:'baby,bib',      7:'girl,dress',    8:'kids,dress',
-  9:'girl,skirt',    10:'kids,sweater', 11:'kids,pants',   12:'boy,tshirt',
-  13:'kids,hoodie',  14:'boy,tshirt',   15:'kids,jacket',  16:'kids,shorts',
-  17:'baby,hat',     18:'baby,socks',   19:'kids,sneakers',20:'kids,beanie'
+  /* Bebê */
+  1:PX(6624418),  2:PX(8501491),  3:PX(8501466),  4:PX(7955215),  5:PX(5982377),  6:PX(6589319),
+  /* Menina */
+  7:PX(5961591),  8:PX(12553170), 9:PX(15579750), 10:PX(18649978),11:PX(7055122),
+  /* Menino */
+  12:PX(6743220), 13:PX(13430297),14:PX(4504296), 15:PX(19309957),16:PX(7055122),
+  /* Acessórios */
+  17:PX(3157058), 18:PX(6589319), 19:PX(2157455),  20:PX(10977241)
 };
-const photoUrl=p=>`https://loremflickr.com/500/500/${PHOTO[p.id]||'kids,clothes'}?lock=${p.id}`;
+const photoUrl=p=>PHOTO[p.id]||`https://loremflickr.com/500/500/kids,clothes?lock=${p.id}`;
 /* <img> com foto real + fallback para a ilustração se não carregar */
 const photoImg=(p,alt='')=>`<img class="pimg" src="${photoUrl(p)}" alt="${alt}" loading="lazy" onload="this.classList.add('ok')" onerror="this.remove()">`;
 
