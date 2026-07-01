@@ -2177,7 +2177,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <div id="con-vw-dependentes" style="display:none;padding-top:20px">
             <div id="con-dep-lista" style="margin-bottom:16px"></div>
             <div style="background:var(--ink-2);border:1px solid var(--border);border-radius:10px;padding:16px">
-              <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:14px">+ Adicionar Dependente</div>
+              <div id="dep-form-title" style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:14px">+ Adicionar Dependente</div>
               <div style="display:flex;gap:16px;align-items:flex-start">
                 <!-- Foto -->
                 <div style="flex-shrink:0;text-align:center">
@@ -2207,7 +2207,10 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
                     <div class="fg" style="margin:0"><label style="font-size:12px">CPF</label><input type="text" id="dep-cpf" placeholder="000.000.000-00" maxlength="14"></div>
                     <div class="fg" style="margin:0"><label style="font-size:12px">RG</label><input type="text" id="dep-rg" placeholder="00.000.000-0"></div>
                     <div class="fg" style="margin:0"><label style="font-size:12px">Data de Nascimento</label><input type="date" id="dep-nasc"></div>
-                    <button class="btn btn-ghost" onclick="conAddDependente()" style="height:38px;white-space:nowrap;align-self:end"><i class="fa-solid fa-plus"></i> Adicionar</button>
+                    <div style="display:flex;gap:8px;align-self:end">
+                      <button class="btn btn-gold" id="dep-add-btn" onclick="conAddDependente()" style="height:38px;white-space:nowrap"><i class="fa-solid fa-plus"></i> Adicionar</button>
+                      <button class="btn btn-ghost" id="dep-cancel-btn" onclick="conCancelarEdicaoDep()" style="height:38px;white-space:nowrap;display:none">Cancelar</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -4801,6 +4804,12 @@ function conSetTab(tab){
   if(tab==='unidades'){ conRenderUnidadesVinculadas(); }
 }
 
+// Navega até o painel de Unidades e abre a unidade para edição
+function conAbrirUnidade(cod){
+  if(typeof showPanel==='function') showPanel('unidades');
+  editarUnidade(cod);
+}
+
 // Mostra a(s) unidade(s) em que o condômino está cadastrado (como proprietário e/ou morador)
 function conRenderUnidadesVinculadas(){
   const box=$('con-unidades-lista'); if(!box) return;
@@ -4833,7 +4842,7 @@ function conRenderUnidadesVinculadas(){
         </div>
         <div style="font-size:13px;color:var(--text-2)">${endereco(d)?escU(endereco(d)):'<span style=\"color:var(--text-3)\">Endereço não informado</span>'}</div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="editarUnidade('${escU(u)}')" title="Abrir unidade"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+      <button class="btn btn-ghost btn-sm" onclick="conAbrirUnidade('${escU(u)}')" title="Abrir unidade"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
     </div>`).join('')+'</div>';
 }
 
@@ -4914,10 +4923,12 @@ function conExcluirForm(){
   conNovoCondomino(); renderCondominos();
 }
 
+let _depEditIdx = -1; // \u00edndice do dependente em edi\u00e7\u00e3o (-1 = adicionando novo)
+
 function conAddDependente(){
   const nome=($('dep-nome')?.value||'').trim();
   if(!nome){ toast('\u26a0\ufe0f Informe o nome do dependente.'); return; }
-  _conDependentes.push({
+  const reg={
     codigo: ($('dep-cod')?.value||'').trim() || conProximoCodigoDep(),
     nome,
     parentesco: ($('dep-parent')?.value||''),
@@ -4925,15 +4936,58 @@ function conAddDependente(){
     rg: ($('dep-rg')?.value||'').trim(),
     nascimento: ($('dep-nasc')?.value||''),
     foto: _depFoto || ''
-  });
-  ['dep-nome','dep-cpf','dep-rg','dep-nasc'].forEach(id=>{ if($(id)) $(id).value=''; });
-  if($('dep-parent')) $('dep-parent').value='';
-  conLimparFotoDep();
+  };
+  if(_depEditIdx>=0 && _conDependentes[_depEditIdx]){
+    _conDependentes[_depEditIdx]=reg; // atualiza o existente
+    toast('\u2705 Dependente atualizado.');
+  } else {
+    _conDependentes.push(reg);
+  }
+  conCancelarEdicaoDep(); // limpa o mini-form e volta ao modo "adicionar"
   conRenderDependentes();
   conAtualizarCodDep();
 }
 
+// Carrega os dados do dependente no mini-form para edi\u00e7\u00e3o
+function conEditarDependente(idx){
+  const d=_conDependentes[idx]; if(!d) return;
+  _depEditIdx=idx;
+  if($('dep-cod'))    $('dep-cod').value=d.codigo||'';
+  if($('dep-nome'))   $('dep-nome').value=d.nome||'';
+  if($('dep-parent')) $('dep-parent').value=d.parentesco||'';
+  if($('dep-cpf'))    $('dep-cpf').value=d.cpf||'';
+  if($('dep-rg'))     $('dep-rg').value=d.rg||'';
+  if($('dep-nasc'))   $('dep-nasc').value=d.nascimento||'';
+  _depFoto=d.foto||'';
+  const pv=$('dep-foto-preview');
+  if(pv) pv.innerHTML=_depFoto?`<img src="${_depFoto}" style="width:100%;height:100%;object-fit:cover">`:'<i class="fa-solid fa-camera" style="font-size:28px"></i><span style="font-size:11px">Enviar foto</span>';
+  conDepFormModo();
+  conRenderDependentes();
+  const el=$('dep-nome'); if(el){ el.focus(); el.scrollIntoView({behavior:'smooth',block:'center'}); }
+}
+
+// Sai do modo edi\u00e7\u00e3o e limpa o mini-form
+function conCancelarEdicaoDep(){
+  _depEditIdx=-1;
+  ['dep-nome','dep-cpf','dep-rg','dep-nasc'].forEach(id=>{ if($(id)) $(id).value=''; });
+  if($('dep-parent')) $('dep-parent').value='';
+  if($('dep-cod')) $('dep-cod').value='';
+  conLimparFotoDep();
+  conDepFormModo();
+}
+
+// Ajusta o r\u00f3tulo do mini-form conforme o modo (adicionar/editar)
+function conDepFormModo(){
+  const btn=$('dep-add-btn'), tit=$('dep-form-title'), cancel=$('dep-cancel-btn');
+  const editando=_depEditIdx>=0;
+  if(btn)   btn.innerHTML=editando?'<i class="fa-solid fa-check"></i> Salvar altera\u00e7\u00e3o':'<i class="fa-solid fa-plus"></i> Adicionar';
+  if(tit)   tit.textContent=editando?'\u270f\ufe0f Editar Dependente':'+ Adicionar Dependente';
+  if(cancel) cancel.style.display=editando?'':'none';
+}
+
 function conRemoverDependente(idx){
+  if(_depEditIdx===idx) conCancelarEdicaoDep();
+  else if(_depEditIdx>idx) _depEditIdx--; // mant\u00e9m o \u00edndice alinhado
   _conDependentes.splice(idx,1);
   conRenderDependentes();
   conAtualizarCodDep();
@@ -4950,8 +5004,8 @@ function conRenderDependentes(){
     ? `<img src="${d.foto}" style="width:54px;height:66px;border-radius:8px;object-fit:cover;display:block">`
     : `<div style="width:54px;height:66px;border-radius:8px;background:var(--ink-3);display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:18px"><i class="fa-solid fa-user"></i></div>`;
   el.innerHTML=`<div class="tbl-wrap" style="margin-bottom:8px"><table>
-    <thead><tr><th>Foto</th><th>C\u00f3digo</th><th>Nome</th><th>Parentesco</th><th>CPF</th><th>RG</th><th>Nascimento</th><th style="text-align:center">Remover</th></tr></thead>
-    <tbody>${_conDependentes.map((d,i)=>`<tr>
+    <thead><tr><th>Foto</th><th>C\u00f3digo</th><th>Nome</th><th>Parentesco</th><th>CPF</th><th>RG</th><th>Nascimento</th><th style="text-align:center">A\u00e7\u00f5es</th></tr></thead>
+    <tbody>${_conDependentes.map((d,i)=>`<tr${_depEditIdx===i?' style="background:rgba(232,119,34,0.10)"':''}>
       <td>${avatar(d)}</td>
       <td><span style="font-weight:700;color:var(--blue);background:rgba(74,144,217,0.12);border-radius:6px;padding:2px 7px;font-size:11px">${escU(d.codigo)||'\u2014'}</span></td>
       <td style="font-weight:500;color:var(--text)">${escU(d.nome)}</td>
@@ -4959,7 +5013,10 @@ function conRenderDependentes(){
       <td>${escU(d.cpf)||'\u2014'}</td>
       <td>${escU(d.rg)||'\u2014'}</td>
       <td>${d.nascimento?new Date(d.nascimento+'T00:00').toLocaleDateString('pt-BR'):'\u2014'}</td>
-      <td style="text-align:center"><button class="btn btn-ghost btn-sm" onclick="conRemoverDependente(${i})" style="color:var(--red)"><i class="fa-solid fa-trash"></i></button></td>
+      <td style="text-align:center;white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" onclick="conEditarDependente(${i})" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button>
+        <button class="btn btn-ghost btn-sm" onclick="conRemoverDependente(${i})" title="Remover" style="color:var(--red);margin-left:4px"><i class="fa-solid fa-trash"></i></button>
+      </td>
     </tr>`).join('')}</tbody>
   </table></div>`;
 }
@@ -5036,6 +5093,7 @@ function editarCondomino(cod){
     : (d.telefone ? [{tipo:'Celular', nome:'', numero:d.telefone}] : []);
   conRenderTels();
   _conDependentes=[...(d.dependentes||[])];
+  _depEditIdx=-1; conDepFormModo();
   if($('con-form-title')) $('con-form-title').textContent='Editar Cond\u00f4mino \u2014 '+cod;
   conSetTab('pessoais');
   const fc=$('con-form-card');
@@ -5186,6 +5244,7 @@ function limparFormCondomino(){
   if($('con-habilitado')){ $('con-habilitado').checked=false; conToggleCNH(); }
   if($('con-form-title')) $('con-form-title').textContent='Novo Cond\u00f4mino';
   _conDependentes=[];
+  _depEditIdx=-1; conDepFormModo();
   _conTels=[]; conRenderTels();
   conLimparFoto();
   conLimparFotoDep();
