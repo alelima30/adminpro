@@ -2991,9 +2991,18 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
     </div>
 
     <!-- Resultados -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:12px;flex-wrap:wrap">
       <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3)">Relação de condôminos / dependentes</span>
-      <span style="font-size:11px;color:var(--gold)"><i class="fa-solid fa-arrow-pointer"></i> Clique no cabeçalho para listar todos</span>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-3)">
+          <i class="fa-solid fa-arrow-down-a-z" style="color:var(--gold)"></i> Ordenar por:
+          <select id="pq-ordem" onchange="pesquisarCondominos()" style="font-size:12px;padding:3px 6px">
+            <option value="nome">Nome</option>
+            <option value="unidade">Unidade</option>
+          </select>
+        </label>
+        <span style="font-size:11px;color:var(--gold)"><i class="fa-solid fa-arrow-pointer"></i> Clique no cabeçalho para listar todos</span>
+      </div>
     </div>
     <div class="tbl-wrap" style="max-height:340px;overflow-y:auto">
       <table>
@@ -5022,7 +5031,20 @@ function pesquisarCondominos(){
   if(rg)   res=res.filter(r=> String(r.rg).replace(/[^0-9a-zA-Z]/g,'').toLowerCase().includes(rg));
   if(uni)  res=res.filter(r=> r.unidades.some(u=>u.includes(uni)));
 
-  res.sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
+  const ordem=$('pq-ordem')?.value||'nome';
+  const porNome=(a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR');
+  if(ordem==='unidade'){
+    // Ordena alfabeticamente pela unidade vinculada; sem unidade vai ao final
+    res.sort((a,b)=>{
+      const ua=(a.unidades&&a.unidades[0])||'', ub=(b.unidades&&b.unidades[0])||'';
+      if(!ua && ub) return 1;
+      if(ua && !ub) return -1;
+      const u=ua.localeCompare(ub,'pt-BR',{numeric:true,sensitivity:'base'});
+      return u || porNome(a,b);
+    });
+  } else {
+    res.sort(porNome);
+  }
 
   const dash=v=>v?escU(v):'<span style="color:var(--text-3)">\u2014</span>';
   const tb=$('pq-tbody');
