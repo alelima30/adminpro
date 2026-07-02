@@ -3211,11 +3211,11 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         <input type="text" id="mres-nome" placeholder="Nome completo">
       </div>
       <div class="fg" style="grid-column:1/-1">
-        <label>Lote / Quadra</label>
+        <label>Unidade</label>
         <div id="mres-lote-wrap" style="position:relative">
-          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;z-index:1">🏡</span>
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;z-index:1;color:var(--gold)"><i class="fa-solid fa-house-chimney"></i></span>
           <input type="text" id="mres-lote-search"
-            placeholder="Digite ou selecione — ex: B07, K15..."
+            placeholder="Selecione a unidade cadastrada — ex: B07, K15..."
             autocomplete="off"
             style="padding-left:36px;width:100%"
             oninput="mresLoteFilter(this.value)"
@@ -4063,25 +4063,38 @@ const LOTES_PORTAL = [
   'L11','L12','L13','L14','L15','L16','L17','L18','L19','L20','L21','L22','L23','L24',
 ];
 
+// Lista as unidades cadastradas (Administrativo → Cadastrar Unidades), ordenadas
+function unidadesCadastradas(){
+  return Object.keys(getUnidades()).sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+}
+
 function mresLoteRender(filtro){
   const dd = $('mres-lote-dd');
   if(!dd) return;
-  const f = (filtro||'').toUpperCase().trim();
-  const lista = f ? LOTES_PORTAL.filter(l=>l.startsWith(f)||l.includes(f)) : LOTES_PORTAL;
-  if(!lista.length){
-    dd.innerHTML='<div style="padding:16px;text-align:center;color:var(--text-3);font-size:13px">Nenhum lote encontrado</div>';
+  const us = getUnidades();
+  const todas = unidadesCadastradas();
+  if(!todas.length){
+    dd.innerHTML='<div style="padding:16px;text-align:center;color:var(--text-3);font-size:13px">Nenhuma unidade cadastrada.<br>Cadastre em <strong>Administrativo → Cadastrar Unidades</strong>.</div>';
     return;
   }
-  // Agrupa por quadra
+  const f = (filtro||'').toUpperCase().trim();
+  const lista = f ? todas.filter(l=>l.startsWith(f)||l.includes(f)) : todas;
+  if(!lista.length){
+    dd.innerHTML='<div style="padding:16px;text-align:center;color:var(--text-3);font-size:13px">Nenhuma unidade encontrada</div>';
+    return;
+  }
+  // Agrupa por bloco (primeira letra do código)
   const grupos={};
-  lista.forEach(l=>{ const q=l[0]; if(!grupos[q])grupos[q]=[]; grupos[q].push(l); });
+  lista.forEach(l=>{ const q=(l.match(/^[A-Za-z]+/)||[l[0]])[0].toUpperCase(); if(!grupos[q])grupos[q]=[]; grupos[q].push(l); });
   let html='';
   Object.keys(grupos).sort().forEach(q=>{
-    html+=`<div style="padding:6px 12px 3px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);border-bottom:1px solid rgba(232,119,34,0.1);position:sticky;top:0;background:var(--card-2)">Quadra ${q}</div>`;
-    grupos[q].forEach(lote=>{
-      html+=`<div onclick="mresLoteSelecionar('${lote}')" style="padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;color:var(--text);display:flex;align-items:center;gap:10px;transition:background 0.12s" onmouseover="this.style.background='rgba(232,119,34,0.1)';this.style.color='var(--gold)'" onmouseout="this.style.background='';this.style.color='var(--text)'">
-        <span style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.25);border-radius:6px;padding:2px 8px">${lote}</span>
-        <span style="font-size:12px;color:var(--text-3);font-weight:400">Quadra ${lote[0]} — Lote ${lote.slice(1)}</span>
+    html+=`<div style="padding:6px 12px 3px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gold);border-bottom:1px solid rgba(232,119,34,0.1);position:sticky;top:0;background:var(--card-2)">Bloco ${q}</div>`;
+    grupos[q].forEach(u=>{
+      const d=us[u]||{};
+      const sub=[condominoNome(d.proprietario), d.rua].filter(Boolean).join(' · ') || 'Unidade cadastrada';
+      html+=`<div onclick="mresLoteSelecionar('${escU(u)}')" style="padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;color:var(--text);display:flex;align-items:center;gap:10px;transition:background 0.12s" onmouseover="this.style.background='rgba(232,119,34,0.1)';this.style.color='var(--gold)'" onmouseout="this.style.background='';this.style.color='var(--text)'">
+        <span style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.25);border-radius:6px;padding:2px 8px">${escU(u)}</span>
+        <span style="font-size:12px;color:var(--text-3);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escU(sub)}</span>
       </div>`;
     });
   });
@@ -6400,7 +6413,7 @@ function renderResDashboard(base){
     : `<span style="color:var(--text-3);font-weight:600">${i+1}</span>`;
   $('res-top-tbl').querySelector('tbody').innerHTML=top.length?top.map((s,i)=>`<tr>
       <td style="text-align:center">${medal(i)}</td>
-      <td><div style="font-weight:600;color:var(--text)">${escU(s.nome)}</div>${s.lote?`<div style="font-size:10.5px;color:var(--text-3)">Lote ${escU(s.lote)}</div>`:''}</td>
+      <td><div style="font-weight:600;color:var(--text)">${escU(s.nome)}</div>${s.lote?`<div style="font-size:10.5px;color:var(--text-3)">Un. ${escU(s.lote)}</div>`:''}</td>
       <td style="min-width:120px"><div style="display:flex;align-items:center;gap:8px">
         <div style="flex:1;height:8px;border-radius:5px;background:var(--ink-3);overflow:hidden"><div style="height:100%;width:${Math.round(s.n/topMax*100)}%;border-radius:5px;background:linear-gradient(90deg,#1B3E8A,#5B9CF6)"></div></div>
         <span style="font-weight:700;font-size:12px">${s.n}</span></div></td>
@@ -6577,7 +6590,7 @@ function renderReservas(){
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 20px;margin-bottom:10px">
             <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Morador</span><div style="font-size:13px;color:var(--text);font-weight:600">${r.nome||'—'}</div></div>
-            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Lote</span><div style="font-size:13px;color:var(--text)">${r.lote||'—'}</div></div>
+            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Unidade</span><div style="font-size:13px;color:var(--text)">${r.lote||'—'}</div></div>
             <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Telefone</span><div style="font-size:13px;color:var(--text)">${r.tel||'—'}</div></div>
             <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Pessoas</span><div style="font-size:13px;color:var(--text)">${r.pessoas||'—'}</div></div>
             <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Data</span><div style="font-size:13px;color:var(--gold);font-weight:600">${dataFmt}</div></div>
@@ -6801,6 +6814,15 @@ function abrirModalRes(id){
 function salvarRes(){
   if(!$('mres-nome').value.trim()){toast('⚠️ Informe o nome do morador.');return;}
   if(!$('mres-data').value){toast('⚠️ Informe a data da reserva.');return;}
+  // ── Unidade: precisa estar cadastrada (para admin/gestor); morador usa a vinculada ──
+  const _nivelRes = window._userNivel||'morador';
+  const _isAdminRes = _nivelRes==='admin'||_nivelRes==='gestor';
+  let uniSel = ($('mres-lote').value||'').trim() || ($('mres-lote-search')?.value||'').trim().toUpperCase();
+  if(!uniSel){ toast('⚠️ Selecione a unidade da reserva.'); return; }
+  if(_isAdminRes && !getUnidades()[uniSel]){
+    toast('⚠️ A unidade "'+uniSel+'" não está cadastrada. Cadastre-a em Administrativo → Cadastrar Unidades.'); return;
+  }
+  if($('mres-lote')) $('mres-lote').value=uniSel; // garante o valor sincronizado
   const all=G('reservas')||[], id=$('mres-id').value;
   const hrSel=$('mres-horario').value;
   const hr=hrSel==='personalizado'?$('mres-hr-custom').value.trim():hrSel;
@@ -8806,7 +8828,7 @@ function renderUsrBody(){
             '<div style="width:42px;height:42px;border-radius:50%;background:var(--gold);color:#1A1E28;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0">'+inicial+'</div>'+
             '<div>'+
               '<div style="font-size:14px;font-weight:700;color:var(--text)">'+(u.nome||'—')+'</div>'+
-              '<div style="font-size:12px;color:var(--text-3)">'+(u.email||'—')+' &middot; Lote: <strong>'+(u.lote||'—')+'</strong> &middot; '+(u.tel||'—')+'</div>'+
+              '<div style="font-size:12px;color:var(--text-3)">'+(u.email||'—')+' &middot; Unidade: <strong>'+(u.lote||'—')+'</strong> &middot; '+(u.tel||'—')+'</div>'+
               '<div style="font-size:11px;color:var(--text-3);margin-top:2px">Cadastrado em: '+dt+'</div>'+
             '</div>'+
           '</div>'+
@@ -8840,7 +8862,7 @@ function renderUsrBody(){
       '<td style="color:var(--text-3);font-size:12px">'+dt+'</td>'+
       '<td><div style="display:flex;gap:6px">'+acoes+'</div></td></tr>';
   }).join('');
-  body.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Lote</th><th>Nível</th><th>Status</th><th>Desde</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  body.innerHTML = '<div class="tbl-wrap"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Unidade</th><th>Nível</th><th>Status</th><th>Desde</th><th>Ações</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 
 function abrirModalUsr(docId){
@@ -8848,7 +8870,7 @@ function abrirModalUsr(docId){
   if(!u) return;
   $('musr-docid').value = docId;
   $('musr-t').textContent = u.status==='pendente' ? 'Aprovar Cadastro' : 'Editar Acesso';
-  $('musr-info').innerHTML = '<strong>'+u.nome+'</strong> &middot; '+u.email+' &middot; Lote: <strong>'+(u.lote||'—')+'</strong>';
+  $('musr-info').innerHTML = '<strong>'+u.nome+'</strong> &middot; '+u.email+' &middot; Unidade: <strong>'+(u.lote||'—')+'</strong>';
   $('musr-nivel').value = u.nivel || 'morador';
   $('musr-obs').value = u.obs || '';
   $('m-usr').classList.add('open');
