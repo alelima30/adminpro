@@ -1669,6 +1669,13 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         </div>
       </div>
 
+      <!-- SaaS — visível apenas para o super-admin da plataforma -->
+      <div class="nav-standalone" id="sb-saas" style="display:none">
+        <div class="nav-item" id="nav-saas" onclick="showPanel('saas',this)">
+          <div class="nav-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-city"></i></div>SaaS · Condomínios
+        </div>
+      </div>
+
     </div>
     <div class="sb-foot">
       <div class="sb-user">
@@ -2540,6 +2547,71 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
             </div>
           </div>
           <div id="pvlista"></div>
+        </div>
+      </div>
+
+      <!-- ████ SAAS: CONDOMÍNIOS ████ -->
+      <div class="panel" id="panel-saas">
+        <div class="ph">
+          <div><div class="ph-title">SaaS · Condomínios</div><div class="ph-sub">Cadastre os condomínios da plataforma, logotipo e módulos liberados</div></div>
+          <div class="ph-actions">
+            <button class="btn btn-gold" onclick="saasNovoCondominio()">+ Novo Condomínio</button>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <div class="card" id="saas-form-card" style="margin-bottom:16px;display:none">
+          <div class="card-head">
+            <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-city"></i></div><span id="saas-form-title">Novo Condomínio</span></div>
+            <button class="btn btn-ghost btn-sm" onclick="saasFecharForm()" style="margin-left:auto">✕ Cancelar</button>
+          </div>
+          <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;padding-top:6px">
+            <!-- Logotipo -->
+            <div style="flex-shrink:0;text-align:center">
+              <label style="font-size:12px;display:block;margin-bottom:6px;color:var(--text-2)">Logotipo</label>
+              <div id="saas-logo-preview" onclick="$('saas-logo-input').click()" title="Clique para enviar o logotipo"
+                style="width:140px;height:140px;border-radius:14px;border:2px dashed var(--border-h);background:var(--ink-3);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;color:var(--text-3);gap:6px">
+                <i class="fa-solid fa-image" style="font-size:28px"></i>
+                <span style="font-size:11px">Enviar logo</span>
+              </div>
+              <input type="file" id="saas-logo-input" accept="image/*" style="display:none" onchange="saasLogoSelecionado(this)">
+              <button class="btn btn-ghost btn-sm" onclick="saasLimparLogo()" style="margin-top:8px;font-size:11px">Remover logo</button>
+            </div>
+            <!-- Campos -->
+            <div style="flex:1;min-width:280px">
+              <div style="display:grid;grid-template-columns:140px 1fr;gap:14px;margin-bottom:14px">
+                <div class="fg" style="margin:0"><label>Código</label><input type="text" id="saas-cod" placeholder="Ex: APVC" style="text-transform:uppercase"></div>
+                <div class="fg" style="margin:0"><label>Nome do Condomínio</label><input type="text" id="saas-nome" placeholder="Ex: Associação Parque Village Castelo"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 160px;gap:14px;margin-bottom:16px">
+                <div class="fg" style="margin:0"><label>E-mail do Administrador do Condomínio</label><input type="email" id="saas-admin" placeholder="admin@condominio.com"></div>
+                <div class="fg" style="margin:0"><label>Status</label>
+                  <select id="saas-status"><option value="ativo">Ativo</option><option value="suspenso">Suspenso</option></select></div>
+              </div>
+              <!-- Módulos -->
+              <label style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-3);display:block;margin-bottom:10px"><i class="fa-solid fa-puzzle-piece" style="margin-right:5px;color:var(--gold)"></i>Módulos liberados</label>
+              <div id="saas-modulos" style="display:flex;flex-wrap:wrap;gap:10px"></div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:8px">Novos módulos criados na plataforma aparecem aqui automaticamente.</div>
+            </div>
+          </div>
+          <div class="modal-actions" style="margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+            <button class="btn btn-ghost btn-sm" id="saas-btn-excluir" onclick="saasExcluir()" style="color:var(--red);display:none"><i class="fa-solid fa-trash"></i> Excluir</button>
+            <button class="btn btn-gold" onclick="saasSalvar()"><i class="fa-solid fa-floppy-disk"></i> Salvar Condomínio</button>
+          </div>
+        </div>
+
+        <!-- Lista -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-building-user"></i></div>Condomínios Cadastrados</div>
+            <span id="saas-count" style="margin-left:auto;font-size:12px;color:var(--text-3)"></span>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Logo</th><th>Código</th><th>Condomínio</th><th>Administrador</th><th>Módulos</th><th>Status</th><th style="text-align:center">Ações</th></tr></thead>
+              <tbody id="saas-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -3853,7 +3925,7 @@ async function uploadPDF(file, pasta){
 
 // Cache local — mantém toda a lógica sync original intacta
 const DB_CACHE = {};
-const DB_KEYS = ['lotes','funcs','fin','manut','comun','prev','reservas','reg','inadimplencia','unidades','localizacoes','condominos','condseq','classificacoes'];
+const DB_KEYS = ['saas_condominios','lotes','funcs','fin','manut','comun','prev','reservas','reg','inadimplencia','unidades','localizacoes','condominos','condseq','classificacoes'];
 
 // Lê do cache (síncrono — igual ao localStorage antes)
 const G = k => (DB_CACHE[k] !== undefined) ? DB_CACHE[k] : null;
@@ -3910,6 +3982,199 @@ const charts={};
 
 // E-mail do admin — apenas para identificar nível de acesso, não autentica
 const ADMIN_EMAIL = 'alessandro.lima30@outlook.com.br';
+
+/* ══════════════════════════
+   CAMADA SAAS — condomínios, módulos e super-admin
+══════════════════════════ */
+// Super-admins da PLATAFORMA: enxergam e configuram todos os condomínios/módulos
+const SUPER_ADMINS = [ADMIN_EMAIL];
+
+// Módulos da plataforma → grupos do menu. Novos módulos: adicione aqui.
+const MODULOS_SAAS = {
+  paineis:        { label:'Painéis & Dashboard',                grupos:['paineis'],        extra:['dashboard'] },
+  administrativo: { label:'Administrativo',                     grupos:['administrativo','cadastro'] },
+  operacoes:      { label:'Operações (Reservas, Comunicados…)', grupos:['operacoes'] },
+  sistema:        { label:'Sistema (Usuários, Configurações)',  grupos:['sistema'] },
+};
+
+function getSaasCondominios(){
+  let c = G('saas_condominios');
+  if(!c || typeof c!=='object' || Array.isArray(c) || !Object.keys(c).length){
+    // Seed inicial da plataforma
+    c = { 'APVC': {
+      nome:'Associação Parque Village Castelo', logo:'',
+      adminEmail: ADMIN_EMAIL, status:'ativo',
+      modulos:{ paineis:true, administrativo:true, operacoes:true, sistema:true }
+    }};
+    DB_CACHE['saas_condominios']=c;
+  }
+  return c;
+}
+
+// Condomínio do usuário logado (dados atuais pertencem ao APVC)
+function getCondominioAtual(){
+  const usr = JSON.parse(localStorage.getItem('apvc_user')||'{}');
+  const cs = getSaasCondominios();
+  return cs[usr.condominio] ? usr.condominio : 'APVC';
+}
+
+function isSuperAdmin(){
+  const usr = JSON.parse(localStorage.getItem('apvc_user')||'{}');
+  return SUPER_ADMINS.includes((usr.email||'').toLowerCase().trim());
+}
+
+// Módulos ativos do condomínio atual (super-admin sempre vê tudo)
+function modulosAtivos(){
+  if(isSuperAdmin()) return Object.keys(MODULOS_SAAS);
+  const c = getSaasCondominios()[getCondominioAtual()]||{};
+  const m = c.modulos||{};
+  return Object.keys(MODULOS_SAAS).filter(k=>m[k]!==false);
+}
+
+// Grupo do menu → módulo dono
+function grupoModulo(grupo){
+  for(const k in MODULOS_SAAS){ if((MODULOS_SAAS[k].grupos||[]).includes(grupo)) return k; }
+  return null;
+}
+
+// Painel → módulo (via SB_GRUPOS; dashboard e extras mapeados direto)
+function painelModulo(id){
+  for(const k in MODULOS_SAAS){ if((MODULOS_SAAS[k].extra||[]).includes(id)) return k; }
+  if(typeof SB_GRUPOS!=='undefined'){
+    for(const g in SB_GRUPOS){
+      if(SB_GRUPOS[g].itens.some(it=>it.id===id)) return grupoModulo(SB_GRUPOS[g].parent||g);
+    }
+  }
+  return null;
+}
+
+// Esconde grupos do menu de módulos desativados; mostra atalho SaaS para super-admin
+function aplicarSaas(){
+  const ativos = modulosAtivos();
+  document.querySelectorAll('.sb-group').forEach(g=>{
+    const hd=g.querySelector('.sb-group-hd'); if(!hd) return;
+    const mod=grupoModulo(hd.dataset.grupo);
+    if(mod && !ativos.includes(mod)) g.style.display='none';
+  });
+  const dash=document.querySelector('.nav-standalone[data-acesso]');
+  if(dash && !ativos.includes('paineis')) dash.style.display='none';
+  const saasEl=$('sb-saas'); if(saasEl) saasEl.style.display = isSuperAdmin()?'':'none';
+  aplicarLogoCondominio();
+}
+
+// Aplica o logotipo do condomínio na sidebar (se houver)
+function aplicarLogoCondominio(){
+  const c=getSaasCondominios()[getCondominioAtual()]||{};
+  if(c.logo){ const img=document.querySelector('.sb-logo-img'); if(img) img.src=c.logo; }
+}
+
+/* ── Painel SaaS: CRUD de condomínios ── */
+let _saasLogo='';
+
+function renderSaas(){
+  const cs=getSaasCondominios();
+  const tb=$('saas-tbody'); if(!tb) return;
+  const ents=Object.entries(cs).sort((a,b)=>a[0].localeCompare(b[0]));
+  const cnt=$('saas-count'); if(cnt) cnt.textContent=ents.length+' condomínio(s)';
+  tb.innerHTML=ents.map(([cod,c])=>{
+    const mods=Object.keys(MODULOS_SAAS).filter(k=>(c.modulos||{})[k]!==false);
+    const logo=c.logo?`<img src="${c.logo}" style="width:42px;height:42px;border-radius:9px;object-fit:cover;border:1px solid var(--border)">`
+      :'<div style="width:42px;height:42px;border-radius:9px;background:var(--ink-3);display:flex;align-items:center;justify-content:center;color:var(--text-3)"><i class="fa-solid fa-city"></i></div>';
+    return `<tr>
+      <td>${logo}</td>
+      <td><span style="font-weight:700;color:var(--gold);background:rgba(232,119,34,0.12);border-radius:6px;padding:2px 8px;font-size:12px">${escU(cod)}</span></td>
+      <td style="font-weight:600;color:var(--text)">${escU(c.nome||'')}</td>
+      <td style="font-size:12px">${escU(c.adminEmail||'—')}</td>
+      <td>${mods.map(m=>`<span style="font-size:10px;font-weight:600;color:var(--blue);background:rgba(74,144,217,0.12);border-radius:5px;padding:2px 7px;margin-right:4px;white-space:nowrap">${MODULOS_SAAS[m].label.split(' ')[0]}</span>`).join('')||'<span style="color:var(--text-3)">nenhum</span>'}</td>
+      <td>${c.status==='ativo'?'<span class="pill pill-green">Ativo</span>':'<span class="pill pill-red">Suspenso</span>'}</td>
+      <td style="text-align:center"><button class="btn btn-ghost btn-sm" onclick="saasEditar('${escU(cod)}')"><i class="fa-solid fa-pen-to-square"></i> Editar</button></td>
+    </tr>`;}).join('');
+}
+
+function saasMontarModulos(sel){
+  const box=$('saas-modulos'); if(!box) return;
+  box.innerHTML=Object.entries(MODULOS_SAAS).map(([k,m])=>`
+    <label style="display:flex;align-items:center;gap:8px;background:var(--ink-3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px">
+      <input type="checkbox" class="saas-mod" value="${k}" ${(!sel||sel[k]!==false)?'checked':''} style="accent-color:var(--gold);width:16px;height:16px"> ${m.label}
+    </label>`).join('');
+}
+
+function saasNovoCondominio(){
+  ['saas-cod','saas-nome','saas-admin'].forEach(id=>{ if($(id)) $(id).value=''; });
+  $('saas-status').value='ativo';
+  $('saas-cod').readOnly=false;
+  _saasLogo=''; saasPreviewLogo();
+  saasMontarModulos(null);
+  $('saas-form-title').textContent='Novo Condomínio';
+  $('saas-btn-excluir').style.display='none';
+  const fc=$('saas-form-card'); fc.style.display=''; fc.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function saasEditar(cod){
+  const c=getSaasCondominios()[cod]; if(!c) return;
+  $('saas-cod').value=cod; $('saas-cod').readOnly=true;
+  $('saas-nome').value=c.nome||''; $('saas-admin').value=c.adminEmail||'';
+  $('saas-status').value=c.status||'ativo';
+  _saasLogo=c.logo||''; saasPreviewLogo();
+  saasMontarModulos(c.modulos||{});
+  $('saas-form-title').textContent='Editar Condomínio — '+cod;
+  $('saas-btn-excluir').style.display='';
+  const fc=$('saas-form-card'); fc.style.display=''; fc.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function saasFecharForm(){ $('saas-form-card').style.display='none'; }
+
+function saasPreviewLogo(){
+  const pv=$('saas-logo-preview'); if(!pv) return;
+  pv.innerHTML=_saasLogo?`<img src="${_saasLogo}" style="width:100%;height:100%;object-fit:cover">`
+    :'<i class="fa-solid fa-image" style="font-size:28px"></i><span style="font-size:11px">Enviar logo</span>';
+}
+
+function saasLogoSelecionado(input){
+  const f=input.files&&input.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=e=>{
+    // Reduz para no máx 256px (base64 leve no banco)
+    const img=new Image();
+    img.onload=()=>{
+      const mx=256, esc=Math.min(1,mx/Math.max(img.width,img.height));
+      const cv=document.createElement('canvas');
+      cv.width=Math.round(img.width*esc); cv.height=Math.round(img.height*esc);
+      cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+      _saasLogo=cv.toDataURL('image/png');
+      saasPreviewLogo();
+    };
+    img.src=e.target.result;
+  };
+  rd.readAsDataURL(f);
+}
+
+function saasLimparLogo(){ _saasLogo=''; saasPreviewLogo(); if($('saas-logo-input'))$('saas-logo-input').value=''; }
+
+function saasSalvar(){
+  const cod=($('saas-cod').value||'').trim().toUpperCase();
+  const nome=($('saas-nome').value||'').trim();
+  if(!cod){ toast('⚠️ Informe o código do condomínio.'); return; }
+  if(!nome){ toast('⚠️ Informe o nome do condomínio.'); return; }
+  const modulos={};
+  document.querySelectorAll('.saas-mod').forEach(c=>{ modulos[c.value]=c.checked; });
+  const cs=getSaasCondominios();
+  cs[cod]={ nome, logo:_saasLogo,
+    adminEmail:($('saas-admin').value||'').trim().toLowerCase(),
+    status:$('saas-status').value||'ativo', modulos };
+  S('saas_condominios',cs);
+  toast('✓ Condomínio '+cod+' salvo!');
+  saasFecharForm(); renderSaas(); aplicarSaas();
+}
+
+function saasExcluir(){
+  const cod=($('saas-cod').value||'').trim().toUpperCase();
+  if(cod==='APVC'){ toast('⚠️ O condomínio principal não pode ser excluído.'); return; }
+  if(!confirm('Excluir o condomínio '+cod+'?')) return;
+  const cs=getSaasCondominios(); delete cs[cod];
+  S('saas_condominios',cs);
+  saasFecharForm(); renderSaas();
+}
 
 function showLoginErr(msg) {
   const btn = document.querySelector('.login-btn');
@@ -4175,6 +4440,7 @@ function entrarNoPortal(nome){
   if(sbNome) sbNome.textContent = nome;
   const usr = JSON.parse(localStorage.getItem('apvc_user')||'{}');
   aplicarAcesso(usr.nivel);
+  aplicarSaas();
   initApp();
 }
 
@@ -4243,9 +4509,9 @@ function closeSidebar(){
 }
 
 /* ══ NAVIGATION ══ */
-const panelNames={dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Comunicados',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos'};
+const panelNames={dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Comunicados',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios'};
 const ACESSO_PAINEIS = {
-  admin:   ['dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','comunicados','eventos','regulamento','usuarios','configuracoes','admfotos','procedimentos'],
+  admin:   ['saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','comunicados','eventos','regulamento','usuarios','configuracoes','admfotos','procedimentos'],
   gestor:  ['dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','comunicados','eventos','regulamento','procedimentos'],
   morador: ['reservas','comunicados','eventos','regulamento','procedimentos']
 };
@@ -5457,6 +5723,9 @@ function showPanel(id,el){
   const nivel = window._userNivel || 'morador';
   const permitidos = ACESSO_PAINEIS[nivel] || ACESSO_PAINEIS.morador;
   if(!permitidos.includes(id)){ toast('\u26a0\ufe0f Acesso restrito ao seu perfil.'); return; }
+  if(id==='saas' && !isSuperAdmin()){ toast('\u26a0\ufe0f Painel exclusivo do administrador da plataforma.'); return; }
+  const _mod = painelModulo(id);
+  if(_mod && !modulosAtivos().includes(_mod)){ toast('\u26a0\ufe0f M\u00f3dulo n\u00e3o liberado para este condom\u00ednio.'); return; }
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   $('panel-'+id).classList.add('active');
   currentPanel = id;
@@ -5464,7 +5733,7 @@ function showPanel(id,el){
   $('tb-crumb').textContent=panelNames[id];
   sbFecharFlyout();
   closeSidebar();
-  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},regulamento:renderReg,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()}})[id]?.();
+  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},regulamento:renderReg,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas})[id]?.();
 }
 
 function setTab(t){
