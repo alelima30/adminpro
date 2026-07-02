@@ -4448,15 +4448,18 @@ async function importarDadosIniciais(){
   if(!D || !D.unidades){ toast('⚠️ Dados de importação não encontrados.'); return; }
   const nU = Object.keys(D.unidades).length;
   const nC = Object.keys(D.condominos||{}).length;
+  const nL = Object.keys(D.localizacoes||{}).length;
   let nD = 0; Object.values(D.condominos||{}).forEach(c=>nD+=(c.dependentes||[]).length);
-  if(!confirm(`Importar ${nU} lotes, ${nC} condôminos e ${nD} dependentes?\n\nOs registros com o mesmo código serão atualizados.`)) return;
+  if(!confirm(`Importar ${nU} lotes, ${nC} condôminos, ${nD} dependentes e ${nL} localizações?\n\nOs registros com o mesmo código serão atualizados.`)) return;
 
   // Merge (cache + localStorage imediato)
   const un = getUnidades(); Object.assign(un, D.unidades);
   const co = getCondominos(); Object.assign(co, D.condominos||{});
+  const lo = getLocalizacoes(); Object.assign(lo, D.localizacoes||{});
   const seqAtual = parseInt(G('condseq'),10)||0;
   const novoSeq  = (D.condseq||0) > seqAtual ? D.condseq : seqAtual;
   S('unidades', un); S('condominos', co); S('condseq', novoSeq);
+  if(nL) S('localizacoes', lo);
 
   const btn = $('uni-btn-importar');
   // GARANTE a gravação no Firebase antes de qualquer reload (await)
@@ -4467,7 +4470,8 @@ async function importarDadosIniciais(){
       await window.db.collection('apvc_data').doc('unidades').set({ value: JSON.stringify(un) });
       await window.db.collection('apvc_data').doc('condominos').set({ value: JSON.stringify(co) });
       await window.db.collection('apvc_data').doc('condseq').set({ value: JSON.stringify(novoSeq) });
-      toast(`✅ Salvo no banco: ${nU} lotes e ${nC} condôminos!`);
+      if(nL) await window.db.collection('apvc_data').doc('localizacoes').set({ value: JSON.stringify(lo) });
+      toast(`✅ Salvo no banco: ${nU} lotes, ${nC} condôminos e ${nL} localizações!`);
       setTimeout(()=>location.reload(), 900);
     }catch(e){
       if(btn){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-file-import"></i> Importar do PDF'; }
