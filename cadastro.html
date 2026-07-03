@@ -232,13 +232,17 @@ async function enviar(){
   if(!db){ return showMsg('Sem conexão com o servidor. Verifique sua internet e recarregue a página.','err'); }
   const btn=$('btn'); btn.disabled=true; btn.textContent='Enviando...';
   try{
-    // Evita duplicidade de e-mail já ativo/pendente
-    const jaU = await db.collection('apvc_usuarios').where('email','==',email).get();
-    const jaS = await db.collection('apvc_solicitacoes').where('email','==',email).get();
-    if(!jaU.empty || !jaS.empty){
-      showMsg('Este e-mail já possui cadastro ou solicitação. Aguarde a aprovação ou faça login.','err');
-      btn.disabled=false; btn.textContent='Solicitar acesso'; return;
-    }
+    // Evita duplicidade de e-mail já ativo/pendente.
+    // Se as regras do Firestore não permitirem essa leitura pública, apenas
+    // pula a checagem — a administração revê duplicatas na aprovação.
+    try{
+      const jaU = await db.collection('apvc_usuarios').where('email','==',email).get();
+      const jaS = await db.collection('apvc_solicitacoes').where('email','==',email).get();
+      if(!jaU.empty || !jaS.empty){
+        showMsg('Este e-mail já possui cadastro ou solicitação. Aguarde a aprovação ou faça login.','err');
+        btn.disabled=false; btn.textContent='Solicitar acesso'; return;
+      }
+    }catch(_dup){ /* leitura bloqueada pelas regras — segue com o envio */ }
     await db.collection('apvc_solicitacoes').add({
       nome, email, tel,
       condominio,
@@ -254,7 +258,11 @@ async function enviar(){
     carregarUnidades();
     showMsg('✓ Solicitação enviada! A administração vai analisar e liberar seu acesso à unidade '+unidade+'.','ok');
   }catch(e){
-    showMsg('Erro ao enviar: '+(e.message||e),'err');
+    if(String(e.code||e.message||'').toLowerCase().includes('permission')){
+      showMsg('O servidor recusou o envio (permissões). Avise a administração do condomínio para liberar o cadastro público de solicitações.','err');
+    } else {
+      showMsg('Erro ao enviar: '+(e.message||e),'err');
+    }
   }
   btn.disabled=false; btn.textContent='Solicitar acesso';
 }
