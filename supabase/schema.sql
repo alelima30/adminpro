@@ -1,9 +1,3 @@
--- ===========================================================================
---  AdminPro - Esquema Supabase (SaaS multi-condominio)
---  Cole no Supabase -> SQL Editor -> New query -> Run.
---  Idempotente: pode rodar de novo (usa IF NOT EXISTS / OR REPLACE).
--- ===========================================================================
-
 create extension if not exists "pgcrypto";
 
 -- ---------------------------------------------------------------------------
