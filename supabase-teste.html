@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdminPro · Teste Supabase</title>
+<style>
+  :root{--gold:#E87722;--green:#28C882;--red:#E05252;--ink:#0D1629;--card:#1A2847;--border:rgba(255,255,255,.12);--text:#EEF1F8;--text2:#8A9BBB}
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(160deg,#1B2B5E,#0D1629);color:var(--text);font-family:system-ui,Segoe UI,sans-serif;min-height:100vh;padding:24px;display:flex;justify-content:center}
+  .wrap{width:100%;max-width:640px}
+  h1{font-size:22px;margin:0 0 4px}h1 b{color:var(--gold)}
+  .sub{color:var(--text2);font-size:13px;margin-bottom:20px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin:0 0 14px}
+  label{display:block;font-size:12px;color:var(--text2);margin:10px 0 4px}
+  input{width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--ink);color:var(--text);font-size:13px;outline:none}
+  input:focus{border-color:var(--gold)}
+  button{margin-top:14px;padding:11px 16px;border:none;border-radius:9px;background:linear-gradient(135deg,#B85E0F,#E87722,#FF9A40);color:#fff;font-weight:700;font-size:14px;cursor:pointer}
+  button:hover{filter:brightness(1.08)}
+  button:disabled{filter:grayscale(.5) brightness(.7);cursor:not-allowed}
+  .out{margin-top:12px;font-size:12.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word;padding:12px;border-radius:9px;background:var(--ink);border:1px solid var(--border);min-height:20px}
+  .ok{color:var(--green)}.err{color:#ff9b9b}.dim{color:var(--text2)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;margin-left:6px}
+  .b-ok{background:rgba(40,200,130,.15);color:var(--green)}.b-err{background:rgba(224,82,82,.15);color:#ff9b9b}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Admin<b>Pro</b> · Teste de Conexão Supabase</h1>
+  <div class="sub">Valida URL, chave, login e as regras de segurança (RLS) antes de migrar o app.</div>
+
+  <div class="card">
+    <h2>1. Conexão (dados públicos — sem login)</h2>
+    <div class="dim" style="font-size:12px">Lê a view <code>condominios_publicos</code>. Prova que URL + chave estão certas e que o cadastro público vai conseguir listar os condomínios.</div>
+    <button id="btn-pub" onclick="testarPublico()">Testar conexão pública</button>
+    <div class="out" id="out-pub">—</div>
+  </div>
+
+  <div class="card">
+    <h2>2. Login (super-admin)</h2>
+    <div class="dim" style="font-size:12px">Entra com o usuário que você criou no Authentication e lê a tabela <code>condominios</code> (protegida por RLS).</div>
+    <label>E-mail</label>
+    <input id="email" value="alessandro.lima30@outlook.com.br">
+    <label>Senha</label>
+    <input id="senha" type="password" placeholder="a senha que você definiu no Supabase">
+    <button id="btn-login" onclick="testarLogin()">Entrar e ler dados protegidos</button>
+    <div class="out" id="out-login">—</div>
+  </div>
+
+  <div class="card">
+    <h2>3. Escrita (grava e apaga um registro de teste)</h2>
+    <div class="dim" style="font-size:12px">Requer login do passo 2. Insere uma unidade fictícia no APVC e apaga em seguida — prova que a gravação com RLS funciona.</div>
+    <button id="btn-write" onclick="testarEscrita()">Testar gravação</button>
+    <div class="out" id="out-write">—</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://lusibpbafbkyygxrxvzr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_w0CUYP7hq4okx5cdyL_zZw_JponH6bU';
+const $ = id => document.getElementById(id);
+
+let sb = null;
+try{ sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
+catch(e){ /* mostra depois */ }
+
+function show(el, txt, cls){ const o=$(el); o.textContent=txt; o.className='out '+(cls||''); }
+function badge(txt,ok){ return '<span class="badge '+(ok?'b-ok':'b-err')+'">'+txt+'</span>'; }
+
+async function testarPublico(){
+  show('out-pub','Conectando...','dim');
+  if(!sb){ show('out-pub','Falha ao criar o cliente Supabase (a biblioteca não carregou).','err'); return; }
+  const { data, error } = await sb.from('condominios_publicos').select('*');
+  if(error){ show('out-pub','ERRO: '+error.message+'\n\nCode: '+(error.code||'—'),'err'); return; }
+  const linhas = (data||[]).map(c=>'• '+c.codigo+' — '+c.nome).join('\n');
+  show('out-pub','OK! Conexão pública funcionando.\n\nCondomínios ativos ('+data.length+'):\n'+(linhas||'(nenhum)'),'ok');
+}
+
+async function testarLogin(){
+  show('out-login','Entrando...','dim');
+  if(!sb){ show('out-login','Cliente Supabase indisponível.','err'); return; }
+  const email=$('email').value.trim(), senha=$('senha').value;
+  if(!senha){ show('out-login','Digite a senha que você definiu no Supabase.','err'); return; }
+  const { data: log, error: eLog } = await sb.auth.signInWithPassword({ email, password: senha });
+  if(eLog){ show('out-login','ERRO no login: '+eLog.message,'err'); return; }
+  // Lê tabela protegida
+  const { data, error } = await sb.from('condominios').select('codigo,nome,admin_email,status,modulos');
+  if(error){ show('out-login','Login OK, mas erro ao ler dados protegidos: '+error.message,'err'); return; }
+  // Confirma se é super-admin
+  const { data: me } = await sb.from('usuarios').select('nome,nivel,super_admin,condominio_id').eq('id', log.user.id).maybeSingle();
+  let txt='LOGIN OK como '+email+'\n\n';
+  txt+='Seu perfil: '+(me? (me.nome||'—')+' · nível '+me.nivel+(me.super_admin?' · SUPER-ADMIN ✔':' · (não é super-admin)') : 'NÃO encontrado na tabela usuarios (rode o bloco do Passo B).')+'\n\n';
+  txt+='Condomínios que você enxerga ('+data.length+'):\n'+data.map(c=>'• '+c.codigo+' — '+c.nome+' ['+c.status+']').join('\n');
+  show('out-login', txt, me&&me.super_admin ? 'ok':'err');
+}
+
+async function testarEscrita(){
+  show('out-write','Testando gravação...','dim');
+  if(!sb){ show('out-write','Cliente Supabase indisponível.','err'); return; }
+  const { data:{ user } } = await sb.auth.getUser();
+  if(!user){ show('out-write','Faça o login (passo 2) primeiro.','err'); return; }
+  const teste={ condominio_id:'APVC', cod:'ZTESTE99', rua:'Registro de teste', ocupacao:'VAZIO' };
+  // insert
+  const { error: eIns } = await sb.from('unidades').upsert(teste);
+  if(eIns){ show('out-write','ERRO ao gravar: '+eIns.message+'\n\n(Isso pode ser RLS: seu usuário precisa ser admin/gestor do condomínio ou super-admin.)','err'); return; }
+  // read back
+  const { data: lida } = await sb.from('unidades').select('cod,rua').eq('condominio_id','APVC').eq('cod','ZTESTE99').maybeSingle();
+  // delete
+  const { error: eDel } = await sb.from('unidades').delete().eq('condominio_id','APVC').eq('cod','ZTESTE99');
+  let txt='GRAVAÇÃO OK!\n\n';
+  txt+='• Inseriu: '+(lida? lida.cod+' — '+lida.rua : '(não leu de volta)')+'\n';
+  txt+='• Apagou: '+(eDel? 'erro ('+eDel.message+')' : 'sim, registro de teste removido')+'\n\n';
+  txt+='Tudo pronto — o app pode ser ligado ao Supabase.';
+  show('out-write', txt, 'ok');
+}
+</script>
+</body>
+</html>
