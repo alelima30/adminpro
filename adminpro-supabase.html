@@ -1614,7 +1614,11 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       <button class="login-btn" onclick="doLogin()">Entrar no painel</button>
       <p class="login-err" id="lerr">Credenciais inválidas. Tente novamente.</p>
 
-      <p style="margin-top:24px;font-size:13px;color:#7B90B5;text-align:center">
+      <p style="margin-top:14px;font-size:13px;text-align:center">
+        <a href="#" onclick="esqueciSenha();return false;" style="color:#7B90B5;text-decoration:none">Esqueci minha senha</a>
+      </p>
+
+      <p style="margin-top:10px;font-size:13px;color:#7B90B5;text-align:center">
         Não tem conta? <a href="cadastro.html" style="color:#E87722;text-decoration:none;font-weight:600">Solicite seu acesso →</a>
       </p>
     </div>
@@ -4200,6 +4204,19 @@ function showLoginErr(msg) {
   $('lerr').style.display = 'block';
   $('lerr').style.animation = 'none';
   setTimeout(() => $('lerr').style.animation = '', 50);
+}
+
+async function esqueciSenha(){
+  var e = ($('le').value||'').trim();
+  if(!e){ showLoginErr('Digite seu e-mail no campo acima e clique de novo em "Esqueci minha senha".'); return; }
+  if(!SB){ showLoginErr('Serviço indisponível. Recarregue a página.'); return; }
+  var errEl = $('lerr');
+  if(errEl){ errEl.textContent='Enviando link de redefinição...'; errEl.style.display='block'; errEl.style.color='#7B90B5'; }
+  try{
+    var r = await SB.auth.resetPasswordForEmail(e, { redirectTo: window.location.href.split('#')[0] });
+    if(r.error){ showLoginErr('Erro: '+r.error.message); return; }
+    if(errEl){ errEl.textContent='✓ Se este e-mail tiver cadastro, enviamos um link para redefinir a senha. Confira sua caixa de entrada (e o spam).'; errEl.style.display='block'; errEl.style.color='#28C882'; }
+  }catch(err){ showLoginErr('Erro: '+(err.message||err)); }
 }
 
 async function doLogin() {
