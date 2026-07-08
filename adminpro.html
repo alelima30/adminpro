@@ -3948,6 +3948,7 @@ const S = (k, v) => {
   DB_CACHE[k] = v;
   try{ localStorage.setItem('apvc_'+k, JSON.stringify(v)); }catch(_){}
   if(!SB) return;
+  if(k==='reservas') return;   // reservas vao por linha (via _reservaUpsertSB/_reservaDeleteSB)
   const cfg = _NORM[k];
   if(cfg){
     if(cfg.superOnly && !_isSuper) return;   // so super-admin grava condominios
@@ -3996,6 +3997,49 @@ async function loadAllFromFirestore(){
     const res = await SB.from('modulo_dados').select('modulo,valor').eq('condominio_id', _condAtual);
     (res.data||[]).forEach(function(r){ DB_CACHE[r.modulo]=r.valor; try{ localStorage.setItem('apvc_'+r.modulo, JSON.stringify(r.valor)); }catch(_){} });
   }catch(_){}
+  // Reservas: tabela normalizada (1 linha por reserva) -> array do app
+  try{
+    const res = await SB.from('reservas').select('*').eq('condominio_id', _condAtual);
+    const arr=(res.data||[]).map(_resRowToApp);
+    DB_CACHE['reservas']=arr; try{ localStorage.setItem('apvc_reservas', JSON.stringify(arr)); }catch(_){}
+  }catch(_){}
+}
+
+// ── Reservas: mapa tabela <-> objeto do app ──
+function _resRowToApp(r){
+  var c=r.checklist||{};
+  return { id:r.id, nome:r.nome||'', lote:r.unidade||'', tel:r.tel||'', pessoas:r.pessoas||'',
+    espaco:r.espaco||'', status:r.status||'pendente', data:r.data||'', horario:r.horario||'',
+    finalidade:r.finalidade||'', taxa:r.taxa, caucao:r.caucao, pgto:r.pgto||'',
+    dataPgto:r.data_pgto||'', formaPgto:r.forma_pgto||'', comprovante:r.comprovante||'',
+    chkTermo:!!c.chkTermo, chkTaxaCampo:!!c.chkTaxaCampo, chkTaxaSalao:!!c.chkTaxaSalao,
+    chkCaucaoAceite:!!c.chkCaucaoAceite, chkVPre:!!c.chkVPre, chkVPos:!!c.chkVPos,
+    chkCaucaoDev:!!c.chkCaucaoDev, chkRegras:!!c.chkRegras, chkDevolucao:!!c.chkDevolucao,
+    obs:r.obs||'', alertaWhatsapp:r.alerta_whatsapp||'', alertaEmail:r.alerta_email||'',
+    alertas:r.alertas||[], criadoPor:r.criado_por||'', loteResponsavel:r.unidade||'' };
+}
+function _resAppToRow(o){
+  return { condominio_id:_condAtual, id:o.id, nome:o.nome||null, unidade:o.lote||null, tel:o.tel||null,
+    pessoas:o.pessoas||null, espaco:o.espaco||null, status:o.status||'pendente', data:o.data||null,
+    horario:o.horario||null, finalidade:o.finalidade||null,
+    taxa:(o.taxa===''||o.taxa==null)?null:o.taxa, caucao:(o.caucao===''||o.caucao==null)?null:o.caucao,
+    pgto:o.pgto||null, data_pgto:o.dataPgto||null, forma_pgto:o.formaPgto||null, comprovante:o.comprovante||null,
+    checklist:{ chkTermo:!!o.chkTermo, chkTaxaCampo:!!o.chkTaxaCampo, chkTaxaSalao:!!o.chkTaxaSalao,
+      chkCaucaoAceite:!!o.chkCaucaoAceite, chkVPre:!!o.chkVPre, chkVPos:!!o.chkVPos,
+      chkCaucaoDev:!!o.chkCaucaoDev, chkRegras:!!o.chkRegras, chkDevolucao:!!o.chkDevolucao },
+    obs:o.obs||null, alerta_whatsapp:o.alertaWhatsapp||null, alerta_email:o.alertaEmail||null,
+    alertas:o.alertas||[], criado_por:o.criadoPor||null };
+}
+// Grava/remove UMA reserva (permite o morador salvar a propria, respeitando o RLS)
+async function _reservaUpsertSB(o){
+  if(!SB) return;
+  var r=await SB.from('reservas').upsert(_resAppToRow(o), { onConflict:'condominio_id,id' });
+  if(r.error){ console.error('reserva upsert', r.error.message); toast('⚠️ Não foi possível salvar no servidor: '+r.error.message); }
+}
+async function _reservaDeleteSB(id){
+  if(!SB) return;
+  var r=await SB.from('reservas').delete().eq('condominio_id',_condAtual).eq('id', id);
+  if(r.error){ console.error('reserva delete', r.error.message); }
 }
 
 const $=id=>document.getElementById(id);
@@ -7191,17 +7235,19 @@ function salvarRes(){
     loteResponsavel: $('mres-lote').value.trim(), // ← identificador robusto por lote
   };
   if(id){const i=all.findIndex(x=>x.id===+id);if(i>=0)all[i]=obj;}else all.push(obj);
-  S('reservas',all);
-  // Sempre persiste no localStorage também (garante visibilidade mesmo sem Firestore)
+  // Atualiza o cache local e grava SOMENTE esta reserva no banco (1 linha).
+  DB_CACHE['reservas']=all;
   try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
+  _reservaUpsertSB(obj);
   closeModal('m-res'); renderReservas(); verificarAlertas(); toast('✓ Reserva salva com sucesso.');
 }
 
 function excluirRes(id){
   if(!confirm('Remover esta reserva?')) return;
   const restantes = (G('reservas')||[]).filter(r=>r.id!==id);
-  S('reservas', restantes);
+  DB_CACHE['reservas']=restantes;
   try{ localStorage.setItem('apvc_reservas', JSON.stringify(restantes)); }catch(_){}
+  _reservaDeleteSB(id);
   renderReservas(); toast('✓ Reserva removida.');
 }
 
