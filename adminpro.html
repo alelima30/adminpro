@@ -4254,7 +4254,27 @@ async function _aplicarSessao(session){
 }
 
 if (SB){
-  SB.auth.onAuthStateChange(function(_event, session){ setTimeout(function(){ _aplicarSessao(session); }, 0); });
+  SB.auth.onAuthStateChange(function(_event, session){
+    if(_event==='PASSWORD_RECOVERY'){ setTimeout(_definirNovaSenha, 0); return; }
+    setTimeout(function(){ _aplicarSessao(session); }, 0);
+  });
+
+// Fluxo de redefinicao de senha (usuario chegou pelo link do e-mail)
+async function _definirNovaSenha(){
+  var nova = prompt('Defina sua NOVA senha (mínimo 6 caracteres):');
+  if(nova===null) return;
+  nova = (nova||'').trim();
+  if(nova.length < 6){ alert('A senha precisa ter pelo menos 6 caracteres.'); return _definirNovaSenha(); }
+  var conf = prompt('Repita a nova senha:');
+  if(conf===null) return;
+  if(nova !== (conf||'').trim()){ alert('As senhas não conferem. Tente de novo.'); return _definirNovaSenha(); }
+  try{
+    var r = await SB.auth.updateUser({ password: nova });
+    if(r.error){ alert('Erro ao alterar a senha: '+r.error.message); return; }
+    alert('✓ Senha alterada com sucesso! Faça login com a nova senha.');
+    await SB.auth.signOut();
+  }catch(e){ alert('Erro: '+(e.message||e)); }
+}
 }
 
 /* ═══════════════════════════════════════════════════
@@ -9170,7 +9190,7 @@ function abrirModalSenha(docId){
   var u = (window._usrLista||[]).find(function(x){return x._docId===docId;});
   if(!u || !SB) return;
   if(!confirm('Enviar um e-mail de redefinicao de senha para '+u.email+'?')) return;
-  SB.auth.resetPasswordForEmail(u.email).then(function(r){
+  SB.auth.resetPasswordForEmail(u.email, { redirectTo: window.location.href.split('#')[0] }).then(function(r){
     if(r.error) toast('\u26a0\ufe0f Erro: '+r.error.message);
     else toast('\u2713 E-mail de redefinicao enviado para '+u.email);
   });
