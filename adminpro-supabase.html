@@ -9000,18 +9000,23 @@ async function renderUsuarios(){
   if(bodyEl) bodyEl.innerHTML = '';
   var lista = [];
   try {
-    if(db){
-      // Lê usuários já aprovados/rejeitados/bloqueados
-      var snapUsr = await db.collection('apvc_usuarios').get();
-      snapUsr.forEach(function(d){ lista.push(Object.assign({},d.data(),{_docId:d.id, _colecao:'apvc_usuarios'})); });
-
-      // Lê solicitações pendentes (enviadas pelo cadastro.html público)
-      var snapSol = await db.collection('apvc_solicitacoes').get();
-      snapSol.forEach(function(d){
-        var dados = Object.assign({},d.data(),{_docId:d.id, _colecao:'apvc_solicitacoes'});
-        // Só adiciona se ainda não existe um usuário com mesmo e-mail
-        var jaExiste = lista.some(function(u){ return u.email === dados.email; });
-        if(!jaExiste) lista.push(dados);
+    if(SB){
+      // Usuários já com acesso (ativos/bloqueados) do condomínio atual
+      var ru = await SB.from('usuarios').select('*').eq('condominio_id', _condAtual);
+      (ru.data||[]).forEach(function(u){
+        lista.push({ _docId:u.id, _tipo:'usr', auth_id:u.id,
+          nome:u.nome, email:u.email, tel:u.tel, lote:u.unidade||'', unidade:u.unidade||'',
+          vinculo:u.vinculo, nivel:u.nivel||'morador', status:u.status||'ativo', obs:u.obs||'',
+          condominio_id:u.condominio_id, dataAprovacao:u.criado_em });
+      });
+      // Solicitações pendentes (enviadas pelo cadastro público)
+      var rs = await SB.from('solicitacoes').select('*').eq('condominio_id', _condAtual).eq('status','pendente');
+      (rs.data||[]).forEach(function(s){
+        if(lista.some(function(u){ return u.email===s.email; })) return;
+        lista.push({ _docId:s.id, _tipo:'sol', auth_id:s.auth_id,
+          nome:s.nome, email:s.email, tel:s.tel, lote:s.unidade||'', unidade:s.unidade||'',
+          vinculo:s.vinculo, nivel:s.nivel||'morador', status:'pendente',
+          condominio_id:s.condominio_id, dataCadastro:s.criado_em });
       });
     }
   } catch(e){ console.error(e); }
@@ -9111,100 +9116,50 @@ async function aprovarUsuario(){
   var docId = $('musr-docid').value;
   var nivel = $('musr-nivel').value;
   var obs   = $('musr-obs').value;
-  if(!docId || !db){ toast('⚠️ Erro: banco não disponível.'); return; }
+  if(!docId || !SB){ toast('⚠️ Erro: banco não disponível.'); return; }
   var u = (window._usrLista||[]).find(function(x){return x._docId===docId;});
-
-  // Cria conta no Firebase Auth para o morador
-  if(u && u.email && u.senha && firebase.auth){
-    try {
-      var adminEmail = firebase.auth().currentUser ? firebase.auth().currentUser.email : '';
-      var adminPwd = prompt('Para aprovar o morador, confirme sua senha de administrador:');
-      if(!adminPwd){ toast('⚠️ Aprovação cancelada.'); return; }
-      await firebase.auth().createUserWithEmailAndPassword(u.email, u.senha);
-      await firebase.auth().signInWithEmailAndPassword(adminEmail, adminPwd);
-    } catch(authErr) {
-      if(authErr.code !== 'auth/email-already-in-use'){
-        toast('⚠️ Erro ao criar conta: '+(authErr.message||''));
-        return;
-      }
-    }
-  }
-
+  if(!u){ toast('⚠️ Registro não encontrado.'); return; }
   try {
-    var colOrigem = u ? (u._colecao || 'apvc_usuarios') : 'apvc_usuarios';
-    var dadosAprovado = Object.assign({}, u || {}, {
-      status:'ativo', nivel:nivel, obs:obs,
-      dataAprovacao: new Date().toISOString()
-    });
-    // Remove campos internos antes de salvar
-    delete dadosAprovado._docId;
-    delete dadosAprovado._colecao;
-
-    if(colOrigem === 'apvc_solicitacoes'){
-      // Mover: cria em apvc_usuarios e remove de apvc_solicitacoes
-      await db.collection('apvc_usuarios').add(dadosAprovado);
-      await db.collection('apvc_solicitacoes').doc(docId).delete();
-    } else {
-      // Já está em apvc_usuarios, só atualiza
-      await db.collection('apvc_usuarios').doc(docId).update({
-        status:'ativo', nivel:nivel, obs:obs,
-        dataAprovacao: new Date().toISOString()
+    if(u._tipo==='sol'){
+      if(!u.auth_id){ toast('⚠️ Solicitação sem conta vinculada. O morador precisa refazer o cadastro.'); return; }
+      var ins = await SB.from('usuarios').insert({
+        id:u.auth_id, email:u.email, nome:u.nome, tel:u.tel||null,
+        condominio_id:u.condominio_id||_condAtual, unidade:u.unidade||null,
+        vinculo:u.vinculo||null, nivel:nivel, super_admin:false, status:'ativo', obs:obs||null
       });
-    }
-
-    fecharModalUsr();
-    await renderUsuarios();
-    toast('✓ Acesso aprovado e conta criada!');
-  } catch(e){ toast('⚠️ Erro: '+e.message); }
-}
-
-async function rejeitarUsuario(){
-  var docId = $('musr-docid').value;
-  if(!confirm('Rejeitar este cadastro?')) return;
-  try {
-    var u = (window._usrLista||[]).find(function(x){return x._docId===docId;});
-    var col = u ? (u._colecao || 'apvc_usuarios') : 'apvc_usuarios';
-    if(db){
-      if(col === 'apvc_solicitacoes'){
-        // Mover para apvc_usuarios com status rejeitado
-        var dados = Object.assign({}, u, {status:'rejeitado'});
-        delete dados._docId; delete dados._colecao;
-        await db.collection('apvc_usuarios').add(dados);
-        await db.collection('apvc_solicitacoes').doc(docId).delete();
-      } else {
-        await db.collection('apvc_usuarios').doc(docId).update({status:'rejeitado'});
-      }
+      if(ins.error) throw ins.error;
+      await SB.from('solicitacoes').delete().eq('id', u._docId);
+    } else {
+      var up = await SB.from('usuarios').update({ status:'ativo', nivel:nivel, obs:obs||null }).eq('id', u._docId);
+      if(up.error) throw up.error;
     }
     fecharModalUsr();
     await renderUsuarios();
-    toast('✓ Cadastro rejeitado.');
-  } catch(e){ toast('⚠️ Erro: '+e.message); }
+    toast('✓ Acesso aprovado!');
+  } catch(e){ toast('⚠️ Erro: '+(e.message||e)); }
 }
 
-async function rejeitarDireto(docId){
+async function rejeitarUsuario(){ await _rejeitar($('musr-docid').value, true); }
+async function rejeitarDireto(docId){ await _rejeitar(docId, false); }
+
+async function _rejeitar(docId, fecharModal){
   if(!confirm('Rejeitar este cadastro?')) return;
   try {
     var u = (window._usrLista||[]).find(function(x){return x._docId===docId;});
-    var col = u ? (u._colecao || 'apvc_usuarios') : 'apvc_usuarios';
-    if(db){
-      if(col === 'apvc_solicitacoes'){
-        var dados = Object.assign({}, u, {status:'rejeitado'});
-        delete dados._docId; delete dados._colecao;
-        await db.collection('apvc_usuarios').add(dados);
-        await db.collection('apvc_solicitacoes').doc(docId).delete();
-      } else {
-        await db.collection('apvc_usuarios').doc(docId).update({status:'rejeitado'});
-      }
+    if(u && SB){
+      if(u._tipo==='sol') await SB.from('solicitacoes').delete().eq('id', u._docId);
+      else await SB.from('usuarios').update({status:'bloqueado'}).eq('id', u._docId);
     }
+    if(fecharModal) fecharModalUsr();
     await renderUsuarios();
     toast('✓ Cadastro rejeitado.');
-  } catch(e){ toast('⚠️ Erro: '+e.message); }
+  } catch(e){ toast('⚠️ Erro: '+(e.message||e)); }
 }
 
 async function bloquearUsuario(docId){
   if(!confirm('Bloquear este usuário?')) return;
   try {
-    if(db) await db.collection('apvc_usuarios').doc(docId).update({status:'bloqueado'});
+    if(SB) await SB.from('usuarios').update({status:'bloqueado'}).eq('id', docId);
     var u = (window._usrLista||[]).find(function(x){return x._docId===docId;});
     if(u) u.status = 'bloqueado';
     renderUsrBody(); toast('\u2713 Usuário bloqueado.');
@@ -9213,36 +9168,25 @@ async function bloquearUsuario(docId){
 
 function abrirModalSenha(docId){
   var u = (window._usrLista||[]).find(function(x){return x._docId===docId;});
-  if(!u) return;
-  $('musr-senha-docid').value = docId;
-  $('musr-senha-info').innerHTML = '<strong>'+u.nome+'</strong> &middot; '+u.email;
-  $('musr-nova-senha').value = '';
-  $('musr-conf-senha').value = '';
-  $('m-usr-senha').classList.add('open');
+  if(!u || !SB) return;
+  if(!confirm('Enviar um e-mail de redefinicao de senha para '+u.email+'?')) return;
+  SB.auth.resetPasswordForEmail(u.email).then(function(r){
+    if(r.error) toast('\u26a0\ufe0f Erro: '+r.error.message);
+    else toast('\u2713 E-mail de redefinicao enviado para '+u.email);
+  });
 }
 
-async function salvarNovaSenha(){
-  var docId = $('musr-senha-docid').value;
-  var nova  = $('musr-nova-senha').value.trim();
-  var conf  = $('musr-conf-senha').value.trim();
-  if(nova.length < 6){ toast('\u26a0\ufe0f A senha deve ter pelo menos 6 caracteres.'); return; }
-  if(nova !== conf){ toast('\u26a0\ufe0f As senhas não coincidem.'); return; }
-  try {
-    if(db) await db.collection('apvc_usuarios').doc(docId).update({senha: nova});
-    var u = (window._usrLista||[]).find(function(x){return x._docId===docId;});
-    if(u) u.senha = nova;
-    closeModal('m-usr-senha');
-    toast('\u2713 Senha alterada com sucesso!');
-  } catch(e){ toast('\u26a0\ufe0f Erro: '+e.message); }
-}
+async function salvarNovaSenha(){ closeModal('m-usr-senha'); }
 
 async function excluirUsuario(docId){
   var u = (window._usrLista||[]).find(function(x){return x._docId===docId;});
   var nome = u ? u.nome : 'este usuário';
-  var col  = u ? (u._colecao || 'apvc_usuarios') : 'apvc_usuarios';
-  if(!confirm('Excluir permanentemente o cadastro de "'+nome+'"? Esta ação não pode ser desfeita.')) return;
+  if(!confirm('Excluir permanentemente o cadastro de "'+nome+'"? Esta acao nao pode ser desfeita.')) return;
   try {
-    if(db) await db.collection(col).doc(docId).delete();
+    if(SB && u){
+      if(u._tipo==='sol') await SB.from('solicitacoes').delete().eq('id', u._docId);
+      else await SB.from('usuarios').delete().eq('id', u._docId);
+    }
     window._usrLista = (window._usrLista||[]).filter(function(x){return x._docId!==docId;});
     renderUsuarios();
     toast('✓ Cadastro excluído permanentemente.');
