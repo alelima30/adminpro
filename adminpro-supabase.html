@@ -4809,7 +4809,12 @@ async function importarDadosIniciais(){
   if(nL) S('localizacoes', lo);
 
   const btn = $('uni-btn-importar');
-  // GARANTE a gravação no Firebase antes de qualquer reload (await)
+  // No Supabase o S() acima já gravou tudo nas tabelas
+  if(SB){
+    toast(`✅ Importado: ${nU} lotes, ${nC} condôminos e ${nL} localizações!`);
+    renderUnidades();
+    return;
+  }
   if(window._fbOnline && window.db){
     try{
       if(btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Salvando...'; }
@@ -8660,58 +8665,58 @@ function exportarInadCSV(){
 var INFORMATIVOS_BASE = [];
 var _infPdfBase64=null, _infPdfBuffer=null, _infPdfFile=null;
 
-/* ── Firebase Storage + Firestore para informativos ── */
+/* ── Supabase Storage + modulo_dados para informativos ── */
+
+async function _infMeta(){
+  if(!SB) return {};
+  var r=await SB.from('modulo_dados').select('valor').eq('condominio_id',_condAtual).eq('modulo','informativos').maybeSingle();
+  return (r.data && r.data.valor) || {};
+}
+async function _infMetaSalvar(mapa){
+  var r=await SB.from('modulo_dados').upsert({condominio_id:_condAtual,modulo:'informativos',valor:mapa},{onConflict:'condominio_id,modulo'});
+  if(r.error) throw r.error;
+}
+function _infPdfPath(edicao){ return _condAtual+'/informativos/ed_'+edicao+'.pdf'; }
 
 async function fsInfSalvar(edicao, titulo, dataStr, pdfFile){
-  if(!db){ throw new Error('Firebase não disponível'); }
-  var metaRef = db.collection('apvc_informativos').doc('ed_'+edicao);
-  var storageUrl = null;
-  if(pdfFile && storage){
-    // Usa caminho fixo por edição — substitui automaticamente ao editar
-    var ref = storage.ref('informativos/ed_'+edicao+'.pdf');
-    var snap = await ref.put(pdfFile, { contentType: 'application/pdf' });
-    storageUrl = await snap.ref.getDownloadURL();
+  if(!SB){ throw new Error('Servidor indisponível'); }
+  if(pdfFile){
+    var up=await SB.storage.from('privado').upload(_infPdfPath(edicao), pdfFile, {contentType:'application/pdf', upsert:true});
+    if(up.error) throw up.error;
   }
-  var meta = { edicao:edicao, titulo:titulo, data:dataStr, updatedAt:new Date().toISOString() };
-  if(storageUrl) meta.storageUrl = storageUrl;
-  await metaRef.set(meta, {merge:true});
+  var mapa=await _infMeta();
+  var atual=mapa[String(edicao)]||{};
+  mapa[String(edicao)]={ edicao:edicao, titulo:titulo, data:dataStr,
+    temPdf: !!(pdfFile || atual.temPdf), updatedAt:new Date().toISOString() };
+  await _infMetaSalvar(mapa);
 }
 
-// Retorna a URL de download do PDF no Storage
+// Retorna URL temporária do PDF no Storage
 async function fsInfCarregarPdf(edicao){
-  if(!db){ throw new Error('Firebase não disponível'); }
-  var metaSnap = await db.collection('apvc_informativos').doc('ed_'+edicao).get();
-  if(!metaSnap.exists) return null;
-  var meta = metaSnap.data();
-  // Retorna URL do Storage (novo) ou null (sem PDF)
-  return meta.storageUrl || null;
+  if(!SB){ throw new Error('Servidor indisponível'); }
+  var r=await SB.storage.from('privado').createSignedUrl(_infPdfPath(edicao), 3600);
+  return (r.data && r.data.signedUrl) || null;
 }
 
-// Carrega lista de metadados do Firestore
+// Carrega lista de metadados
 async function fsInfCarregarLista(){
-  if(!db){ return null; }
+  if(!SB) return null;
   try{
-    var snap = await db.collection('apvc_informativos')
-      .where('edicao','>=',1)
-      .orderBy('edicao','desc')
-      .get();
-    var lista = [];
-    snap.forEach(function(d){
-      var dd = d.data();
-      if(dd.edicao && dd.titulo) lista.push({ edicao:dd.edicao, titulo:dd.titulo, data:dd.data||'', arquivo:'ed_'+dd.edicao });
-    });
-    return lista;
+    var mapa=await _infMeta();
+    return Object.values(mapa)
+      .filter(function(m){ return m.edicao && m.titulo; })
+      .map(function(m){ return { edicao:m.edicao, titulo:m.titulo, data:m.data||'', arquivo:'ed_'+m.edicao }; })
+      .sort(function(a,b){ return b.edicao-a.edicao; });
   } catch(e){ console.warn('fsInfCarregarLista erro:',e); return null; }
 }
 
-// Exclui informativo do Storage e do Firestore
+// Exclui informativo (PDF + metadados)
 async function fsInfExcluir(edicao){
-  if(!db) return;
-  if(storage){
-    try{ await storage.ref('informativos/ed_'+edicao+'.pdf').delete(); }
-    catch(e){ console.warn('Storage delete:', e.message); }
-  }
-  await db.collection('apvc_informativos').doc('ed_'+edicao).delete().catch(function(){});
+  if(!SB) return;
+  try{ await SB.storage.from('privado').remove([_infPdfPath(edicao)]); }catch(e){}
+  var mapa=await _infMeta();
+  delete mapa[String(edicao)];
+  await _infMetaSalvar(mapa);
 }
 
 // Compatibilidade: ainda usa localStorage como cache rápido de lista
@@ -8990,9 +8995,10 @@ function editarInformativoAtual(){
   var nomeEl = document.getElementById('inf-pdf-nome');
   nomeEl.textContent='Verificando PDF atual…';
   nomeEl.style.color='var(--text-2)';
-  if(db){
-    db.collection('apvc_informativos').doc('ed_'+inf.edicao).get().then(function(snap){
-      if(snap.exists && snap.data().storageUrl){
+  if(SB){
+    _infMeta().then(function(mapa){
+      var m=mapa[String(inf.edicao)];
+      if(m && m.temPdf){
         nomeEl.textContent='✅ PDF atual mantido — selecione outro apenas para substituir';
         nomeEl.style.color='var(--green-l)';
         document.getElementById('inf-drop-icon').textContent='✅';
@@ -9066,14 +9072,11 @@ async function salvarInformativo(){
   try{
     // Se não tem novo PDF, verifica se já existe no Firestore
     if(!_infPdfFile){
-      var metaSnap = db ? await db.collection('apvc_informativos').doc('ed_'+edicao).get() : null;
-      if(!metaSnap || !metaSnap.exists){
+      var mapaMeta = SB ? await _infMeta() : {};
+      if(!mapaMeta[String(edicao)]){
         toast('⚠️ Anexe o PDF antes de salvar.'); return;
       }
-      // Só atualiza metadados
-      await db.collection('apvc_informativos').doc('ed_'+edicao).update({
-        titulo:titulo, data:dataStr, updatedAt:new Date().toISOString()
-      });
+      await fsInfSalvar(edicao, titulo, dataStr, null); // só metadados
     } else {
       await fsInfSalvar(edicao, titulo, dataStr, _infPdfFile);
     }
@@ -9483,11 +9486,11 @@ async function excluirUsuario(docId){
   }
   function _saveProcedimentos(){
     try { localStorage.setItem('apvc_procedimentos', JSON.stringify(PROCEDIMENTOS)); } catch(e){}
-    // Salva no Firestore também se disponível
-    if(window.db){
-      window.db.collection('apvc_data').doc('procedimentos')
-        .set({ value: JSON.stringify(PROCEDIMENTOS) })
-        .catch(function(){});
+    // Salva no Supabase também se disponível
+    if(window.SB){
+      window.SB.from('modulo_dados')
+        .upsert({ condominio_id:_condAtual, modulo:'procedimentos', valor:PROCEDIMENTOS }, { onConflict:'condominio_id,modulo' })
+        .then(function(r){ if(r.error) console.warn('procedimentos save', r.error.message); });
     }
   }
 
@@ -9495,11 +9498,11 @@ async function excluirUsuario(docId){
 
   // Carrega também do Firestore se disponível
   (function(){
-    if(window.db){
-      window.db.collection('apvc_data').doc('procedimentos').get().then(function(snap){
-        if(snap.exists && snap.data().value){
+    if(window.SB){
+      window.SB.from('modulo_dados').select('valor').eq('condominio_id',_condAtual).eq('modulo','procedimentos').maybeSingle().then(function(res){
+        if(res.data && res.data.valor){
           try{
-            var arr = JSON.parse(snap.data().value);
+            var arr = res.data.valor;
             if(Array.isArray(arr) && arr.length){
               PROCEDIMENTOS.length = 0;
               arr.forEach(function(p){ PROCEDIMENTOS.push(p); });
@@ -9895,41 +9898,45 @@ async function excluirUsuario(docId){
     }
   }
 
-  /* Carrega fotos do Firebase (usa o db já inicializado pelo portal) */
+  /* Fotos no Supabase: mapa {docKey: payload} em modulo_dados/fotos */
+  async function _afMapa(){
+    if(!window.SB) return null;
+    var r=await window.SB.from('modulo_dados').select('valor').eq('condominio_id',_condAtual).eq('modulo','fotos').maybeSingle();
+    return (r.data && r.data.valor) || {};
+  }
+  async function _afMapaSalvar(mapa){
+    var r=await window.SB.from('modulo_dados').upsert({condominio_id:_condAtual,modulo:'fotos',valor:mapa},{onConflict:'condominio_id,modulo'});
+    if(r.error) throw r.error;
+  }
+
   async function afLoadAll(){
     toast('⏳ Carregando fotos do banco…');
-    var dbRef = window.db;
-    if(dbRef){
-      try{
-        // Hero
-        var hDoc = await dbRef.collection('apvc_fotos').doc('hero').get();
-        if(hDoc.exists && hDoc.data().src){
-          var hs=hDoc.data().src;
-          document.getElementById('af-hero-preview-img').src=hs;
-          if(!hs.startsWith('data:')) document.getElementById('af-hero-url').value=hs;
+    try{
+      var mapa=await _afMapa();
+      if(mapa){
+        var h=mapa['hero'];
+        if(h && h.src){
+          document.getElementById('af-hero-preview-img').src=h.src;
+          if(!h.src.startsWith('data:')) document.getElementById('af-hero-url').value=h.src;
         }
-        // Galeria
         for(var i=0;i<12;i++){
-          var gDoc=await dbRef.collection('apvc_fotos').doc('gallery_'+i).get();
-          if(gDoc.exists){
-            var d=gDoc.data();
+          var d=mapa['gallery_'+i];
+          if(d){
             if(d.src){ document.getElementById('af-gimg-'+i).src=d.src; if(!d.src.startsWith('data:')) document.getElementById('af-gurl-'+i).value=d.src; }
             if(d.label) document.getElementById('af-glbl-'+i).value=d.label;
           }
         }
-        // Slideshow sobre
         for(var j=0;j<4;j++){
-          var sDoc=await dbRef.collection('apvc_fotos').doc('sobre_'+j).get();
-          if(sDoc.exists && sDoc.data().src){
-            var ss=sDoc.data().src;
-            document.getElementById('af-sobre-gimg-'+j).src=ss;
-            if(!ss.startsWith('data:')) document.getElementById('af-sobre-gurl-'+j).value=ss;
+          var sd=mapa['sobre_'+j];
+          if(sd && sd.src){
+            document.getElementById('af-sobre-gimg-'+j).src=sd.src;
+            if(!sd.src.startsWith('data:')) document.getElementById('af-sobre-gurl-'+j).value=sd.src;
           }
         }
         toast('✅ Fotos carregadas do banco de dados.');
         return;
-      }catch(e){ console.warn('Erro ao carregar fotos:', e); }
-    }
+      }
+    }catch(e){ console.warn('Erro ao carregar fotos:', e); }
     // Fallback localStorage
     afLoadLocalStorage();
     toast('⚠️ Modo offline — exibindo dados locais.');
@@ -9999,9 +10006,10 @@ async function excluirUsuario(docId){
     var payload = {src:src, label:label, updatedAt:new Date().toISOString()};
     var lsKey = 'vc_'+(slotKey==='hero'?'hero':(slotKey.startsWith('sobre_')?slotKey:'gallery_'+slotKey));
     try{
-      var dbRef=window.db;
-      if(dbRef){
-        await dbRef.collection('apvc_fotos').doc(docKey).set(payload);
+      if(window.SB){
+        var mapa=await _afMapa()||{};
+        mapa[docKey]=payload;
+        await _afMapaSalvar(mapa);
         try{ localStorage.setItem(lsKey, JSON.stringify(payload)); }catch(e){}
         toast('✅ Foto salva no banco de dados!');
       } else {
@@ -10032,8 +10040,7 @@ async function excluirUsuario(docId){
   window.afResetSlot = async function(slotKey){
     if(!confirm('Restaurar foto padrão? Isto vai apagar a foto atual.')) return;
     var docKey = slotKey==='hero' ? 'hero' : (slotKey.startsWith('sobre_') ? slotKey : 'gallery_'+slotKey);
-    var dbRef=window.db;
-    try{ if(dbRef) await dbRef.collection('apvc_fotos').doc(docKey).delete(); }catch(e){}
+    try{ if(window.SB){ var mapaR=await _afMapa()||{}; delete mapaR[docKey]; await _afMapaSalvar(mapaR); } }catch(e){}
     try{ localStorage.removeItem('vc_'+(slotKey==='hero'?'hero':(slotKey.startsWith('sobre_')?slotKey:'gallery_'+slotKey))); }catch(e){}
     if(slotKey==='hero'){
       document.getElementById('af-hero-preview-img').src=AF_HERO_DEFAULT;
