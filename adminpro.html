@@ -1800,7 +1800,6 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <div class="ph-actions">
             <span id="uni-count" style="font-size:12px;color:var(--text-3);margin-right:8px"></span>
             <!-- BOTÃO TEMPORÁRIO DE IMPORTAÇÃO (remover após importar) -->
-            <button class="btn btn-ghost" id="uni-btn-importar" onclick="importarDadosIniciais()" title="Importar lotes do relatório (uma vez)" style="border-color:var(--green);color:var(--green-l)"><i class="fa-solid fa-file-import"></i> Importar do PDF</button>
             <button class="btn btn-gold" id="uni-btn-novo" onclick="uniNovaUnidade()">+ Nova Unidade</button>
           </div>
         </div>
@@ -4072,6 +4071,9 @@ const MODULOS_SAAS = {
 
 function getSaasCondominios(){
   let c = G('saas_condominios');
+  if((!c || typeof c!=='object' || Array.isArray(c) || !Object.keys(c).length) && !isSuperAdmin()){
+    return (c&&typeof c==='object'&&!Array.isArray(c))?c:{};
+  }
   if(!c || typeof c!=='object' || Array.isArray(c) || !Object.keys(c).length){
     // Seed inicial da plataforma
     c = { 'APVC': {
@@ -4087,8 +4089,8 @@ function getSaasCondominios(){
 // Condomínio do usuário logado (dados atuais pertencem ao APVC)
 function getCondominioAtual(){
   const usr = JSON.parse(localStorage.getItem('apvc_user')||'{}');
-  const cs = getSaasCondominios();
-  return cs[usr.condominio] ? usr.condominio : 'APVC';
+  if(usr.condominio) return usr.condominio;
+  return (typeof _condAtual!=='undefined' && _condAtual) ? _condAtual : 'APVC';
 }
 
 function isSuperAdmin(){
@@ -4132,7 +4134,43 @@ function aplicarSaas(){
   const dash=document.querySelector('.nav-standalone[data-acesso]');
   if(dash && !ativos.includes('paineis')) dash.style.display='none';
   const saasEl=$('sb-saas'); if(saasEl) saasEl.style.display = isSuperAdmin()?'':'none';
+  montarSeletorCondominio();
   aplicarLogoCondominio();
+}
+
+// Super-admin: seletor para navegar entre TODOS os condominios da plataforma
+function montarSeletorCondominio(){
+  var host=$('sb-saas'); if(!host) return;
+  var box=$('sb-cond-sel-box');
+  if(!isSuperAdmin()){ if(box) box.remove(); return; }
+  const cs=getSaasCondominios();
+  const cods=Object.keys(cs).sort();
+  if(!box){
+    box=document.createElement('div');
+    box.id='sb-cond-sel-box';
+    box.style.cssText='padding:8px 14px 4px';
+    box.innerHTML='<div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:5px"><i class="fa-solid fa-eye" style="margin-right:4px"></i>Visualizando condomínio</div>'+
+      '<select id="sb-cond-sel" onchange="saasTrocarCondominio(this.value)" style="width:100%;padding:7px 9px;border-radius:8px;border:1px solid rgba(232,119,34,0.35);background:var(--ink-2);color:var(--gold);font-size:12px;font-weight:700;outline:none;cursor:pointer"></select>';
+    host.parentNode.insertBefore(box, host);
+  }
+  var sel=$('sb-cond-sel');
+  if(sel){
+    sel.innerHTML=cods.map(function(c){ return '<option value="'+escU(c)+'"'+(c===_condAtual?' selected':'')+'>'+escU(cs[c].nome||c)+'</option>'; }).join('');
+  }
+}
+
+// Troca o condominio em visualizacao (limpa cache e recarrega tudo)
+function saasTrocarCondominio(cod){
+  if(!isSuperAdmin() || !cod || cod===_condAtual) return;
+  try{
+    localStorage.setItem('apvc_cond_view', cod);
+    var usr=JSON.parse(localStorage.getItem('apvc_user')||'{}');
+    usr.condominio=cod;
+    localStorage.setItem('apvc_user', JSON.stringify(usr));
+    _limparCacheDados();
+  }catch(_){}
+  toast('⏳ Trocando para '+cod+'...');
+  setTimeout(function(){ location.reload(); }, 300);
 }
 
 // Aplica o logotipo do condomínio na sidebar (se houver)
@@ -4376,6 +4414,9 @@ async function _aplicarSessao(session){
   if (me.status && me.status !== 'ativo') { showLoginErr('🚫 Acesso bloqueado.'); await SB.auth.signOut(); _sessaoOcupada=false; return; }
   _isSuper = !!me.super_admin;
   _condAtual = me.condominio_id || 'APVC';
+  if(_isSuper){
+    try{ var _vis=localStorage.getItem('apvc_cond_view'); if(_vis) _condAtual=_vis; }catch(_){}
+  }
   window._userNivel = me.nivel || 'morador';
   localStorage.setItem('apvc_user', JSON.stringify({ nome:me.nome, email:me.email, nivel:me.nivel||'morador', lote:me.unidade||'', condominio:_condAtual, super:_isSuper }));
   salvarExpiracao();
@@ -4637,9 +4678,10 @@ function getUnidades(){ const u = G('unidades'); return (u && typeof u==='object
 
 function popUnidadeSelects(){
   const dl = $('uni-cod-dl');
-  if(dl && !dl._filled){
-    dl.innerHTML = LOTES_PORTAL.map(c=>`<option value="${c}">`).join('');
-    dl._filled = true;
+  if(dl && dl._filledFor !== _condAtual){
+    // A lista fixa de lotes pertence APENAS ao Village Castelo (APVC)
+    dl.innerHTML = (_condAtual==='APVC' ? LOTES_PORTAL : []).map(c=>`<option value="${c}">`).join('');
+    dl._filledFor = _condAtual;
   }
   const selUf = $('uni-estado');
   if(selUf && !selUf._filled){
@@ -4754,8 +4796,9 @@ function renderUnidades(){
   const fTipo = $('uni-filtro-tipo')?.value || '';
   const mostrarTodas = $('uni-mostrar-todas')?.checked || false;
 
-  const codsExtra = Object.keys(dados).filter(c=>!LOTES_PORTAL.includes(c));
-  const todosOrdenados = [...LOTES_PORTAL, ...codsExtra.sort()];
+  const baseFixa = (_condAtual==='APVC') ? LOTES_PORTAL : [];
+  const codsExtra = Object.keys(dados).filter(c=>!baseFixa.includes(c));
+  const todosOrdenados = [...baseFixa, ...codsExtra.sort()];
 
   let linhas = todosOrdenados.map(cod=>{
     const d = dados[cod] || {};
