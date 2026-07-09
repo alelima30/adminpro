@@ -1720,7 +1720,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       <div class="tb-left">
         <div class="tb-hamburger" id="tb-hamburger" onclick="toggleSidebar()" title="Menu"><i class="fa-solid fa-bars"></i></div>
         <span class="tb-crumb" id="tb-crumb">Censo de Lotes</span>
-        <span class="tb-tag">APVC</span>
+        <span class="tb-tag" id="tb-tag-cond"></span>
       </div>
       <div class="tb-right">
         <span class="tb-date" id="tb-date"></span>
@@ -4087,6 +4087,12 @@ function getSaasCondominios(){
 }
 
 // Condomínio do usuário logado (dados atuais pertencem ao APVC)
+function nomeCondominioAtual(){
+  const cs=getSaasCondominios();
+  const c=cs[_condAtual];
+  return (c && c.nome) ? c.nome : _condAtual;
+}
+
 function getCondominioAtual(){
   const usr = JSON.parse(localStorage.getItem('apvc_user')||'{}');
   if(usr.condominio) return usr.condominio;
@@ -4134,6 +4140,7 @@ function aplicarSaas(){
   const dash=document.querySelector('.nav-standalone[data-acesso]');
   if(dash && !ativos.includes('paineis')) dash.style.display='none';
   const saasEl=$('sb-saas'); if(saasEl) saasEl.style.display = isSuperAdmin()?'':'none';
+  const tag=$('tb-tag-cond'); if(tag) tag.textContent=_condAtual;
   montarSeletorCondominio();
   aplicarLogoCondominio();
 }
@@ -7514,7 +7521,7 @@ function verificarAlertas(){
     const descA=x.a.tipo==='pre'
       ?(x.a.mins>=1440?x.a.mins/1440+'d antes':x.a.mins>=60?x.a.mins/60+'h antes':x.a.mins+'min antes')
       :(`${x.a.hora} — `+{mesmo:'dia da reserva',anterior:'dia anterior','2anterior':'2 dias antes','3anterior':'3 dias antes'}[x.a.dia]);
-    const msgWpp=encodeURIComponent(`🔔 *Lembrete de Reserva — APVC*\n\n📍 *Espaço:* ${r.espaco}\n👤 *Morador:* ${r.nome||'—'}\n📅 *Data:* ${dataFmt}\n🕐 *Horário:* ${r.horario||'—'}\n🏡 *Lote:* ${r.lote||'—'}\n\nQualquer dúvida, entre em contato com a administração.`);
+    const msgWpp=encodeURIComponent(`🔔 *Lembrete de Reserva — ${nomeCondominioAtual()}*\n\n📍 *Espaço:* ${r.espaco}\n👤 *Morador:* ${r.nome||'—'}\n📅 *Data:* ${dataFmt}\n🕐 *Horário:* ${r.horario||'—'}\n🏡 *Lote:* ${r.lote||'—'}\n\nQualquer dúvida, entre em contato com a administração.`);
     const wppNum=(r.alertaWhatsapp||'').replace(/\D/g,'');
     const emailDest=r.alertaEmail||'';
     return `
@@ -7526,7 +7533,7 @@ function verificarAlertas(){
         <span class="alert-item-urgencia ${urgCls}">${x.label}</span>
         <div class="alert-item-btns">
           ${wppNum?`<a href="https://wa.me/${wppNum}?text=${msgWpp}" target="_blank" class="btn-whatsapp">WhatsApp</a>`:`<span style="font-size:11px;color:var(--text-3)">Sem WhatsApp</span>`}
-          ${emailDest?`<a href="mailto:${emailDest}?subject=Lembrete%20Reserva%20APVC" class="btn-email-alerta">E-mail</a>`:''}
+          ${emailDest?`<a href="mailto:${emailDest}?subject=Lembrete%20de%20Reserva" class="btn-email-alerta">E-mail</a>`:''}
         </div>
       </div>`;
   };
@@ -7549,7 +7556,7 @@ function verificarAlertas(){
       const chave='n_'+x.r.id+'_'+JSON.stringify(x.a);
       if(!sessionStorage.getItem(chave)){
         sessionStorage.setItem(chave,'1');
-        new Notification('Reserva APVC: '+x.r.espaco,{
+        new Notification('Reserva '+_condAtual+': '+x.r.espaco,{
           body:(x.r.nome||'')+'  —  '+new Date(x.r.data+'T00:00').toLocaleDateString('pt-BR')+' às '+(x.r.horario||'—'),
           tag:chave
         });
@@ -7996,7 +8003,7 @@ async function enviarAlertaManual(){
       const diffMin=(momento.getTime()-agora.getTime())/60000;
       if(diffMin>=-120&&diffMin<=120){
         const dataFmt=new Date(r.data+'T00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
-        const msg='Lembrete de Reserva APVC\n\nEspaco: '+r.espaco+'\nMorador: '+(r.nome||'-')+'\nData: '+dataFmt+'\nHorario: '+(r.horario||'-')+'\nLote: '+(r.lote||'-');
+        const msg='Lembrete de Reserva - '+nomeCondominioAtual()+'\n\nEspaco: '+r.espaco+'\nMorador: '+(r.nome||'-')+'\nData: '+dataFmt+'\nHorario: '+(r.horario||'-')+'\nLote: '+(r.lote||'-');
         const wppNum=(r.alertaWhatsapp||'').replace(/\D/g,'');
         if(wppNum){
           const rz=await enviarWhatsApp(wppNum,msg);
@@ -8138,7 +8145,7 @@ async function testarEmailJS(){
   const cfg = getCfg();
   localStorage.setItem('apvc_cfg', JSON.stringify(cfg));
   try{ emailjs.init(cfg.ejsPubkey); } catch(e){}
-  const r=await enviarEmail(dest,'🧪 Teste APVC — EmailJS','Este é um e-mail de teste do Portal de Gestão APVC. Se recebeu, a integração está funcionando corretamente! Portal de Gestão — APVC');
+  const r=await enviarEmail(dest,'🧪 Teste AdminPro — EmailJS','Este é um e-mail de teste do Portal de Gestão. Se recebeu, a integração está funcionando corretamente! — AdminPro');
   if(r.ok){
     el.textContent='✓ E-mail enviado! Verifique a caixa de entrada.';el.style.color='var(--blue)';
     addLog('✓ EmailJS — E-mail de teste enviado para '+dest);
@@ -8202,7 +8209,7 @@ async function enviarAlertaAutomatico(x){
   const emailDest=(r.alertaEmail||'').trim();
   if(emailDest){
     const assunto=`🔔 Lembrete de Reserva — ${r.espaco} em ${dataFmt}`;
-    const msgEmail=`Olá!\n\nEste é um lembrete automático do Portal APVC.\n\n📍 Espaço: ${r.espaco}\n👤 Morador: ${r.nome||'—'}\n📅 Data: ${dataFmt}\n🕐 Horário: ${r.horario||'—'}\n🏡 Lote: ${r.lote||'—'}\n\nQualquer dúvida, entre em contato com a administração.\n\n— Portal APVC`;
+    const msgEmail=`Olá!\n\nEste é um lembrete automático do portal ${nomeCondominioAtual()}.\n\n📍 Espaço: ${r.espaco}\n👤 Morador: ${r.nome||'—'}\n📅 Data: ${dataFmt}\n🕐 Horário: ${r.horario||'—'}\n🏡 Lote: ${r.lote||'—'}\n\nQualquer dúvida, entre em contato com a administração.\n\n— ${nomeCondominioAtual()}`;
     const re=await enviarEmailMultiplo(emailDest, assunto, msgEmail);
     if(re.ok){
       addLog(`✓ E-mail enviado → ${emailDest} (${r.espaco} — ${r.nome||'?'})`);
