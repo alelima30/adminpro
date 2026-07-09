@@ -3986,6 +3986,9 @@ async function _sincronizarTabela(cfg, obj){
 // Carrega tudo do Supabase para o cache (nome mantido por compatibilidade)
 async function loadAllFromFirestore(){
   if(!SB){ DB_KEYS.forEach(function(k){ try{ var ls=localStorage.getItem('apvc_'+k); if(ls) DB_CACHE[k]=JSON.parse(ls); }catch(_){} }); return; }
+  // Zera o cache antes de carregar: o que nao existir no condominio atual fica vazio
+  DB_KEYS.forEach(function(k){ delete DB_CACHE[k]; });
+  delete DB_CACHE['reservas'];
   for(const k of ['unidades','condominos','localizacoes']){
     const cfg=_NORM[k];
     const res = await SB.from(cfg.tabela).select('*').eq('condominio_id', _condAtual);
@@ -4090,7 +4093,7 @@ function getCondominioAtual(){
 
 function isSuperAdmin(){
   const usr = JSON.parse(localStorage.getItem('apvc_user')||'{}');
-  return SUPER_ADMINS.includes((usr.email||'').toLowerCase().trim());
+  return usr.super === true || SUPER_ADMINS.includes((usr.email||'').toLowerCase().trim());
 }
 
 // Módulos ativos do condomínio atual (super-admin sempre vê tudo)
@@ -4332,6 +4335,20 @@ function limparSessao(){ localStorage.removeItem('apvc_sessao_expira'); localSto
 
 // Aplica a sessao do Supabase (login/logout)
 let _sessaoOcupada = false;
+// Limpa TODOS os dados em cache/localStorage (evita vazar dados de outro
+// condominio/usuario no mesmo navegador)
+function _limparCacheDados(){
+  try{
+    DB_KEYS.forEach(function(k){ delete DB_CACHE[k]; localStorage.removeItem('apvc_'+k); });
+    delete DB_CACHE['reservas'];
+    localStorage.removeItem('apvc_reservas');
+    localStorage.removeItem('apvc_informativos_cache');
+    localStorage.removeItem('vc_hero');
+    for(var i=0;i<12;i++) localStorage.removeItem('vc_gallery_'+i);
+    for(var j=0;j<4;j++) localStorage.removeItem('vc_sobre_'+j);
+  }catch(_){}
+}
+
 async function _aplicarSessao(session){
   if(!session || !session.user){
     if ($('app')) $('app').style.display = 'none';
@@ -4339,6 +4356,15 @@ async function _aplicarSessao(session){
     return;
   }
   if(_sessaoOcupada) return; _sessaoOcupada = true;
+  // Se o usuario logado mudou desde a ultima sessao neste navegador, zera o cache
+  try{
+    var _uidAnt = localStorage.getItem('apvc_ultimo_uid');
+    if(_uidAnt && _uidAnt !== session.user.id) _limparCacheDados();
+    localStorage.setItem('apvc_ultimo_uid', session.user.id);
+  }catch(_){}
+  // Garante estado neutro ate o perfil ser confirmado
+  _isSuper=false;
+  var _saasNav=$('sb-saas'); if(_saasNav) _saasNav.style.display='none';
   const btn = document.querySelector('.login-btn');
   if (btn) { btn.textContent = '⏳ Carregando...'; btn.disabled = true; }
   let me = null;
@@ -4562,6 +4588,7 @@ function entrarNoPortal(nome){
 async function doLogout() {
   await firebase.auth().signOut();
   limparSessao(); // remove usuário e expiração
+  _limparCacheDados(); // não deixa dados do condomínio no aparelho
   // Limpa os campos de login para não exibir credenciais ao voltar
   var le = document.getElementById('le');
   var ls = document.getElementById('ls');
