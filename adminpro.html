@@ -4160,6 +4160,27 @@ function painelModulo(id){
   return null;
 }
 
+// Primeiro painel permitido para o usuário atual (nível + módulos liberados)
+function painelInicial(){
+  const nivel = window._userNivel || 'morador';
+  const permitidos = ACESSO_PAINEIS[nivel] || ACESSO_PAINEIS.morador;
+  const ativos = modulosAtivos();
+  const ordem = ['dashboard'];
+  ['paineis','administrativo','cadastro','operacoes','sistema'].forEach(function(g){
+    ((SB_GRUPOS[g]||{}).itens||[]).forEach(function(it){
+      if(String(it.id).indexOf('__nav')!==0) ordem.push(it.id);
+    });
+  });
+  for(var i=0;i<ordem.length;i++){
+    var id=ordem[i];
+    if(permitidos.indexOf(id)<0) continue;
+    var m=painelModulo(id);
+    if(m && ativos.indexOf(m)<0) continue;
+    return id;
+  }
+  return null;
+}
+
 // Esconde grupos do menu de módulos desativados; mostra atalho SaaS para super-admin
 function aplicarSaas(){
   const ativos = modulosAtivos();
@@ -5920,7 +5941,11 @@ function showPanel(id,el){
   if(!permitidos.includes(id)){ toast('\u26a0\ufe0f Acesso restrito ao seu perfil.'); return; }
   if(id==='saas' && !isSuperAdmin()){ toast('\u26a0\ufe0f Painel exclusivo do administrador da plataforma.'); return; }
   const _mod = painelModulo(id);
-  if(_mod && !modulosAtivos().includes(_mod)){ toast('\u26a0\ufe0f M\u00f3dulo n\u00e3o liberado para este condom\u00ednio.'); return; }
+  if(_mod && !modulosAtivos().includes(_mod)){
+    const _alt = painelInicial();
+    if(_alt && _alt !== id) return showPanel(_alt);
+    return;
+  }
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   $('panel-'+id).classList.add('active');
   currentPanel = id;
@@ -5980,10 +6005,15 @@ const fmt=v=>(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 function initApp(){
   initLotes(); initFuncs(); initFin(); initManut(); initComun(); initPrev(); initRes(); initReg(); initInadimplencia();
   const nivel = window._userNivel || 'morador';
-  if(nivel === 'morador'){
-    showPanel('comunicados');   // morador abre direto em Comunicados
+  const _ini = (nivel === 'morador') ? 'comunicados' : 'dashboard';
+  const _mods = modulosAtivos();
+  const _modIni = painelModulo(_ini);
+  if(_modIni && _mods.indexOf(_modIni) < 0){
+    const _alt = painelInicial();
+    if(_alt) showPanel(_alt);
+    else document.querySelectorAll('.panel').forEach(function(pn){ pn.classList.remove('active'); });
   } else {
-    showPanel('dashboard');
+    showPanel(_ini);
   }
   // Alertas de reservas — checar ao iniciar e a cada 15 minutos
   setTimeout(verificarAlertas, 1500);
@@ -8387,6 +8417,7 @@ function renderCfgDisponibilidade(){
     var chv=_chvEsp(esp);
     var dias=cfg['disp_'+chv+'_dias']; if(!Array.isArray(dias)) dias=[0,1,2,3,4,5,6];
     var maxh=cfg['disp_'+chv+'_maxh']||'';
+    var antec=cfg['disp_'+chv+'_antec']||'';
     var chips=_DIAS_SEM.map(function(d,i){
       var on=dias.indexOf(i)>=0;
       return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:3px 8px;border-radius:6px;border:1px solid '+(on?'rgba(232,119,34,0.4)':'var(--border)')+';background:'+(on?'rgba(232,119,34,0.12)':'var(--ink-2)')+';color:'+(on?'var(--gold)':'var(--text-3)')+'"><input type="checkbox" data-disp-dia="'+chv+'" value="'+i+'" '+(on?'checked':'')+' style="accent-color:var(--gold)">'+d+'</label>';
@@ -8396,6 +8427,8 @@ function renderCfgDisponibilidade(){
       '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">'+chips+
       '<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">Máx. horas/morador/dia:'+
       '<input type="number" min="0" step="0.5" data-disp-maxh="'+chv+'" value="'+maxh+'" placeholder="0" style="width:70px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px"></span>'+
+      '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">Antecedência máx. (dias):'+
+      '<input type="number" min="0" step="1" data-disp-antec="'+chv+'" value="'+antec+'" placeholder="0" title="Morador só consegue reservar até N dias à frente (0 = sem limite)" style="width:70px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px"></span>'+
       '</div></div>';
   }).join('');
 }
@@ -8446,6 +8479,15 @@ function reservaViolaRegra(espaco, data, horario, lote, idAtual){
   if(Array.isArray(dias) && data){
     var dw=new Date(data+'T00:00').getDay();
     if(dias.indexOf(dw)<0) return espaco+' não aceita reservas em '+_DIAS_SEM[dw].toLowerCase()+'.';
+  }
+  // 1b) antecedência máxima (morador só reserva até N dias à frente; admin/gestor livre)
+  var antec=parseInt(cfg['disp_'+chv+'_antec'],10);
+  var _nivelR = window._userNivel||'morador';
+  if(antec>0 && _nivelR!=='admin' && _nivelR!=='gestor' && data){
+    var hojeD=new Date(); hojeD.setHours(0,0,0,0);
+    var lim=new Date(hojeD); lim.setDate(lim.getDate()+antec);
+    var dRes=new Date(data+'T00:00');
+    if(dRes>lim) return 'Reservas de '+espaco+' abrem com no máximo '+antec+' dia(s) de antecedência.';
   }
   // 2) bloqueios
   var blq=cfg.bloqueios||[];
@@ -8508,6 +8550,9 @@ function salvarCfgReservas(){
   // Disponibilidade: dias da semana + limite de horas por morador
   document.querySelectorAll('#cfg-disp-espacos [data-disp-maxh]').forEach(function(inp){
     cfgRes['disp_'+inp.dataset.dispMaxh+'_maxh'] = inp.value;
+  });
+  document.querySelectorAll('#cfg-disp-espacos [data-disp-antec]').forEach(function(inp){
+    cfgRes['disp_'+inp.dataset.dispAntec+'_antec'] = inp.value;
   });
   var _diasPorChv={};
   document.querySelectorAll('#cfg-disp-espacos [data-disp-dia]').forEach(function(cb){
