@@ -1637,6 +1637,13 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
     </div>
     <div class="sb-nav">
 
+      <!-- Início (todos) -->
+      <div class="nav-standalone" data-acesso="admin,gestor,morador">
+        <div class="nav-item" id="nav-inicio" onclick="showPanel('inicio',this)">
+          <div class="nav-icon"><i class="fa-solid fa-house"></i></div>Início
+        </div>
+      </div>
+
       <!-- Dashboard standalone -->
       <div class="nav-standalone" data-acesso="admin,gestor">
         <div class="nav-item" id="nav-dashboard" onclick="showPanel('dashboard',this)">
@@ -1735,7 +1742,18 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
     <div class="content">
 
       <!-- ████ P0: DASHBOARD ████ -->
-      <div class="panel active" id="panel-dashboard">
+      <div class="panel active" id="panel-inicio">
+        <div style="min-height:68vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;padding:24px">
+          <div style="width:190px;height:190px;border-radius:26px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--border);box-shadow:0 22px 60px rgba(0,0,0,0.28)">
+            <img id="inicio-logo-img" src="" alt="" style="width:100%;height:100%;object-fit:contain;display:none">
+            <span id="inicio-logo-fallback" style="font-size:40px;font-weight:800;color:var(--text)">Admin<b style="color:var(--gold)">Pro</b></span>
+          </div>
+          <div id="inicio-nome" style="font-size:26px;font-weight:800;color:var(--text)"></div>
+          <div style="font-size:14px;color:var(--text-3)">Bem-vindo ao portal! Use o menu ao lado para acessar os tópicos.</div>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-dashboard">
         <div class="ph">
           <div><div class="ph-title">Dashboard</div><div class="ph-sub" id="dash-sub">Visão geral do condomínio</div></div>
           <div class="ph-actions">
@@ -4441,6 +4459,7 @@ function _limparCacheDados(){
     localStorage.removeItem('apvc_reservas');
     localStorage.removeItem('apvc_informativos_cache');
     localStorage.removeItem('apvc_cfg_reservas');
+    localStorage.removeItem('apvc_last_panel');
     localStorage.removeItem('vc_hero');
     for(var i=0;i<12;i++) localStorage.removeItem('vc_gallery_'+i);
     for(var j=0;j<4;j++) localStorage.removeItem('vc_sobre_'+j);
@@ -4718,11 +4737,11 @@ function closeSidebar(){
 }
 
 /* ══ NAVIGATION ══ */
-const panelNames={dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Comunicados',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios'};
+const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Comunicados',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios'};
 const ACESSO_PAINEIS = {
-  admin:   ['saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','comunicados','eventos','regulamento','usuarios','configuracoes','admfotos','procedimentos'],
-  gestor:  ['dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','comunicados','eventos','regulamento','procedimentos'],
-  morador: ['reservas','comunicados','eventos','regulamento','procedimentos']
+  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','comunicados','eventos','regulamento','usuarios','configuracoes','admfotos','procedimentos'],
+  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','comunicados','eventos','regulamento','procedimentos'],
+  morador: ['inicio','reservas','comunicados','eventos','regulamento','procedimentos']
 };
 /* ══════════════════════════
    CADASTRO DE UNIDADES
@@ -5922,8 +5941,18 @@ function sbFecharFlyout(){
   document.querySelectorAll('.sb-group-hd').forEach(h=>h.classList.remove('open'));
 }
 
+// Tela inicial: logotipo e nome do condomínio ao centro
+function renderInicio(){
+  var c=(getSaasCondominios()||{})[_condAtual]||{};
+  var img=$('inicio-logo-img'), fb=$('inicio-logo-fallback'), nm=$('inicio-nome');
+  if(img && c.logo){ img.src=c.logo; img.style.display=''; if(fb) fb.style.display='none'; }
+  else { if(img) img.style.display='none'; if(fb) fb.style.display=''; }
+  if(nm) nm.textContent=c.nome||'';
+}
+
 function sbMarkActive(id){
   document.querySelectorAll('.sidebar .nav-item, .sb-group-hd').forEach(n=>n.classList.remove('active'));
+  if(id==='inicio'){ const h=$('nav-inicio'); if(h) h.classList.add('active'); return; }
   if(id==='dashboard'){ const d=$('nav-dashboard'); if(d) d.classList.add('active'); return; }
   for(const key in SB_GRUPOS){
     if(SB_GRUPOS[key].itens.some(it=>it.id===id)){
@@ -5951,9 +5980,10 @@ function showPanel(id,el){
   currentPanel = id;
   sbMarkActive(id);
   $('tb-crumb').textContent=panelNames[id];
+  try{ localStorage.setItem('apvc_last_panel', id); }catch(_){}
   sbFecharFlyout();
   closeSidebar();
-  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},regulamento:renderReg,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas})[id]?.();
+  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},regulamento:renderReg,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
 }
 
 function setTab(t){
@@ -6005,16 +6035,15 @@ const fmt=v=>(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 function initApp(){
   initLotes(); initFuncs(); initFin(); initManut(); initComun(); initPrev(); initRes(); initReg(); initInadimplencia();
   const nivel = window._userNivel || 'morador';
-  const _ini = (nivel === 'morador') ? 'comunicados' : 'dashboard';
+  const permitidos = ACESSO_PAINEIS[nivel] || ACESSO_PAINEIS.morador;
   const _mods = modulosAtivos();
-  const _modIni = painelModulo(_ini);
-  if(_modIni && _mods.indexOf(_modIni) < 0){
-    const _alt = painelInicial();
-    if(_alt) showPanel(_alt);
-    else document.querySelectorAll('.panel').forEach(function(pn){ pn.classList.remove('active'); });
-  } else {
-    showPanel(_ini);
-  }
+  let dest = 'inicio';
+  try{ const ult = localStorage.getItem('apvc_last_panel'); if(ult) dest = ult; }catch(_){}
+  if(permitidos.indexOf(dest) < 0) dest = 'inicio';
+  const _modD = painelModulo(dest);
+  if(_modD && _mods.indexOf(_modD) < 0) dest = 'inicio';
+  if(dest === 'saas' && !isSuperAdmin()) dest = 'inicio';
+  showPanel(dest);
   // Alertas de reservas — checar ao iniciar e a cada 15 minutos
   setTimeout(verificarAlertas, 1500);
   setInterval(verificarAlertas, 15 * 60 * 1000);
@@ -7139,9 +7168,37 @@ function togglePgtoRes(sim){
   // legacy - mantido para compatibilidade
 }
 
+// Reconstrói as opções de horário conforme os horários permitidos do espaço
+var _HR_OPTS_DEFAULT=null;
+function atualizarHorariosEspaco(espaco, manterValor){
+  var sel=$('mres-horario'); if(!sel) return;
+  if(!_HR_OPTS_DEFAULT) _HR_OPTS_DEFAULT=[].map.call(sel.options,function(o){return {v:o.value,t:o.text};});
+  var cfg=getCfgRes(); var chv=_chvEsp(espaco||'');
+  var raw=(cfg['disp_'+chv+'_slots']||'').trim();
+  var nivel=window._userNivel||'morador';
+  var isAdm=(nivel==='admin'||nivel==='gestor');
+  var atual=(manterValor!==undefined&&manterValor!==null)?manterValor:sel.value;
+  if(raw){
+    var slots=raw.split(',').map(function(x){return x.trim().replace(/-/g,'–');}).filter(Boolean);
+    var html=slots.map(function(sl){return '<option value="'+sl+'">'+sl+'</option>';}).join('');
+    if(isAdm) html+='<option value="personalizado">Personalizado</option>';
+    sel.innerHTML=html;
+  } else {
+    sel.innerHTML=_HR_OPTS_DEFAULT.map(function(o){return '<option value="'+o.v+'">'+o.t+'</option>';}).join('');
+    if(!isAdm){ [].slice.call(sel.options).forEach(function(o){ if(o.value==='personalizado') o.remove(); }); }
+  }
+  var tem=[].some.call(sel.options,function(o){return o.value===atual;});
+  if(atual && tem){ sel.value=atual; }
+  else if(atual && isAdm){ sel.value='personalizado'; if($('mres-hr-custom')) $('mres-hr-custom').value=atual; }
+  else { sel.selectedIndex=0; }
+  var wrap=$('mres-hr-custom-wrap');
+  if(wrap) wrap.style.display = sel.value==='personalizado' ? '' : 'none';
+}
+
 // Atualiza blocos financeiro e termo ao trocar espaço
 function onEspacoChange(reservaExistente){
   const espaco = $('mres-espaco').value;
+  atualizarHorariosEspaco(espaco, reservaExistente ? reservaExistente.horario : undefined);
   const cfg    = JSON.parse(localStorage.getItem('apvc_cfg_reservas')||'{}');
   const nivel  = window._userNivel||'morador';
   const isAdmin= nivel==='admin'||nivel==='gestor';
@@ -8418,6 +8475,8 @@ function renderCfgDisponibilidade(){
     var dias=cfg['disp_'+chv+'_dias']; if(!Array.isArray(dias)) dias=[0,1,2,3,4,5,6];
     var maxh=cfg['disp_'+chv+'_maxh']||'';
     var antec=cfg['disp_'+chv+'_antec']||'';
+    var antmin=cfg['disp_'+chv+'_antmin']||'';
+    var slots=(cfg['disp_'+chv+'_slots']||'').replace(/"/g,'&quot;');
     var chips=_DIAS_SEM.map(function(d,i){
       var on=dias.indexOf(i)>=0;
       return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:3px 8px;border-radius:6px;border:1px solid '+(on?'rgba(232,119,34,0.4)':'var(--border)')+';background:'+(on?'rgba(232,119,34,0.12)':'var(--ink-2)')+';color:'+(on?'var(--gold)':'var(--text-3)')+'"><input type="checkbox" data-disp-dia="'+chv+'" value="'+i+'" '+(on?'checked':'')+' style="accent-color:var(--gold)">'+d+'</label>';
@@ -8429,6 +8488,12 @@ function renderCfgDisponibilidade(){
       '<input type="number" min="0" step="0.5" data-disp-maxh="'+chv+'" value="'+maxh+'" placeholder="0" style="width:70px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px"></span>'+
       '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">Antecedência máx. (dias):'+
       '<input type="number" min="0" step="1" data-disp-antec="'+chv+'" value="'+antec+'" placeholder="0" title="Morador só consegue reservar até N dias à frente (0 = sem limite)" style="width:70px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px"></span>'+
+      '</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:8px">'+
+      '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">Antecedência mín. (dias):'+
+      '<input type="number" min="0" step="1" data-disp-antmin="'+chv+'" value="'+antmin+'" placeholder="0" title="Reserva só a partir de N dias à frente (ex: 7 = salão precisa de preparo). 0 = sem exigência" style="width:70px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px"></span>'+
+      '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);flex:1;min-width:260px">Horários permitidos:'+
+      '<input type="text" data-disp-slots="'+chv+'" value="'+slots+'" placeholder="Ex: 07:00–08:00, 08:00–09:00 (vazio = padrão)" title="Somente estes horários aparecem para o morador. Separe por vírgula." style="flex:1;min-width:180px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px"></span>'+
       '</div></div>';
   }).join('');
 }
@@ -8488,6 +8553,22 @@ function reservaViolaRegra(espaco, data, horario, lote, idAtual){
     var lim=new Date(hojeD); lim.setDate(lim.getDate()+antec);
     var dRes=new Date(data+'T00:00');
     if(dRes>lim) return 'Reservas de '+espaco+' abrem com no máximo '+antec+' dia(s) de antecedência.';
+  }
+  // 1c) antecedência mínima (ex: salão precisa de preparo — só reserva N+ dias à frente)
+  var antmin=parseInt(cfg['disp_'+chv+'_antmin'],10);
+  if(antmin>0 && _nivelR!=='admin' && _nivelR!=='gestor' && data){
+    var hoje2=new Date(); hoje2.setHours(0,0,0,0);
+    var minD=new Date(hoje2); minD.setDate(minD.getDate()+antmin);
+    if(new Date(data+'T00:00') < minD)
+      return espaco+' exige reserva com pelo menos '+antmin+' dia(s) de antecedência (a partir de '+minD.toLocaleDateString('pt-BR')+').';
+  }
+  // 1d) horários permitidos (morador só usa os horários configurados)
+  var rawSlots=(cfg['disp_'+chv+'_slots']||'').trim();
+  if(rawSlots && _nivelR!=='admin' && _nivelR!=='gestor' && horario){
+    var okSlots=rawSlots.split(',').map(function(x){return x.trim().replace(/-/g,'–');});
+    var hNorm=String(horario).trim().replace(/-/g,'–');
+    if(okSlots.indexOf(hNorm)<0)
+      return 'Escolha um dos horários disponíveis de '+espaco+': '+okSlots.join(', ')+'.';
   }
   // 2) bloqueios
   var blq=cfg.bloqueios||[];
@@ -8553,6 +8634,12 @@ function salvarCfgReservas(){
   });
   document.querySelectorAll('#cfg-disp-espacos [data-disp-antec]').forEach(function(inp){
     cfgRes['disp_'+inp.dataset.dispAntec+'_antec'] = inp.value;
+  });
+  document.querySelectorAll('#cfg-disp-espacos [data-disp-antmin]').forEach(function(inp){
+    cfgRes['disp_'+inp.dataset.dispAntmin+'_antmin'] = inp.value;
+  });
+  document.querySelectorAll('#cfg-disp-espacos [data-disp-slots]').forEach(function(inp){
+    cfgRes['disp_'+inp.dataset.dispSlots+'_slots'] = inp.value.trim();
   });
   var _diasPorChv={};
   document.querySelectorAll('#cfg-disp-espacos [data-disp-dia]').forEach(function(cb){
@@ -9427,6 +9514,7 @@ async function renderUsuarios(){
       // Usuários já com acesso (ativos/bloqueados) do condomínio atual
       var ru = await SB.from('usuarios').select('*').eq('condominio_id', _condAtual);
       (ru.data||[]).forEach(function(u){
+        if(u.super_admin && !isSuperAdmin()) return; // admin master é invisível para admins de condomínio
         lista.push({ _docId:u.id, _tipo:'usr', auth_id:u.id,
           nome:u.nome, email:u.email, tel:u.tel, lote:u.unidade||'', unidade:u.unidade||'',
           vinculo:u.vinculo, nivel:u.nivel||'morador', status:u.status||'ativo', obs:u.obs||'',
