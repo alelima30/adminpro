@@ -3005,6 +3005,37 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           </div>
         </div>
 
+        <!-- ▸ Disponibilidade: dias da semana + limite de horas por morador -->
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-head">
+            <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-calendar-day"></i></div>Disponibilidade por Espaço</div>
+            <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">Marque os dias em que cada espaço aceita reserva e o limite de horas por morador no mesmo dia (0 = sem limite).</div>
+          <div id="cfg-disp-espacos" style="display:flex;flex-direction:column;gap:12px"></div>
+        </div>
+
+        <!-- ▸ Bloqueios (manutenção, feriados, etc.) -->
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-head">
+            <div class="card-title"><div class="card-icon" style="background:rgba(224,82,82,0.14);color:var(--red)"><i class="fa-solid fa-ban"></i></div>Bloqueios de Data / Horário</div>
+          </div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">Bloqueie períodos para manutenção, reforma, etc. Deixe o horário em branco para bloquear o dia inteiro; escolha "Todos os espaços" para um bloqueio geral.</div>
+          <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 0.8fr 0.8fr;gap:8px;align-items:end;margin-bottom:6px" id="blq-form">
+            <div class="fg" style="margin:0"><label>Espaço</label>
+              <select id="blq-espaco" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%"></select></div>
+            <div class="fg" style="margin:0"><label>De (data)</label><input type="date" id="blq-ini" style="padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%"></div>
+            <div class="fg" style="margin:0"><label>Até (data)</label><input type="date" id="blq-fim" style="padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%"></div>
+            <div class="fg" style="margin:0"><label>Hora início</label><input type="time" id="blq-h1" style="padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%"></div>
+            <div class="fg" style="margin:0"><label>Hora fim</label><input type="time" id="blq-h2" style="padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%"></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:end;margin-bottom:16px">
+            <div class="fg" style="margin:0;flex:1"><label>Motivo (opcional)</label><input type="text" id="blq-motivo" placeholder="Ex: Manutenção da quadra" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%"></div>
+            <button class="btn btn-gold btn-sm" onclick="bloqueioAdd()" style="white-space:nowrap"><i class="fa-solid fa-plus"></i> Adicionar bloqueio</button>
+          </div>
+          <div id="cfg-bloqueios"></div>
+        </div>
+
         <div class="card">
           <div class="card-head">
             <div class="card-title"><div class="card-icon">🔔</div>Log de Envios Automáticos</div>
@@ -7293,6 +7324,10 @@ function salvarRes(){
     return;
   }
 
+  // ── Regras de disponibilidade (dias da semana, bloqueios, limite de horas/morador) ──
+  const _viol = reservaViolaRegra(espacoRes, dataRes, hr, ($('mres-lote').value||'').trim(), id?+id:null);
+  if(_viol){ toast('⛔ '+_viol); return; }
+
   // ── Validação: Termo de Responsabilidade obrigatório ──
   if(!$('mres-chk-termo').checked){
     if($('mres-termo-aviso')) $('mres-termo-aviso').style.display='block';
@@ -8318,6 +8353,128 @@ function renderCfgReservas(){
 function toggleFinEspaco(cb, chv){
   const campos = document.getElementById('cfg-fin-campos-'+chv);
   if(campos) campos.style.display = cb.checked ? 'grid' : 'none';
+}
+
+/* ── Config de reservas: helpers + persistência (Supabase por condomínio) ── */
+const _DIAS_SEM = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']; // domingo-first (bate com getDay())
+function _chvEsp(esp){ return esp.toLowerCase().replace(/[^a-z0-9]/g,'_'); }
+function getCfgRes(){ try{ return JSON.parse(localStorage.getItem('apvc_cfg_reservas')||'{}'); }catch(_){ return {}; } }
+function setCfgRes(cfg){
+  try{ localStorage.setItem('apvc_cfg_reservas', JSON.stringify(cfg)); }catch(_){}
+  if(window.SB){
+    SB.from('modulo_dados').upsert({condominio_id:_condAtual, modulo:'cfg_reservas', valor:cfg},{onConflict:'condominio_id,modulo'})
+      .then(function(r){ if(r.error) console.warn('cfg_reservas', r.error.message); });
+  }
+}
+// duração de uma reserva (horas) a partir de "08:00–12:00"
+function _horasReserva(horario){
+  if(!horario) return 1;
+  var p=String(horario).split(/[-–]/);
+  function m(h){ var x=(h||'').trim().split(':'); return (parseInt(x[0],10)||0)*60+(parseInt(x[1],10)||0); }
+  if(p.length<2) return 1;
+  var d=(m(p[1])-m(p[0]))/60; return d>0?d:1;
+}
+function _minHora(h){ var x=(h||'').split(':'); return (parseInt(x[0],10)||0)*60+(parseInt(x[1],10)||0); }
+
+// Renderiza dias da semana + limite de horas por espaço
+function renderCfgDisponibilidade(){
+  var el=$('cfg-disp-espacos'); if(!el) return;
+  var cfg=getCfgRes();
+  el.innerHTML = ESPACOS_CFG.map(function(esp){
+    var chv=_chvEsp(esp);
+    var dias=cfg['disp_'+chv+'_dias']; if(!Array.isArray(dias)) dias=[0,1,2,3,4,5,6];
+    var maxh=cfg['disp_'+chv+'_maxh']||'';
+    var chips=_DIAS_SEM.map(function(d,i){
+      var on=dias.indexOf(i)>=0;
+      return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:3px 8px;border-radius:6px;border:1px solid '+(on?'rgba(232,119,34,0.4)':'var(--border)')+';background:'+(on?'rgba(232,119,34,0.12)':'var(--ink-2)')+';color:'+(on?'var(--gold)':'var(--text-3)')+'"><input type="checkbox" data-disp-dia="'+chv+'" value="'+i+'" '+(on?'checked':'')+' style="accent-color:var(--gold)">'+d+'</label>';
+    }).join('');
+    return '<div style="background:var(--ink-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px">'+
+      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">'+esp+'</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">'+chips+
+      '<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">Máx. horas/morador/dia:'+
+      '<input type="number" min="0" step="0.5" data-disp-maxh="'+chv+'" value="'+maxh+'" placeholder="0" style="width:70px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px"></span>'+
+      '</div></div>';
+  }).join('');
+}
+
+// Renderiza a lista de bloqueios + popula o select de espaços
+function renderCfgBloqueios(){
+  var sel=$('blq-espaco');
+  if(sel && !sel._filled){
+    sel.innerHTML='<option value="">Todos os espaços</option>'+ESPACOS_CFG.map(function(e){return '<option>'+e+'</option>';}).join('');
+    sel._filled=true;
+  }
+  var el=$('cfg-bloqueios'); if(!el) return;
+  var cfg=getCfgRes(); var lista=cfg.bloqueios||[];
+  if(!lista.length){ el.innerHTML='<div style="font-size:12px;color:var(--text-3);padding:8px 0">Nenhum bloqueio cadastrado.</div>'; return; }
+  var fmt=function(d){ return d?new Date(d+'T00:00').toLocaleDateString('pt-BR'):''; };
+  el.innerHTML='<div class="tbl-wrap"><table style="font-size:12.5px"><thead><tr><th>Espaço</th><th>Período</th><th>Horário</th><th>Motivo</th><th></th></tr></thead><tbody>'+
+    lista.map(function(b){
+      return '<tr><td>'+(b.espaco||'<span style="color:var(--gold)">Todos</span>')+'</td>'+
+        '<td>'+fmt(b.ini)+(b.fim&&b.fim!==b.ini?' a '+fmt(b.fim):'')+'</td>'+
+        '<td>'+((b.h1&&b.h2)?b.h1+'–'+b.h2:'<span style="color:var(--text-3)">dia todo</span>')+'</td>'+
+        '<td>'+(b.motivo||'—')+'</td>'+
+        '<td style="text-align:right"><button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="bloqueioRemove('+b.id+')"><i class="fa-solid fa-trash"></i></button></td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+
+function bloqueioAdd(){
+  var ini=$('blq-ini').value, fim=$('blq-fim').value||ini;
+  if(!ini){ toast('⚠️ Informe a data inicial do bloqueio.'); return; }
+  if(fim<ini){ toast('⚠️ A data final não pode ser antes da inicial.'); return; }
+  var h1=$('blq-h1').value, h2=$('blq-h2').value;
+  if((h1&&!h2)||(!h1&&h2)){ toast('⚠️ Informe hora início e fim, ou deixe as duas em branco (dia todo).'); return; }
+  var cfg=getCfgRes(); if(!Array.isArray(cfg.bloqueios)) cfg.bloqueios=[];
+  cfg.bloqueios.push({ id:Date.now(), espaco:$('blq-espaco').value, ini:ini, fim:fim, h1:h1, h2:h2, motivo:$('blq-motivo').value.trim() });
+  setCfgRes(cfg);
+  ['blq-ini','blq-fim','blq-h1','blq-h2','blq-motivo'].forEach(function(id){ if($(id))$(id).value=''; });
+  renderCfgBloqueios(); toast('✓ Bloqueio adicionado.');
+}
+function bloqueioRemove(id){
+  var cfg=getCfgRes(); cfg.bloqueios=(cfg.bloqueios||[]).filter(function(b){return b.id!==id;});
+  setCfgRes(cfg); renderCfgBloqueios(); toast('✓ Bloqueio removido.');
+}
+
+// Verifica se uma reserva fere alguma regra (dia, bloqueio, limite). Retorna msg ou null.
+function reservaViolaRegra(espaco, data, horario, lote, idAtual){
+  var cfg=getCfgRes(); var chv=_chvEsp(espaco);
+  // 1) dia da semana
+  var dias=cfg['disp_'+chv+'_dias'];
+  if(Array.isArray(dias) && data){
+    var dw=new Date(data+'T00:00').getDay();
+    if(dias.indexOf(dw)<0) return espaco+' não aceita reservas em '+_DIAS_SEM[dw].toLowerCase()+'.';
+  }
+  // 2) bloqueios
+  var blq=cfg.bloqueios||[];
+  for(var i=0;i<blq.length;i++){
+    var b=blq[i];
+    if(b.espaco && b.espaco!==espaco) continue;
+    if(data< b.ini || data> (b.fim||b.ini)) continue;
+    if(b.h1 && b.h2 && horario){
+      var p=String(horario).split(/[-–]/);
+      var ri=_minHora(p[0]), rf=p.length>1?_minHora(p[1]):ri+60;
+      var bi=_minHora(b.h1), bf=_minHora(b.h2);
+      if(ri<bf && rf>bi) return 'Período bloqueado'+(b.motivo?': '+b.motivo:'')+' ('+b.h1+'–'+b.h2+').';
+    } else {
+      return 'Data bloqueada'+(b.motivo?': '+b.motivo:'')+'.';
+    }
+  }
+  // 3) limite de horas por morador no mesmo dia
+  var maxh=parseFloat(cfg['disp_'+chv+'_maxh']);
+  if(maxh>0 && lote){
+    var all=G('reservas')||[];
+    var usadas=0;
+    all.forEach(function(r){
+      if(r.id===idAtual) return;
+      if(r.status==='cancelada') return;
+      if(r.espaco!==espaco || r.data!==data) return;
+      if((r.lote||'').trim().toUpperCase()!==String(lote).trim().toUpperCase()) return;
+      usadas+=_horasReserva(r.horario);
+    });
+    if(usadas + _horasReserva(horario) > maxh + 0.001)
+      return 'Limite de '+maxh+'h por morador neste espaço/dia atingido (já usadas: '+usadas+'h).';
+  }
+  return null;
 }
 
 function salvarCfgReservas(){
