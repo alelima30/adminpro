@@ -4419,6 +4419,7 @@ function _limparCacheDados(){
     delete DB_CACHE['reservas'];
     localStorage.removeItem('apvc_reservas');
     localStorage.removeItem('apvc_informativos_cache');
+    localStorage.removeItem('apvc_cfg_reservas');
     localStorage.removeItem('vc_hero');
     for(var i=0;i<12;i++) localStorage.removeItem('vc_gallery_'+i);
     for(var j=0;j<4;j++) localStorage.removeItem('vc_sobre_'+j);
@@ -8348,6 +8349,8 @@ function renderCfgReservas(){
       </div>`;
     }).join('');
   }
+  renderCfgDisponibilidade();
+  renderCfgBloqueios();
 }
 
 function toggleFinEspaco(cb, chv){
@@ -8502,7 +8505,18 @@ function salvarCfgReservas(){
     });
   }
 
-  localStorage.setItem('apvc_cfg_reservas', JSON.stringify(cfgRes));
+  // Disponibilidade: dias da semana + limite de horas por morador
+  document.querySelectorAll('#cfg-disp-espacos [data-disp-maxh]').forEach(function(inp){
+    cfgRes['disp_'+inp.dataset.dispMaxh+'_maxh'] = inp.value;
+  });
+  var _diasPorChv={};
+  document.querySelectorAll('#cfg-disp-espacos [data-disp-dia]').forEach(function(cb){
+    var c=cb.dataset.dispDia; if(!_diasPorChv[c]) _diasPorChv[c]=[];
+    if(cb.checked) _diasPorChv[c].push(parseInt(cb.value,10));
+  });
+  Object.keys(_diasPorChv).forEach(function(c){ cfgRes['disp_'+c+'_dias']=_diasPorChv[c].sort(); });
+
+  setCfgRes(cfgRes);
   toast('✓ Configurações de reservas salvas!');
 }
 
