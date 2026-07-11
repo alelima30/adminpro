@@ -5945,8 +5945,16 @@ function sbFecharFlyout(){
 function renderInicio(){
   var c=(getSaasCondominios()||{})[_condAtual]||{};
   var img=$('inicio-logo-img'), fb=$('inicio-logo-fallback'), nm=$('inicio-nome');
-  if(img && c.logo){ img.src=c.logo; img.style.display=''; if(fb) fb.style.display='none'; }
-  else { if(img) img.style.display='none'; if(fb) fb.style.display=''; }
+  if(img){
+    var box = img.parentElement;
+    var src = c.logo || '', usouAdmin=false;
+    if(!src){ var lg=document.querySelector('.ap-logo-img'); if(lg){ src=lg.src; usouAdmin=true; } }
+    if(src){
+      img.src=src; img.style.display=''; if(fb) fb.style.display='none';
+      if(box){ box.style.background = usouAdmin ? 'linear-gradient(145deg,#0D1629 0%,#132040 40%,#1B2B5E 100%)' : 'var(--card)'; box.style.padding = usouAdmin ? '22px' : '0'; }
+    }
+    else { img.style.display='none'; if(fb) fb.style.display=''; if(box){ box.style.background='var(--card)'; box.style.padding='0'; } }
+  }
   if(nm) nm.textContent=c.nome||'';
 }
 
