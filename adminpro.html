@@ -7459,9 +7459,18 @@ function salvarRes(){
     comprovante= $('mres-comprovante')? $('mres-comprovante').value.trim(): '';
   }
 
-  // Status: moradores sempre criam como 'pendente'
+  // Status:
+  //  - admin/gestor: usa o valor escolhido no formulário
+  //  - morador: se o espaço exigir confirmação do admin -> 'pendente'; senão já entra 'confirmada'
   const nivel2 = window._userNivel||'morador';
-  const statusVal = (nivel2==='admin'||nivel2==='gestor') ? ($('mres-status')?$('mres-status').value:'pendente') : 'pendente';
+  let statusVal;
+  if(nivel2==='admin'||nivel2==='gestor'){
+    statusVal = $('mres-status')?$('mres-status').value:'pendente';
+  } else {
+    const _cfgRes = getCfgRes();
+    const _exige = !!_cfgRes['disp_'+_chvEsp(espacoRes)+'_confirmar'];
+    statusVal = _exige ? 'pendente' : 'confirmada';
+  }
 
   const obj={
     id:id?+id:Date.now(),
@@ -8485,6 +8494,7 @@ function renderCfgDisponibilidade(){
     var antec=cfg['disp_'+chv+'_antec']||'';
     var antmin=cfg['disp_'+chv+'_antmin']||'';
     var slots=(cfg['disp_'+chv+'_slots']||'').replace(/"/g,'&quot;');
+    var confirmar=cfg['disp_'+chv+'_confirmar']?true:false;
     var chips=_DIAS_SEM.map(function(d,i){
       var on=dias.indexOf(i)>=0;
       return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:3px 8px;border-radius:6px;border:1px solid '+(on?'rgba(232,119,34,0.4)':'var(--border)')+';background:'+(on?'rgba(232,119,34,0.12)':'var(--ink-2)')+';color:'+(on?'var(--gold)':'var(--text-3)')+'"><input type="checkbox" data-disp-dia="'+chv+'" value="'+i+'" '+(on?'checked':'')+' style="accent-color:var(--gold)">'+d+'</label>';
@@ -8502,6 +8512,9 @@ function renderCfgDisponibilidade(){
       '<input type="number" min="0" step="1" data-disp-antmin="'+chv+'" value="'+antmin+'" placeholder="0" title="Reserva só a partir de N dias à frente (ex: 7 = salão precisa de preparo). 0 = sem exigência" style="width:70px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px"></span>'+
       '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);flex:1;min-width:260px">Horários permitidos:'+
       '<input type="text" data-disp-slots="'+chv+'" value="'+slots+'" placeholder="Ex: 07:00–08:00, 08:00–09:00 (vazio = padrão)" title="Somente estes horários aparecem para o morador. Separe por vírgula." style="flex:1;min-width:180px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px"></span>'+
+      '</div>'+
+      '<div style="margin-top:10px">'+
+      '<label style="display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-2);cursor:pointer"><input type="checkbox" data-disp-confirmar="'+chv+'" '+(confirmar?'checked':'')+' style="width:16px;height:16px;accent-color:var(--gold)" title="Se marcado, a reserva do morador fica PENDENTE até o administrador confirmar. Se desmarcado, a reserva já fica CONFIRMADA automaticamente.">Exigir confirmação do administrador (reserva fica <b>pendente</b> até aprovar)</label>'+
       '</div></div>';
   }).join('');
 }
@@ -8648,6 +8661,9 @@ function salvarCfgReservas(){
   });
   document.querySelectorAll('#cfg-disp-espacos [data-disp-slots]').forEach(function(inp){
     cfgRes['disp_'+inp.dataset.dispSlots+'_slots'] = inp.value.trim();
+  });
+  document.querySelectorAll('#cfg-disp-espacos [data-disp-confirmar]').forEach(function(cb){
+    cfgRes['disp_'+cb.dataset.dispConfirmar+'_confirmar'] = cb.checked;
   });
   var _diasPorChv={};
   document.querySelectorAll('#cfg-disp-espacos [data-disp-dia]').forEach(function(cb){
