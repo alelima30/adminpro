@@ -3397,7 +3397,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       </div>
       <div class="fg">
         <label>Data da Reserva</label>
-        <input type="date" id="mres-data">
+        <input type="date" id="mres-data" onchange="mresDataChange()">
       </div>
       <div class="fg">
         <label>Horário</label>
@@ -3531,10 +3531,10 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       </div>
 
       <!-- Alertas / Notificações -->
-      <div class="fg full" style="grid-column:1/-1;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:4px;margin-top:8px">
+      <div id="mres-alertas-head" class="fg full" style="grid-column:1/-1;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:4px;margin-top:8px">
         <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold)"><i class="fa-solid fa-bell" style="margin-right:6px"></i>Alertas & Notificações</span>
       </div>
-      <div class="fg full" style="grid-column:1/-1">
+      <div id="mres-alertas-bloco" class="fg full" style="grid-column:1/-1">
         <div style="background:rgba(232,119,34,0.06);border:1px solid rgba(232,119,34,0.18);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:16px">
 
           <!-- Contatos -->
@@ -7195,6 +7195,21 @@ function atualizarHorariosEspaco(espaco, manterValor){
     sel.innerHTML=_HR_OPTS_DEFAULT.map(function(o){return '<option value="'+o.v+'">'+o.t+'</option>';}).join('');
     if(!isAdm){ [].slice.call(sel.options).forEach(function(o){ if(o.value==='personalizado') o.remove(); }); }
   }
+  // Remove horários já reservados nesse espaço/data (some da lista p/ todos)
+  var dataSel = $('mres-data') ? $('mres-data').value : '';
+  var idEdit  = $('mres-id') ? ($('mres-id').value||'') : '';
+  if(dataSel){
+    var ocupados = (G('reservas')||[]).filter(function(r){
+      if(String(r.id)===String(idEdit)) return false;              // ignora a própria reserva ao editar
+      if(r.espaco!==espaco || r.data!==dataSel) return false;
+      return r.status!=='cancelada' && r.status!=='concluida';
+    });
+    var _min=function(h){ var p=(h||'').split(/[-–]/)[0].trim().split(':'); return (+p[0]||0)*60+(+p[1]||0); };
+    var _fim=function(h){ var p=(h||'').split(/[-–]/); if(p.length<2) return _min(h)+60; var q=p[1].trim().split(':'); return (+q[0]||0)*60+(+q[1]||0); };
+    var conflita=function(slot){ var si=_min(slot), sf=_fim(slot);
+      return ocupados.some(function(o){ var oi=_min(o.horario), of=_fim(o.horario); return si<of && sf>oi; }); };
+    [].slice.call(sel.options).forEach(function(o){ if(o.value!=='personalizado' && conflita(o.value)) o.remove(); });
+  }
   var tem=[].some.call(sel.options,function(o){return o.value===atual;});
   if(atual && tem){ sel.value=atual; }
   else if(atual && isAdm){ sel.value='personalizado'; if($('mres-hr-custom')) $('mres-hr-custom').value=atual; }
@@ -7203,10 +7218,36 @@ function atualizarHorariosEspaco(espaco, manterValor){
   if(wrap) wrap.style.display = sel.value==='personalizado' ? '' : 'none';
 }
 
+// Limita o calendário aos dias liberados do espaço (antecedência mín/máx). Admin fica livre.
+function mresAplicarLimitesData(){
+  var inp=$('mres-data'); if(!inp) return;
+  var nivel=window._userNivel||'morador';
+  var isAdm=(nivel==='admin'||nivel==='gestor');
+  if(isAdm){ inp.removeAttribute('min'); inp.removeAttribute('max'); return; }
+  var cfg=getCfgRes(); var chv=_chvEsp(($('mres-espaco')?$('mres-espaco').value:'')||'');
+  var antmin=parseInt(cfg['disp_'+chv+'_antmin'],10); if(isNaN(antmin)||antmin<0) antmin=0;
+  var antec =parseInt(cfg['disp_'+chv+'_antec'],10);
+  var hoje=new Date(); hoje.setHours(0,0,0,0);
+  var dMin=new Date(hoje); dMin.setDate(dMin.getDate()+antmin);
+  var iso=function(d){ return d.toISOString().slice(0,10); };
+  inp.min=iso(dMin);
+  if(!isNaN(antec)&&antec>0){ var dMax=new Date(hoje); dMax.setDate(dMax.getDate()+antec); inp.max=iso(dMax); }
+  else inp.removeAttribute('max');
+  // Se a data atual ficou fora do intervalo liberado, ajusta para o primeiro dia liberado
+  if(inp.value && inp.value < inp.min) inp.value=inp.min;
+  if(inp.max && inp.value && inp.value > inp.max) inp.value=inp.max;
+}
+
+// Ao trocar a data: reaplica limites e re-filtra horários já ocupados
+function mresDataChange(){
+  atualizarHorariosEspaco($('mres-espaco')?$('mres-espaco').value:'', undefined);
+}
+
 // Atualiza blocos financeiro e termo ao trocar espaço
 function onEspacoChange(reservaExistente){
   const espaco = $('mres-espaco').value;
   atualizarHorariosEspaco(espaco, reservaExistente ? reservaExistente.horario : undefined);
+  if(typeof mresAplicarLimitesData==='function') mresAplicarLimitesData();
   const cfg    = JSON.parse(localStorage.getItem('apvc_cfg_reservas')||'{}');
   const nivel  = window._userNivel||'morador';
   const isAdmin= nivel==='admin'||nivel==='gestor';
@@ -7349,14 +7390,14 @@ function abrirModalRes(id){
   if($('mres-alerta-email'))    $('mres-alerta-email').value=r?.alertaEmail||'';
   carregarAlertas(r?.alertas||[]);
 
-  // Campos visíveis apenas para admin/gestor
-  const adminOnly = ['mres-alerta-whatsapp','mres-alerta-email'];
-  document.querySelectorAll('#mres-alertas-rapidos, #mres-alertas-horarios, #mres-alertas-horarios-empty').forEach(el=>{
-    el.closest && el.parentElement ? el.parentElement.style.display = isMorador ? 'none' : '' : null;
-  });
+  // Alertas & Notificações: seção inteira só para admin/gestor
+  if($('mres-alertas-head'))  $('mres-alertas-head').style.display  = isMorador ? 'none' : '';
+  if($('mres-alertas-bloco')) $('mres-alertas-bloco').style.display = isMorador ? 'none' : '';
 
   // Atualiza blocos financeiro + termo por espaço (passa reserva para pré-preencher campos)
   onEspacoChange(r||null);
+  // Limita o calendário aos dias liberados (antecedência mín/máx do espaço)
+  mresAplicarLimitesData();
 
   // Para moradores: nome e lote são identificadores vindos do cadastro — bloqueados.
   // Telefone pode ser editado livremente.
