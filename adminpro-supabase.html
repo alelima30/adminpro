@@ -1669,6 +1669,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       <div class="sb-group" data-acesso="admin,gestor,morador">
         <div class="sb-group-hd" data-grupo="operacoes" onclick="sbAbrirGrupo('operacoes',this)">
           <div class="nav-icon"><i class="fa-solid fa-layer-group"></i></div>Operações
+          <span id="badge-pendentes" style="display:none;margin-left:auto;margin-right:6px;background:var(--amber);color:#3a2a06;font-size:11px;font-weight:800;border-radius:99px;padding:1px 7px;line-height:1.6">0</span>
           <span class="sb-group-arrow">&#8250;</span>
         </div>
       </div>
@@ -4685,6 +4686,7 @@ function entrarNoPortal(nome){
   aplicarAcesso(usr.nivel);
   aplicarSaas();
   initApp();
+  try{ atualizarBadgePendentes(); }catch(_){}
 }
 
 // ── TEMA CLARO / ESCURO — sincronizado com index via vc_theme ──────────────────
@@ -7074,6 +7076,25 @@ function renderReservas(){
     lista.appendChild(bannerM);
   }
 
+  // Alerta de reservas pendentes — só admin/gestor
+  if(!isMorador && pend>0){
+    const bp=document.createElement('div');
+    bp.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 18px;border-radius:12px;margin-bottom:14px;background:rgba(240,168,67,0.10);border:1px solid rgba(240,168,67,0.35);';
+    bp.innerHTML=`
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(240,168,67,0.18);display:flex;align-items:center;justify-content:center;position:relative">
+          <i class="fa-regular fa-bell" style="font-size:18px;color:var(--amber)"></i>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--amber)">${pend} reserva${pend>1?'s':''} aguardando sua aprovação</div>
+          <div style="font-size:12px;color:var(--text-3)">Revise e aprove ou recuse as reservas pendentes${fSt==='pendente'?' listadas abaixo':''}.</div>
+        </div>
+      </div>
+      ${fSt!=='pendente'?`<button class="btn btn-sm" style="background:var(--amber);color:#3a2a06;border:none;font-weight:700;white-space:nowrap" onclick="verPendentesRes()"><i class="fa-solid fa-list-check"></i> Ver pendentes</button>`:''}
+    `;
+    lista.appendChild(bp);
+  }
+
   if(passadasOcultas>0){
     const banner=document.createElement('div');
     banner.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 18px;border-radius:10px;margin-bottom:14px;background:rgba(91,156,246,0.08);border:1px solid rgba(91,156,246,0.25);';
@@ -7155,6 +7176,9 @@ function renderReservas(){
           ${r.obs?`<div style="font-size:13px;color:var(--text-2);font-style:italic;border-left:2px solid var(--border-h);padding-left:10px;margin-top:4px">${r.obs}</div>`:''}
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+          ${(!isMorador && r.status==='pendente')?`
+          <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="aprovarReserva(${r.id})"><i class="fa-solid fa-check"></i> Aprovar</button>
+          <button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="recusarReserva(${r.id})"><i class="fa-solid fa-xmark"></i> Recusar</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="abrirModalRes(${r.id})">Editar</button>
           <button class="btn btn-red btn-sm" onclick="excluirRes(${r.id})">Excluir</button>
         </div>
@@ -7162,6 +7186,7 @@ function renderReservas(){
     `;
     lista.appendChild(div);
   });
+  atualizarBadgePendentes();
 }
 
 function limparFiltrosRes(){
@@ -7176,6 +7201,40 @@ function limparFiltrosRes(){
 function mostrarTodasRes(){
   $('res-f-status').value='todas';
   renderReservas();
+}
+
+function verPendentesRes(){
+  if($('res-f-status')) $('res-f-status').value='pendente';
+  renderReservas();
+}
+
+// Atualiza o badge de pendentes no menu (só admin/gestor)
+function atualizarBadgePendentes(){
+  const b=$('badge-pendentes'); if(!b) return;
+  const nivel=window._userNivel||'morador';
+  const isAdm=(nivel==='admin'||nivel==='gestor');
+  const n=isAdm ? (G('reservas')||[]).filter(r=>r.status==='pendente').length : 0;
+  if(n>0){ b.textContent=n; b.style.display=''; }
+  else b.style.display='none';
+}
+
+function _mudarStatusReserva(id, novo, msg){
+  const all=G('reservas')||[];
+  const i=all.findIndex(x=>x.id===id);
+  if(i<0) return;
+  all[i].status=novo;
+  DB_CACHE['reservas']=all;
+  try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
+  _reservaUpsertSB(all[i]);
+  renderReservas(); verificarAlertas(); atualizarBadgePendentes();
+  toast(msg);
+}
+function aprovarReserva(id){
+  _mudarStatusReserva(id,'confirmada','✓ Reserva aprovada e confirmada.');
+}
+function recusarReserva(id){
+  if(!confirm('Recusar (cancelar) esta reserva?')) return;
+  _mudarStatusReserva(id,'cancelada','Reserva recusada.');
 }
 
 function fecharModal(modalId, saveFn, checkFieldId){
