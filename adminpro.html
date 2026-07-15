@@ -1289,8 +1289,8 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   /* ── Section header empilhado ── */
   .ph{ flex-direction:column; gap:12px; margin-bottom:16px }
   .ph-title{ font-size:22px }
-  .ph-actions{ width:100%; flex-wrap:wrap; gap:8px }
-  .ph-actions .btn{ flex:1; justify-content:center; min-width:120px }
+  .ph-actions{ width:100%; flex-direction:column; flex-wrap:wrap; gap:8px }
+  .ph-actions .btn{ flex:1 1 100%; width:100%; justify-content:center; white-space:normal }
   .ph-actions .month-sel{ width:100% }
   .ph-actions .month-sel select{ width:100% }
 
@@ -2977,7 +2977,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
       <div class="panel" id="panel-configuracoes">
         <div class="ph">
-          <div><div class="ph-title">⚙️ Configurações</div><div class="ph-sub">Integração com WhatsApp (Z-API) e E-mail (EmailJS)</div></div>
+          <div><div class="ph-title">⚙️ Configurações</div><div class="ph-sub">Reservas, WhatsApp (Z-API) e E-mail (Supabase + Resend)</div></div>
           <div class="ph-actions">
             <button class="btn btn-gold" onclick="salvarConfigs()">💾 Salvar Configurações</button>
             <button id="btn-enviar-manual" class="btn btn-ghost" onclick="enviarAlertaManual()">📤 Enviar alertas pendentes agora</button>
@@ -7054,7 +7054,8 @@ function renderReservas(){
 
   const its=all.filter(r=>{
     const txt=((r.nome||'')+(r.lote||'')+(r.obs||'')+(r.finalidade||'')).toLowerCase();
-    const dataOk = mostrarPassadas ? true : (r.data||'') >= hoje;
+    // Pendentes SEMPRE aparecem (mesmo se a data já passou), para o admin poder aprovar/recusar
+    const dataOk = mostrarPassadas ? true : ((r.data||'') >= hoje || r.status==='pendente');
     // Morador: identifica suas reservas pelo LOTE (principal) ou pelo e-mail (criadoPor)
     // Lote é único por morador, muito mais confiável que nome.
     const propriaOk = !isMorador || (
@@ -10875,26 +10876,31 @@ async function excluirUsuario(docId){
 </script>
 
 <!-- ===== PWA: botão de instalar + service worker ===== -->
-<button id="pwa-install-btn" onclick="pwaInstalar()" style="display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:9000;
-  background:linear-gradient(135deg,#E87722,#B85E0F);color:#fff;border:none;border-radius:30px;
-  padding:12px 20px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 10px 30px rgba(232,119,34,0.45);
-  display:none;align-items:center;gap:9px;font-family:'Segoe UI',system-ui,sans-serif">
-  <i class="fa-solid fa-circle-down"></i> Instalar app
-</button>
+<div id="pwa-install-wrap" style="display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:450;align-items:center;gap:6px;font-family:'Segoe UI',system-ui,sans-serif">
+  <button id="pwa-install-btn" onclick="pwaInstalar()" style="background:linear-gradient(135deg,#E87722,#B85E0F);color:#fff;border:none;border-radius:30px;
+    padding:10px 18px;font-size:13.5px;font-weight:600;cursor:pointer;box-shadow:0 8px 24px rgba(232,119,34,0.4);
+    display:inline-flex;align-items:center;gap:8px">
+    <i class="fa-solid fa-circle-down"></i> Instalar app
+  </button>
+  <button onclick="pwaDispensar()" title="Dispensar" style="background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:14px;cursor:pointer;line-height:1;box-shadow:0 4px 12px rgba(0,0,0,0.3)">&times;</button>
+</div>
 <script>
 (function(){
   let _deferredPrompt = null;
+
+  function _mostrarInstall(){ const w=document.getElementById('pwa-install-wrap'); if(w && localStorage.getItem('apvc_pwa_dispensado')!=='1') w.style.display='inline-flex'; }
+  function _ocultarInstall(){ const w=document.getElementById('pwa-install-wrap'); if(w) w.style.display='none'; }
+
+  window.pwaDispensar = function(){ localStorage.setItem('apvc_pwa_dispensado','1'); _ocultarInstall(); };
 
   // Captura o evento de instalação (Android / Chrome / Edge desktop)
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _deferredPrompt = e;
-    const b = document.getElementById('pwa-install-btn');
-    if(b) b.style.display = 'inline-flex';
+    _mostrarInstall();
   });
 
   window.pwaInstalar = async function(){
-    const b = document.getElementById('pwa-install-btn');
     // iOS (Safari) não suporta beforeinstallprompt — mostra instruções
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
     if(!_deferredPrompt){
@@ -10905,13 +10911,12 @@ async function excluirUsuario(docId){
     _deferredPrompt.prompt();
     try{ await _deferredPrompt.userChoice; }catch(_){}
     _deferredPrompt = null;
-    if(b) b.style.display = 'none';
+    _ocultarInstall();
   };
 
   // Esconde o botão se já estiver instalado/standalone
   window.addEventListener('appinstalled', ()=>{
-    const b = document.getElementById('pwa-install-btn');
-    if(b) b.style.display='none';
+    _ocultarInstall();
     _deferredPrompt = null;
   });
   function isStandalone(){
@@ -10928,10 +10933,7 @@ async function excluirUsuario(docId){
   // iOS: mostra o botão (instruções) quando ainda não está instalado
   document.addEventListener('DOMContentLoaded', ()=>{
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    if(isIOS && !isStandalone()){
-      const b = document.getElementById('pwa-install-btn');
-      if(b) b.style.display='inline-flex';
-    }
+    if(isIOS && !isStandalone()){ _mostrarInstall(); }
   });
 })();
 </script>
