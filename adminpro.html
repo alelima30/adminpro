@@ -5951,9 +5951,21 @@ function _sbItemHtml(it){
       `<div class="nav-icon"><i class="fa-solid ${it.icon}"></i></div>${it.label}`+
       `<span class="sb-nav-arrow">&#8250;</span></div>`;
   }
+  let extra = '';
+  if(it.id==='reservas'){
+    const n = _pendentesCount();
+    if(n>0) extra = `<span class="sb-item-badge" style="margin-left:auto;background:var(--amber);color:#3a2a06;font-size:11px;font-weight:800;border-radius:99px;padding:1px 8px;line-height:1.6">${n}</span>`;
+  }
   return `<div class="nav-item${currentPanel===it.id?' active':''}" onclick="sbNavItem('${it.id}')">`+
-    `<div class="nav-icon"><i class="fa-solid ${it.icon}"></i></div>${it.label}`+
+    `<div class="nav-icon"><i class="fa-solid ${it.icon}"></i></div>${it.label}${extra}`+
   `</div>`;
+}
+
+// Conta reservas pendentes (só faz sentido para admin/gestor)
+function _pendentesCount(){
+  const nivel=window._userNivel||'morador';
+  if(nivel!=='admin' && nivel!=='gestor') return 0;
+  return (G('reservas')||[]).filter(r=>r.status==='pendente').length;
 }
 
 function sbAbrirGrupo(key, hdEl){
