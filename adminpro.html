@@ -1669,6 +1669,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       <div class="sb-group" data-acesso="admin,gestor,morador">
         <div class="sb-group-hd" data-grupo="operacoes" onclick="sbAbrirGrupo('operacoes',this)">
           <div class="nav-icon"><i class="fa-solid fa-layer-group"></i></div>Operações
+          <span id="badge-pendentes" style="display:none;margin-left:auto;margin-right:6px;background:var(--amber);color:#3a2a06;font-size:11px;font-weight:800;border-radius:99px;padding:1px 7px;line-height:1.6">0</span>
           <span class="sb-group-arrow">&#8250;</span>
         </div>
       </div>
@@ -2955,7 +2956,13 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:18px">
+        <!-- Abas de configuração -->
+        <div class="tabs" style="margin-bottom:20px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="tab active" id="cfgtab-reservas" onclick="cfgSetTab('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Configuração das Reservas</button>
+          <button class="tab" id="cfgtab-sistema" onclick="cfgSetTab('sistema')"><i class="fa-solid fa-plug" style="margin-right:6px"></i>Integrações & Sistema</button>
+        </div>
+
+        <div class="cfg-card cfg-grp-sistema card" style="margin-bottom:18px;display:none">
           <div class="card-head">
             <div class="card-title"><div class="card-icon">📱</div>Z-API — WhatsApp Automático</div>
             <span id="cfg-zapi-status" style="font-size:12px;color:var(--text-3)">Não configurado</span>
@@ -2977,7 +2984,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:18px">
+        <div class="cfg-card cfg-grp-sistema card" style="margin-bottom:18px;display:none">
           <div class="card-head">
             <div class="card-title"><div class="card-icon">✉️</div>EmailJS — E-mail Automático</div>
             <span id="cfg-ejs-status" style="font-size:12px;color:var(--text-3)">Não configurado</span>
@@ -3004,7 +3011,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         </div>
 
         <!-- ▸ Config de Reservas: termos e caução -->
-        <div class="card" style="margin-bottom:18px">
+        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
           <div class="card-head">
             <div class="card-title"><div class="card-icon">📝</div>Termos de Responsabilidade & Valores por Espaço</div>
             <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()">💾 Salvar</button>
@@ -3024,7 +3031,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         </div>
 
         <!-- ▸ Disponibilidade: dias da semana + limite de horas por morador -->
-        <div class="card" style="margin-bottom:18px">
+        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
           <div class="card-head">
             <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-calendar-day"></i></div>Disponibilidade por Espaço</div>
             <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
@@ -3034,7 +3041,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         </div>
 
         <!-- ▸ Mensagem exibida ao morador após reservar (quando exige validação) -->
-        <div class="card" style="margin-bottom:18px">
+        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
           <div class="card-head">
             <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-regular fa-comment-dots"></i></div>Mensagem após a reserva</div>
             <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
@@ -3044,7 +3051,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         </div>
 
         <!-- ▸ Bloqueios (manutenção, feriados, etc.) -->
-        <div class="card" style="margin-bottom:18px">
+        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
           <div class="card-head">
             <div class="card-title"><div class="card-icon" style="background:rgba(224,82,82,0.14);color:var(--red)"><i class="fa-solid fa-ban"></i></div>Bloqueios de Data / Horário</div>
           </div>
@@ -3064,7 +3071,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <div id="cfg-bloqueios"></div>
         </div>
 
-        <div class="card">
+        <div class="cfg-card cfg-grp-sistema card" style="display:none">
           <div class="card-head">
             <div class="card-title"><div class="card-icon">🔔</div>Log de Envios Automáticos</div>
           </div>
@@ -4679,6 +4686,7 @@ function entrarNoPortal(nome){
   aplicarAcesso(usr.nivel);
   aplicarSaas();
   initApp();
+  try{ atualizarBadgePendentes(); }catch(_){}
 }
 
 // ── TEMA CLARO / ESCURO — sincronizado com index via vc_theme ──────────────────
@@ -7068,6 +7076,25 @@ function renderReservas(){
     lista.appendChild(bannerM);
   }
 
+  // Alerta de reservas pendentes — só admin/gestor
+  if(!isMorador && pend>0){
+    const bp=document.createElement('div');
+    bp.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 18px;border-radius:12px;margin-bottom:14px;background:rgba(240,168,67,0.10);border:1px solid rgba(240,168,67,0.35);';
+    bp.innerHTML=`
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(240,168,67,0.18);display:flex;align-items:center;justify-content:center;position:relative">
+          <i class="fa-regular fa-bell" style="font-size:18px;color:var(--amber)"></i>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--amber)">${pend} reserva${pend>1?'s':''} aguardando sua aprovação</div>
+          <div style="font-size:12px;color:var(--text-3)">Revise e aprove ou recuse as reservas pendentes${fSt==='pendente'?' listadas abaixo':''}.</div>
+        </div>
+      </div>
+      ${fSt!=='pendente'?`<button class="btn btn-sm" style="background:var(--amber);color:#3a2a06;border:none;font-weight:700;white-space:nowrap" onclick="verPendentesRes()"><i class="fa-solid fa-list-check"></i> Ver pendentes</button>`:''}
+    `;
+    lista.appendChild(bp);
+  }
+
   if(passadasOcultas>0){
     const banner=document.createElement('div');
     banner.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 18px;border-radius:10px;margin-bottom:14px;background:rgba(91,156,246,0.08);border:1px solid rgba(91,156,246,0.25);';
@@ -7149,6 +7176,9 @@ function renderReservas(){
           ${r.obs?`<div style="font-size:13px;color:var(--text-2);font-style:italic;border-left:2px solid var(--border-h);padding-left:10px;margin-top:4px">${r.obs}</div>`:''}
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+          ${(!isMorador && r.status==='pendente')?`
+          <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="aprovarReserva(${r.id})"><i class="fa-solid fa-check"></i> Aprovar</button>
+          <button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="recusarReserva(${r.id})"><i class="fa-solid fa-xmark"></i> Recusar</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="abrirModalRes(${r.id})">Editar</button>
           <button class="btn btn-red btn-sm" onclick="excluirRes(${r.id})">Excluir</button>
         </div>
@@ -7156,6 +7186,7 @@ function renderReservas(){
     `;
     lista.appendChild(div);
   });
+  atualizarBadgePendentes();
 }
 
 function limparFiltrosRes(){
@@ -7170,6 +7201,40 @@ function limparFiltrosRes(){
 function mostrarTodasRes(){
   $('res-f-status').value='todas';
   renderReservas();
+}
+
+function verPendentesRes(){
+  if($('res-f-status')) $('res-f-status').value='pendente';
+  renderReservas();
+}
+
+// Atualiza o badge de pendentes no menu (só admin/gestor)
+function atualizarBadgePendentes(){
+  const b=$('badge-pendentes'); if(!b) return;
+  const nivel=window._userNivel||'morador';
+  const isAdm=(nivel==='admin'||nivel==='gestor');
+  const n=isAdm ? (G('reservas')||[]).filter(r=>r.status==='pendente').length : 0;
+  if(n>0){ b.textContent=n; b.style.display=''; }
+  else b.style.display='none';
+}
+
+function _mudarStatusReserva(id, novo, msg){
+  const all=G('reservas')||[];
+  const i=all.findIndex(x=>x.id===id);
+  if(i<0) return;
+  all[i].status=novo;
+  DB_CACHE['reservas']=all;
+  try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
+  _reservaUpsertSB(all[i]);
+  renderReservas(); verificarAlertas(); atualizarBadgePendentes();
+  toast(msg);
+}
+function aprovarReserva(id){
+  _mudarStatusReserva(id,'confirmada','✓ Reserva aprovada e confirmada.');
+}
+function recusarReserva(id){
+  if(!confirm('Recusar (cancelar) esta reserva?')) return;
+  _mudarStatusReserva(id,'cancelada','Reserva recusada.');
 }
 
 function fecharModal(modalId, saveFn, checkFieldId){
@@ -7226,6 +7291,23 @@ function atualizarHorariosEspaco(espaco, manterValor){
   else { sel.selectedIndex=0; }
   var wrap=$('mres-hr-custom-wrap');
   if(wrap) wrap.style.display = sel.value==='personalizado' ? '' : 'none';
+}
+
+// Popula o seletor de espaços. Morador: só espaços ativos. Admin: todos (desativados marcados).
+function mresPopularEspacos(incluirEspaco){
+  var sel=$('mres-espaco'); if(!sel) return;
+  var cfg=getCfgRes();
+  var nivel=window._userNivel||'morador';
+  var isAdm=(nivel==='admin'||nivel==='gestor');
+  var lista=(typeof ESPACOS_CFG!=='undefined')?ESPACOS_CFG:[].map.call(sel.options,function(o){return o.value;});
+  var html='';
+  lista.forEach(function(esp){
+    var ativo=(cfg['disp_'+_chvEsp(esp)+'_ativo']===false)?false:true;
+    if(!ativo && !isAdm && esp!==incluirEspaco) return; // morador não vê espaço desativado
+    var rotulo=esp+((!ativo&&isAdm)?' (desativado)':'');
+    html+='<option value="'+esp+'">'+rotulo+'</option>';
+  });
+  sel.innerHTML=html;
 }
 
 // Limita o calendário aos dias liberados do espaço (antecedência mín/máx). Admin fica livre.
@@ -7384,7 +7466,8 @@ function abrirModalRes(id){
   }
 
   $('mres-pessoas').value=r?.pessoas||'';
-  $('mres-espaco').value=r?.espaco||'Quadra de Areia';
+  mresPopularEspacos(r?.espaco||'');
+  $('mres-espaco').value=r?.espaco||$('mres-espaco').options[0]?.value||'Quadra de Areia';
   if($('mres-status')) $('mres-status').value=r?.status||'pendente';
   $('mres-data').value=r?.data||new Date().toISOString().slice(0,10);
 
@@ -8490,7 +8573,16 @@ const ESPACOS_CFG = [
 // Espaços com financeiro habilitado por padrão (não aparecem no painel de habilitação)
 const ESPACOS_FIN_PADRAO = ['Salão de Festa','Cozinha / Espaço Lazer','Campo de Futebol'];
 
+function cfgSetTab(t){
+  document.querySelectorAll('.cfg-grp-reservas').forEach(function(e){ e.style.display = t==='reservas' ? '' : 'none'; });
+  document.querySelectorAll('.cfg-grp-sistema').forEach(function(e){ e.style.display = t==='sistema' ? '' : 'none'; });
+  var r=$('cfgtab-reservas'), s=$('cfgtab-sistema');
+  if(r) r.classList.toggle('active', t==='reservas');
+  if(s) s.classList.toggle('active', t==='sistema');
+}
+
 function renderCfgReservas(){
+  if(!$('cfgtab-reservas')||!$('cfgtab-reservas').classList.contains('active')) cfgSetTab('reservas');
   const elTermos = $('cfg-reservas-espacos');
   const elFin    = $('cfg-fin-espacos');
   if(!elTermos && !elFin) return;
@@ -8590,12 +8682,17 @@ function renderCfgDisponibilidade(){
     var antmin=cfg['disp_'+chv+'_antmin']||'';
     var slots=(cfg['disp_'+chv+'_slots']||'').replace(/"/g,'&quot;');
     var confirmar=cfg['disp_'+chv+'_confirmar']?true:false;
+    var ativo=(cfg['disp_'+chv+'_ativo']===false)?false:true; // padrão: ativo
     var chips=_DIAS_SEM.map(function(d,i){
       var on=dias.indexOf(i)>=0;
       return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:3px 8px;border-radius:6px;border:1px solid '+(on?'rgba(232,119,34,0.4)':'var(--border)')+';background:'+(on?'rgba(232,119,34,0.12)':'var(--ink-2)')+';color:'+(on?'var(--gold)':'var(--text-3)')+'"><input type="checkbox" data-disp-dia="'+chv+'" value="'+i+'" '+(on?'checked':'')+' style="accent-color:var(--gold)">'+d+'</label>';
     }).join('');
-    return '<div style="background:var(--ink-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px">'+
-      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">'+esp+'</div>'+
+    return '<div data-disp-card="'+chv+'" style="background:var(--ink-2);border:1px solid '+(ativo?'var(--border)':'rgba(224,82,82,0.4)')+';border-radius:10px;padding:12px 14px;opacity:'+(ativo?'1':'0.6')+'">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'+
+      '<span style="font-size:13px;font-weight:700;color:var(--text)">'+esp+'</span>'+
+      (ativo?'':'<span style="font-size:10px;font-weight:700;color:var(--red);background:rgba(224,82,82,0.12);border:1px solid rgba(224,82,82,0.3);border-radius:6px;padding:2px 7px">DESATIVADO</span>')+
+      '<label style="margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text-2);cursor:pointer"><input type="checkbox" data-disp-ativo="'+chv+'" '+(ativo?'checked':'')+' onchange="renderCfgDisponibilidade&&this.closest(\'[data-disp-card]\')&&(this.closest(\'[data-disp-card]\').style.opacity=this.checked?1:0.6)" style="width:34px;height:18px;accent-color:var(--gold);cursor:pointer">Espaço ativo (aparece para o morador)</label>'+
+      '</div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">'+chips+
       '<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">Máx. horas/morador/dia:'+
       '<input type="number" min="0" step="0.5" data-disp-maxh="'+chv+'" value="'+maxh+'" placeholder="0" style="width:70px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px"></span>'+
@@ -8762,6 +8859,9 @@ function salvarCfgReservas(){
   });
   document.querySelectorAll('#cfg-disp-espacos [data-disp-confirmar]').forEach(function(cb){
     cfgRes['disp_'+cb.dataset.dispConfirmar+'_confirmar'] = cb.checked;
+  });
+  document.querySelectorAll('#cfg-disp-espacos [data-disp-ativo]').forEach(function(cb){
+    cfgRes['disp_'+cb.dataset.dispAtivo+'_ativo'] = cb.checked;
   });
   var _diasPorChv={};
   document.querySelectorAll('#cfg-disp-espacos [data-disp-dia]').forEach(function(cb){
@@ -10580,7 +10680,7 @@ async function excluirUsuario(docId){
 </script>
 
 <!-- ===== PWA: botão de instalar + service worker ===== -->
-<button id="pwa-install-btn" onclick="pwaInstalar()" style="display:none;position:fixed;left:18px;bottom:18px;z-index:9000;
+<button id="pwa-install-btn" onclick="pwaInstalar()" style="display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:9000;
   background:linear-gradient(135deg,#E87722,#B85E0F);color:#fff;border:none;border-radius:30px;
   padding:12px 20px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 10px 30px rgba(232,119,34,0.45);
   display:none;align-items:center;gap:9px;font-family:'Segoe UI',system-ui,sans-serif">
