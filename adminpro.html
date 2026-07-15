@@ -8568,11 +8568,14 @@ async function enviarWhatsApp(numero, mensagem){
 /* ── Enviar E-mail via Supabase Edge Function (Resend) ──
    A Edge Function "notificar" roda no servidor do Supabase e usa o Resend.
    A chave do Resend fica como SECRET no Supabase — nunca no site. */
+// Slug da Edge Function no Supabase (ver URL em Edge Functions).
+// Se você recriar a função com o nome "notificar", troque aqui para 'notificar'.
+const FN_NOTIFICAR = 'dynamic-handler';
 async function enviarEmail(destino, assunto, mensagem){
   if(!destino) return {ok:false, erro:'E-mail destino não informado'};
   if(!SB || !SB.functions) return {ok:false, erro:'Supabase indisponível'};
   try{
-    const { data, error } = await SB.functions.invoke('notificar', {
+    const { data, error } = await SB.functions.invoke(FN_NOTIFICAR, {
       body: { to: destino, subject: assunto, message: mensagem }
     });
     if(error) return {ok:false, erro: (error.message||JSON.stringify(error))};
