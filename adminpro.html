@@ -3014,22 +3014,16 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
         <div class="cfg-card cfg-grp-sistema card" style="margin-bottom:18px;display:none">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon">✉️</div>EmailJS — E-mail Automático</div>
-            <span id="cfg-ejs-status" style="font-size:12px;color:var(--text-3)">Não configurado</span>
+            <div class="card-title"><div class="card-icon">✉️</div>E-mail Automático (Supabase + Resend)</div>
+            <span id="cfg-ejs-status" style="font-size:12px;color:var(--text-3)">Via Edge Function</span>
           </div>
           <div style="background:rgba(91,156,246,0.06);border:1px solid rgba(91,156,246,0.15);border-radius:10px;padding:16px 18px;margin-bottom:16px;font-size:13px;color:var(--text-2);line-height:1.7">
-            <strong style="color:var(--blue)">Como configurar o EmailJS:</strong><br>
-            1. Acesse <a href="https://www.emailjs.com" target="_blank" style="color:var(--blue)">emailjs.com</a> e crie uma conta gratuita (200 e-mails/mês).<br>
-            2. Em <strong>Email Services</strong> → conecte seu Gmail → copie o <strong>Service ID</strong>.<br>
-            3. Em <strong>Email Templates</strong> → crie um template → copie o <strong>Template ID</strong>.<br>
-            4. Em <strong>Account</strong> → copie a <strong>Public Key</strong>.<br>
-            <br>
-            <strong>Variáveis do template:</strong> <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">{{to_email}}</code> <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">{{subject}}</code> <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">{{message}}</code>
-          </div>
-          <div class="form-grid">
-            <div class="fg"><label>Service ID</label><input type="text" id="cfg-ejs-service" placeholder="Ex: service_abc123"></div>
-            <div class="fg"><label>Template ID</label><input type="text" id="cfg-ejs-template" placeholder="Ex: template_xyz789"></div>
-            <div class="fg full"><label>Public Key</label><input type="text" id="cfg-ejs-pubkey" placeholder="Ex: user_ABCDEFGHIJKLMN"></div>
+            <strong style="color:var(--blue)">O envio de e-mail é feito pelo seu Supabase</strong> (Edge Function <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">notificar</code>) usando o <a href="https://resend.com" target="_blank" style="color:var(--blue)">Resend</a>. A chave fica <strong>segura no servidor</strong> — nada de credencial no site.<br><br>
+            <strong>Passo a passo (uma vez só):</strong><br>
+            1. Crie conta no <a href="https://resend.com" target="_blank" style="color:var(--blue)">resend.com</a> e copie a <strong>API Key</strong>.<br>
+            2. No Supabase → <strong>Edge Functions</strong> → publique a função <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">notificar</code> (código no arquivo <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">supabase/functions/notificar</code>).<br>
+            3. No Supabase → <strong>Project Settings → Edge Functions → Secrets</strong>, adicione <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">RESEND_API_KEY</code> e <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">EMAIL_FROM</code>.<br>
+            4. Teste abaixo. ✅
           </div>
           <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn btn-ghost btn-sm" onclick="testarEmailJS()">🧪 Testar E-mail</button>
@@ -3076,6 +3070,27 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           </div>
           <div style="font-size:12px;color:var(--text-3);margin-bottom:12px">Texto mostrado ao morador quando a reserva precisa de validação do administrador (espaços com "Exigir confirmação" marcado). Deixe em branco para usar o texto padrão.</div>
           <textarea id="cfg-msg-validacao" rows="3" placeholder="Sua reserva foi registrada e está aguardando validação da administração. Você será avisado assim que for aprovada." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;resize:vertical"></textarea>
+        </div>
+
+        <!-- ▸ Notificações automáticas de reservas (por e-mail) -->
+        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
+          <div class="card-head">
+            <div class="card-title"><div class="card-icon" style="background:rgba(42,157,111,0.14);color:var(--green)"><i class="fa-regular fa-envelope"></i></div>Notificações automáticas por e-mail</div>
+            <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">O envio usa o e-mail configurado em <strong>Integrações & Sistema</strong> (Supabase + Resend).</div>
+          <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;cursor:pointer;font-size:13px;color:var(--text-2)">
+            <input type="checkbox" id="cfg-notif-admin" style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">
+            <span>Avisar o <b>administrador</b> quando chegar uma nova reserva pendente.</span>
+          </label>
+          <div class="fg" style="margin:0 0 16px 28px;max-width:420px"><label>E-mail(s) do administrador para aviso</label>
+            <input type="text" id="cfg-notif-admin-email" placeholder="admin@condominio.com, sindico@condominio.com" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none">
+            <span style="font-size:11px;color:var(--text-3)">Separe vários e-mails com vírgula.</span>
+          </div>
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:var(--text-2)">
+            <input type="checkbox" id="cfg-notif-morador" style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">
+            <span>Avisar o <b>morador</b> quando a reserva for <b>aprovada</b> ou <b>recusada</b> (usa o e-mail do cadastro dele).</span>
+          </label>
         </div>
 
         <!-- ▸ Bloqueios (manutenção, feriados, etc.) -->
@@ -3973,7 +3988,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>window.emailjs={init:function(){},send:function(){return Promise.reject(new Error('emailjs desativado'));}};</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ══════════════════════════
@@ -7258,6 +7273,20 @@ function _mudarStatusReserva(id, novo, msg){
   _reservaUpsertSB(all[i]);
   renderReservas(); verificarAlertas(); atualizarBadgePendentes();
   toast(msg);
+  // Notifica o morador (se ativado e houver e-mail dele)
+  const _cfgN=getCfgRes();
+  const _dest=(all[i].criadoPor||'').trim();
+  if(_cfgN.notif_morador_ativo && _dest && (novo==='confirmada'||novo==='cancelada')){
+    const _dt = all[i].data ? new Date(all[i].data+'T00:00').toLocaleDateString('pt-BR') : all[i].data;
+    const _aprovada = novo==='confirmada';
+    const _assunto = _aprovada ? 'Reserva aprovada — '+all[i].espaco : 'Reserva não aprovada — '+all[i].espaco;
+    const _corpo = (_aprovada
+        ? 'Boa notícia! Sua reserva foi APROVADA e está confirmada.'
+        : 'Informamos que sua reserva NÃO foi aprovada pela administração.')+
+      '\n\nEspaço: '+all[i].espaco+'\nData: '+_dt+'\nHorário: '+all[i].horario+'\nUnidade: '+all[i].lote;
+    enviarEmail(_dest, _assunto, _corpo)
+      .then(function(r){ addLog((r.ok?'✓':'✗')+' Aviso ao morador ('+(_aprovada?'aprovada':'recusada')+')'+(r.ok?'':': '+r.erro)); });
+  }
 }
 function aprovarReserva(id){
   _mudarStatusReserva(id,'confirmada','✓ Reserva aprovada e confirmada.');
@@ -7808,6 +7837,15 @@ function salvarRes(){
       'Sua reserva foi registrada e está aguardando validação da administração. Você será avisado assim que for aprovada.';
     if(typeof mostrarAvisoReserva==='function') mostrarAvisoReserva(_msg);
     else { toast('✓ Reserva registrada — aguardando validação.'); alert(_msg); }
+    // Notifica o administrador (se ativado)
+    if(_cfgMsg.notif_admin_ativo && (_cfgMsg.notif_admin_email||'').trim()){
+      const _dt = obj.data ? new Date(obj.data+'T00:00').toLocaleDateString('pt-BR') : obj.data;
+      const _corpo = 'Nova reserva PENDENTE aguardando sua aprovação:\n\n'+
+        'Espaço: '+obj.espaco+'\nData: '+_dt+'\nHorário: '+obj.horario+'\n'+
+        'Morador: '+obj.nome+'\nUnidade: '+obj.lote+'\n\nAcesse o portal para aprovar ou recusar.';
+      enviarEmail(_cfgMsg.notif_admin_email.trim(), 'Nova reserva pendente — '+obj.espaco, _corpo)
+        .then(function(r){ addLog((r.ok?'✓':'✗')+' Aviso ao admin de nova reserva pendente'+(r.ok?'':': '+r.erro)); });
+    }
   } else {
     toast('✓ Reserva salva com sucesso.');
   }
@@ -8527,23 +8565,21 @@ async function enviarWhatsApp(numero, mensagem){
   }
 }
 
-/* ── Enviar E-mail via EmailJS ── */
+/* ── Enviar E-mail via Supabase Edge Function (Resend) ──
+   A Edge Function "notificar" roda no servidor do Supabase e usa o Resend.
+   A chave do Resend fica como SECRET no Supabase — nunca no site. */
 async function enviarEmail(destino, assunto, mensagem){
   if(!destino) return {ok:false, erro:'E-mail destino não informado'};
-  // Usa as credenciais hardcoded diretamente — sem depender de localStorage
-  var EJS_SERVICE  = 'service_jfvgxm9';
-  var EJS_TEMPLATE = 'template_3scx0ho';
-  var EJS_PUBKEY   = 'sRXYjZj8VuTVZn9Hh';
+  if(!SB || !SB.functions) return {ok:false, erro:'Supabase indisponível'};
   try{
-    emailjs.init(EJS_PUBKEY);
-    const resp = await emailjs.send(EJS_SERVICE, EJS_TEMPLATE, {
-      to_email: destino,
-      subject:  assunto,
-      message:  mensagem,
+    const { data, error } = await SB.functions.invoke('notificar', {
+      body: { to: destino, subject: assunto, message: mensagem }
     });
+    if(error) return {ok:false, erro: (error.message||JSON.stringify(error))};
+    if(data && data.error) return {ok:false, erro: data.error};
     return {ok:true};
   } catch(e){
-    return {ok:false, erro: e?.text || e?.message || JSON.stringify(e)};
+    return {ok:false, erro: e?.message || JSON.stringify(e)};
   }
 }
 
@@ -8608,15 +8644,15 @@ async function testarEmailJS(){
   const cfg = getCfg();
   localStorage.setItem('apvc_cfg', JSON.stringify(cfg));
   try{ emailjs.init(cfg.ejsPubkey); } catch(e){}
-  const r=await enviarEmail(dest,'🧪 Teste AdminPro — EmailJS','Este é um e-mail de teste do Portal de Gestão. Se recebeu, a integração está funcionando corretamente! — AdminPro');
+  const r=await enviarEmail(dest,'Teste AdminPro — E-mail (Supabase + Resend)','Este e um e-mail de teste do Portal de Gestao. Se recebeu, a integracao esta funcionando corretamente! — AdminPro');
   if(r.ok){
     el.textContent='✓ E-mail enviado! Verifique a caixa de entrada.';el.style.color='var(--blue)';
-    addLog('✓ EmailJS — E-mail de teste enviado para '+dest);
+    addLog('✓ E-mail de teste enviado para '+dest);
   } else {
     el.textContent='✗ Erro: '+r.erro;el.style.color='var(--red)';
-    addLog('✗ EmailJS — Erro no teste: '+r.erro);
-    if((r.erro||'').includes('configurado')){
-      el.textContent='✗ Clique em Salvar Configurações e tente novamente.';
+    addLog('✗ E-mail — Erro no teste: '+r.erro);
+    if((r.erro||'').toLowerCase().includes('function')){
+      el.textContent='✗ Publique a Edge Function "notificar" e configure o RESEND_API_KEY no Supabase.';
     }
   }
 }
@@ -8738,6 +8774,10 @@ function renderCfgReservas(){
 
   // Mensagem pós-reserva
   if($('cfg-msg-validacao')) $('cfg-msg-validacao').value = cfgRes.msg_validacao||'';
+  // Notificações automáticas
+  if($('cfg-notif-admin'))       $('cfg-notif-admin').checked       = !!cfgRes.notif_admin_ativo;
+  if($('cfg-notif-admin-email')) $('cfg-notif-admin-email').value   = cfgRes.notif_admin_email||'';
+  if($('cfg-notif-morador'))     $('cfg-notif-morador').checked     = !!cfgRes.notif_morador_ativo;
 
   // Termos por espaço
   if(elTermos){
@@ -8971,6 +9011,10 @@ function salvarCfgReservas(){
 
   // Mensagem pós-reserva (validação)
   if($('cfg-msg-validacao')) cfgRes.msg_validacao = $('cfg-msg-validacao').value.trim();
+  // Notificações automáticas
+  if($('cfg-notif-admin'))       cfgRes.notif_admin_ativo   = $('cfg-notif-admin').checked;
+  if($('cfg-notif-admin-email')) cfgRes.notif_admin_email   = $('cfg-notif-admin-email').value.trim();
+  if($('cfg-notif-morador'))     cfgRes.notif_morador_ativo = $('cfg-notif-morador').checked;
 
   // Salva termos
   if(elTermos){
