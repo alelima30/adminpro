@@ -1289,8 +1289,8 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   /* ── Section header empilhado ── */
   .ph{ flex-direction:column; gap:12px; margin-bottom:16px }
   .ph-title{ font-size:22px }
-  .ph-actions{ width:100%; flex-wrap:wrap; gap:8px }
-  .ph-actions .btn{ flex:1; justify-content:center; min-width:120px }
+  .ph-actions{ width:100%; flex-direction:column; flex-wrap:wrap; gap:8px }
+  .ph-actions .btn{ flex:1 1 100%; width:100%; justify-content:center; white-space:normal }
   .ph-actions .month-sel{ width:100% }
   .ph-actions .month-sel select{ width:100% }
 
@@ -2977,7 +2977,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
       <div class="panel" id="panel-configuracoes">
         <div class="ph">
-          <div><div class="ph-title">⚙️ Configurações</div><div class="ph-sub">Integração com WhatsApp (Z-API) e E-mail (EmailJS)</div></div>
+          <div><div class="ph-title">⚙️ Configurações</div><div class="ph-sub">Reservas, WhatsApp (Z-API) e E-mail (Supabase + Resend)</div></div>
           <div class="ph-actions">
             <button class="btn btn-gold" onclick="salvarConfigs()">💾 Salvar Configurações</button>
             <button id="btn-enviar-manual" class="btn btn-ghost" onclick="enviarAlertaManual()">📤 Enviar alertas pendentes agora</button>
