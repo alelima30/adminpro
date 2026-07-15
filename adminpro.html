@@ -1227,10 +1227,29 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 }
 .ticker-sep{color:var(--text-3);font-size:18px;opacity:0.3}
 
+/* ══ Config: Disponibilidade por Espaço ══ */
+.cfg-disp-card{ background:var(--ink-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px }
+.cfg-disp-head{ display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap }
+.cfg-disp-ativo{ margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text-2);cursor:pointer }
+.cfg-disp-dias{ display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px }
+.cfg-disp-flds{ display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center }
+.cfg-disp-fld{ display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2) }
+.cfg-disp-fld input{ padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;outline:none }
+.cfg-disp-fld.num input{ width:76px }
+.cfg-disp-fld.slots{ flex:1;min-width:260px }
+.cfg-disp-fld.slots input{ flex:1;min-width:170px }
+.cfg-disp-check{ display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--text-2);cursor:pointer;margin-top:12px;line-height:1.45 }
+
 /* ══════════════════════════════
    MOBILE RESPONSIVE
 ══════════════════════════════ */
 @media(max-width:768px){
+  .cfg-disp-ativo{ margin-left:0;width:100% }
+  .cfg-disp-flds{ flex-direction:column;align-items:stretch;gap:10px }
+  .cfg-disp-fld{ width:100%;justify-content:space-between }
+  .cfg-disp-fld.num input{ width:90px }
+  .cfg-disp-fld.slots{ flex-direction:column;align-items:stretch;gap:5px }
+  .cfg-disp-fld.slots input{ width:100% }
   :root{ --sidebar:0px }
 
   /* ── Sidebar vira drawer lateral ── */
@@ -6166,8 +6185,10 @@ function initApp(){
   const nivel = window._userNivel || 'morador';
   const permitidos = ACESSO_PAINEIS[nivel] || ACESSO_PAINEIS.morador;
   const _mods = modulosAtivos();
-  let dest = 'inicio';
+  // Landing padrão: admin/gestor -> Dashboard; morador -> Início. Última tela tem prioridade.
+  let dest = (nivel==='admin'||nivel==='gestor') ? 'dashboard' : 'inicio';
   try{ const ult = localStorage.getItem('apvc_last_panel'); if(ult) dest = ult; }catch(_){}
+  if(permitidos.indexOf(dest) < 0) dest = (nivel==='admin'||nivel==='gestor') ? 'dashboard' : 'inicio';
   if(permitidos.indexOf(dest) < 0) dest = 'inicio';
   const _modD = painelModulo(dest);
   if(_modD && _mods.indexOf(_modD) < 0) dest = 'inicio';
@@ -9076,27 +9097,21 @@ function renderCfgDisponibilidade(){
       var on=dias.indexOf(i)>=0;
       return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:3px 8px;border-radius:6px;border:1px solid '+(on?'rgba(232,119,34,0.4)':'var(--border)')+';background:'+(on?'rgba(232,119,34,0.12)':'var(--ink-2)')+';color:'+(on?'var(--gold)':'var(--text-3)')+'"><input type="checkbox" data-disp-dia="'+chv+'" value="'+i+'" '+(on?'checked':'')+' style="accent-color:var(--gold)">'+d+'</label>';
     }).join('');
-    return '<div data-disp-card="'+chv+'" style="background:var(--ink-2);border:1px solid '+(ativo?'var(--border)':'rgba(224,82,82,0.4)')+';border-radius:10px;padding:12px 14px;opacity:'+(ativo?'1':'0.6')+'">'+
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'+
+    return '<div data-disp-card="'+chv+'" class="cfg-disp-card" style="border-color:'+(ativo?'var(--border)':'rgba(224,82,82,0.4)')+';opacity:'+(ativo?'1':'0.6')+'">'+
+      '<div class="cfg-disp-head">'+
       '<span style="font-size:13px;font-weight:700;color:var(--text)">'+esp+'</span>'+
       (ativo?'':'<span style="font-size:10px;font-weight:700;color:var(--red);background:rgba(224,82,82,0.12);border:1px solid rgba(224,82,82,0.3);border-radius:6px;padding:2px 7px">DESATIVADO</span>')+
-      '<label style="margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text-2);cursor:pointer"><input type="checkbox" data-disp-ativo="'+chv+'" '+(ativo?'checked':'')+' onchange="renderCfgDisponibilidade&&this.closest(\'[data-disp-card]\')&&(this.closest(\'[data-disp-card]\').style.opacity=this.checked?1:0.6)" style="width:34px;height:18px;accent-color:var(--gold);cursor:pointer">Espaço ativo (aparece para o morador)</label>'+
+      '<label class="cfg-disp-ativo"><input type="checkbox" data-disp-ativo="'+chv+'" '+(ativo?'checked':'')+' onchange="renderCfgDisponibilidade&&this.closest(\'[data-disp-card]\')&&(this.closest(\'[data-disp-card]\').style.opacity=this.checked?1:0.6)" style="width:34px;height:18px;accent-color:var(--gold);cursor:pointer"><span>Espaço ativo (aparece para o morador)</span></label>'+
       '</div>'+
-      '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">'+chips+
-      '<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">Máx. horas/morador/dia:'+
-      '<input type="number" min="0" step="0.5" data-disp-maxh="'+chv+'" value="'+maxh+'" placeholder="0" style="width:70px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px"></span>'+
-      '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">Antecedência máx. (dias):'+
-      '<input type="number" min="0" step="1" data-disp-antec="'+chv+'" value="'+antec+'" placeholder="0" title="Morador só consegue reservar até N dias à frente (0 = sem limite)" style="width:70px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px"></span>'+
+      '<div class="cfg-disp-dias">'+chips+'</div>'+
+      '<div class="cfg-disp-flds">'+
+      '<label class="cfg-disp-fld num"><span>Máx. horas/morador/dia:</span><input type="number" min="0" step="0.5" data-disp-maxh="'+chv+'" value="'+maxh+'" placeholder="0"></label>'+
+      '<label class="cfg-disp-fld num"><span>Antecedência máx. (dias):</span><input type="number" min="0" step="1" data-disp-antec="'+chv+'" value="'+antec+'" placeholder="0" title="Morador só consegue reservar até N dias à frente (0 = sem limite)"></label>'+
+      '<label class="cfg-disp-fld num"><span>Antecedência mín. (dias):</span><input type="number" min="0" step="1" data-disp-antmin="'+chv+'" value="'+antmin+'" placeholder="0" title="Reserva só a partir de N dias à frente (ex: 7 = salão precisa de preparo). 0 = sem exigência"></label>'+
+      '<label class="cfg-disp-fld slots"><span>Horários permitidos:</span><input type="text" data-disp-slots="'+chv+'" value="'+slots+'" placeholder="Ex: 07:00–08:00, 08:00–09:00 (vazio = padrão)" title="Somente estes horários aparecem para o morador. Separe por vírgula."></label>'+
       '</div>'+
-      '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:8px">'+
-      '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)">Antecedência mín. (dias):'+
-      '<input type="number" min="0" step="1" data-disp-antmin="'+chv+'" value="'+antmin+'" placeholder="0" title="Reserva só a partir de N dias à frente (ex: 7 = salão precisa de preparo). 0 = sem exigência" style="width:70px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px"></span>'+
-      '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);flex:1;min-width:260px">Horários permitidos:'+
-      '<input type="text" data-disp-slots="'+chv+'" value="'+slots+'" placeholder="Ex: 07:00–08:00, 08:00–09:00 (vazio = padrão)" title="Somente estes horários aparecem para o morador. Separe por vírgula." style="flex:1;min-width:180px;padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px"></span>'+
-      '</div>'+
-      '<div style="margin-top:10px">'+
-      '<label style="display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-2);cursor:pointer"><input type="checkbox" data-disp-confirmar="'+chv+'" '+(confirmar?'checked':'')+' style="width:16px;height:16px;accent-color:var(--gold)" title="Se marcado, a reserva do morador fica PENDENTE até o administrador confirmar. Se desmarcado, a reserva já fica CONFIRMADA automaticamente.">Exigir confirmação do administrador (reserva fica <b>pendente</b> até aprovar)</label>'+
-      '</div></div>';
+      '<label class="cfg-disp-check"><input type="checkbox" data-disp-confirmar="'+chv+'" '+(confirmar?'checked':'')+' style="width:16px;height:16px;accent-color:var(--gold);flex-shrink:0" title="Se marcado, a reserva do morador fica PENDENTE até o administrador confirmar. Se desmarcado, a reserva já fica CONFIRMADA automaticamente."><span>Exigir confirmação do administrador <span style="color:var(--text-3)">(reserva fica <b style="color:var(--amber)">pendente</b> até aprovar)</span></span></label>'+
+      '</div>';
   }).join('');
 }
 
