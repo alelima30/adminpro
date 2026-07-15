@@ -2750,6 +2750,34 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         </div>
       </div>
 
+      <!-- ████ RELATÓRIOS DE RESERVAS ████ -->
+      <div class="panel" id="panel-relatorios">
+        <div class="ph">
+          <div><div class="ph-title"><i class="fa-solid fa-file-pdf" style="color:var(--gold);margin-right:8px"></i>Relatórios de Reservas</div><div class="ph-sub">Gere relatórios e comprovantes em PDF (imprimir ou salvar)</div></div>
+        </div>
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-filter"></i></div>Filtros do Relatório</div></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end">
+            <div class="fg" style="margin:0"><label>Espaço</label>
+              <select id="rel-espaco" style="padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%"><option value="">Todos os espaços</option></select></div>
+            <div class="fg" style="margin:0"><label>Status</label>
+              <select id="rel-status" style="padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%">
+                <option value="">Todos</option><option value="pendente">Pendente</option><option value="confirmada">Confirmada</option><option value="realizada">Realizada</option><option value="concluida">Concluída</option><option value="cancelada">Cancelada</option>
+              </select></div>
+            <div class="fg" style="margin:0"><label>De (data)</label><input type="date" id="rel-ini" style="padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%"></div>
+            <div class="fg" style="margin:0"><label>Até (data)</label><input type="date" id="rel-fim" style="padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%"></div>
+            <div class="fg" style="margin:0"><button class="btn btn-gold" style="width:100%;justify-content:center" onclick="renderRelatorios()"><i class="fa-solid fa-magnifying-glass"></i> Filtrar</button></div>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-ghost" onclick="imprimirRelatorioReservas()"><i class="fa-solid fa-print"></i> Imprimir / Salvar PDF</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(91,156,246,0.14);color:var(--blue)"><i class="fa-solid fa-table-list"></i></div>Resultado</div><span id="rel-resumo" style="font-size:12px;color:var(--text-3)"></span></div>
+          <div id="rel-tabela" style="overflow-x:auto"></div>
+        </div>
+      </div>
+
       <!-- ████ P8: REGULAMENTOS ████ -->
       <div class="panel" id="panel-regulamento">
         <div class="ph">
@@ -4755,10 +4783,10 @@ function closeSidebar(){
 }
 
 /* ══ NAVIGATION ══ */
-const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Comunicados',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios'};
+const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Comunicados',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas'};
 const ACESSO_PAINEIS = {
-  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','comunicados','eventos','regulamento','usuarios','configuracoes','admfotos','procedimentos'],
-  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','comunicados','eventos','regulamento','procedimentos'],
+  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','relatorios','comunicados','eventos','regulamento','usuarios','configuracoes','admfotos','procedimentos'],
+  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','relatorios','comunicados','eventos','regulamento','procedimentos'],
   morador: ['inicio','reservas','comunicados','eventos','regulamento','procedimentos']
 };
 /* ══════════════════════════
@@ -5888,6 +5916,7 @@ const SB_GRUPOS = {
     {id:'comunicados',   label:'Comunicados',              icon:'fa-bullhorn',             acesso:['admin','gestor','morador']},
     {id:'eventos',       label:'Eventos',                  icon:'fa-calendar-day',         acesso:['admin','gestor','morador']},
     {id:'reservas',      label:'Reservas',                 icon:'fa-calendar-check',       acesso:['admin','gestor','morador']},
+    {id:'relatorios',    label:'Relatórios de Reservas',   icon:'fa-file-pdf',             acesso:['admin','gestor']},
     {id:'regulamento',   label:'Regulamentos',             icon:'fa-scroll',               acesso:['admin','gestor','morador']},
     {id:'procedimentos', label:'Procedimentos',            icon:'fa-clipboard-list',       acesso:['admin','gestor','morador']},
   ]},
@@ -6009,7 +6038,7 @@ function showPanel(id,el){
   try{ localStorage.setItem('apvc_last_panel', id); }catch(_){}
   sbFecharFlyout();
   closeSidebar();
-  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},regulamento:renderReg,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
+  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},relatorios:renderRelatorios,regulamento:renderReg,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
 }
 
 function setTab(t){
@@ -7180,6 +7209,7 @@ function renderReservas(){
           <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="aprovarReserva(${r.id})"><i class="fa-solid fa-check"></i> Aprovar</button>
           <button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="recusarReserva(${r.id})"><i class="fa-solid fa-xmark"></i> Recusar</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="abrirModalRes(${r.id})">Editar</button>
+          ${!isMorador?`<button class="btn btn-ghost btn-sm" onclick="imprimirComprovante(${r.id})"><i class="fa-solid fa-receipt"></i> Comprovante</button>`:''}
           <button class="btn btn-red btn-sm" onclick="excluirRes(${r.id})">Excluir</button>
         </div>
       </div>
@@ -7235,6 +7265,124 @@ function aprovarReserva(id){
 function recusarReserva(id){
   if(!confirm('Recusar (cancelar) esta reserva?')) return;
   _mudarStatusReserva(id,'cancelada','Reserva recusada.');
+}
+
+/* ══════════════════════════
+   RELATÓRIOS DE RESERVAS (PDF)
+══════════════════════════ */
+const _REL_STATUS_LABEL={pendente:'Pendente',confirmada:'Confirmada',cancelada:'Cancelada',realizada:'Realizada',concluida:'Concluída'};
+function _relFmtData(d){ return d?new Date(d+'T00:00').toLocaleDateString('pt-BR'):'—'; }
+function _relFmtMoeda(v){ v=parseFloat(v)||0; return v?('R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2})):'—'; }
+
+function _relFiltradas(){
+  var esp=$('rel-espaco')?$('rel-espaco').value:'';
+  var st=$('rel-status')?$('rel-status').value:'';
+  var ini=$('rel-ini')?$('rel-ini').value:'';
+  var fim=$('rel-fim')?$('rel-fim').value:'';
+  var lista=(G('reservas')||[]).filter(function(r){
+    if(esp && r.espaco!==esp) return false;
+    if(st && r.status!==st) return false;
+    if(ini && (r.data||'')<ini) return false;
+    if(fim && (r.data||'')>fim) return false;
+    return true;
+  });
+  lista.sort(function(a,b){ return (a.data||'').localeCompare(b.data||'')|| (a.horario||'').localeCompare(b.horario||''); });
+  return lista;
+}
+
+function renderRelatorios(){
+  // popula seletor de espaços uma vez
+  var sel=$('rel-espaco');
+  if(sel && !sel._filled && typeof ESPACOS_CFG!=='undefined'){
+    sel.innerHTML='<option value="">Todos os espaços</option>'+ESPACOS_CFG.map(function(e){return '<option>'+e+'</option>';}).join('');
+    sel._filled=true;
+  }
+  var lista=_relFiltradas();
+  var totalTaxa=lista.reduce(function(s,r){return s+(parseFloat(r.taxa)||0);},0);
+  var totalPago=lista.reduce(function(s,r){return s+(r.pgto==='pago'?(parseFloat(r.taxa)||0):0);},0);
+  if($('rel-resumo')) $('rel-resumo').textContent=lista.length+' reserva(s) · Taxas: '+_relFmtMoeda(totalTaxa)+' · Pagas: '+_relFmtMoeda(totalPago);
+  var el=$('rel-tabela'); if(!el) return;
+  if(!lista.length){ el.innerHTML='<div style="padding:28px;text-align:center;color:var(--text-2)">Nenhuma reserva no filtro selecionado.</div>'; return; }
+  el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:760px">'+
+    '<thead><tr style="text-align:left;color:var(--text-3);text-transform:uppercase;font-size:11px;letter-spacing:0.5px">'+
+    '<th style="padding:8px">Data</th><th style="padding:8px">Horário</th><th style="padding:8px">Espaço</th><th style="padding:8px">Morador</th><th style="padding:8px">Unid.</th><th style="padding:8px">Status</th><th style="padding:8px">Taxa</th><th style="padding:8px">Pgto</th><th style="padding:8px"></th></tr></thead><tbody>'+
+    lista.map(function(r){
+      return '<tr style="border-top:1px solid var(--border)">'+
+        '<td style="padding:8px;color:var(--gold);font-weight:600">'+_relFmtData(r.data)+'</td>'+
+        '<td style="padding:8px">'+(r.horario||'—')+'</td>'+
+        '<td style="padding:8px">'+(r.espaco||'—')+'</td>'+
+        '<td style="padding:8px">'+(r.nome||'—')+'</td>'+
+        '<td style="padding:8px">'+(r.lote||'—')+'</td>'+
+        '<td style="padding:8px">'+(_REL_STATUS_LABEL[r.status]||r.status||'—')+'</td>'+
+        '<td style="padding:8px">'+_relFmtMoeda(r.taxa)+'</td>'+
+        '<td style="padding:8px">'+(r.pgto==='pago'?'Pago':r.pgto==='isento'?'Isento':'Pendente')+'</td>'+
+        '<td style="padding:8px;text-align:right"><button class="btn btn-ghost btn-sm" onclick="imprimirComprovante('+r.id+')" title="Comprovante"><i class="fa-solid fa-receipt"></i></button></td>'+
+        '</tr>';
+    }).join('')+'</tbody></table>';
+}
+
+function _abrirImpressao(titulo, corpoHtml){
+  var cond=((typeof getSaasCondominios==='function'?getSaasCondominios():{})||{})[_condAtual]||{};
+  var logo=cond.logo||'';
+  var nomeCond=cond.nome||'Condomínio';
+  var w=window.open('','_blank','width=920,height=720');
+  if(!w){ toast('⚠️ Permita pop-ups (janelas) para gerar o PDF.'); return; }
+  var css='*{box-sizing:border-box;font-family:Segoe UI,Arial,sans-serif}body{margin:32px;color:#1a2233}'+
+    '.cab{display:flex;align-items:center;gap:16px;border-bottom:3px solid #E87722;padding-bottom:14px;margin-bottom:20px}'+
+    '.cab img{width:64px;height:64px;object-fit:contain;border-radius:8px}'+
+    '.cab h1{font-size:20px;margin:0;color:#132040}.cab .sub{font-size:13px;color:#666;margin-top:2px}'+
+    'table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}'+
+    'th{background:#132040;color:#fff;text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase}'+
+    'td{padding:7px 10px;border-bottom:1px solid #e2e6ee}'+
+    'tr:nth-child(even) td{background:#f7f8fb}'+
+    '.tot{margin-top:16px;font-size:13px;font-weight:700;color:#132040}'+
+    '.rod{margin-top:28px;padding-top:12px;border-top:1px solid #ddd;font-size:11px;color:#999;text-align:center}'+
+    '.rc{max-width:520px;border:1px solid #e2e6ee;border-radius:12px;padding:22px 26px}'+
+    '.rc .lin{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #e2e6ee;font-size:13px}'+
+    '.rc .lin b{color:#132040}.rc .tit{font-size:16px;font-weight:800;color:#E87722;margin-bottom:6px}'+
+    '.assin{margin-top:60px;display:flex;justify-content:space-around;text-align:center;font-size:12px;color:#555}'+
+    '.assin .l{border-top:1px solid #333;width:200px;padding-top:6px}'+
+    '@media print{body{margin:14mm}button{display:none}}';
+  var cab='<div class="cab">'+(logo?'<img src="'+logo+'">':'')+'<div><h1>'+nomeCond+'</h1><div class="sub">'+titulo+'</div></div></div>';
+  var rod='<div class="rod">Gerado em '+new Date().toLocaleString('pt-BR')+' · AdminPro — Gestão de Reservas</div>';
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+titulo+'</title><style>'+css+'</style></head><body>'+cab+corpoHtml+rod+'<scr'+'ipt>window.onload=function(){setTimeout(function(){window.print();},350);};</scr'+'ipt></body></html>');
+  w.document.close();
+}
+
+function imprimirRelatorioReservas(){
+  var lista=_relFiltradas();
+  if(!lista.length){ toast('Nenhuma reserva no filtro para imprimir.'); return; }
+  var totalTaxa=lista.reduce(function(s,r){return s+(parseFloat(r.taxa)||0);},0);
+  var totalPago=lista.reduce(function(s,r){return s+(r.pgto==='pago'?(parseFloat(r.taxa)||0):0);},0);
+  var linhas=lista.map(function(r){
+    return '<tr><td>'+_relFmtData(r.data)+'</td><td>'+(r.horario||'—')+'</td><td>'+(r.espaco||'—')+'</td><td>'+(r.nome||'—')+'</td><td>'+(r.lote||'—')+'</td><td>'+(_REL_STATUS_LABEL[r.status]||r.status||'—')+'</td><td>'+_relFmtMoeda(r.taxa)+'</td><td>'+(r.pgto==='pago'?'Pago':r.pgto==='isento'?'Isento':'Pendente')+'</td></tr>';
+  }).join('');
+  var corpo='<table><thead><tr><th>Data</th><th>Horário</th><th>Espaço</th><th>Morador</th><th>Unid.</th><th>Status</th><th>Taxa</th><th>Pgto</th></tr></thead><tbody>'+linhas+'</tbody></table>'+
+    '<div class="tot">Total de reservas: '+lista.length+' &nbsp;·&nbsp; Taxas: '+_relFmtMoeda(totalTaxa)+' &nbsp;·&nbsp; Pagas: '+_relFmtMoeda(totalPago)+'</div>';
+  _abrirImpressao('Relatório de Reservas', corpo);
+}
+
+function imprimirComprovante(id){
+  var r=(G('reservas')||[]).find(function(x){return x.id===id;});
+  if(!r){ toast('Reserva não encontrada.'); return; }
+  function lin(rot,val){ return '<div class="lin"><span>'+rot+'</span><b>'+(val||'—')+'</b></div>'; }
+  var corpo='<div class="rc">'+
+    '<div class="tit">Comprovante de Reserva</div>'+
+    '<div style="font-size:12px;color:#888;margin-bottom:12px">Nº '+r.id+'</div>'+
+    lin('Espaço', r.espaco)+
+    lin('Data', _relFmtData(r.data))+
+    lin('Horário', r.horario)+
+    lin('Morador', r.nome)+
+    lin('Unidade', r.lote)+
+    lin('Telefone', r.tel)+
+    lin('Finalidade', r.finalidade)+
+    lin('Status', _REL_STATUS_LABEL[r.status]||r.status)+
+    lin('Taxa', _relFmtMoeda(r.taxa))+
+    lin('Caução', _relFmtMoeda(r.caucao))+
+    lin('Pagamento', r.pgto==='pago'?'Pago':r.pgto==='isento'?'Isento':'Pendente')+
+    '<div class="assin"><div class="l">Morador</div><div class="l">Administração</div></div>'+
+    '</div>';
+  _abrirImpressao('Comprovante de Reserva Nº '+r.id, corpo);
 }
 
 function fecharModal(modalId, saveFn, checkFieldId){
