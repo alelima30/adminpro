@@ -10303,6 +10303,18 @@ async function aprovarUsuario(){
     fecharModalUsr();
     await renderUsuarios();
     toast('✓ Acesso aprovado!');
+    // Envia e-mail de boas-vindas ao usuário aprovado (Supabase + Resend)
+    if(u.email){
+      var _cond = nomeCondominioAtual();
+      var _corpo = 'Olá, '+(u.nome||'')+'!\n\nSeu acesso ao portal '+_cond+' foi APROVADO. ✅\n\n'+
+        'Você já pode entrar com:\n'+
+        '• E-mail: '+u.email+'\n'+
+        '• Senha: a que você cadastrou\n\n'+
+        'Acesse o portal e faça login. Bem-vindo(a)!';
+      enviarEmail(u.email, 'Acesso aprovado — '+_cond, _corpo).then(function(r){
+        if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' E-mail de aprovação para '+u.email+(r.ok?'':': '+r.erro));
+      });
+    }
   } catch(e){ toast('⚠️ Erro: '+(e.message||e)); }
 }
 
