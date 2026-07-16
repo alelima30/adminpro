@@ -121,6 +121,19 @@
     <div class="foot">Já tem conta? <a href="adminpro.html">Entrar no portal &rarr;</a></div>
   </form>
 
+  <!-- Aviso central de sucesso -->
+  <div id="ok-ov" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(3,8,20,0.72);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:22px">
+    <div style="max-width:420px;width:100%;background:#141c2e;border:1px solid rgba(42,157,111,0.4);border-radius:18px;padding:34px 26px;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,0.5)">
+      <div style="width:70px;height:70px;margin:0 auto 18px;border-radius:50%;background:rgba(42,157,111,0.16);display:flex;align-items:center;justify-content:center">
+        <i class="fa-solid fa-check" style="font-size:32px;color:#2ecc8f"></i>
+      </div>
+      <div style="font-size:20px;font-weight:800;color:#eef1f8;margin-bottom:10px">Solicitação enviada!</div>
+      <div id="ok-txt" style="font-size:14px;color:#c9d2e3;line-height:1.55;margin-bottom:22px"></div>
+      <button onclick="document.getElementById('ok-ov').style.display='none'" style="width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#E87722,#B85E0F);color:#fff;font-size:15px;font-weight:700;cursor:pointer">Entendi</button>
+      <div style="margin-top:14px"><a href="adminpro.html" style="color:#E87722;font-size:13px;text-decoration:none">Ir para o login &rarr;</a></div>
+    </div>
+  </div>
+
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -254,7 +267,10 @@ async function enviar(){
     try{ await SB.auth.signOut(); }catch(_){}
 
     $('form').reset(); carregarCondominios(); carregarUnidades();
-    showMsg('✓ Solicitação enviada! A administração vai analisar e liberar seu acesso à unidade '+unidade+'. Você usará o e-mail e a senha que acabou de cadastrar.','ok');
+    var _msgOk='A administração vai analisar e liberar seu acesso à unidade '+unidade+'. Você usará o e-mail e a senha que acabou de cadastrar.';
+    if($('ok-txt')) $('ok-txt').textContent=_msgOk;
+    if($('ok-ov')) $('ok-ov').style.display='flex';
+    showMsg('✓ Solicitação enviada! '+_msgOk,'ok');
   }catch(e){
     if(String(e.code||e.message||'').toLowerCase().includes('permission')||String(e.message||'').toLowerCase().includes('row-level')){
       showMsg('O servidor recusou o envio (permissões). Avise a administração para liberar o cadastro público.','err');
