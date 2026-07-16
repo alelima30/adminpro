@@ -736,10 +736,7 @@ html.light .sb-flyout{background:#1A2847}
   border-radius:14px;padding:16px 18px;color:#fff;position:relative;overflow:hidden;
   box-shadow:0 8px 22px rgba(0,0,0,0.25);
 }
-.bikpi::after{ /* brilho decorativo */
-  content:'';position:absolute;right:-30px;top:-30px;width:110px;height:110px;
-  border-radius:50%;background:rgba(255,255,255,0.14);
-}
+/* círculo decorativo removido — visual mais limpo/de sistema */
 .bikpi .bk-label{font-size:10.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;opacity:.92;margin-bottom:6px}
 .bikpi .bk-val{font-size:24px;font-weight:800;line-height:1.1;text-shadow:0 1px 3px rgba(0,0,0,0.18)}
 .bikpi .bk-badge{
@@ -4232,7 +4229,7 @@ const SUPER_ADMINS = [ADMIN_EMAIL];
 
 // Módulos da plataforma → grupos do menu. Novos módulos: adicione aqui.
 const MODULOS_SAAS = {
-  paineis:        { label:'Painéis & Dashboard',                grupos:['paineis'],        extra:['dashboard'] },
+  paineis:        { label:'Painéis & Dashboard',                grupos:['paineis'] },
   administrativo: { label:'Administrativo',                     grupos:['administrativo','cadastro'] },
   operacoes:      { label:'Operações (Reservas, Comunicados…)', grupos:['operacoes'] },
   sistema:        { label:'Sistema (Usuários, Configurações)',  grupos:['sistema'] },
@@ -4327,8 +4324,7 @@ function aplicarSaas(){
     const mod=grupoModulo(hd.dataset.grupo);
     if(mod && !ativos.includes(mod)) g.style.display='none';
   });
-  const dash=document.querySelector('.nav-standalone[data-acesso]');
-  if(dash && !ativos.includes('paineis')) dash.style.display='none';
+  // Dashboard fica sempre disponível para admin/gestor (não depende do módulo Painéis)
   const saasEl=$('sb-saas'); if(saasEl) saasEl.style.display = isSuperAdmin()?'':'none';
   const tag=$('tb-tag-cond'); if(tag) tag.textContent=_condAtual;
   montarSeletorCondominio();
@@ -4860,7 +4856,7 @@ function closeSidebar(){
 /* ══ NAVIGATION ══ */
 const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Comunicados',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas'};
 const ACESSO_PAINEIS = {
-  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','relatorios','comunicados','eventos','regulamento','usuarios','configuracoes','admfotos','procedimentos'],
+  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','relatorios','comunicados','eventos','regulamento','usuarios','configuracoes','procedimentos'],
   gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','relatorios','comunicados','eventos','regulamento','procedimentos'],
   morador: ['inicio','reservas','comunicados','eventos','regulamento','procedimentos']
 };
@@ -5998,7 +5994,7 @@ const SB_GRUPOS = {
   sistema:  { titulo:'Sistema', itens:[
     {id:'usuarios',      label:'Usu\u00e1rios',                 icon:'fa-users-gear',           acesso:['admin']},
     {id:'configuracoes', label:'Configura\u00e7\u00f5es',            icon:'fa-gear',                 acesso:['admin']},
-    {id:'admfotos',      label:'Adm. Fotos',               icon:'fa-images',               acesso:['admin']},
+    /* Adm. Fotos oculto a pedido (o painel continua existindo, s\u00f3 n\u00e3o aparece no menu) */
   ]},
 };
 let _sbGrupoRaiz   = null;
@@ -10307,6 +10303,18 @@ async function aprovarUsuario(){
     fecharModalUsr();
     await renderUsuarios();
     toast('✓ Acesso aprovado!');
+    // Envia e-mail de boas-vindas ao usuário aprovado (Supabase + Resend)
+    if(u.email){
+      var _cond = nomeCondominioAtual();
+      var _corpo = 'Olá, '+(u.nome||'')+'!\n\nSeu acesso ao portal '+_cond+' foi APROVADO. ✅\n\n'+
+        'Você já pode entrar com:\n'+
+        '• E-mail: '+u.email+'\n'+
+        '• Senha: a que você cadastrou\n\n'+
+        'Acesse o portal e faça login. Bem-vindo(a)!';
+      enviarEmail(u.email, 'Acesso aprovado — '+_cond, _corpo).then(function(r){
+        if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' E-mail de aprovação para '+u.email+(r.ok?'':': '+r.erro));
+      });
+    }
   } catch(e){ toast('⚠️ Erro: '+(e.message||e)); }
 }
 
