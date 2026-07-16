@@ -665,19 +665,20 @@ html.light .sb-flyout{background:#1A2847}
   cursor:default;
 }
 .kpi:hover{border-color:var(--border-h);transform:translateY(-2px)}
-.kpi::before{
-  content:'';position:absolute;
-  left:0;top:0;bottom:0;
-  width:3px;
-  border-radius:3px 0 0 3px;
+/* Cards KPI coloridos em degradê (mesma paleta do BI de Reservas) */
+.kpi.gold  {background:linear-gradient(135deg,#B85E0F 0%,#E87722 55%,#FF9A40 100%);border-color:transparent}
+.kpi.green {background:linear-gradient(135deg,#0C6B44 0%,#18A068 55%,#28C882 100%);border-color:transparent}
+.kpi.blue  {background:linear-gradient(135deg,#1B3E8A 0%,#2470C8 55%,#5B9CF6 100%);border-color:transparent}
+.kpi.teal  {background:linear-gradient(135deg,#0F5C56 0%,#0F9488 55%,#2DD4BF 100%);border-color:transparent}
+.kpi.red   {background:linear-gradient(135deg,#7E1D1D 0%,#C0392B 55%,#EE6B60 100%);border-color:transparent}
+.kpi.amber {background:linear-gradient(135deg,#8A5A08 0%,#C98A12 55%,#F0B840 100%);border-color:transparent}
+.kpi.purple{background:linear-gradient(135deg,#3C2A7D 0%,#6D4FC4 55%,#A78BFA 100%);border-color:transparent}
+.kpi.gold,.kpi.green,.kpi.blue,.kpi.teal,.kpi.red,.kpi.amber,.kpi.purple{
+  box-shadow:0 8px 22px rgba(0,0,0,0.25);
 }
-.kpi.gold::before{background:var(--gold)}
-.kpi.green::before{background:var(--green)}
-.kpi.blue::before{background:var(--blue)}
-.kpi.red::before{background:var(--red)}
-.kpi.amber::before{background:var(--amber)}
-.kpi.teal::before{background:#2DD4BF}
-.kpi.purple::before{background:#A78BFA}
+.kpi.gold:hover,.kpi.green:hover,.kpi.blue:hover,.kpi.teal:hover,.kpi.red:hover,.kpi.amber:hover,.kpi.purple:hover{
+  border-color:transparent;
+}
 .kpi-label{
   font-size:10px;font-weight:600;
   letter-spacing:1.5px;text-transform:uppercase;
@@ -688,16 +689,27 @@ html.light .sb-flyout{background:#1A2847}
   font-size:40px;font-weight:700;
   color:var(--text);line-height:1;
 }
+.kpi.gold .kpi-label,.kpi.green .kpi-label,.kpi.blue .kpi-label,.kpi.teal .kpi-label,.kpi.red .kpi-label,.kpi.amber .kpi-label,.kpi.purple .kpi-label{
+  color:rgba(255,255,255,0.92);
+}
+.kpi.gold .kpi-val,.kpi.green .kpi-val,.kpi.blue .kpi-val,.kpi.teal .kpi-val,.kpi.red .kpi-val,.kpi.amber .kpi-val,.kpi.purple .kpi-val{
+  color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.18);
+}
 .kpi-sub{font-size:11px;color:var(--text-3);margin-top:6px}
+.kpi.gold .kpi-sub,.kpi.green .kpi-sub,.kpi.blue .kpi-sub,.kpi.teal .kpi-sub,.kpi.red .kpi-sub,.kpi.amber .kpi-sub,.kpi.purple .kpi-sub{
+  color:rgba(255,255,255,0.82);
+}
 .kpi-bar{
   height:3px;background:rgba(255,255,255,0.06);
   border-radius:2px;margin-top:10px;overflow:hidden;
 }
+.kpi.gold .kpi-bar,.kpi.green .kpi-bar,.kpi.blue .kpi-bar,.kpi.teal .kpi-bar,.kpi.red .kpi-bar,.kpi.amber .kpi-bar,.kpi.purple .kpi-bar{
+  background:rgba(0,0,0,0.25);
+}
 .kpi-bar-fill{height:100%;border-radius:2px;transition:width 0.8s cubic-bezier(0.4,0,0.2,1)}
-.kpi.gold .kpi-bar-fill{background:var(--gold)}
-.kpi.green .kpi-bar-fill{background:var(--green)}
-.kpi.blue .kpi-bar-fill{background:var(--blue)}
-.kpi.teal .kpi-bar-fill{background:#2DD4BF}
+.kpi.gold .kpi-bar-fill,.kpi.green .kpi-bar-fill,.kpi.blue .kpi-bar-fill,.kpi.teal .kpi-bar-fill,.kpi.red .kpi-bar-fill,.kpi.amber .kpi-bar-fill,.kpi.purple .kpi-bar-fill{
+  background:rgba(255,255,255,0.9);
+}
 
 /* ══ CARD ══ */
 .card{
@@ -1683,7 +1695,21 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       <div class="sb-group" data-acesso="admin,gestor,morador">
         <div class="sb-group-hd" data-grupo="operacoes" onclick="sbAbrirGrupo('operacoes',this)">
           <div class="nav-icon"><i class="fa-solid fa-layer-group"></i></div>Operações
+          <span class="sb-group-arrow">&#8250;</span>
+        </div>
+      </div>
+
+      <div class="sb-group" data-acesso="admin,gestor,morador">
+        <div class="sb-group-hd" data-grupo="reservasmod" onclick="sbAbrirGrupo('reservasmod',this)">
+          <div class="nav-icon"><i class="fa-solid fa-calendar-check"></i></div>Reservas
           <span id="badge-pendentes" style="display:none;margin-left:auto;margin-right:6px;background:var(--amber);color:#3a2a06;font-size:11px;font-weight:800;border-radius:99px;padding:1px 7px;line-height:1.6">0</span>
+          <span class="sb-group-arrow">&#8250;</span>
+        </div>
+      </div>
+
+      <div class="sb-group" data-acesso="admin,gestor,morador">
+        <div class="sb-group-hd" data-grupo="encomendasmod" onclick="sbAbrirGrupo('encomendasmod',this)">
+          <div class="nav-icon"><i class="fa-solid fa-box"></i></div>Encomendas
           <span class="sb-group-arrow">&#8250;</span>
         </div>
       </div>
@@ -4347,7 +4373,7 @@ const SUPER_ADMINS = [ADMIN_EMAIL];
 const MODULOS_SAAS = {
   paineis:        { label:'Painéis & Dashboard',                grupos:['paineis'] },
   administrativo: { label:'Administrativo',                     grupos:['administrativo','cadastro'] },
-  operacoes:      { label:'Operações (Reservas, Comunicados…)', grupos:['operacoes'] },
+  operacoes:      { label:'Operações (Reservas, Comunicados…)', grupos:['operacoes','reservasmod','encomendasmod'] },
   sistema:        { label:'Sistema (Usuários, Configurações)',  grupos:['sistema'] },
 };
 
@@ -6102,11 +6128,15 @@ const SB_GRUPOS = {
     {id:'preventivas',   label:'Preventivas & Corretivas', icon:'fa-screwdriver-wrench',   acesso:['admin','gestor']},
     {id:'comunicados',   label:'Comunicados',              icon:'fa-bullhorn',             acesso:['admin','gestor','morador']},
     {id:'eventos',       label:'Eventos',                  icon:'fa-calendar-day',         acesso:['admin','gestor','morador']},
-    {id:'reservas',      label:'Reservas',                 icon:'fa-calendar-check',       acesso:['admin','gestor','morador']},
-    {id:'encomendas',    label:'Encomendas',               icon:'fa-box',                  acesso:['admin','gestor','morador']},
-    {id:'relatorios',    label:'Relatórios de Reservas',   icon:'fa-file-pdf',             acesso:['admin','gestor']},
     {id:'regulamento',   label:'Regulamentos',             icon:'fa-scroll',               acesso:['admin','gestor','morador']},
     {id:'procedimentos', label:'Procedimentos',            icon:'fa-clipboard-list',       acesso:['admin','gestor','morador']},
+  ]},
+  reservasmod:{ titulo:'Reservas', itens:[
+    {id:'reservas',      label:'Reservas',                 icon:'fa-calendar-check',       acesso:['admin','gestor','morador']},
+    {id:'relatorios',    label:'Relatórios de Reservas',   icon:'fa-file-pdf',             acesso:['admin','gestor']},
+  ]},
+  encomendasmod:{ titulo:'Encomendas', itens:[
+    {id:'encomendas',    label:'Encomendas',               icon:'fa-box',                  acesso:['admin','gestor','morador']},
   ]},
   sistema:  { titulo:'Sistema', itens:[
     {id:'usuarios',      label:'Usu\u00e1rios',                 icon:'fa-users-gear',           acesso:['admin']},
