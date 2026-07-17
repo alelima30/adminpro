@@ -3528,6 +3528,10 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
     <div class="modal-sub" id="musr-info"></div>
     <input type="hidden" id="musr-docid">
     <div class="form-grid" style="margin-top:16px">
+      <div class="fg"><label>Nome</label><input type="text" id="musr-nome" placeholder="Nome completo"></div>
+      <div class="fg"><label><i class="fa-brands fa-whatsapp" style="color:var(--green-l)"></i> WhatsApp</label><input type="text" id="musr-tel" placeholder="(11) 99999-9999"></div>
+      <div class="fg"><label>Unidade</label><input type="text" id="musr-unidade" placeholder="Ex: K13" style="text-transform:uppercase"></div>
+      <div class="fg"><label>E-mail (login — não editável)</label><input type="text" id="musr-email" disabled style="opacity:.65"></div>
       <div class="fg full"><label>Nível de Acesso</label>
         <select id="musr-nivel" style="padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:14px;outline:none;width:100%">
           <option value="morador">🏠 Morador — Comunicados e Reservas</option>
@@ -3542,7 +3546,8 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="fecharModalUsr()">Cancelar</button>
       <button class="btn" style="background:var(--red);color:#fff" onclick="rejeitarUsuario()">✕ Rejeitar</button>
-      <button class="btn btn-gold" onclick="aprovarUsuario()">✓ Aprovar Acesso</button>
+      <button class="btn btn-ghost" id="musr-btn-salvar" onclick="salvarDadosUsr()" style="display:none"><i class="fa-solid fa-floppy-disk"></i> Salvar dados</button>
+      <button class="btn btn-gold" id="musr-btn-aprovar" onclick="aprovarUsuario()">✓ Aprovar Acesso</button>
     </div>
   </div>
 </div>
@@ -10761,12 +10766,42 @@ function renderUsrBody(){
 function abrirModalUsr(docId){
   var u = (window._usrLista||[]).find(function(x){return x._docId===docId;});
   if(!u) return;
+  var pend = u.status==='pendente';
   $('musr-docid').value = docId;
-  $('musr-t').textContent = u.status==='pendente' ? 'Aprovar Cadastro' : 'Editar Acesso';
-  $('musr-info').innerHTML = '<strong>'+u.nome+'</strong> &middot; '+u.email+' &middot; Unidade: <strong>'+(u.lote||'—')+'</strong>';
+  $('musr-t').textContent = pend ? 'Aprovar Cadastro' : 'Editar Cadastro';
+  $('musr-info').innerHTML = pend ? 'Revise os dados e aprove o acesso.' : 'Edite os dados do usuário e salve.';
+  if($('musr-nome')) $('musr-nome').value = u.nome || '';
+  if($('musr-tel')) $('musr-tel').value = u.tel || '';
+  if($('musr-unidade')) $('musr-unidade').value = u.lote || u.unidade || '';
+  if($('musr-email')) $('musr-email').value = u.email || '';
   $('musr-nivel').value = u.nivel || 'morador';
   $('musr-obs').value = u.obs || '';
+  if($('musr-btn-aprovar')) $('musr-btn-aprovar').style.display = pend ? '' : 'none';
+  if($('musr-btn-salvar'))  $('musr-btn-salvar').style.display  = pend ? 'none' : '';
   $('m-usr').classList.add('open');
+}
+
+// Salva alterações de dados de um usuário já ativo (nome, WhatsApp, unidade, nível, obs)
+async function salvarDadosUsr(){
+  var docId = $('musr-docid').value;
+  if(!docId || !SB){ toast('⚠️ Banco não disponível.'); return; }
+  var u = (window._usrLista||[]).find(function(x){return x._docId===docId;});
+  if(!u){ toast('⚠️ Registro não encontrado.'); return; }
+  var dados = {
+    nome: ($('musr-nome').value||'').trim(),
+    tel: ($('musr-tel').value||'').trim(),
+    unidade: ($('musr-unidade').value||'').trim().toUpperCase(),
+    nivel: $('musr-nivel').value,
+    obs: ($('musr-obs').value||'').trim()
+  };
+  try{
+    var tabela = u._tipo==='sol' ? 'solicitacoes' : 'usuarios';
+    var up = await SB.from(tabela).update(dados).eq('id', docId);
+    if(up.error) throw up.error;
+    fecharModalUsr();
+    await renderUsuarios();
+    toast('✓ Dados atualizados.');
+  }catch(e){ toast('⚠️ Erro: '+(e.message||e)); }
 }
 
 function fecharModalUsr(){ closeModal('m-usr'); }
