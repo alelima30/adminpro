@@ -4724,7 +4724,7 @@ async function _aplicarSessao(session){
     try{ var _vis=localStorage.getItem('apvc_cond_view'); if(_vis) _condAtual=_vis; }catch(_){}
   }
   window._userNivel = me.nivel || 'morador';
-  localStorage.setItem('apvc_user', JSON.stringify({ nome:me.nome, email:me.email, nivel:me.nivel||'morador', lote:me.unidade||'', condominio:_condAtual, super:_isSuper }));
+  localStorage.setItem('apvc_user', JSON.stringify({ nome:me.nome, email:me.email, tel:me.tel||'', nivel:me.nivel||'morador', lote:me.unidade||'', condominio:_condAtual, super:_isSuper }));
   salvarExpiracao();
   try { await loadAllFromFirestore(); } catch (err) { console.error(err); }
   entrarNoPortal(me.nome || me.email);
@@ -8242,7 +8242,7 @@ function abrirModalRes(id){
     const usr = JSON.parse(localStorage.getItem('apvc_user')||'{}');
     $('mres-nome').value = usr.nome || '';
     mresLoteSet(usr.lote || '');   // popula seletor com lote do morador logado
-    $('mres-tel').value  = '';
+    $('mres-tel').value  = usr.tel || '';   // WhatsApp vem do cadastro (não precisa digitar)
   } else {
     $('mres-nome').value=r?.nome||'';
     mresLoteSet(r?.lote||'');  // popula seletor com lote da reserva existente
@@ -8590,16 +8590,22 @@ function verificarLembretesReserva(){
   (G('reservas')||[]).forEach(function(r){
     if(r.data!==amanha) return;
     if(r.status!=='confirmada' && r.status!=='pendente') return;
-    var dest=(r.criadoPor||'').trim(); if(!dest) return;
+    var email=(r.criadoPor||'').trim();
+    var tel=(r.tel||'').trim();
+    if(!email && !tel) return;               // sem contato, não dá pra lembrar
     var chave=r.id+'|'+r.data;
     if(enviados.indexOf(chave)>=0) return;
-    var corpo='Lembrete: você tem uma reserva amanhã.\n\nEspaço: '+r.espaco+'\nData: '+
+    var corpo='⏰ Lembrete: você tem uma reserva amanhã.\n\nEspaço: '+r.espaco+'\nData: '+
       new Date(r.data+'T00:00').toLocaleDateString('pt-BR')+'\nHorário: '+r.horario+'\nUnidade: '+r.lote;
-    enviarEmail(dest,'Lembrete de reserva — '+r.espaco,corpo).then(function(res){
-      if(res.ok){ enviados.push(chave); try{ localStorage.setItem('apvc_lembretes_env',JSON.stringify(enviados.slice(-300))); }catch(_){}
-        addLog('✓ Lembrete enviado ao morador — '+r.espaco+' ('+r.data+')'); }
-      else addLog('✗ Lembrete falhou ('+r.espaco+'): '+res.erro);
-    });
+    function _marcar(){ if(enviados.indexOf(chave)<0){ enviados.push(chave); try{ localStorage.setItem('apvc_lembretes_env',JSON.stringify(enviados.slice(-300))); }catch(_){} } }
+    // WhatsApp (número vindo do cadastro do morador)
+    if(tel && typeof enviarWhatsApp==='function'){
+      enviarWhatsApp(tel, corpo).then(function(res){ if(res.ok){ _marcar(); addLog('✓ Lembrete WhatsApp — '+r.espaco+' ('+r.data+')'); } else addLog('✗ Lembrete WhatsApp falhou ('+r.espaco+'): '+res.erro); });
+    }
+    // E-mail
+    if(email && typeof enviarEmail==='function'){
+      enviarEmail(email,'Lembrete de reserva — '+r.espaco,corpo).then(function(res){ if(res.ok){ _marcar(); addLog('✓ Lembrete e-mail — '+r.espaco+' ('+r.data+')'); } else addLog('✗ Lembrete e-mail falhou ('+r.espaco+'): '+res.erro); });
+    }
   });
 }
 

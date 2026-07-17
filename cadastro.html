@@ -74,9 +74,10 @@
     <div class="iw"><i class="fa-solid fa-envelope"></i>
       <input type="email" id="c-email" placeholder="voce@exemplo.com" autocomplete="email"></div>
 
-    <label>Telefone / WhatsApp</label>
+    <label class="req">Telefone / WhatsApp</label>
     <div class="iw"><i class="fa-brands fa-whatsapp"></i>
-      <input type="text" id="c-tel" placeholder="(11) 99999-9999" autocomplete="tel"></div>
+      <input type="text" id="c-tel" placeholder="(11) 99999-9999 — receberá os avisos" autocomplete="tel"></div>
+    <div class="hint">Usaremos este WhatsApp para avisar reservas e encomendas.</div>
 
     <div class="row2">
       <div>
@@ -230,6 +231,7 @@ async function enviar(){
 
   if(!nome){ return showMsg('Informe seu nome completo.','err'); }
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ return showMsg('Informe um e-mail válido.','err'); }
+  if(tel.replace(/\D/g,'').length < 10){ return showMsg('Informe um número de WhatsApp válido (com DDD).','err'); }
   if(!condominio){ return showMsg('Selecione o seu condomínio.','err'); }
   if(!unidade){ return showMsg('Selecione a sua unidade.','err'); }
   if(!vinculo){ return showMsg('Selecione o seu vínculo com a unidade.','err'); }
