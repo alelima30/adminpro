@@ -1678,12 +1678,6 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         </div>
       </div>
 
-      <div class="nav-standalone" data-acesso="admin,gestor">
-        <div class="nav-item" id="nav-relatorios" onclick="showPanel('relatorios',this)">
-          <div class="nav-icon"><i class="fa-solid fa-file-pdf"></i></div>Relatórios de Reservas
-        </div>
-      </div>
-
       <!-- Grupos: ao clicar abrem a coluna (flyout) ao lado -->
       <div class="sb-group" data-acesso="admin,gestor">
         <div class="sb-group-hd" data-grupo="paineis" onclick="sbAbrirGrupo('paineis',this)">
@@ -2676,6 +2670,10 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
       <!-- ████ P7: RESERVAS ████ -->
       <div class="panel" id="panel-reservas">
+        <div class="tabs" data-acesso="admin,gestor" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="tab active" onclick="showPanel('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Reservas</button>
+          <button class="tab" onclick="showPanel('relatorios')"><i class="fa-solid fa-file-pdf" style="margin-right:6px"></i>Relatórios</button>
+        </div>
         <div class="ph">
           <div><div class="ph-title">Gestão de Reservas</div><div class="ph-sub">Agendamento de espaços e áreas comuns do condomínio</div></div>
           <div class="ph-actions">
@@ -2897,6 +2895,10 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       </div>
 
       <div class="panel" id="panel-relatorios">
+        <div class="tabs" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="tab" onclick="showPanel('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Reservas</button>
+          <button class="tab active" onclick="showPanel('relatorios')"><i class="fa-solid fa-file-pdf" style="margin-right:6px"></i>Relatórios</button>
+        </div>
         <div class="ph">
           <div><div class="ph-title"><i class="fa-solid fa-file-pdf" style="color:var(--gold);margin-right:8px"></i>Relatórios de Reservas</div><div class="ph-sub">Gere relatórios e comprovantes em PDF (imprimir ou salvar)</div></div>
         </div>
@@ -3138,23 +3140,51 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
         <div class="cfg-card cfg-grp-sistema card" style="margin-bottom:18px;display:none">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon">📱</div>Z-API — WhatsApp Automático</div>
+            <div class="card-title"><div class="card-icon">📱</div>WhatsApp Automático</div>
             <span id="cfg-zapi-status" style="font-size:12px;color:var(--text-3)">Não configurado</span>
           </div>
-          <div style="background:rgba(37,211,102,0.06);border:1px solid rgba(37,211,102,0.15);border-radius:10px;padding:16px 18px;margin-bottom:16px;font-size:13px;color:var(--text-2);line-height:1.7">
-            <strong style="color:#25D366">Como configurar a Z-API:</strong><br>
-            1. Acesse <a href="https://app.z-api.io" target="_blank" style="color:#25D366">app.z-api.io</a> e crie uma conta gratuita.<br>
-            2. Crie uma instância → escaneie o QR Code com seu WhatsApp.<br>
-            3. Copie o <strong>Instance ID</strong> e o <strong>Token</strong> abaixo.
+          <div class="fg" style="max-width:360px;margin-bottom:16px"><label>Como enviar o WhatsApp?</label>
+            <select id="cfg-wa-provider" onchange="cfgWaProviderChange()" style="padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%">
+              <option value="zapi">Z-API (escanear QR — pago)</option>
+              <option value="cloud">Cloud API oficial (Meta) — via Supabase</option>
+            </select>
           </div>
-          <div class="form-grid">
-            <div class="fg"><label>Instance ID</label><input type="text" id="cfg-zapi-instance" placeholder="Ex: 3D9A1B2C3D4E5F"></div>
-            <div class="fg"><label>Token</label><input type="text" id="cfg-zapi-token" placeholder="Ex: abcdef1234567890abcdef"></div>
-            <div class="fg full"><label>Client Token (Security Token)</label><input type="text" id="cfg-zapi-client-token" placeholder="Encontrado em Security na Z-API"></div>
+
+          <!-- Bloco Z-API -->
+          <div id="cfg-bloco-zapi">
+            <div style="background:rgba(37,211,102,0.06);border:1px solid rgba(37,211,102,0.15);border-radius:10px;padding:16px 18px;margin-bottom:16px;font-size:13px;color:var(--text-2);line-height:1.7">
+              <strong style="color:#25D366">Como configurar a Z-API:</strong><br>
+              1. Acesse <a href="https://app.z-api.io" target="_blank" style="color:#25D366">app.z-api.io</a> e crie uma conta.<br>
+              2. Crie uma instância → escaneie o QR Code com seu WhatsApp.<br>
+              3. Copie o <strong>Instance ID</strong> e o <strong>Token</strong> abaixo.
+            </div>
+            <div class="form-grid">
+              <div class="fg"><label>Instance ID</label><input type="text" id="cfg-zapi-instance" placeholder="Ex: 3D9A1B2C3D4E5F"></div>
+              <div class="fg"><label>Token</label><input type="text" id="cfg-zapi-token" placeholder="Ex: abcdef1234567890abcdef"></div>
+              <div class="fg full"><label>Client Token (Security Token)</label><input type="text" id="cfg-zapi-client-token" placeholder="Encontrado em Security na Z-API"></div>
+            </div>
+            <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm" onclick="testarZAPI()">🧪 Testar Conexão</button>
+              <span id="cfg-zapi-teste" style="font-size:12px;color:var(--text-3);align-self:center"></span>
+            </div>
           </div>
-          <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn btn-ghost btn-sm" onclick="testarZAPI()">🧪 Testar Conexão</button>
-            <span id="cfg-zapi-teste" style="font-size:12px;color:var(--text-3);align-self:center"></span>
+
+          <!-- Bloco Cloud API -->
+          <div id="cfg-bloco-cloud" style="display:none">
+            <div style="background:rgba(37,211,102,0.06);border:1px solid rgba(37,211,102,0.15);border-radius:10px;padding:16px 18px;margin-bottom:16px;font-size:13px;color:var(--text-2);line-height:1.7">
+              <strong style="color:#25D366">WhatsApp oficial da Meta (grátis no seu volume).</strong> As chaves ficam <strong>seguras no Supabase</strong> (não no site).<br><br>
+              <strong>Passo a passo (1x):</strong><br>
+              1. Crie um app em <a href="https://developers.facebook.com" target="_blank" style="color:#25D366">developers.facebook.com</a> → produto <strong>WhatsApp</strong> → conecte seu número dedicado.<br>
+              2. Crie um <strong>modelo (template)</strong> de mensagem, categoria <strong>Utilidade</strong>, corpo:<br>
+              <code style="background:rgba(255,255,255,0.08);padding:4px 8px;border-radius:5px;display:inline-block;margin:4px 0">🔔 Aviso do seu condomínio:\n\n&#123;&#123;1&#125;&#125;</code><br>
+              3. No Supabase → <strong>Edge Functions → Secrets</strong>, adicione: <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">WHATSAPP_TOKEN</code>, <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">WHATSAPP_PHONE_ID</code>, <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">WHATSAPP_TEMPLATE</code> (nome do modelo) e <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">WHATSAPP_LANG</code> (ex: pt_BR).<br>
+              4. Republique a Edge Function <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">notificar</code> (código novo que enviei) e teste abaixo.
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+              <button class="btn btn-ghost btn-sm" onclick="testarWhatsCloud()">🧪 Testar WhatsApp</button>
+              <input type="text" id="cfg-wa-teste-num" placeholder="Nº com DDD para teste" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;width:220px">
+              <span id="cfg-wa-teste" style="font-size:12px;color:var(--text-3);align-self:center"></span>
+            </div>
           </div>
         </div>
 
@@ -4722,7 +4752,7 @@ async function _aplicarSessao(session){
     try{ var _vis=localStorage.getItem('apvc_cond_view'); if(_vis) _condAtual=_vis; }catch(_){}
   }
   window._userNivel = me.nivel || 'morador';
-  localStorage.setItem('apvc_user', JSON.stringify({ nome:me.nome, email:me.email, nivel:me.nivel||'morador', lote:me.unidade||'', condominio:_condAtual, super:_isSuper }));
+  localStorage.setItem('apvc_user', JSON.stringify({ nome:me.nome, email:me.email, tel:me.tel||'', nivel:me.nivel||'morador', lote:me.unidade||'', condominio:_condAtual, super:_isSuper }));
   salvarExpiracao();
   try { await loadAllFromFirestore(); } catch (err) { console.error(err); }
   entrarNoPortal(me.nome || me.email);
@@ -6205,7 +6235,9 @@ function sbMarkActive(id){
   document.querySelectorAll('.sidebar .nav-item, .sb-group-hd').forEach(n=>n.classList.remove('active'));
   if(id==='inicio'){ const h=$('nav-inicio'); if(h) h.classList.add('active'); return; }
   if(id==='dashboard'){ const d=$('nav-dashboard'); if(d) d.classList.add('active'); return; }
-  // Itens standalone (fora de grupo): Reservas, Encomendas, Relatórios
+  // Relatórios é aba dentro de Reservas -> mantém o item Reservas destacado
+  if(id==='relatorios'){ var nr=$('nav-reservas'); if(nr) nr.classList.add('active'); return; }
+  // Itens standalone (fora de grupo): Reservas, Encomendas
   var _stand=$('nav-'+id);
   if(_stand && _stand.closest('.nav-standalone')){ _stand.classList.add('active'); return; }
   for(const key in SB_GRUPOS){
@@ -8238,7 +8270,7 @@ function abrirModalRes(id){
     const usr = JSON.parse(localStorage.getItem('apvc_user')||'{}');
     $('mres-nome').value = usr.nome || '';
     mresLoteSet(usr.lote || '');   // popula seletor com lote do morador logado
-    $('mres-tel').value  = '';
+    $('mres-tel').value  = usr.tel || '';   // WhatsApp vem do cadastro (não precisa digitar)
   } else {
     $('mres-nome').value=r?.nome||'';
     mresLoteSet(r?.lote||'');  // popula seletor com lote da reserva existente
@@ -8586,16 +8618,22 @@ function verificarLembretesReserva(){
   (G('reservas')||[]).forEach(function(r){
     if(r.data!==amanha) return;
     if(r.status!=='confirmada' && r.status!=='pendente') return;
-    var dest=(r.criadoPor||'').trim(); if(!dest) return;
+    var email=(r.criadoPor||'').trim();
+    var tel=(r.tel||'').trim();
+    if(!email && !tel) return;               // sem contato, não dá pra lembrar
     var chave=r.id+'|'+r.data;
     if(enviados.indexOf(chave)>=0) return;
-    var corpo='Lembrete: você tem uma reserva amanhã.\n\nEspaço: '+r.espaco+'\nData: '+
+    var corpo='⏰ Lembrete: você tem uma reserva amanhã.\n\nEspaço: '+r.espaco+'\nData: '+
       new Date(r.data+'T00:00').toLocaleDateString('pt-BR')+'\nHorário: '+r.horario+'\nUnidade: '+r.lote;
-    enviarEmail(dest,'Lembrete de reserva — '+r.espaco,corpo).then(function(res){
-      if(res.ok){ enviados.push(chave); try{ localStorage.setItem('apvc_lembretes_env',JSON.stringify(enviados.slice(-300))); }catch(_){}
-        addLog('✓ Lembrete enviado ao morador — '+r.espaco+' ('+r.data+')'); }
-      else addLog('✗ Lembrete falhou ('+r.espaco+'): '+res.erro);
-    });
+    function _marcar(){ if(enviados.indexOf(chave)<0){ enviados.push(chave); try{ localStorage.setItem('apvc_lembretes_env',JSON.stringify(enviados.slice(-300))); }catch(_){} } }
+    // WhatsApp (número vindo do cadastro do morador)
+    if(tel && typeof enviarWhatsApp==='function'){
+      enviarWhatsApp(tel, corpo).then(function(res){ if(res.ok){ _marcar(); addLog('✓ Lembrete WhatsApp — '+r.espaco+' ('+r.data+')'); } else addLog('✗ Lembrete WhatsApp falhou ('+r.espaco+'): '+res.erro); });
+    }
+    // E-mail
+    if(email && typeof enviarEmail==='function'){
+      enviarEmail(email,'Lembrete de reserva — '+r.espaco,corpo).then(function(res){ if(res.ok){ _marcar(); addLog('✓ Lembrete e-mail — '+r.espaco+' ('+r.data+')'); } else addLog('✗ Lembrete e-mail falhou ('+r.espaco+'): '+res.erro); });
+    }
   });
 }
 
@@ -9052,6 +9090,7 @@ function baixarPDF(id){
 
 function salvarConfigs(){
   const cfg = {
+    waProvider:       $('cfg-wa-provider')?.value || 'zapi',
     zapiInstance:     $('cfg-zapi-instance')?.value.trim()||'',
     zapiToken:        $('cfg-zapi-token')?.value.trim()||'',
     zapiClientToken:  $('cfg-zapi-client-token')?.value.trim()||'',
@@ -9078,6 +9117,7 @@ function carregarConfigs(){
   cfg.ejsService  = cfg.ejsService  || EJS_DEFAULTS.ejsService;
   cfg.ejsTemplate = cfg.ejsTemplate || EJS_DEFAULTS.ejsTemplate;
   cfg.ejsPubkey   = cfg.ejsPubkey   || EJS_DEFAULTS.ejsPubkey;
+  if($('cfg-wa-provider'))      { $('cfg-wa-provider').value = cfg.waProvider||'zapi'; cfgWaProviderChange(); }
   if($('cfg-zapi-instance'))    $('cfg-zapi-instance').value    = cfg.zapiInstance||'';
   if($('cfg-zapi-token'))       $('cfg-zapi-token').value       = cfg.zapiToken||'';
   if($('cfg-zapi-client-token'))$('cfg-zapi-client-token').value= cfg.zapiClientToken||'';
@@ -9087,6 +9127,22 @@ function carregarConfigs(){
   try{ emailjs.init(cfg.ejsPubkey); } catch(e){}
   localStorage.setItem('apvc_cfg', JSON.stringify(cfg));
   atualizarStatusCfg();
+}
+
+function cfgWaProviderChange(){
+  var v=$('cfg-wa-provider')?$('cfg-wa-provider').value:'zapi';
+  if($('cfg-bloco-zapi'))  $('cfg-bloco-zapi').style.display  = v==='cloud' ? 'none' : '';
+  if($('cfg-bloco-cloud')) $('cfg-bloco-cloud').style.display = v==='cloud' ? '' : 'none';
+}
+async function testarWhatsCloud(){
+  var el=$('cfg-wa-teste'); var num=($('cfg-wa-teste-num')?.value||'').trim();
+  if(!num){ el.textContent='⚠️ Informe um número.'; el.style.color='var(--amber)'; return; }
+  // garante que o provider salvo é cloud para o teste
+  var cfg=getCfg(); cfg.waProvider='cloud'; localStorage.setItem('apvc_cfg', JSON.stringify(cfg));
+  el.textContent='⏳ Enviando...'; el.style.color='var(--text-3)';
+  var r=await enviarWhatsApp(num, 'Teste do AdminPro — se você recebeu, o WhatsApp (Cloud API) está funcionando! 🎉');
+  if(r.ok){ el.textContent='✓ Enviado! Verifique o WhatsApp.'; el.style.color='#25D366'; addLog('✓ Teste WhatsApp Cloud API para '+num); }
+  else { el.textContent='✗ '+r.erro; el.style.color='var(--red)'; addLog('✗ Teste WhatsApp Cloud: '+r.erro); }
 }
 
 function getCfg(){
@@ -9179,6 +9235,17 @@ function atualizarStatusCfg(){
 /* ── Enviar WhatsApp via Z-API ── */
 async function enviarWhatsApp(numero, mensagem){
   const cfg = getCfg();
+  // Cloud API (Meta) via Supabase Edge Function — token fica seguro no servidor
+  if(cfg.waProvider === 'cloud'){
+    if(!SB || !SB.functions) return {ok:false, erro:'Supabase indisponível'};
+    try{
+      const { data, error } = await SB.functions.invoke(FN_NOTIFICAR, { body:{ channel:'whatsapp', to:numero, message:mensagem } });
+      if(error) return {ok:false, erro:(error.message||JSON.stringify(error))};
+      if(data && data.error) return {ok:false, erro:data.error};
+      return {ok:true};
+    }catch(e){ return {ok:false, erro:e?.message||JSON.stringify(e)}; }
+  }
+  // Z-API (padrão) — chamada direta do navegador
   if(!cfg.zapiInstance || !cfg.zapiToken) return {ok:false, erro:'Z-API não configurada'};
   let num = numero.replace(/\D/g,'');
   if(!num) return {ok:false, erro:'Número inválido'};
