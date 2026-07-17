@@ -1,5 +1,5 @@
 /* AdminPro · Service Worker — app instalável + abertura offline do app shell */
-const CACHE = 'adminpro-v1';
+const CACHE = 'adminpro-v2';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -21,7 +21,7 @@ self.addEventListener('fetch', e => {
   if (req.mode === 'navigate') {
     e.respondWith((async () => {
       try {
-        const fresh = await fetch(req);
+        const fresh = await fetch(req, { cache: 'reload' });
         const cache = await caches.open(CACHE);
         cache.put(req, fresh.clone());
         return fresh;

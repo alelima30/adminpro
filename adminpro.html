@@ -1665,6 +1665,25 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         </div>
       </div>
 
+      <div class="nav-standalone" data-acesso="admin,gestor,morador">
+        <div class="nav-item" id="nav-reservas" onclick="showPanel('reservas',this)">
+          <div class="nav-icon"><i class="fa-solid fa-calendar-check"></i></div>Reservas
+          <span id="badge-pendentes" style="display:none;margin-left:auto;background:var(--amber);color:#3a2a06;font-size:11px;font-weight:800;border-radius:99px;padding:1px 7px;line-height:1.6">0</span>
+        </div>
+      </div>
+
+      <div class="nav-standalone" data-acesso="admin,gestor,morador">
+        <div class="nav-item" id="nav-encomendas" onclick="showPanel('encomendas',this)">
+          <div class="nav-icon"><i class="fa-solid fa-box-open"></i></div>Encomendas
+        </div>
+      </div>
+
+      <div class="nav-standalone" data-acesso="admin,gestor">
+        <div class="nav-item" id="nav-relatorios" onclick="showPanel('relatorios',this)">
+          <div class="nav-icon"><i class="fa-solid fa-file-pdf"></i></div>Relatórios de Reservas
+        </div>
+      </div>
+
       <!-- Grupos: ao clicar abrem a coluna (flyout) ao lado -->
       <div class="sb-group" data-acesso="admin,gestor">
         <div class="sb-group-hd" data-grupo="paineis" onclick="sbAbrirGrupo('paineis',this)">
@@ -1683,7 +1702,6 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       <div class="sb-group" data-acesso="admin,gestor,morador">
         <div class="sb-group-hd" data-grupo="operacoes" onclick="sbAbrirGrupo('operacoes',this)">
           <div class="nav-icon"><i class="fa-solid fa-layer-group"></i></div>Operações
-          <span id="badge-pendentes" style="display:none;margin-left:auto;margin-right:6px;background:var(--amber);color:#3a2a06;font-size:11px;font-weight:800;border-radius:99px;padding:1px 7px;line-height:1.6">0</span>
           <span class="sb-group-arrow">&#8250;</span>
         </div>
       </div>
@@ -6077,9 +6095,6 @@ const SB_GRUPOS = {
     {id:'preventivas',   label:'Preventivas & Corretivas', icon:'fa-screwdriver-wrench',   acesso:['admin','gestor']},
     {id:'comunicados',   label:'Comunicados',              icon:'fa-bullhorn',             acesso:['admin','gestor','morador']},
     {id:'eventos',       label:'Eventos',                  icon:'fa-calendar-day',         acesso:['admin','gestor','morador']},
-    {id:'reservas',      label:'Reservas',                 icon:'fa-calendar-check',       acesso:['admin','gestor','morador']},
-    {id:'encomendas',    label:'Encomendas',               icon:'fa-box-open',             acesso:['admin','gestor','morador']},
-    {id:'relatorios',    label:'Relatórios de Reservas',   icon:'fa-file-pdf',             acesso:['admin','gestor']},
     {id:'regulamento',   label:'Regulamentos',             icon:'fa-scroll',               acesso:['admin','gestor','morador']},
     {id:'procedimentos', label:'Procedimentos',            icon:'fa-clipboard-list',       acesso:['admin','gestor','morador']},
   ]},
@@ -6190,6 +6205,9 @@ function sbMarkActive(id){
   document.querySelectorAll('.sidebar .nav-item, .sb-group-hd').forEach(n=>n.classList.remove('active'));
   if(id==='inicio'){ const h=$('nav-inicio'); if(h) h.classList.add('active'); return; }
   if(id==='dashboard'){ const d=$('nav-dashboard'); if(d) d.classList.add('active'); return; }
+  // Itens standalone (fora de grupo): Reservas, Encomendas, Relatórios
+  var _stand=$('nav-'+id);
+  if(_stand && _stand.closest('.nav-standalone')){ _stand.classList.add('active'); return; }
   for(const key in SB_GRUPOS){
     if(SB_GRUPOS[key].itens.some(it=>it.id===id)){
       const rootKey = SB_GRUPOS[key].parent || key;
