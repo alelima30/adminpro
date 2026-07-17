@@ -1678,12 +1678,6 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         </div>
       </div>
 
-      <div class="nav-standalone" data-acesso="admin,gestor">
-        <div class="nav-item" id="nav-relatorios" onclick="showPanel('relatorios',this)">
-          <div class="nav-icon"><i class="fa-solid fa-file-pdf"></i></div>Relatórios de Reservas
-        </div>
-      </div>
-
       <!-- Grupos: ao clicar abrem a coluna (flyout) ao lado -->
       <div class="sb-group" data-acesso="admin,gestor">
         <div class="sb-group-hd" data-grupo="paineis" onclick="sbAbrirGrupo('paineis',this)">
@@ -2676,6 +2670,10 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
       <!-- ████ P7: RESERVAS ████ -->
       <div class="panel" id="panel-reservas">
+        <div class="tabs" data-acesso="admin,gestor" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="tab active" onclick="showPanel('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Reservas</button>
+          <button class="tab" onclick="showPanel('relatorios')"><i class="fa-solid fa-file-pdf" style="margin-right:6px"></i>Relatórios</button>
+        </div>
         <div class="ph">
           <div><div class="ph-title">Gestão de Reservas</div><div class="ph-sub">Agendamento de espaços e áreas comuns do condomínio</div></div>
           <div class="ph-actions">
@@ -2897,6 +2895,10 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       </div>
 
       <div class="panel" id="panel-relatorios">
+        <div class="tabs" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="tab" onclick="showPanel('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Reservas</button>
+          <button class="tab active" onclick="showPanel('relatorios')"><i class="fa-solid fa-file-pdf" style="margin-right:6px"></i>Relatórios</button>
+        </div>
         <div class="ph">
           <div><div class="ph-title"><i class="fa-solid fa-file-pdf" style="color:var(--gold);margin-right:8px"></i>Relatórios de Reservas</div><div class="ph-sub">Gere relatórios e comprovantes em PDF (imprimir ou salvar)</div></div>
         </div>
@@ -6205,7 +6207,9 @@ function sbMarkActive(id){
   document.querySelectorAll('.sidebar .nav-item, .sb-group-hd').forEach(n=>n.classList.remove('active'));
   if(id==='inicio'){ const h=$('nav-inicio'); if(h) h.classList.add('active'); return; }
   if(id==='dashboard'){ const d=$('nav-dashboard'); if(d) d.classList.add('active'); return; }
-  // Itens standalone (fora de grupo): Reservas, Encomendas, Relatórios
+  // Relatórios é aba dentro de Reservas -> mantém o item Reservas destacado
+  if(id==='relatorios'){ var nr=$('nav-reservas'); if(nr) nr.classList.add('active'); return; }
+  // Itens standalone (fora de grupo): Reservas, Encomendas
   var _stand=$('nav-'+id);
   if(_stand && _stand.closest('.nav-standalone')){ _stand.classList.add('active'); return; }
   for(const key in SB_GRUPOS){
