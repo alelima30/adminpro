@@ -665,21 +665,16 @@ html.light .sb-flyout{background:#1A2847}
   cursor:default;
 }
 .kpi:hover{border-color:var(--border-h);transform:translateY(-2px)}
-.kpi::before{
-  content:'';position:absolute;
-  top:0;right:0;
-  width:80px;height:80px;
-  border-radius:50%;
-  opacity:0.12;
-  transform:translate(30%,-30%);
-}
-.kpi.gold::before{background:var(--gold)}
-.kpi.green::before{background:var(--green)}
-.kpi.blue::before{background:var(--blue)}
-.kpi.red::before{background:var(--red)}
-.kpi.amber::before{background:var(--amber)}
-.kpi.teal::before{background:#2DD4BF}
-.kpi.purple::before{background:#A78BFA}
+/* Cards KPI coloridos em degradê (mesma paleta do BI de Reservas) */
+.kpi.gold  {background:linear-gradient(135deg,#B85E0F 0%,#E87722 55%,#FF9A40 100%);border-color:transparent}
+.kpi.green {background:linear-gradient(135deg,#0C6B44 0%,#18A068 55%,#28C882 100%);border-color:transparent}
+.kpi.blue  {background:linear-gradient(135deg,#1B3E8A 0%,#2470C8 55%,#5B9CF6 100%);border-color:transparent}
+.kpi.teal  {background:linear-gradient(135deg,#0F5C56 0%,#0F9488 55%,#2DD4BF 100%);border-color:transparent}
+.kpi.red   {background:linear-gradient(135deg,#7E1D1D 0%,#C0392B 55%,#EE6B60 100%);border-color:transparent}
+.kpi.amber {background:linear-gradient(135deg,#8A5A08 0%,#C98A12 55%,#F0B840 100%);border-color:transparent}
+.kpi.purple{background:linear-gradient(135deg,#3C2A7D 0%,#6D4FC4 55%,#A78BFA 100%);border-color:transparent}
+.kpi.gold,.kpi.green,.kpi.blue,.kpi.teal,.kpi.red,.kpi.amber,.kpi.purple{ box-shadow:0 8px 22px rgba(0,0,0,0.25); }
+.kpi.gold:hover,.kpi.green:hover,.kpi.blue:hover,.kpi.teal:hover,.kpi.red:hover,.kpi.amber:hover,.kpi.purple:hover{ border-color:transparent; }
 .kpi-label{
   font-size:10px;font-weight:600;
   letter-spacing:1.5px;text-transform:uppercase;
@@ -690,7 +685,10 @@ html.light .sb-flyout{background:#1A2847}
   font-size:40px;font-weight:700;
   color:var(--text);line-height:1;
 }
+.kpi.gold .kpi-label,.kpi.green .kpi-label,.kpi.blue .kpi-label,.kpi.teal .kpi-label,.kpi.red .kpi-label,.kpi.amber .kpi-label,.kpi.purple .kpi-label{ color:rgba(255,255,255,0.92); }
+.kpi.gold .kpi-val,.kpi.green .kpi-val,.kpi.blue .kpi-val,.kpi.teal .kpi-val,.kpi.red .kpi-val,.kpi.amber .kpi-val,.kpi.purple .kpi-val{ color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.18); }
 .kpi-sub{font-size:11px;color:var(--text-3);margin-top:6px}
+.kpi.gold .kpi-sub,.kpi.green .kpi-sub,.kpi.blue .kpi-sub,.kpi.teal .kpi-sub,.kpi.red .kpi-sub,.kpi.amber .kpi-sub,.kpi.purple .kpi-sub{ color:rgba(255,255,255,0.82); }
 .kpi-bar{
   height:3px;background:rgba(255,255,255,0.06);
   border-radius:2px;margin-top:10px;overflow:hidden;
@@ -2806,6 +2804,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
                 <option value="aguardando">Aguardando retirada</option>
                 <option value="retirada">Retiradas</option>
               </select>
+              <button class="btn btn-ghost btn-sm" onclick="exportarEncomendasCSV()"><i class="fa-solid fa-file-csv"></i> Exportar Excel</button>
             </div>
           </div>
         </div>
@@ -7515,9 +7514,10 @@ function salvarEnc(){
     status:'aguardando',
     recebidoEm:new Date().toISOString(),
     recebidoPor:usr.nome||usr.email||'Portaria',
-    retiradoEm:null, retiradoPor:null, retiradoCodigo:false
+    retiradoEm:null, retiradoPor:null, retiradoCodigo:false,
+    avisos:[]
   };
-  if(id){ var i=all.findIndex(x=>x.id===+id); if(i>=0){ var o=all[i]; obj.numero=o.numero; obj.codigo=o.codigo; obj.status=o.status; obj.recebidoEm=o.recebidoEm; obj.recebidoPor=o.recebidoPor; obj.retiradoEm=o.retiradoEm; obj.retiradoPor=o.retiradoPor; obj.retiradoCodigo=o.retiradoCodigo; all[i]=obj; } }
+  if(id){ var i=all.findIndex(x=>x.id===+id); if(i>=0){ var o=all[i]; obj.numero=o.numero; obj.codigo=o.codigo; obj.status=o.status; obj.recebidoEm=o.recebidoEm; obj.recebidoPor=o.recebidoPor; obj.retiradoEm=o.retiradoEm; obj.retiradoPor=o.retiradoPor; obj.retiradoCodigo=o.retiradoCodigo; obj.avisos=o.avisos||[]; all[i]=obj; } }
   else all.push(obj);
   S('encomendas', all);
   closeModal('m-enc'); renderEncomendas();
@@ -7525,6 +7525,13 @@ function salvarEnc(){
   if(!id && $('menc-avisar') && $('menc-avisar').checked) _encNotificar(obj);
 }
 
+function _encRegistraAviso(id, canal, dest, ok, erro){
+  var all=G('encomendas')||[]; var i=all.findIndex(x=>x.id===id); if(i<0) return;
+  if(!Array.isArray(all[i].avisos)) all[i].avisos=[];
+  all[i].avisos.push({ canal:canal, dest:dest, quando:new Date().toISOString(), ok:!!ok, erro:erro||'' });
+  S('encomendas', all);
+  if(currentPanel==='encomendas') renderEncomendas();
+}
 function _encNotificar(e){
   var msg='📦 Você tem uma encomenda na portaria!\n\nUnidade: '+e.unidade+
     (e.destinatario?('\nDestinatário: '+e.destinatario):'')+
@@ -7534,12 +7541,58 @@ function _encNotificar(e){
     (e.codigo?('\n\n🔑 Código de retirada: '+e.codigo+'\n(apresente na portaria para retirar)'):'')+
     '\n\nRetire na portaria. — '+nomeCondominioAtual();
   if(e.whats && typeof enviarWhatsApp==='function'){
-    enviarWhatsApp(e.whats, msg).then(function(r){ if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' WhatsApp encomenda '+e.unidade+(r.ok?'':': '+r.erro)); });
+    enviarWhatsApp(e.whats, msg).then(function(r){ _encRegistraAviso(e.id,'WhatsApp',e.whats,r.ok,r.erro); if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' WhatsApp encomenda '+e.unidade+(r.ok?'':': '+r.erro)); });
   }
   if(e.email && typeof enviarEmail==='function'){
-    enviarEmail(e.email, 'Encomenda na portaria — '+nomeCondominioAtual(), msg).then(function(r){ if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' E-mail encomenda '+e.unidade+(r.ok?'':': '+r.erro)); });
+    enviarEmail(e.email, 'Encomenda na portaria — '+nomeCondominioAtual(), msg).then(function(r){ _encRegistraAviso(e.id,'E-mail',e.email,r.ok,r.erro); if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' E-mail encomenda '+e.unidade+(r.ok?'':': '+r.erro)); });
   }
   if(!e.whats && !e.email) toast('ℹ️ Sem WhatsApp/e-mail — morador não foi avisado automaticamente.');
+}
+
+// "Ver notificações" — comprovante de que o morador foi avisado
+function verNotificacoesEnc(id){
+  var e=(G('encomendas')||[]).find(x=>x.id===id); if(!e) return;
+  var av=e.avisos||[];
+  var linhas = av.length ? av.map(function(a){
+    var ic = a.canal==='WhatsApp' ? '<i class="fa-brands fa-whatsapp" style="color:#25D366"></i>' : '<i class="fa-solid fa-envelope" style="color:var(--blue)"></i>';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">'+ic+
+      '<div style="flex:1"><div style="font-size:13px;color:var(--text)">'+a.canal+' para <b>'+(a.dest||'—')+'</b></div>'+
+      '<div style="font-size:11px;color:var(--text-3)">'+_encFmtDataHora(a.quando)+(a.ok?'':(' · falhou: '+a.erro))+'</div></div>'+
+      '<span class="pill '+(a.ok?'pill-green':'pill-red')+'" style="font-size:11px">'+(a.ok?'Enviado':'Falhou')+'</span></div>';
+  }).join('') : '<div style="padding:16px 0;color:var(--text-3);font-size:13px">Nenhum aviso enviado ainda. Use o botão "Reavisar" para notificar o morador.</div>';
+  var ov=$('m-enc-notif');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='m-enc-notif'; ov.className='modal-ov';
+    ov.innerHTML='<div class="modal" style="max-width:460px"><div class="modal-head"><div class="modal-title">Comprovante de avisos</div><button class="modal-close" onclick="closeModal(\'m-enc-notif\')">&times;</button></div><div class="modal-sub">Prova de que o morador foi notificado.</div><div id="menc-notif-body"></div></div>';
+    document.body.appendChild(ov);
+  }
+  $('menc-notif-body').innerHTML=linhas;
+  ov.classList.add('open');
+}
+
+// Exporta as encomendas (com filtros) para Excel/CSV
+function exportarEncomendasCSV(){
+  initEncomendas();
+  var busca=($('enc-busca')?$('enc-busca').value:'').toLowerCase();
+  var fSt=$('enc-f-status')?$('enc-f-status').value:'';
+  var lista=(G('encomendas')||[]).filter(function(e){
+    var txt=((e.unidade||'')+(e.destinatario||'')+(e.remetente||'')+(e.obs||'')).toLowerCase();
+    return (!busca||txt.indexOf(busca)>=0) && (!fSt||e.status===fSt);
+  });
+  if(!lista.length){ toast('Nenhuma encomenda para exportar.'); return; }
+  var cols=['Numero','Unidade','Destinatario','Remetente','Tipo','Registrada','NumeroRegistro','Status','RecebidaEm','RecebidaPor','RetiradaEm','RetiradaPor','ComCodigo','Observacao'];
+  var esc=function(v){ v=(v==null?'':String(v)).replace(/"/g,'""'); return '"'+v+'"'; };
+  var linhas=[cols.join(';')];
+  lista.forEach(function(e){
+    linhas.push([e.numero||'', e.unidade||'', e.destinatario||'', e.remetente||'', e.tipo||'', e.registrado?'Sim':'Nao', e.numeroRegistro||'',
+      e.status==='retirada'?'Retirada':'Aguardando', _encFmtDataHora(e.recebidoEm), e.recebidoPor||'', e.retiradoEm?_encFmtDataHora(e.retiradoEm):'', e.retiradoPor||'', e.retiradoCodigo?'Sim':'Nao', e.obs||''].map(esc).join(';'));
+  });
+  var blob=new Blob(['﻿'+linhas.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob); var a=document.createElement('a');
+  a.href=url; a.download='encomendas_'+hojeLocal()+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); },1500);
+  toast('✓ Excel exportado ('+lista.length+' encomendas).');
 }
 
 function reavisarEnc(id){
@@ -7656,6 +7709,7 @@ function renderEncomendas(){
         (isMor?'':('<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">'+
           (aguardando?('<button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="marcarRetirada('+e.id+')"><i class="fa-solid fa-check"></i> Retirada</button>'+
                        '<button class="btn btn-ghost btn-sm" onclick="reavisarEnc('+e.id+')"><i class="fa-solid fa-bell"></i> Reavisar</button>'):'')+
+          '<button class="btn btn-ghost btn-sm" onclick="verNotificacoesEnc('+e.id+')"><i class="fa-solid fa-paper-plane"></i> Notificações</button>'+
           '<button class="btn btn-ghost btn-sm" onclick="abrirModalEnc('+e.id+')">Editar</button>'+
           '<button class="btn btn-red btn-sm" onclick="excluirEnc('+e.id+')">Excluir</button>'+
         '</div>'))+
