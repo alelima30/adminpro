@@ -2823,7 +2823,8 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
             <div class="fg"><label>Unidade *</label>
               <input type="text" id="menc-unidade" placeholder="Ex: K13, B02" oninput="encAutoPreencher()" style="text-transform:uppercase"></div>
             <div class="fg"><label>Destinatário</label>
-              <input type="text" id="menc-destinatario" placeholder="Nome de quem vai receber"></div>
+              <select id="menc-dest-sel" onchange="encDestSelChange()"><option value="">— selecione a unidade —</option></select>
+              <input type="text" id="menc-destinatario" placeholder="Ou digite o nome" style="margin-top:6px"></div>
             <div class="fg"><label>Remetente / Transportadora</label>
               <input type="text" id="menc-remetente" placeholder="Ex: Correios, Mercado Livre, Shopee"></div>
             <div class="fg"><label>Tipo</label>
@@ -2831,6 +2832,17 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
                 <option>Caixa / Pacote</option><option>Envelope / Carta</option><option>Sedex / Correios</option>
                 <option>Documento</option><option>Comida / Delivery</option><option>Flores</option><option>Outro</option>
               </select></div>
+            <div class="fg full" style="grid-column:1/-1">
+              <label>Foto da encomenda (opcional)</label>
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <input type="file" id="menc-foto-input" accept="image/*" capture="environment" onchange="encFotoSelecionar(event)" style="display:none">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('menc-foto-input').click()"><i class="fa-solid fa-camera"></i> Tirar / anexar foto</button>
+                <img id="menc-foto-prev" src="" alt="" style="display:none;width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+                <button type="button" id="menc-foto-rm" class="btn btn-ghost btn-sm" style="display:none;color:var(--red)" onclick="encFotoRemover()"><i class="fa-solid fa-trash"></i> Remover</button>
+              </div>
+            </div>
+            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="menc-registrado" style="width:16px;height:16px;accent-color:var(--gold)"> Encomenda registrada</label>
+              <input type="text" id="menc-registro-num" placeholder="Nº do registro / rastreio" style="margin-top:6px"></div>
             <div class="fg"><label><i class="fa-brands fa-whatsapp" style="color:var(--green-l)"></i> WhatsApp do morador (aviso)</label>
               <input type="text" id="menc-whats" placeholder="11999999999 (opcional)"></div>
             <div class="fg"><label><i class="fa-solid fa-envelope" style="color:var(--blue)"></i> E-mail do morador (aviso)</label>
@@ -2846,6 +2858,23 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           </div>
           <div class="modal-actions">
             <button class="btn btn-gold" onclick="salvarEnc()"><i class="fa-solid fa-box"></i> Registrar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Entrega (retirada inteligente) -->
+      <div class="modal-ov" id="m-enc-entrega">
+        <div class="modal">
+          <div class="modal-head"><div class="modal-title">Entregar encomenda(s)</div>
+            <button class="modal-close" onclick="closeModal('m-enc-entrega')">&times;</button></div>
+          <div class="modal-sub" id="ment-sub">Selecione o que será retirado agora.</div>
+          <div id="ment-lista" style="margin-bottom:14px"></div>
+          <div class="form-grid">
+            <div class="fg"><label>Quem retirou</label><input type="text" id="ment-quem" placeholder="Nome de quem retirou"></div>
+            <div class="fg"><label>Código de retirada (prova — opcional)</label><input type="text" id="ment-codigo" placeholder="Código que o morador apresentou"></div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-gold" onclick="confirmarEntrega()"><i class="fa-solid fa-check"></i> Confirmar entrega</button>
           </div>
         </div>
       </div>
@@ -7383,20 +7412,65 @@ function initEncomendas(){ if(!Array.isArray(G('encomendas'))) DB_CACHE['encomen
 function _encIsMorador(){ var n=window._userNivel||'morador'; return n!=='admin'&&n!=='gestor'; }
 function _encUnidadeMorador(){ try{ return (JSON.parse(localStorage.getItem('apvc_user')||'{}').lote||'').trim().toUpperCase(); }catch(_){ return ''; } }
 
-// Auto-preenche destinatário/contatos a partir da unidade (morador vinculado)
+// Lista todas as pessoas cadastradas na unidade (proprietário, morador e dependentes)
+function encPessoasDaUnidade(uni){
+  var u=getUnidades()[uni.toUpperCase()]; var pessoas=[]; var vistos={};
+  if(!u) return pessoas;
+  var conds=G('condominos')||{};
+  [u.proprietario,u.morador].forEach(function(cod){
+    if(!cod) return;
+    var c=conds[cod]; if(!c) return;
+    var tel=c.telefone||((c.telefones&&c.telefones[0])?(c.telefones[0].numero||''):'');
+    if(c.nome && !vistos[c.nome]){ vistos[c.nome]=1; pessoas.push({nome:c.nome, tel:tel, email:c.email||''}); }
+    (c.dependentes||[]).forEach(function(d){ if(d.nome && !vistos[d.nome]){ vistos[d.nome]=1; pessoas.push({nome:d.nome, tel:d.telefone||tel, email:d.email||c.email||''}); } });
+  });
+  return pessoas;
+}
+
+// Preenche o seletor de destinatários e contatos ao informar a unidade
 function encAutoPreencher(){
   var uni=($('menc-unidade')?$('menc-unidade').value:'').trim().toUpperCase();
-  if(!uni) return;
-  var u=getUnidades()[uni]; if(!u) return;
-  var cod=u.morador||u.proprietario;
-  var c=(G('condominos')||{})[cod];
-  if(c){
-    if($('menc-destinatario') && !$('menc-destinatario').value) $('menc-destinatario').value=c.nome||'';
-    var tel=c.telefone||((c.telefones&&c.telefones[0])?(c.telefones[0].numero||''):'');
-    if($('menc-whats') && !$('menc-whats').value) $('menc-whats').value=tel;
-    if($('menc-email') && !$('menc-email').value) $('menc-email').value=c.email||'';
-  }
+  var sel=$('menc-dest-sel'); if(!sel) return;
+  if(!uni){ sel.innerHTML='<option value="">— selecione a unidade —</option>'; return; }
+  var pessoas=encPessoasDaUnidade(uni);
+  window._encPessoas=pessoas;
+  if(!pessoas.length){ sel.innerHTML='<option value="">(sem cadastro — digite abaixo)</option>'; return; }
+  sel.innerHTML='<option value="">— quem vai receber —</option>'+pessoas.map(function(p,i){return '<option value="'+i+'">'+p.nome+'</option>';}).join('')+'<option value="_outro">Outro (digitar)</option>';
 }
+function encDestSelChange(){
+  var sel=$('menc-dest-sel'); if(!sel) return;
+  var v=sel.value; if(v===''||v==='_outro'){ return; }
+  var p=(window._encPessoas||[])[+v]; if(!p) return;
+  if($('menc-destinatario')) $('menc-destinatario').value=p.nome||'';
+  if($('menc-whats')) $('menc-whats').value=p.tel||'';
+  if($('menc-email')) $('menc-email').value=p.email||'';
+}
+
+// Foto da encomenda
+var _encFoto='';
+function encFotoSelecionar(ev){
+  var f=ev.target.files&&ev.target.files[0]; if(!f) return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    // redimensiona para não pesar
+    var img=new Image();
+    img.onload=function(){
+      var max=800, w=img.width, h=img.height;
+      if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} }
+      var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      _encFoto=cv.toDataURL('image/jpeg',0.72);
+      if($('menc-foto-prev')){ $('menc-foto-prev').src=_encFoto; $('menc-foto-prev').style.display=''; }
+      if($('menc-foto-rm')) $('menc-foto-rm').style.display='';
+    };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+}
+function encFotoRemover(){ _encFoto=''; if($('menc-foto-prev')){$('menc-foto-prev').src='';$('menc-foto-prev').style.display='none';} if($('menc-foto-rm'))$('menc-foto-rm').style.display='none'; if($('menc-foto-input'))$('menc-foto-input').value=''; }
+
+function _encGerarCodigo(){ return String(Math.floor(1000+Math.random()*9000)); }
+function _encProxNumero(){ var all=G('encomendas')||[]; var mx=0; all.forEach(function(e){ if(e.numero>mx) mx=e.numero; }); return mx+1; }
 
 function abrirModalEnc(id){
   initEncomendas();
@@ -7410,6 +7484,10 @@ function abrirModalEnc(id){
   $('menc-whats').value=e?e.whats:'';
   $('menc-email').value=e?e.email:'';
   $('menc-obs').value=e?e.obs:'';
+  if($('menc-registrado')) $('menc-registrado').checked=e?!!e.registrado:false;
+  if($('menc-registro-num')) $('menc-registro-num').value=e?(e.numeroRegistro||''):'';
+  encFotoRemover(); _encFoto=e?(e.foto||''):''; if(_encFoto){ if($('menc-foto-prev')){$('menc-foto-prev').src=_encFoto;$('menc-foto-prev').style.display='';} if($('menc-foto-rm'))$('menc-foto-rm').style.display=''; }
+  encAutoPreencher();
   if($('menc-avisar')) $('menc-avisar').checked = e?false:true;
   $('m-enc').classList.add('open');
 }
@@ -7422,6 +7500,7 @@ function salvarEnc(){
   var usr=JSON.parse(localStorage.getItem('apvc_user')||'{}');
   var obj={
     id: id?+id:Date.now(),
+    numero: id?0:_encProxNumero(),
     unidade:uni,
     destinatario:$('menc-destinatario').value.trim(),
     remetente:$('menc-remetente').value.trim(),
@@ -7429,12 +7508,16 @@ function salvarEnc(){
     whats:$('menc-whats').value.trim(),
     email:$('menc-email').value.trim(),
     obs:$('menc-obs').value.trim(),
+    foto:_encFoto||'',
+    registrado: $('menc-registrado')?$('menc-registrado').checked:false,
+    numeroRegistro: $('menc-registro-num')?$('menc-registro-num').value.trim():'',
+    codigo: id?'':_encGerarCodigo(),
     status:'aguardando',
     recebidoEm:new Date().toISOString(),
     recebidoPor:usr.nome||usr.email||'Portaria',
-    retiradoEm:null, retiradoPor:null
+    retiradoEm:null, retiradoPor:null, retiradoCodigo:false
   };
-  if(id){ var i=all.findIndex(x=>x.id===+id); if(i>=0){ obj.status=all[i].status; obj.recebidoEm=all[i].recebidoEm; obj.recebidoPor=all[i].recebidoPor; obj.retiradoEm=all[i].retiradoEm; obj.retiradoPor=all[i].retiradoPor; all[i]=obj; } }
+  if(id){ var i=all.findIndex(x=>x.id===+id); if(i>=0){ var o=all[i]; obj.numero=o.numero; obj.codigo=o.codigo; obj.status=o.status; obj.recebidoEm=o.recebidoEm; obj.recebidoPor=o.recebidoPor; obj.retiradoEm=o.retiradoEm; obj.retiradoPor=o.retiradoPor; obj.retiradoCodigo=o.retiradoCodigo; all[i]=obj; } }
   else all.push(obj);
   S('encomendas', all);
   closeModal('m-enc'); renderEncomendas();
@@ -7447,6 +7530,8 @@ function _encNotificar(e){
     (e.destinatario?('\nDestinatário: '+e.destinatario):'')+
     (e.remetente?('\nDe: '+e.remetente):'')+
     (e.tipo?('\nTipo: '+e.tipo):'')+
+    (e.obs?('\nObs: '+e.obs):'')+
+    (e.codigo?('\n\n🔑 Código de retirada: '+e.codigo+'\n(apresente na portaria para retirar)'):'')+
     '\n\nRetire na portaria. — '+nomeCondominioAtual();
   if(e.whats && typeof enviarWhatsApp==='function'){
     enviarWhatsApp(e.whats, msg).then(function(r){ if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' WhatsApp encomenda '+e.unidade+(r.ok?'':': '+r.erro)); });
@@ -7462,12 +7547,39 @@ function reavisarEnc(id){
   _encNotificar(e); toast('🔔 Aviso reenviado.');
 }
 
+// Entrega inteligente: abre modal com esta encomenda + outras pendentes da mesma unidade
+var _entregaUnidade='';
 function marcarRetirada(id){
-  var all=G('encomendas')||[]; var i=all.findIndex(x=>x.id===id); if(i<0) return;
-  var quem=prompt('Quem retirou a encomenda? (nome)', all[i].destinatario||'');
-  if(quem===null) return;
-  all[i].status='retirada'; all[i].retiradoEm=new Date().toISOString(); all[i].retiradoPor=(quem||'').trim()||'Não informado';
-  S('encomendas', all); renderEncomendas(); toast('✓ Retirada registrada.');
+  var e=(G('encomendas')||[]).find(x=>x.id===id); if(!e) return;
+  _entregaUnidade=e.unidade;
+  var pend=(G('encomendas')||[]).filter(function(x){ return x.unidade===e.unidade && x.status==='aguardando'; });
+  $('ment-sub').textContent='Unidade '+e.unidade+' — '+pend.length+' encomenda(s) pendente(s). Marque o que será retirado.';
+  $('ment-quem').value=e.destinatario||'';
+  $('ment-codigo').value='';
+  $('ment-lista').innerHTML=pend.map(function(x){
+    var marcado = x.id===id ? 'checked' : (pend.length<=1?'checked':'');
+    return '<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer">'+
+      '<input type="checkbox" class="ment-chk" value="'+x.id+'" '+marcado+' style="width:17px;height:17px;accent-color:var(--gold)">'+
+      '<div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:600">#'+(x.numero||'—')+' · '+(x.tipo||'')+(x.remetente?(' · '+x.remetente):'')+'</div>'+
+      '<div style="font-size:11px;color:var(--text-3)">Para: '+(x.destinatario||'—')+' · '+_encFmtDataHora(x.recebidoEm)+'</div></div></label>';
+  }).join('');
+  $('m-enc-entrega').classList.add('open');
+}
+function confirmarEntrega(){
+  var ids=[].slice.call(document.querySelectorAll('.ment-chk:checked')).map(function(c){return +c.value;});
+  if(!ids.length){ toast('⚠️ Marque ao menos uma encomenda.'); return; }
+  var quem=($('ment-quem').value||'').trim()||'Não informado';
+  var codInput=($('ment-codigo').value||'').trim();
+  var all=G('encomendas')||[];
+  ids.forEach(function(id){
+    var i=all.findIndex(x=>x.id===id); if(i<0) return;
+    all[i].status='retirada'; all[i].retiradoEm=new Date().toISOString(); all[i].retiradoPor=quem;
+    all[i].retiradoCodigo = !!(codInput && all[i].codigo && codInput===all[i].codigo);
+  });
+  S('encomendas', all);
+  closeModal('m-enc-entrega'); renderEncomendas();
+  var comProva = codInput ? ' (com código)' : '';
+  toast('✓ '+ids.length+' entrega(s) registrada(s)'+comProva+'.');
 }
 
 function excluirEnc(id){
@@ -7521,11 +7633,15 @@ function renderEncomendas(){
     div.style.cssText='border:1px solid '+(aguardando?'rgba(240,168,67,0.35)':'var(--border)')+';border-radius:12px;padding:16px 18px;margin-bottom:12px;background:var(--card)';
     div.innerHTML=
       '<div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">'+
-        '<div style="width:44px;height:44px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:'+(aguardando?'rgba(240,168,67,0.15)':'rgba(42,157,111,0.15)')+'"><i class="fa-solid '+(aguardando?'fa-box':'fa-circle-check')+'" style="font-size:18px;color:'+(aguardando?'var(--amber)':'var(--green-l)')+'"></i></div>'+
+        (e.foto
+          ? '<img src="'+e.foto+'" onclick="window.open(\'\').document.write(\'<img src=&quot;'+e.foto+'&quot; style=&quot;max-width:100%&quot;>\')" style="width:56px;height:56px;object-fit:cover;border-radius:10px;flex-shrink:0;cursor:zoom-in;border:1px solid var(--border)">'
+          : '<div style="width:44px;height:44px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:'+(aguardando?'rgba(240,168,67,0.15)':'rgba(42,157,111,0.15)')+'"><i class="fa-solid '+(aguardando?'fa-box':'fa-circle-check')+'" style="font-size:18px;color:'+(aguardando?'var(--amber)':'var(--green-l)')+'"></i></div>')+
         '<div style="flex:1;min-width:0">'+
           '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">'+
-            '<span style="font-size:15px;font-weight:700;color:var(--text)">Unidade '+(e.unidade||'—')+'</span>'+
+            '<span style="font-size:15px;font-weight:700;color:var(--text)">'+(e.numero?('#'+e.numero+' · '):'')+'Unidade '+(e.unidade||'—')+'</span>'+
             '<span class="pill '+(aguardando?'pill-amber':'pill-green')+'" style="font-size:11px">'+(aguardando?'Aguardando retirada':'Retirada')+'</span>'+
+            (e.registrado?'<span class="pill pill-blue" style="font-size:11px">Registrada'+(e.numeroRegistro?(' '+e.numeroRegistro):'')+'</span>':'')+
+            (aguardando&&e.codigo?('<span style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.3);border-radius:6px;padding:2px 8px">🔑 Código: '+e.codigo+'</span>'):'')+
           '</div>'+
           '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:4px 18px;font-size:13px">'+
             '<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Destinatário</span><div style="color:var(--text)">'+(e.destinatario||'—')+'</div></div>'+
