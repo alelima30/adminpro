@@ -44,19 +44,20 @@ async function enviarWhatsapp(to: string, message: string) {
   if (!num) return J({ error: "Numero invalido." }, 400);
   if (!num.startsWith("55")) num = "55" + num;
 
+  // hello_world (modelo pronto da Meta) nao aceita variaveis -> envia sem componentes.
+  const template: Record<string, unknown> =
+    TEMPLATE === "hello_world"
+      ? { name: "hello_world", language: { code: "en_US" } }
+      : {
+          name: TEMPLATE,
+          language: { code: LANG },
+          components: [{ type: "body", parameters: [{ type: "text", text: message ?? "" }] }],
+        };
+
   const resp = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to: num,
-      type: "template",
-      template: {
-        name: TEMPLATE,
-        language: { code: LANG },
-        components: [{ type: "body", parameters: [{ type: "text", text: message ?? "" }] }],
-      },
-    }),
+    body: JSON.stringify({ messaging_product: "whatsapp", to: num, type: "template", template }),
   });
   const data = await resp.json();
   if (!resp.ok) return J({ error: data?.error?.message || "Falha no WhatsApp.", detalhe: data }, 502);
