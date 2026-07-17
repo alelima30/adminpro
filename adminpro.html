@@ -665,20 +665,21 @@ html.light .sb-flyout{background:#1A2847}
   cursor:default;
 }
 .kpi:hover{border-color:var(--border-h);transform:translateY(-2px)}
-/* Cards KPI coloridos em degradê (mesma paleta do BI de Reservas) */
-.kpi.gold  {background:linear-gradient(135deg,#B85E0F 0%,#E87722 55%,#FF9A40 100%);border-color:transparent}
-.kpi.green {background:linear-gradient(135deg,#0C6B44 0%,#18A068 55%,#28C882 100%);border-color:transparent}
-.kpi.blue  {background:linear-gradient(135deg,#1B3E8A 0%,#2470C8 55%,#5B9CF6 100%);border-color:transparent}
-.kpi.teal  {background:linear-gradient(135deg,#0F5C56 0%,#0F9488 55%,#2DD4BF 100%);border-color:transparent}
-.kpi.red   {background:linear-gradient(135deg,#7E1D1D 0%,#C0392B 55%,#EE6B60 100%);border-color:transparent}
-.kpi.amber {background:linear-gradient(135deg,#8A5A08 0%,#C98A12 55%,#F0B840 100%);border-color:transparent}
-.kpi.purple{background:linear-gradient(135deg,#3C2A7D 0%,#6D4FC4 55%,#A78BFA 100%);border-color:transparent}
-.kpi.gold,.kpi.green,.kpi.blue,.kpi.teal,.kpi.red,.kpi.amber,.kpi.purple{
-  box-shadow:0 8px 22px rgba(0,0,0,0.25);
+.kpi::before{
+  content:'';position:absolute;
+  top:0;right:0;
+  width:80px;height:80px;
+  border-radius:50%;
+  opacity:0.12;
+  transform:translate(30%,-30%);
 }
-.kpi.gold:hover,.kpi.green:hover,.kpi.blue:hover,.kpi.teal:hover,.kpi.red:hover,.kpi.amber:hover,.kpi.purple:hover{
-  border-color:transparent;
-}
+.kpi.gold::before{background:var(--gold)}
+.kpi.green::before{background:var(--green)}
+.kpi.blue::before{background:var(--blue)}
+.kpi.red::before{background:var(--red)}
+.kpi.amber::before{background:var(--amber)}
+.kpi.teal::before{background:#2DD4BF}
+.kpi.purple::before{background:#A78BFA}
 .kpi-label{
   font-size:10px;font-weight:600;
   letter-spacing:1.5px;text-transform:uppercase;
@@ -689,27 +690,16 @@ html.light .sb-flyout{background:#1A2847}
   font-size:40px;font-weight:700;
   color:var(--text);line-height:1;
 }
-.kpi.gold .kpi-label,.kpi.green .kpi-label,.kpi.blue .kpi-label,.kpi.teal .kpi-label,.kpi.red .kpi-label,.kpi.amber .kpi-label,.kpi.purple .kpi-label{
-  color:rgba(255,255,255,0.92);
-}
-.kpi.gold .kpi-val,.kpi.green .kpi-val,.kpi.blue .kpi-val,.kpi.teal .kpi-val,.kpi.red .kpi-val,.kpi.amber .kpi-val,.kpi.purple .kpi-val{
-  color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.18);
-}
 .kpi-sub{font-size:11px;color:var(--text-3);margin-top:6px}
-.kpi.gold .kpi-sub,.kpi.green .kpi-sub,.kpi.blue .kpi-sub,.kpi.teal .kpi-sub,.kpi.red .kpi-sub,.kpi.amber .kpi-sub,.kpi.purple .kpi-sub{
-  color:rgba(255,255,255,0.82);
-}
 .kpi-bar{
   height:3px;background:rgba(255,255,255,0.06);
   border-radius:2px;margin-top:10px;overflow:hidden;
 }
-.kpi.gold .kpi-bar,.kpi.green .kpi-bar,.kpi.blue .kpi-bar,.kpi.teal .kpi-bar,.kpi.red .kpi-bar,.kpi.amber .kpi-bar,.kpi.purple .kpi-bar{
-  background:rgba(0,0,0,0.25);
-}
 .kpi-bar-fill{height:100%;border-radius:2px;transition:width 0.8s cubic-bezier(0.4,0,0.2,1)}
-.kpi.gold .kpi-bar-fill,.kpi.green .kpi-bar-fill,.kpi.blue .kpi-bar-fill,.kpi.teal .kpi-bar-fill,.kpi.red .kpi-bar-fill,.kpi.amber .kpi-bar-fill,.kpi.purple .kpi-bar-fill{
-  background:rgba(255,255,255,0.9);
-}
+.kpi.gold .kpi-bar-fill{background:var(--gold)}
+.kpi.green .kpi-bar-fill{background:var(--green)}
+.kpi.blue .kpi-bar-fill{background:var(--blue)}
+.kpi.teal .kpi-bar-fill{background:#2DD4BF}
 
 /* ══ CARD ══ */
 .card{
@@ -1695,21 +1685,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       <div class="sb-group" data-acesso="admin,gestor,morador">
         <div class="sb-group-hd" data-grupo="operacoes" onclick="sbAbrirGrupo('operacoes',this)">
           <div class="nav-icon"><i class="fa-solid fa-layer-group"></i></div>Operações
-          <span class="sb-group-arrow">&#8250;</span>
-        </div>
-      </div>
-
-      <div class="sb-group" data-acesso="admin,gestor,morador">
-        <div class="sb-group-hd" data-grupo="reservasmod" onclick="sbAbrirGrupo('reservasmod',this)">
-          <div class="nav-icon"><i class="fa-solid fa-calendar-check"></i></div>Reservas
           <span id="badge-pendentes" style="display:none;margin-left:auto;margin-right:6px;background:var(--amber);color:#3a2a06;font-size:11px;font-weight:800;border-radius:99px;padding:1px 7px;line-height:1.6">0</span>
-          <span class="sb-group-arrow">&#8250;</span>
-        </div>
-      </div>
-
-      <div class="sb-group" data-acesso="admin,gestor,morador">
-        <div class="sb-group-hd" data-grupo="encomendasmod" onclick="sbAbrirGrupo('encomendasmod',this)">
-          <div class="nav-icon"><i class="fa-solid fa-box"></i></div>Encomendas
           <span class="sb-group-arrow">&#8250;</span>
         </div>
       </div>
@@ -2612,46 +2588,6 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         </div>
       </div>
 
-      <!-- ████ P: ENCOMENDAS ████ -->
-      <div class="panel" id="panel-encomendas">
-        <div class="ph">
-          <div><div class="ph-title">Encomendas</div><div class="ph-sub">Controle de encomendas e entregas recebidas na portaria</div></div>
-          <div class="ph-actions">
-            <button class="btn btn-gold" id="btn-nova-encomenda" onclick="abrirModalEnc(null)">+ Registrar Chegada</button>
-          </div>
-        </div>
-
-        <!-- Aviso ao morador: encomendas aguardando retirada -->
-        <div id="enc-aviso-morador" style="display:none;margin-bottom:16px"></div>
-
-        <div class="kpi-grid" id="enc-kpi"></div>
-        <div class="card">
-          <div class="card-head" style="flex-wrap:wrap;gap:12px">
-            <div class="card-title"><div class="card-icon">📦</div>Encomendas</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <input type="text" id="enc-busca" placeholder="🔍 Lote, morador, transportadora..." oninput="renderEncomendas()"
-                style="padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:210px;outline:none;">
-              <select id="enc-filtro-status" onchange="renderEncomendas()"
-                style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;">
-                <option value="">Todos os status</option>
-                <option value="aguardando">Aguardando retirada</option>
-                <option value="retirada">Retiradas</option>
-              </select>
-              <div style="display:flex;align-items:center;gap:6px">
-                <span style="font-size:12px;color:var(--text-2);white-space:nowrap">De:</span>
-                <input type="date" id="enc-data-ini" onchange="renderEncomendas()"
-                  style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;">
-                <span style="font-size:12px;color:var(--text-2);white-space:nowrap">Até:</span>
-                <input type="date" id="enc-data-fim" onchange="renderEncomendas()"
-                  style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;">
-              </div>
-              <button onclick="limparFiltrosEnc()" class="btn btn-ghost btn-sm" style="white-space:nowrap">✕ Limpar</button>
-            </div>
-          </div>
-          <div id="enc-lista"></div>
-        </div>
-      </div>
-
       <!-- ████ SAAS: CONDOMÍNIOS ████ -->
       <div class="panel" id="panel-saas">
         <div class="ph">
@@ -2851,6 +2787,98 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       </div>
 
       <!-- ████ RELATÓRIOS DE RESERVAS ████ -->
+      <!-- ████ ENCOMENDAS ████ -->
+      <div class="panel" id="panel-encomendas">
+        <div class="ph">
+          <div><div class="ph-title"><i class="fa-solid fa-box-open" style="color:var(--gold);margin-right:8px"></i>Encomendas</div><div class="ph-sub">Controle de entregas na portaria — aviso ao morador e registro de retirada</div></div>
+          <div class="ph-actions">
+            <button class="btn btn-gold" id="enc-btn-nova" onclick="abrirModalEnc(null)">+ Registrar Encomenda</button>
+          </div>
+        </div>
+        <div class="kpi-grid" id="enc-kpi"></div>
+        <div class="card" id="enc-filtros-card" style="margin-bottom:16px">
+          <div class="card-head" style="flex-wrap:wrap;gap:10px">
+            <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-magnifying-glass"></i></div>Filtros</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <input type="text" id="enc-busca" placeholder="Destinatário, unidade, remetente..." oninput="renderEncomendas()" style="padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:210px;outline:none">
+              <select id="enc-f-status" onchange="renderEncomendas()" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none">
+                <option value="">Todas</option>
+                <option value="aguardando">Aguardando retirada</option>
+                <option value="retirada">Retiradas</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="enc-lista"></div>
+      </div>
+
+      <!-- Modal Encomenda -->
+      <div class="modal-ov" id="m-enc">
+        <div class="modal">
+          <div class="modal-head"><div class="modal-title" id="menc-t">Registrar Encomenda</div>
+            <button class="modal-close" onclick="closeModal('m-enc')">&times;</button></div>
+          <div class="modal-sub">Cadastre a entrega recebida na portaria. O morador pode ser avisado por WhatsApp e e-mail.</div>
+          <input type="hidden" id="menc-id">
+          <div class="form-grid">
+            <div class="fg"><label>Unidade *</label>
+              <input type="text" id="menc-unidade" placeholder="Ex: K13, B02" oninput="encAutoPreencher()" style="text-transform:uppercase"></div>
+            <div class="fg"><label>Destinatário</label>
+              <select id="menc-dest-sel" onchange="encDestSelChange()"><option value="">— selecione a unidade —</option></select>
+              <input type="text" id="menc-destinatario" placeholder="Ou digite o nome" style="margin-top:6px"></div>
+            <div class="fg"><label>Remetente / Transportadora</label>
+              <input type="text" id="menc-remetente" placeholder="Ex: Correios, Mercado Livre, Shopee"></div>
+            <div class="fg"><label>Tipo</label>
+              <select id="menc-tipo">
+                <option>Caixa / Pacote</option><option>Envelope / Carta</option><option>Sedex / Correios</option>
+                <option>Documento</option><option>Comida / Delivery</option><option>Flores</option><option>Outro</option>
+              </select></div>
+            <div class="fg full" style="grid-column:1/-1">
+              <label>Foto da encomenda (opcional)</label>
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <input type="file" id="menc-foto-input" accept="image/*" capture="environment" onchange="encFotoSelecionar(event)" style="display:none">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('menc-foto-input').click()"><i class="fa-solid fa-camera"></i> Tirar / anexar foto</button>
+                <img id="menc-foto-prev" src="" alt="" style="display:none;width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+                <button type="button" id="menc-foto-rm" class="btn btn-ghost btn-sm" style="display:none;color:var(--red)" onclick="encFotoRemover()"><i class="fa-solid fa-trash"></i> Remover</button>
+              </div>
+            </div>
+            <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="menc-registrado" style="width:16px;height:16px;accent-color:var(--gold)"> Encomenda registrada</label>
+              <input type="text" id="menc-registro-num" placeholder="Nº do registro / rastreio" style="margin-top:6px"></div>
+            <div class="fg"><label><i class="fa-brands fa-whatsapp" style="color:var(--green-l)"></i> WhatsApp do morador (aviso)</label>
+              <input type="text" id="menc-whats" placeholder="11999999999 (opcional)"></div>
+            <div class="fg"><label><i class="fa-solid fa-envelope" style="color:var(--blue)"></i> E-mail do morador (aviso)</label>
+              <input type="text" id="menc-email" placeholder="email@exemplo.com (opcional)"></div>
+            <div class="fg full" style="grid-column:1/-1"><label>Observação</label>
+              <input type="text" id="menc-obs" placeholder="Ex: 2 volumes, frágil, deixado com o zelador..."></div>
+            <div class="fg full" style="grid-column:1/-1">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2)">
+                <input type="checkbox" id="menc-avisar" checked style="width:17px;height:17px;accent-color:var(--gold)">
+                Avisar o morador agora (WhatsApp/e-mail preenchidos)
+              </label>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-gold" onclick="salvarEnc()"><i class="fa-solid fa-box"></i> Registrar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Entrega (retirada inteligente) -->
+      <div class="modal-ov" id="m-enc-entrega">
+        <div class="modal">
+          <div class="modal-head"><div class="modal-title">Entregar encomenda(s)</div>
+            <button class="modal-close" onclick="closeModal('m-enc-entrega')">&times;</button></div>
+          <div class="modal-sub" id="ment-sub">Selecione o que será retirado agora.</div>
+          <div id="ment-lista" style="margin-bottom:14px"></div>
+          <div class="form-grid">
+            <div class="fg"><label>Quem retirou</label><input type="text" id="ment-quem" placeholder="Nome de quem retirou"></div>
+            <div class="fg"><label>Código de retirada (prova — opcional)</label><input type="text" id="ment-codigo" placeholder="Código que o morador apresentou"></div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-gold" onclick="confirmarEntrega()"><i class="fa-solid fa-check"></i> Confirmar entrega</button>
+          </div>
+        </div>
+      </div>
+
       <div class="panel" id="panel-relatorios">
         <div class="ph">
           <div><div class="ph-title"><i class="fa-solid fa-file-pdf" style="color:var(--gold);margin-right:8px"></i>Relatórios de Reservas</div><div class="ph-sub">Gere relatórios e comprovantes em PDF (imprimir ou salvar)</div></div>
@@ -4043,84 +4071,6 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   </div>
 </div>
 
-<!-- M: Encomenda -->
-<div class="modal-ov" id="m-enc">
-  <div class="modal">
-    <button class="modal-close-x" onclick="fecharModal('m-enc',salvarEnc,'en-lote')" title="Fechar">✕</button>
-    <div class="modal-title" id="en-t">Registrar Chegada de Encomenda</div>
-    <input type="hidden" id="en-id">
-    <datalist id="en-lote-dl"></datalist>
-    <div class="form-grid">
-      <div class="fg"><label>Lote / Unidade *</label><input type="text" id="en-lote" list="en-lote-dl" placeholder="Ex: A-12" oninput="encPreencheMorador()"></div>
-      <div class="fg"><label>Morador / Destinatário *</label><input type="text" id="en-morador" placeholder="Nome de quem recebe"></div>
-      <div class="fg"><label>Transportadora</label>
-        <select id="en-transp">
-          <option>Correios</option><option>Mercado Livre</option><option>Amazon</option>
-          <option>Shopee</option><option>AliExpress</option><option>Magalu</option>
-          <option>Shein</option><option>iFood</option><option>Rappi</option>
-          <option>Jadlog</option><option>Loggi</option><option>Total Express</option>
-          <option>Braspress</option><option>Retirada Balcão</option>
-          <option value="Outra">Outra</option>
-        </select>
-      </div>
-      <div class="fg"><label>Tipo de objeto</label>
-        <select id="en-tipo">
-          <option>Caixa</option><option>Envelope</option><option>Sacola</option>
-          <option>Sedex / PAC</option><option>Documento</option><option>Flores / Presente</option>
-          <option>Eletrodoméstico</option><option>Alimento / Delivery</option><option>Outro</option>
-        </select>
-      </div>
-      <div class="fg"><label>Remetente / Origem</label><input type="text" id="en-remet" placeholder="Loja ou remetente (opcional)"></div>
-      <div class="fg"><label>Código de rastreio</label><input type="text" id="en-rastreio" placeholder="Opcional"></div>
-      <div class="fg"><label>Local guardado</label>
-        <select id="en-local">
-          <option>Prateleira</option><option>Armário</option><option>Sala da portaria</option>
-          <option>Câmara fria</option><option>Depósito</option><option>Outro</option>
-        </select>
-      </div>
-      <div class="fg"><label>Recebido por (portaria)</label><input type="text" id="en-recebido" placeholder="Nome do porteiro"></div>
-      <div class="fg full"><label>Foto da encomenda <span style="color:var(--text-3);font-weight:400">(opcional)</span></label>
-        <input type="file" id="en-foto-file" accept="image/*" onchange="encFotoSelecionada(this)"
-          style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:12px;width:100%">
-        <div id="en-foto-prev" style="display:none;margin-top:8px;position:relative">
-          <img id="en-foto-img" src="" alt="Prévia" style="max-height:120px;border-radius:8px;border:1px solid var(--border)">
-          <button type="button" onclick="encRemoverFoto()" class="btn btn-red btn-sm" style="margin-left:10px;vertical-align:top">🗑️ Remover</button>
-        </div>
-      </div>
-      <div class="fg full"><label>Observações</label><input type="text" id="en-obs" placeholder="Volume, estado da embalagem, etc."></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-gold" onclick="salvarEnc()">💾 Salvar</button>
-    </div>
-  </div>
-</div>
-
-<!-- M: Retirada de Encomenda -->
-<div class="modal-ov" id="m-enc-ret">
-  <div class="modal">
-    <button class="modal-close-x" onclick="closeModal('m-enc-ret')" title="Fechar">✕</button>
-    <div class="modal-title">Confirmar Retirada</div>
-    <input type="hidden" id="enr-id">
-    <div id="enr-info" style="font-size:13px;color:var(--text-2);margin-bottom:14px"></div>
-    <div class="form-grid">
-      <div class="fg full"><label>Retirado por *</label><input type="text" id="enr-por" placeholder="Nome de quem está retirando"></div>
-      <div class="fg full"><label>Código informado pelo morador <span style="color:var(--text-3);font-weight:400">(opcional — gera comprovante)</span></label><input type="text" id="enr-cod" placeholder="Ex: 1234" inputmode="numeric" maxlength="4"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-gold" onclick="confirmarRetirada()">✓ Confirmar Retirada</button>
-    </div>
-  </div>
-</div>
-
-<!-- M: Foto da encomenda (visualização) -->
-<div class="modal-ov" id="enc-foto-modal">
-  <div class="modal" style="max-width:520px;text-align:center">
-    <button class="modal-close-x" onclick="closeModal('enc-foto-modal')" title="Fechar">✕</button>
-    <div class="modal-title">Foto da Encomenda</div>
-    <img id="enc-foto-modal-img" src="" alt="Foto da encomenda" style="max-width:100%;max-height:70vh;border-radius:12px;border:1px solid var(--border);margin-top:8px">
-  </div>
-</div>
-
 <!-- M: Regulamentos -->
 <div class="modal-ov" id="m-reg" onclick="event.stopPropagation()">
   <div class="modal" style="max-width:640px" onclick="event.stopPropagation()">
@@ -4373,7 +4323,7 @@ const SUPER_ADMINS = [ADMIN_EMAIL];
 const MODULOS_SAAS = {
   paineis:        { label:'Painéis & Dashboard',                grupos:['paineis'] },
   administrativo: { label:'Administrativo',                     grupos:['administrativo','cadastro'] },
-  operacoes:      { label:'Operações (Reservas, Comunicados…)', grupos:['operacoes','reservasmod','encomendasmod'] },
+  operacoes:      { label:'Operações (Reservas, Comunicados…)', grupos:['operacoes'] },
   sistema:        { label:'Sistema (Usuários, Configurações)',  grupos:['sistema'] },
 };
 
@@ -4998,9 +4948,9 @@ function closeSidebar(){
 /* ══ NAVIGATION ══ */
 const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Comunicados',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas'};
 const ACESSO_PAINEIS = {
-  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','relatorios','comunicados','eventos','encomendas','regulamento','usuarios','configuracoes','procedimentos'],
-  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','relatorios','comunicados','eventos','encomendas','regulamento','procedimentos'],
-  morador: ['inicio','reservas','comunicados','eventos','encomendas','regulamento','procedimentos']
+  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','comunicados','eventos','regulamento','usuarios','configuracoes','procedimentos'],
+  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','comunicados','eventos','regulamento','procedimentos'],
+  morador: ['inicio','reservas','encomendas','comunicados','eventos','regulamento','procedimentos']
 };
 /* ══════════════════════════
    CADASTRO DE UNIDADES
@@ -6128,15 +6078,11 @@ const SB_GRUPOS = {
     {id:'preventivas',   label:'Preventivas & Corretivas', icon:'fa-screwdriver-wrench',   acesso:['admin','gestor']},
     {id:'comunicados',   label:'Comunicados',              icon:'fa-bullhorn',             acesso:['admin','gestor','morador']},
     {id:'eventos',       label:'Eventos',                  icon:'fa-calendar-day',         acesso:['admin','gestor','morador']},
+    {id:'reservas',      label:'Reservas',                 icon:'fa-calendar-check',       acesso:['admin','gestor','morador']},
+    {id:'encomendas',    label:'Encomendas',               icon:'fa-box-open',             acesso:['admin','gestor','morador']},
+    {id:'relatorios',    label:'Relatórios de Reservas',   icon:'fa-file-pdf',             acesso:['admin','gestor']},
     {id:'regulamento',   label:'Regulamentos',             icon:'fa-scroll',               acesso:['admin','gestor','morador']},
     {id:'procedimentos', label:'Procedimentos',            icon:'fa-clipboard-list',       acesso:['admin','gestor','morador']},
-  ]},
-  reservasmod:{ titulo:'Reservas', itens:[
-    {id:'reservas',      label:'Reservas',                 icon:'fa-calendar-check',       acesso:['admin','gestor','morador']},
-    {id:'relatorios',    label:'Relatórios de Reservas',   icon:'fa-file-pdf',             acesso:['admin','gestor']},
-  ]},
-  encomendasmod:{ titulo:'Encomendas', itens:[
-    {id:'encomendas',    label:'Encomendas',               icon:'fa-box',                  acesso:['admin','gestor','morador']},
   ]},
   sistema:  { titulo:'Sistema', itens:[
     {id:'usuarios',      label:'Usu\u00e1rios',                 icon:'fa-users-gear',           acesso:['admin']},
@@ -6274,7 +6220,7 @@ function showPanel(id,el){
   try{ localStorage.setItem('apvc_last_panel', id); }catch(_){}
   sbFecharFlyout();
   closeSidebar();
-  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,encomendas:renderEncomendas,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},relatorios:renderRelatorios,regulamento:renderReg,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
+  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},encomendas:renderEncomendas,relatorios:renderRelatorios,regulamento:renderReg,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
 }
 
 function setTab(t){
@@ -6324,7 +6270,7 @@ const fmt=v=>(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 
 /* ═══════ INIT ═══════ */
 function initApp(){
-  initLotes(); initFuncs(); initFin(); initManut(); initComun(); initPrev(); initRes(); initReg(); initInadimplencia(); initEnc();
+  initLotes(); initFuncs(); initFin(); initManut(); initComun(); initPrev(); initRes(); initReg(); initInadimplencia(); initEncomendas();
   const nivel = window._userNivel || 'morador';
   const permitidos = ACESSO_PAINEIS[nivel] || ACESSO_PAINEIS.morador;
   const _mods = modulosAtivos();
@@ -6965,288 +6911,6 @@ function excluirComun(id){
 }
 
 /* ══════════════════════════
-   ENCOMENDAS (Portaria)
-══════════════════════════ */
-const ENC_PRAZO_DIAS = 7; // prazo de guarda antes de marcar como "atrasada"
-let _encFotoTmp = '';     // foto em processamento no modal (dataURL)
-
-function initEnc(){ if(!G('encomendas')) S('encomendas',[]); }
-
-function _encUsr(){ try{ return JSON.parse(localStorage.getItem('apvc_user')||'{}'); }catch(_){ return {}; } }
-function _encAdmin(){ const n = window._userNivel||'morador'; return n==='admin'||n==='gestor'; }
-function _encData(iso){ if(!iso) return '—'; const d=new Date(iso); return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
-function _encDias(iso){ if(!iso) return 0; return Math.floor((Date.now()-new Date(iso).getTime())/86400000); }
-function _encCodigo(){ return String(Math.floor(1000+Math.random()*9000)); }
-
-// Lista efetiva conforme o perfil (morador vê só as próprias)
-function _encVisiveis(){
-  const all = G('encomendas')||[];
-  if(_encAdmin()) return all;
-  const lote = (_encUsr().lote||'').toLowerCase().trim();
-  if(!lote) return [];
-  return all.filter(e => (e.lote||'').toLowerCase().trim() === lote);
-}
-
-function renderEncomendas(){
-  const isAdmin = _encAdmin();
-  const base = _encVisiveis();
-
-  // Botão "Registrar Chegada" — só portaria/admin/gestor
-  const btn = $('btn-nova-encomenda'); if(btn) btn.style.display = isAdmin ? 'inline-flex' : 'none';
-
-  // KPIs
-  const aguard = base.filter(e=>e.status==='aguardando');
-  const retir  = base.filter(e=>e.status==='retirada');
-  const atras  = aguard.filter(e=>_encDias(e.dataRecebida) >= ENC_PRAZO_DIAS);
-  const kpi = $('enc-kpi');
-  if(kpi){
-    kpi.innerHTML = `
-      <div class="kpi gold"><div class="kpi-label">${isAdmin?'Total de Encomendas':'Minhas Encomendas'}</div><div class="kpi-val">${base.length}</div></div>
-      <div class="kpi amber"><div class="kpi-label">Aguardando Retirada</div><div class="kpi-val">${aguard.length}</div></div>
-      <div class="kpi green"><div class="kpi-label">Retiradas</div><div class="kpi-val">${retir.length}</div></div>
-      <div class="kpi red"><div class="kpi-label">Atrasadas (+${ENC_PRAZO_DIAS}d)</div><div class="kpi-val">${atras.length}</div></div>`;
-  }
-
-  // Aviso ao morador com encomendas aguardando
-  const aviso = $('enc-aviso-morador');
-  if(aviso){
-    if(!isAdmin && aguard.length){
-      aviso.style.display='block';
-      aviso.innerHTML = `<div style="background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.35);border-radius:var(--radius);padding:14px 18px;display:flex;align-items:center;gap:12px">
-        <span style="font-size:24px">📦</span>
-        <div><div style="font-weight:700;color:var(--gold);font-size:14px">Você tem ${aguard.length} encomenda${aguard.length>1?'s':''} aguardando retirada na portaria!</div>
-        <div style="font-size:12px;color:var(--text-2);margin-top:2px">Informe o <strong>código de retirada</strong> ao porteiro para receber sua encomenda.</div></div>
-      </div>`;
-    } else { aviso.style.display='none'; aviso.innerHTML=''; }
-  }
-
-  // Filtros
-  const busca = semAcento($('enc-busca')?.value||'');
-  const fStatus = $('enc-filtro-status')?.value||'';
-  const dIni = $('enc-data-ini')?.value||'';
-  const dFim = $('enc-data-fim')?.value||'';
-  let its = base.filter(e=>{
-    if(fStatus && e.status!==fStatus) return false;
-    if(busca){
-      const alvo = semAcento([e.lote,e.morador,e.transp,e.tipo,e.remet,e.rastreio,e.recebidoPor,e.retiradoPor].join(' '));
-      if(!alvo.includes(busca)) return false;
-    }
-    if(dIni || dFim){
-      const d=(e.dataRecebida||'').slice(0,10);
-      if(dIni && d<dIni) return false;
-      if(dFim && d>dFim) return false;
-    }
-    return true;
-  });
-
-  // Aguardando primeiro, depois mais recentes
-  its.sort((a,b)=>{
-    if(a.status!==b.status) return a.status==='aguardando'?-1:1;
-    return new Date(b.dataRecebida||0)-new Date(a.dataRecebida||0);
-  });
-
-  const lista = $('enc-lista'); if(!lista) return;
-  if(!its.length){
-    lista.innerHTML='<div style="padding:26px;text-align:center;color:var(--text-3);font-size:13px">Nenhuma encomenda encontrada.</div>';
-    return;
-  }
-
-  const transpEmoji = t => ({'Correios':'📮','Mercado Livre':'🛒','Amazon':'📦','Shopee':'🛍️','iFood':'🍔','Rappi':'🛵','Flores / Presente':'💐','Documento':'📄'})[t]||'📦';
-
-  lista.innerHTML = its.map(e=>{
-    const atrasada = e.status==='aguardando' && _encDias(e.dataRecebida)>=ENC_PRAZO_DIAS;
-    const pill = e.status==='retirada'
-      ? '<span class="pill pill-green">✓ Retirada</span>'
-      : (atrasada ? '<span class="pill pill-red">⏰ Atrasada</span>' : '<span class="pill pill-amber">Aguardando</span>');
-
-    const foto = e.foto
-      ? `<img src="${e.foto}" alt="Foto" onclick="encVerFoto('${e.id}')" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;flex-shrink:0">`
-      : `<div style="width:52px;height:52px;border-radius:8px;background:var(--ink-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${transpEmoji(e.transp)}</div>`;
-
-    // Código de retirada — visível ao morador (aguardando) e ao admin
-    const codLinha = e.status==='aguardando' && e.codigo
-      ? `<div style="margin-top:4px;font-size:12px"><span style="color:var(--text-3)">Código de retirada:</span> <strong style="color:var(--gold);letter-spacing:2px">${e.codigo}</strong></div>`
-      : '';
-
-    const detalhe = e.status==='retirada'
-      ? `<div style="font-size:11px;color:var(--text-3);margin-top:3px">Retirado por <strong>${escU(e.retiradoPor||'—')}</strong> em ${_encData(e.dataRetirada)}${e.comprovado?' · <span style="color:var(--success,#4BAC6E)">código conferido ✓</span>':''}</div>`
-      : `<div style="font-size:11px;color:var(--text-3);margin-top:3px">Recebida em ${_encData(e.dataRecebida)}${e.recebidoPor?(' · por '+escU(e.recebidoPor)):''}</div>`;
-
-    let acoes = '';
-    if(_encAdmin()){
-      const btnRet = e.status==='aguardando' ? `<button class="btn btn-gold btn-sm" onclick="abrirRetirada('${e.id}')" title="Registrar retirada">✓ Retirar</button>` : '';
-      acoes = `<div style="display:flex;gap:6px;align-items:center;flex-shrink:0">${btnRet}
-        <button class="btn btn-ghost btn-sm" onclick="abrirModalEnc('${e.id}')" title="Editar">✏️</button>
-        <button class="btn btn-red btn-sm" onclick="excluirEnc('${e.id}')" title="Excluir">🗑️</button></div>`;
-    }
-
-    const infoExtra = [e.tipo, e.remet?('de '+escU(e.remet)):'', e.rastreio?('rastreio '+escU(e.rastreio)):'', 'em '+escU(e.local||'—')].filter(Boolean).join(' · ');
-
-    return `<div style="display:flex;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)">
-      ${foto}
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <strong style="color:var(--text);font-size:14px">Lote ${escU(e.lote||'—')}</strong>
-          <span style="color:var(--text-2);font-size:13px">${escU(e.morador||'')}</span>
-          ${pill}
-        </div>
-        <div style="font-size:12px;color:var(--text-2);margin-top:2px">${escU(e.transp||'Encomenda')} · ${infoExtra}</div>
-        ${detalhe}${codLinha}
-        ${e.obs?`<div style="font-size:11px;color:var(--text-3);margin-top:2px;font-style:italic">"${escU(e.obs)}"</div>`:''}
-      </div>
-      ${acoes}
-    </div>`;
-  }).join('');
-}
-
-function limparFiltrosEnc(){
-  ['enc-busca','enc-filtro-status','enc-data-ini','enc-data-fim'].forEach(id=>{ const el=$(id); if(el) el.value=''; });
-  renderEncomendas();
-}
-
-// Preenche o datalist de lotes e tenta autopreencher o nome do morador
-function _encPopLotes(){
-  const dl=$('en-lote-dl'); if(!dl) return;
-  const un=getUnidades();
-  dl.innerHTML=Object.keys(un).sort().map(c=>`<option value="${escU(c)}">`).join('');
-}
-function encPreencheMorador(){
-  const lote=($('en-lote')?.value||'').trim();
-  const campo=$('en-morador'); if(!campo) return;
-  if(campo.value.trim()) return; // não sobrescreve o que o porteiro digitou
-  const un=getUnidades(); const u=un[lote]||un[lote.toUpperCase()];
-  if(u && u.nome) campo.value=u.nome;
-}
-
-// Foto: redimensiona para miniatura leve (evita estourar o armazenamento)
-function encFotoSelecionada(input){
-  const f=input.files && input.files[0]; if(!f) return;
-  const reader=new FileReader();
-  reader.onload=ev=>{
-    const img=new Image();
-    img.onload=()=>{
-      const max=360, esc=Math.min(1,max/Math.max(img.width,img.height));
-      const c=document.createElement('canvas');
-      c.width=Math.round(img.width*esc); c.height=Math.round(img.height*esc);
-      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-      _encFotoTmp=c.toDataURL('image/jpeg',0.55);
-      const prev=$('en-foto-prev'), im=$('en-foto-img');
-      if(im) im.src=_encFotoTmp; if(prev) prev.style.display='block';
-    };
-    img.src=ev.target.result;
-  };
-  reader.readAsDataURL(f);
-}
-function encRemoverFoto(){
-  _encFotoTmp='';
-  const prev=$('en-foto-prev'), file=$('en-foto-file');
-  if(prev) prev.style.display='none';
-  if(file) file.value='';
-}
-
-function abrirModalEnc(id){
-  if(!_encAdmin()){ toast('⚠️ Apenas a portaria pode registrar encomendas.'); return; }
-  _encPopLotes();
-  const its=G('encomendas')||[], e=id?its.find(x=>x.id===id):null;
-  $('en-t').textContent = e?'Editar Encomenda':'Registrar Chegada de Encomenda';
-  $('en-id').value    = e?.id||'';
-  $('en-lote').value  = e?.lote||'';
-  $('en-morador').value = e?.morador||'';
-  $('en-transp').value = e?.transp||'Correios';
-  $('en-tipo').value  = e?.tipo||'Caixa';
-  $('en-remet').value = e?.remet||'';
-  $('en-rastreio').value = e?.rastreio||'';
-  $('en-local').value = e?.local||'Prateleira';
-  $('en-recebido').value = e?.recebidoPor || (_encUsr().nome||'');
-  $('en-obs').value   = e?.obs||'';
-  // Foto
-  _encFotoTmp = e?.foto||'';
-  const prev=$('en-foto-prev'), im=$('en-foto-img'), file=$('en-foto-file');
-  if(file) file.value='';
-  if(_encFotoTmp){ if(im) im.src=_encFotoTmp; if(prev) prev.style.display='block'; }
-  else if(prev) prev.style.display='none';
-  $('m-enc').classList.add('open');
-}
-
-function salvarEnc(){
-  const lote=($('en-lote').value||'').trim();
-  const morador=($('en-morador').value||'').trim();
-  if(!lote || !morador){ toast('⚠️ Informe o lote e o destinatário.'); return; }
-  const its=G('encomendas')||[], id=$('en-id').value;
-  const antiga = id ? its.find(x=>x.id===id) : null;
-  const obj={
-    id: id || ('enc'+Date.now()),
-    codigo: antiga?.codigo || _encCodigo(),
-    lote, morador,
-    transp: $('en-transp').value,
-    tipo: $('en-tipo').value,
-    remet: ($('en-remet').value||'').trim(),
-    rastreio: ($('en-rastreio').value||'').trim(),
-    local: $('en-local').value,
-    obs: ($('en-obs').value||'').trim(),
-    foto: _encFotoTmp||'',
-    recebidoPor: ($('en-recebido').value||'').trim(),
-    status: antiga?.status || 'aguardando',
-    dataRecebida: antiga?.dataRecebida || new Date().toISOString(),
-    retiradoPor: antiga?.retiradoPor||'',
-    dataRetirada: antiga?.dataRetirada||'',
-    codigoConf: antiga?.codigoConf||'',
-    comprovado: antiga?.comprovado||false
-  };
-  if(id){ const i=its.findIndex(x=>x.id===id); if(i>=0) its[i]=obj; }
-  else its.push(obj);
-  S('encomendas',its);
-  _encFotoTmp='';
-  closeModal('m-enc');
-  renderEncomendas();
-  toast(id?'✓ Encomenda atualizada.':`✓ Encomenda registrada. Código de retirada: ${obj.codigo}`);
-}
-
-function excluirEnc(id){
-  if(!_encAdmin()) return;
-  if(!confirm('Remover este registro de encomenda?')) return;
-  S('encomendas',(G('encomendas')||[]).filter(e=>e.id!==id));
-  renderEncomendas();
-  toast('✓ Encomenda removida.');
-}
-
-// Retirada
-function abrirRetirada(id){
-  if(!_encAdmin()){ toast('⚠️ Apenas a portaria confirma a retirada.'); return; }
-  const e=(G('encomendas')||[]).find(x=>x.id===id); if(!e) return;
-  $('enr-id').value=id;
-  $('enr-info').innerHTML=`<strong>Lote ${escU(e.lote)}</strong> · ${escU(e.morador)}<br>${escU(e.transp)} · ${escU(e.tipo||'')} · recebida em ${_encData(e.dataRecebida)}`;
-  $('enr-por').value=e.morador||'';
-  const cod=$('enr-cod'); if(cod) cod.value='';
-  $('m-enc-ret').classList.add('open');
-}
-function confirmarRetirada(){
-  const id=$('enr-id').value;
-  const por=($('enr-por').value||'').trim();
-  if(!por){ toast('⚠️ Informe quem está retirando.'); return; }
-  const its=G('encomendas')||[]; const i=its.findIndex(x=>x.id===id);
-  if(i<0) return;
-  const codInf=($('enr-cod')?.value||'').trim();
-  its[i].status='retirada';
-  its[i].retiradoPor=por;
-  its[i].dataRetirada=new Date().toISOString();
-  its[i].codigoConf=codInf;
-  its[i].comprovado = !!codInf && codInf===its[i].codigo;
-  S('encomendas',its);
-  closeModal('m-enc-ret');
-  renderEncomendas();
-  toast('✓ Retirada registrada'+(its[i].comprovado?' com código conferido.':'.'));
-}
-
-// Visualizar foto ampliada
-function encVerFoto(id){
-  const e=(G('encomendas')||[]).find(x=>x.id===id); if(!e||!e.foto) return;
-  const ov=$('enc-foto-modal');
-  $('enc-foto-modal-img').src=e.foto;
-  ov.classList.add('open');
-}
-
-/* ══════════════════════════
    PREVENTIVAS & CORRETIVAS
 ══════════════════════════ */
 function initPrev(){
@@ -7738,6 +7402,266 @@ function renderReservas(){
     lista.appendChild(div);
   });
   atualizarBadgePendentes();
+}
+
+/* ══════════════════════════
+   ENCOMENDAS (estilo ZapCondo)
+══════════════════════════ */
+function initEncomendas(){ if(!Array.isArray(G('encomendas'))) DB_CACHE['encomendas']=(function(){try{return JSON.parse(localStorage.getItem('apvc_encomendas')||'[]');}catch(_){return [];}})(); }
+
+function _encIsMorador(){ var n=window._userNivel||'morador'; return n!=='admin'&&n!=='gestor'; }
+function _encUnidadeMorador(){ try{ return (JSON.parse(localStorage.getItem('apvc_user')||'{}').lote||'').trim().toUpperCase(); }catch(_){ return ''; } }
+
+// Lista todas as pessoas cadastradas na unidade (proprietário, morador e dependentes)
+function encPessoasDaUnidade(uni){
+  var u=getUnidades()[uni.toUpperCase()]; var pessoas=[]; var vistos={};
+  if(!u) return pessoas;
+  var conds=G('condominos')||{};
+  [u.proprietario,u.morador].forEach(function(cod){
+    if(!cod) return;
+    var c=conds[cod]; if(!c) return;
+    var tel=c.telefone||((c.telefones&&c.telefones[0])?(c.telefones[0].numero||''):'');
+    if(c.nome && !vistos[c.nome]){ vistos[c.nome]=1; pessoas.push({nome:c.nome, tel:tel, email:c.email||''}); }
+    (c.dependentes||[]).forEach(function(d){ if(d.nome && !vistos[d.nome]){ vistos[d.nome]=1; pessoas.push({nome:d.nome, tel:d.telefone||tel, email:d.email||c.email||''}); } });
+  });
+  return pessoas;
+}
+
+// Preenche o seletor de destinatários e contatos ao informar a unidade
+function encAutoPreencher(){
+  var uni=($('menc-unidade')?$('menc-unidade').value:'').trim().toUpperCase();
+  var sel=$('menc-dest-sel'); if(!sel) return;
+  if(!uni){ sel.innerHTML='<option value="">— selecione a unidade —</option>'; return; }
+  var pessoas=encPessoasDaUnidade(uni);
+  window._encPessoas=pessoas;
+  if(!pessoas.length){ sel.innerHTML='<option value="">(sem cadastro — digite abaixo)</option>'; return; }
+  sel.innerHTML='<option value="">— quem vai receber —</option>'+pessoas.map(function(p,i){return '<option value="'+i+'">'+p.nome+'</option>';}).join('')+'<option value="_outro">Outro (digitar)</option>';
+}
+function encDestSelChange(){
+  var sel=$('menc-dest-sel'); if(!sel) return;
+  var v=sel.value; if(v===''||v==='_outro'){ return; }
+  var p=(window._encPessoas||[])[+v]; if(!p) return;
+  if($('menc-destinatario')) $('menc-destinatario').value=p.nome||'';
+  if($('menc-whats')) $('menc-whats').value=p.tel||'';
+  if($('menc-email')) $('menc-email').value=p.email||'';
+}
+
+// Foto da encomenda
+var _encFoto='';
+function encFotoSelecionar(ev){
+  var f=ev.target.files&&ev.target.files[0]; if(!f) return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    // redimensiona para não pesar
+    var img=new Image();
+    img.onload=function(){
+      var max=800, w=img.width, h=img.height;
+      if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} }
+      var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      _encFoto=cv.toDataURL('image/jpeg',0.72);
+      if($('menc-foto-prev')){ $('menc-foto-prev').src=_encFoto; $('menc-foto-prev').style.display=''; }
+      if($('menc-foto-rm')) $('menc-foto-rm').style.display='';
+    };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+}
+function encFotoRemover(){ _encFoto=''; if($('menc-foto-prev')){$('menc-foto-prev').src='';$('menc-foto-prev').style.display='none';} if($('menc-foto-rm'))$('menc-foto-rm').style.display='none'; if($('menc-foto-input'))$('menc-foto-input').value=''; }
+
+function _encGerarCodigo(){ return String(Math.floor(1000+Math.random()*9000)); }
+function _encProxNumero(){ var all=G('encomendas')||[]; var mx=0; all.forEach(function(e){ if(e.numero>mx) mx=e.numero; }); return mx+1; }
+
+function abrirModalEnc(id){
+  initEncomendas();
+  var all=G('encomendas')||[], e=id?all.find(x=>x.id===id):null;
+  $('menc-t').textContent = e?'Editar Encomenda':'Registrar Encomenda';
+  $('menc-id').value=e?e.id:'';
+  $('menc-unidade').value=e?e.unidade:'';
+  $('menc-destinatario').value=e?e.destinatario:'';
+  $('menc-remetente').value=e?e.remetente:'';
+  if($('menc-tipo')) selVal($('menc-tipo'), e?e.tipo:'Caixa / Pacote');
+  $('menc-whats').value=e?e.whats:'';
+  $('menc-email').value=e?e.email:'';
+  $('menc-obs').value=e?e.obs:'';
+  if($('menc-registrado')) $('menc-registrado').checked=e?!!e.registrado:false;
+  if($('menc-registro-num')) $('menc-registro-num').value=e?(e.numeroRegistro||''):'';
+  encFotoRemover(); _encFoto=e?(e.foto||''):''; if(_encFoto){ if($('menc-foto-prev')){$('menc-foto-prev').src=_encFoto;$('menc-foto-prev').style.display='';} if($('menc-foto-rm'))$('menc-foto-rm').style.display=''; }
+  encAutoPreencher();
+  if($('menc-avisar')) $('menc-avisar').checked = e?false:true;
+  $('m-enc').classList.add('open');
+}
+
+function salvarEnc(){
+  initEncomendas();
+  var uni=($('menc-unidade').value||'').trim().toUpperCase();
+  if(!uni){ toast('⚠️ Informe a unidade.'); return; }
+  var all=G('encomendas')||[], id=$('menc-id').value;
+  var usr=JSON.parse(localStorage.getItem('apvc_user')||'{}');
+  var obj={
+    id: id?+id:Date.now(),
+    numero: id?0:_encProxNumero(),
+    unidade:uni,
+    destinatario:$('menc-destinatario').value.trim(),
+    remetente:$('menc-remetente').value.trim(),
+    tipo:$('menc-tipo')?$('menc-tipo').value:'',
+    whats:$('menc-whats').value.trim(),
+    email:$('menc-email').value.trim(),
+    obs:$('menc-obs').value.trim(),
+    foto:_encFoto||'',
+    registrado: $('menc-registrado')?$('menc-registrado').checked:false,
+    numeroRegistro: $('menc-registro-num')?$('menc-registro-num').value.trim():'',
+    codigo: id?'':_encGerarCodigo(),
+    status:'aguardando',
+    recebidoEm:new Date().toISOString(),
+    recebidoPor:usr.nome||usr.email||'Portaria',
+    retiradoEm:null, retiradoPor:null, retiradoCodigo:false
+  };
+  if(id){ var i=all.findIndex(x=>x.id===+id); if(i>=0){ var o=all[i]; obj.numero=o.numero; obj.codigo=o.codigo; obj.status=o.status; obj.recebidoEm=o.recebidoEm; obj.recebidoPor=o.recebidoPor; obj.retiradoEm=o.retiradoEm; obj.retiradoPor=o.retiradoPor; obj.retiradoCodigo=o.retiradoCodigo; all[i]=obj; } }
+  else all.push(obj);
+  S('encomendas', all);
+  closeModal('m-enc'); renderEncomendas();
+  toast('✓ Encomenda registrada.');
+  if(!id && $('menc-avisar') && $('menc-avisar').checked) _encNotificar(obj);
+}
+
+function _encNotificar(e){
+  var msg='📦 Você tem uma encomenda na portaria!\n\nUnidade: '+e.unidade+
+    (e.destinatario?('\nDestinatário: '+e.destinatario):'')+
+    (e.remetente?('\nDe: '+e.remetente):'')+
+    (e.tipo?('\nTipo: '+e.tipo):'')+
+    (e.obs?('\nObs: '+e.obs):'')+
+    (e.codigo?('\n\n🔑 Código de retirada: '+e.codigo+'\n(apresente na portaria para retirar)'):'')+
+    '\n\nRetire na portaria. — '+nomeCondominioAtual();
+  if(e.whats && typeof enviarWhatsApp==='function'){
+    enviarWhatsApp(e.whats, msg).then(function(r){ if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' WhatsApp encomenda '+e.unidade+(r.ok?'':': '+r.erro)); });
+  }
+  if(e.email && typeof enviarEmail==='function'){
+    enviarEmail(e.email, 'Encomenda na portaria — '+nomeCondominioAtual(), msg).then(function(r){ if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' E-mail encomenda '+e.unidade+(r.ok?'':': '+r.erro)); });
+  }
+  if(!e.whats && !e.email) toast('ℹ️ Sem WhatsApp/e-mail — morador não foi avisado automaticamente.');
+}
+
+function reavisarEnc(id){
+  var e=(G('encomendas')||[]).find(x=>x.id===id); if(!e) return;
+  _encNotificar(e); toast('🔔 Aviso reenviado.');
+}
+
+// Entrega inteligente: abre modal com esta encomenda + outras pendentes da mesma unidade
+var _entregaUnidade='';
+function marcarRetirada(id){
+  var e=(G('encomendas')||[]).find(x=>x.id===id); if(!e) return;
+  _entregaUnidade=e.unidade;
+  var pend=(G('encomendas')||[]).filter(function(x){ return x.unidade===e.unidade && x.status==='aguardando'; });
+  $('ment-sub').textContent='Unidade '+e.unidade+' — '+pend.length+' encomenda(s) pendente(s). Marque o que será retirado.';
+  $('ment-quem').value=e.destinatario||'';
+  $('ment-codigo').value='';
+  $('ment-lista').innerHTML=pend.map(function(x){
+    var marcado = x.id===id ? 'checked' : (pend.length<=1?'checked':'');
+    return '<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer">'+
+      '<input type="checkbox" class="ment-chk" value="'+x.id+'" '+marcado+' style="width:17px;height:17px;accent-color:var(--gold)">'+
+      '<div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:600">#'+(x.numero||'—')+' · '+(x.tipo||'')+(x.remetente?(' · '+x.remetente):'')+'</div>'+
+      '<div style="font-size:11px;color:var(--text-3)">Para: '+(x.destinatario||'—')+' · '+_encFmtDataHora(x.recebidoEm)+'</div></div></label>';
+  }).join('');
+  $('m-enc-entrega').classList.add('open');
+}
+function confirmarEntrega(){
+  var ids=[].slice.call(document.querySelectorAll('.ment-chk:checked')).map(function(c){return +c.value;});
+  if(!ids.length){ toast('⚠️ Marque ao menos uma encomenda.'); return; }
+  var quem=($('ment-quem').value||'').trim()||'Não informado';
+  var codInput=($('ment-codigo').value||'').trim();
+  var all=G('encomendas')||[];
+  ids.forEach(function(id){
+    var i=all.findIndex(x=>x.id===id); if(i<0) return;
+    all[i].status='retirada'; all[i].retiradoEm=new Date().toISOString(); all[i].retiradoPor=quem;
+    all[i].retiradoCodigo = !!(codInput && all[i].codigo && codInput===all[i].codigo);
+  });
+  S('encomendas', all);
+  closeModal('m-enc-entrega'); renderEncomendas();
+  var comProva = codInput ? ' (com código)' : '';
+  toast('✓ '+ids.length+' entrega(s) registrada(s)'+comProva+'.');
+}
+
+function excluirEnc(id){
+  if(!confirm('Excluir esta encomenda?')) return;
+  var all=(G('encomendas')||[]).filter(x=>x.id!==id);
+  S('encomendas', all); renderEncomendas(); toast('✓ Encomenda removida.');
+}
+
+function _encFmtDataHora(iso){ if(!iso) return '—'; try{ return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(_){ return '—'; } }
+
+function renderEncomendas(){
+  initEncomendas();
+  var isMor=_encIsMorador();
+  var uniMor=_encUnidadeMorador();
+  var btn=$('enc-btn-nova'); if(btn) btn.style.display=isMor?'none':'';
+  var fcard=$('enc-filtros-card');
+  var busca=($('enc-busca')?$('enc-busca').value:'').toLowerCase();
+  var fSt=$('enc-f-status')?$('enc-f-status').value:'';
+  var all=G('encomendas')||[];
+  var base=isMor ? all.filter(function(e){ return String(e.unidade||'').toUpperCase()===uniMor; }) : all;
+  var its=base.filter(function(e){
+    var txt=((e.unidade||'')+(e.destinatario||'')+(e.remetente||'')+(e.obs||'')).toLowerCase();
+    return (!busca||txt.indexOf(busca)>=0) && (!fSt||e.status===fSt);
+  });
+  its.sort(function(a,b){ if(a.status!==b.status) return a.status==='aguardando'?-1:1; return (b.recebidoEm||'').localeCompare(a.recebidoEm||''); });
+
+  // KPIs
+  var hoje=hojeLocal();
+  var aguard=base.filter(e=>e.status==='aguardando').length;
+  var retHoje=base.filter(e=>e.status==='retirada'&&(e.retiradoEm||'').slice(0,10)===hoje).length;
+  var mes=base.filter(e=>(e.recebidoEm||'').slice(0,7)===hoje.slice(0,7)).length;
+  if($('enc-kpi')) $('enc-kpi').innerHTML=
+    '<div class="kpi amber"><div class="kpi-label">Aguardando retirada</div><div class="kpi-val">'+aguard+'</div></div>'+
+    '<div class="kpi green"><div class="kpi-label">Retiradas hoje</div><div class="kpi-val">'+retHoje+'</div></div>'+
+    '<div class="kpi gold"><div class="kpi-label">Recebidas no mês</div><div class="kpi-val">'+mes+'</div></div>'+
+    '<div class="kpi blue"><div class="kpi-label">Total registradas</div><div class="kpi-val">'+base.length+'</div></div>';
+
+  var lista=$('enc-lista'); if(!lista) return;
+  if(isMor){
+    var head=document.createElement('div');
+    head.style.cssText='display:flex;align-items:center;gap:12px;padding:12px 18px;border-radius:10px;margin-bottom:14px;background:rgba(232,119,34,0.08);border:1px solid rgba(232,119,34,0.2)';
+    head.innerHTML='<i class="fa-solid fa-box-open" style="font-size:20px;color:var(--gold)"></i><div><div style="font-size:13px;font-weight:600;color:var(--gold)">Suas encomendas</div><div style="font-size:12px;color:var(--text-3)">Encomendas recebidas na portaria para a sua unidade. Retire na portaria.</div></div>';
+    lista.innerHTML=''; lista.appendChild(head);
+  } else lista.innerHTML='';
+
+  if(!its.length){ lista.innerHTML+='<div style="padding:34px;text-align:center;color:var(--text-2)">Nenhuma encomenda '+(fSt==='aguardando'?'aguardando retirada':fSt==='retirada'?'retirada':'registrada')+'.</div>'; return; }
+
+  its.forEach(function(e){
+    var aguardando=e.status==='aguardando';
+    var div=document.createElement('div');
+    div.style.cssText='border:1px solid '+(aguardando?'rgba(240,168,67,0.35)':'var(--border)')+';border-radius:12px;padding:16px 18px;margin-bottom:12px;background:var(--card)';
+    div.innerHTML=
+      '<div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">'+
+        (e.foto
+          ? '<img src="'+e.foto+'" onclick="window.open(\'\').document.write(\'<img src=&quot;'+e.foto+'&quot; style=&quot;max-width:100%&quot;>\')" style="width:56px;height:56px;object-fit:cover;border-radius:10px;flex-shrink:0;cursor:zoom-in;border:1px solid var(--border)">'
+          : '<div style="width:44px;height:44px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:'+(aguardando?'rgba(240,168,67,0.15)':'rgba(42,157,111,0.15)')+'"><i class="fa-solid '+(aguardando?'fa-box':'fa-circle-check')+'" style="font-size:18px;color:'+(aguardando?'var(--amber)':'var(--green-l)')+'"></i></div>')+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">'+
+            '<span style="font-size:15px;font-weight:700;color:var(--text)">'+(e.numero?('#'+e.numero+' · '):'')+'Unidade '+(e.unidade||'—')+'</span>'+
+            '<span class="pill '+(aguardando?'pill-amber':'pill-green')+'" style="font-size:11px">'+(aguardando?'Aguardando retirada':'Retirada')+'</span>'+
+            (e.registrado?'<span class="pill pill-blue" style="font-size:11px">Registrada'+(e.numeroRegistro?(' '+e.numeroRegistro):'')+'</span>':'')+
+            (aguardando&&e.codigo?('<span style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.3);border-radius:6px;padding:2px 8px">🔑 Código: '+e.codigo+'</span>'):'')+
+          '</div>'+
+          '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:4px 18px;font-size:13px">'+
+            '<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Destinatário</span><div style="color:var(--text)">'+(e.destinatario||'—')+'</div></div>'+
+            '<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Remetente</span><div style="color:var(--text)">'+(e.remetente||'—')+'</div></div>'+
+            '<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Tipo</span><div style="color:var(--text)">'+(e.tipo||'—')+'</div></div>'+
+            '<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Recebida</span><div style="color:var(--text)">'+_encFmtDataHora(e.recebidoEm)+'</div></div>'+
+            (e.status==='retirada'?('<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Retirada por</span><div style="color:var(--green-l)">'+(e.retiradoPor||'—')+'</div></div>'+
+            '<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Retirada em</span><div style="color:var(--text)">'+_encFmtDataHora(e.retiradoEm)+'</div></div>'):'')+
+          '</div>'+
+          (e.obs?('<div style="font-size:12.5px;color:var(--text-2);font-style:italic;margin-top:8px;border-left:2px solid var(--border-h);padding-left:10px">'+e.obs+'</div>'):'')+
+        '</div>'+
+        (isMor?'':('<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">'+
+          (aguardando?('<button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="marcarRetirada('+e.id+')"><i class="fa-solid fa-check"></i> Retirada</button>'+
+                       '<button class="btn btn-ghost btn-sm" onclick="reavisarEnc('+e.id+')"><i class="fa-solid fa-bell"></i> Reavisar</button>'):'')+
+          '<button class="btn btn-ghost btn-sm" onclick="abrirModalEnc('+e.id+')">Editar</button>'+
+          '<button class="btn btn-red btn-sm" onclick="excluirEnc('+e.id+')">Excluir</button>'+
+        '</div>'))+
+      '</div>';
+    lista.appendChild(div);
+  });
 }
 
 function limparFiltrosRes(){
