@@ -32,6 +32,28 @@ function esc(s: string): string {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// ── Evolution API (self-hosted) ──
+async function enviarEvolution(to: string, message: string) {
+  const URL = (Deno.env.get("EVOLUTION_URL") ?? "").replace(/\/+$/, "");
+  const KEY = Deno.env.get("EVOLUTION_KEY");
+  const INSTANCE = Deno.env.get("EVOLUTION_INSTANCE");
+  if (!URL || !KEY || !INSTANCE) {
+    return J({ error: "EVOLUTION_URL/EVOLUTION_KEY/EVOLUTION_INSTANCE nao configurados nos Secrets." }, 500);
+  }
+  let num = String(to).replace(/\D/g, "");
+  if (!num) return J({ error: "Numero invalido." }, 400);
+  if (!num.startsWith("55")) num = "55" + num;
+
+  const resp = await fetch(`${URL}/message/sendText/${INSTANCE}`, {
+    method: "POST",
+    headers: { apikey: KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ number: num, text: message ?? "" }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) return J({ error: (data as any)?.message || (data as any)?.error || "Falha no Evolution.", detalhe: data }, 502);
+  return J({ ok: true, id: (data as any)?.key?.id });
+}
+
 // ── WhatsApp Cloud API (template message) ──
 async function enviarWhatsapp(to: string, message: string) {
   const TOKEN = Deno.env.get("WHATSAPP_TOKEN");
@@ -91,10 +113,11 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
     const body = await req.json();
-    const { channel, to, subject, message, html } = body ?? {};
+    const { channel, provider, to, subject, message, html } = body ?? {};
     if (!to) return J({ error: "Campo 'to' e obrigatorio." }, 400);
 
     if (channel === "whatsapp") {
+      if (provider === "evolution") return await enviarEvolution(to, message ?? "");
       return await enviarWhatsapp(to, message ?? "");
     }
     if (!subject) return J({ error: "Campo 'subject' e obrigatorio para e-mail." }, 400);
