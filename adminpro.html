@@ -2858,16 +2858,21 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
             </div>
             <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="menc-registrado" style="width:16px;height:16px;accent-color:var(--gold)"> Encomenda registrada</label>
               <input type="text" id="menc-registro-num" placeholder="Nº do registro / rastreio" style="margin-top:6px"></div>
-            <div class="fg"><label><i class="fa-brands fa-whatsapp" style="color:var(--green-l)"></i> WhatsApp do morador (aviso)</label>
-              <input type="text" id="menc-whats" placeholder="11999999999 (opcional)"></div>
-            <div class="fg"><label><i class="fa-solid fa-envelope" style="color:var(--blue)"></i> E-mail do morador (aviso)</label>
-              <input type="text" id="menc-email" placeholder="email@exemplo.com (opcional)"></div>
+            <div class="fg"><label><i class="fa-brands fa-whatsapp" style="color:var(--green-l)"></i> WhatsApp(s) para aviso</label>
+              <input type="text" id="menc-whats" placeholder="11999999999, 11988887777...">
+              <span style="font-size:11px;color:var(--text-3)">Vários números separados por vírgula.</span></div>
+            <div class="fg"><label><i class="fa-solid fa-envelope" style="color:var(--blue)"></i> E-mail(s) para aviso</label>
+              <input type="text" id="menc-email" placeholder="email1@x.com, email2@x.com"></div>
             <div class="fg full" style="grid-column:1/-1"><label>Observação</label>
               <input type="text" id="menc-obs" placeholder="Ex: 2 volumes, frágil, deixado com o zelador..."></div>
-            <div class="fg full" style="grid-column:1/-1">
+            <div class="fg full" style="grid-column:1/-1;display:flex;flex-direction:column;gap:8px">
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2)">
                 <input type="checkbox" id="menc-avisar" checked style="width:17px;height:17px;accent-color:var(--gold)">
-                Avisar o morador agora (WhatsApp/e-mail preenchidos)
+                Avisar agora (WhatsApp/e-mail acima)
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2)">
+                <input type="checkbox" id="menc-avisar-todos" style="width:17px;height:17px;accent-color:var(--gold)">
+                Avisar <b>todos os moradores da unidade</b> (usa o WhatsApp de cada um do cadastro)
               </label>
             </div>
           </div>
@@ -7576,6 +7581,7 @@ function abrirModalEnc(id){
   encFotoRemover(); _encFoto=e?(e.foto||''):''; if(_encFoto){ if($('menc-foto-prev')){$('menc-foto-prev').src=_encFoto;$('menc-foto-prev').style.display='';} if($('menc-foto-rm'))$('menc-foto-rm').style.display=''; }
   encAutoPreencher();
   if($('menc-avisar')) $('menc-avisar').checked = e?false:true;
+  if($('menc-avisar-todos')) $('menc-avisar-todos').checked = false;
   $('m-enc').classList.add('open');
 }
 
@@ -7585,6 +7591,11 @@ function salvarEnc(){
   if(!uni){ toast('⚠️ Informe a unidade.'); return; }
   var all=G('encomendas')||[], id=$('menc-id').value;
   var usr=JSON.parse(localStorage.getItem('apvc_user')||'{}');
+  // "Avisar todos da unidade": junta os WhatsApp/e-mails de todo mundo cadastrado na unidade
+  var whatsExtra=[], emailExtra=[];
+  if($('menc-avisar-todos') && $('menc-avisar-todos').checked){
+    (encPessoasDaUnidade(uni)||[]).forEach(function(p){ if(p.tel) whatsExtra.push(p.tel); if(p.email) emailExtra.push(p.email); });
+  }
   var obj={
     id: id?+id:Date.now(),
     numero: id?0:_encProxNumero(),
@@ -7594,6 +7605,7 @@ function salvarEnc(){
     tipo:$('menc-tipo')?$('menc-tipo').value:'',
     whats:$('menc-whats').value.trim(),
     email:$('menc-email').value.trim(),
+    whatsExtra:whatsExtra, emailExtra:emailExtra,
     obs:$('menc-obs').value.trim(),
     foto:_encFoto||'',
     registrado: $('menc-registrado')?$('menc-registrado').checked:false,
@@ -7620,6 +7632,11 @@ function _encRegistraAviso(id, canal, dest, ok, erro){
   S('encomendas', all);
   if(currentPanel==='encomendas') renderEncomendas();
 }
+// separa uma string "a, b; c" em lista limpa e sem duplicados
+function _encSplit(v){
+  return String(v||'').split(/[,;]+/).map(function(x){return x.trim();}).filter(Boolean)
+    .filter(function(x,i,arr){return arr.indexOf(x)===i;});
+}
 function _encNotificar(e){
   var msg='📦 Você tem uma encomenda na portaria!\n\nUnidade: '+e.unidade+
     (e.destinatario?('\nDestinatário: '+e.destinatario):'')+
@@ -7628,13 +7645,20 @@ function _encNotificar(e){
     (e.obs?('\nObs: '+e.obs):'')+
     (e.codigo?('\n\n🔑 Código de retirada: '+e.codigo+'\n(apresente na portaria para retirar)'):'')+
     '\n\nRetire na portaria. — '+nomeCondominioAtual();
-  if(e.whats && typeof enviarWhatsApp==='function'){
-    enviarWhatsApp(e.whats, msg).then(function(r){ _encRegistraAviso(e.id,'WhatsApp',e.whats,r.ok,r.erro); if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' WhatsApp encomenda '+e.unidade+(r.ok?'':': '+r.erro)); });
-  }
-  if(e.email && typeof enviarEmail==='function'){
-    enviarEmail(e.email, 'Encomenda na portaria — '+nomeCondominioAtual(), msg).then(function(r){ _encRegistraAviso(e.id,'E-mail',e.email,r.ok,r.erro); if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' E-mail encomenda '+e.unidade+(r.ok?'':': '+r.erro)); });
-  }
-  if(!e.whats && !e.email) toast('ℹ️ Sem WhatsApp/e-mail — morador não foi avisado automaticamente.');
+  // números/e-mails podem ser vários (vírgula) + os de "todos da unidade" (e.whatsExtra/emailExtra)
+  var nums=_encSplit(e.whats).concat(e.whatsExtra||[]);
+  nums=nums.filter(function(x,i,arr){return arr.indexOf(x)===i;});
+  var emails=_encSplit(e.email).concat(e.emailExtra||[]);
+  emails=emails.filter(function(x,i,arr){return arr.indexOf(x)===i;});
+  nums.forEach(function(num){
+    if(typeof enviarWhatsApp!=='function') return;
+    enviarWhatsApp(num, msg).then(function(r){ _encRegistraAviso(e.id,'WhatsApp',num,r.ok,r.erro); if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' WhatsApp encomenda '+e.unidade+' ('+num+')'+(r.ok?'':': '+r.erro)); });
+  });
+  emails.forEach(function(em){
+    if(typeof enviarEmail!=='function') return;
+    enviarEmail(em, 'Encomenda na portaria — '+nomeCondominioAtual(), msg).then(function(r){ _encRegistraAviso(e.id,'E-mail',em,r.ok,r.erro); if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' E-mail encomenda '+e.unidade+' ('+em+')'+(r.ok?'':': '+r.erro)); });
+  });
+  if(!nums.length && !emails.length) toast('ℹ️ Sem WhatsApp/e-mail — morador não foi avisado automaticamente.');
 }
 
 // "Ver notificações" — comprovante de que o morador foi avisado
