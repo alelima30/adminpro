@@ -7528,14 +7528,21 @@ function encAutoPreencher(){
   window._encPessoas=pessoas;
   if(!pessoas.length){ sel.innerHTML='<option value="">(sem cadastro — digite abaixo)</option>'; return; }
   sel.innerHTML='<option value="">— quem vai receber —</option>'+pessoas.map(function(p,i){return '<option value="'+i+'">'+p.nome+'</option>';}).join('')+'<option value="_outro">Outro (digitar)</option>';
+  // Carrega TODOS os WhatsApp/e-mails da unidade, separados por vírgula (já pronto p/ avisar todos)
+  var nums=[], emails=[];
+  pessoas.forEach(function(p){
+    _encSplit(p.tel).forEach(function(t){ if(nums.indexOf(t)<0) nums.push(t); });
+    _encSplit(p.email).forEach(function(em){ if(emails.indexOf(em)<0) emails.push(em); });
+  });
+  if($('menc-whats')) $('menc-whats').value=nums.join(', ');
+  if($('menc-email')) $('menc-email').value=emails.join(', ');
 }
 function encDestSelChange(){
   var sel=$('menc-dest-sel'); if(!sel) return;
   var v=sel.value; if(v===''||v==='_outro'){ return; }
   var p=(window._encPessoas||[])[+v]; if(!p) return;
+  // Só define o NOME do destinatário — mantém TODOS os números já carregados da unidade
   if($('menc-destinatario')) $('menc-destinatario').value=p.nome||'';
-  if($('menc-whats')) $('menc-whats').value=p.tel||'';
-  if($('menc-email')) $('menc-email').value=p.email||'';
 }
 
 // Foto da encomenda
@@ -7579,7 +7586,11 @@ function abrirModalEnc(id){
   if($('menc-registrado')) $('menc-registrado').checked=e?!!e.registrado:false;
   if($('menc-registro-num')) $('menc-registro-num').value=e?(e.numeroRegistro||''):'';
   encFotoRemover(); _encFoto=e?(e.foto||''):''; if(_encFoto){ if($('menc-foto-prev')){$('menc-foto-prev').src=_encFoto;$('menc-foto-prev').style.display='';} if($('menc-foto-rm'))$('menc-foto-rm').style.display=''; }
-  encAutoPreencher();
+  encAutoPreencher(); // carrega todos os números da unidade (para nova encomenda)
+  if(e){ // editando: restaura os contatos salvos (não sobrescreve com os da unidade)
+    if($('menc-whats')) $('menc-whats').value=e.whats||'';
+    if($('menc-email')) $('menc-email').value=e.email||'';
+  }
   if($('menc-avisar')) $('menc-avisar').checked = e?false:true;
   if($('menc-avisar-todos')) $('menc-avisar-todos').checked = false;
   $('m-enc').classList.add('open');
@@ -7632,9 +7643,9 @@ function _encRegistraAviso(id, canal, dest, ok, erro){
   S('encomendas', all);
   if(currentPanel==='encomendas') renderEncomendas();
 }
-// separa uma string "a, b; c" em lista limpa e sem duplicados
+// separa uma string "a, b; c / d" em lista limpa e sem duplicados (vírgula, ponto-e-vírgula ou barra)
 function _encSplit(v){
-  return String(v||'').split(/[,;]+/).map(function(x){return x.trim();}).filter(Boolean)
+  return String(v||'').split(/[,;/]+/).map(function(x){return x.trim();}).filter(Boolean)
     .filter(function(x,i,arr){return arr.indexOf(x)===i;});
 }
 function _encNotificar(e){
