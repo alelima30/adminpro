@@ -117,7 +117,9 @@ serve(async (req: Request) => {
     if (!to) return J({ error: "Campo 'to' e obrigatorio." }, 400);
 
     if (channel === "whatsapp") {
-      if (provider === "evolution") return await enviarEvolution(to, message ?? "");
+      // provider vem do app; se ausente (ex: cron), usa o secret WA_PROVIDER
+      const prov = provider || Deno.env.get("WA_PROVIDER") || "cloud";
+      if (prov === "evolution") return await enviarEvolution(to, message ?? "");
       return await enviarWhatsapp(to, message ?? "");
     }
     if (!subject) return J({ error: "Campo 'subject' e obrigatorio para e-mail." }, 400);
