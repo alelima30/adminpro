@@ -3147,6 +3147,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
             <select id="cfg-wa-provider" onchange="cfgWaProviderChange()" style="padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%">
               <option value="zapi">Z-API (escanear QR — pago)</option>
               <option value="cloud">Cloud API oficial (Meta) — via Supabase</option>
+              <option value="evolution">Evolution API (self-hosted, grátis) — via Supabase</option>
             </select>
           </div>
 
@@ -3184,6 +3185,23 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
               <button class="btn btn-ghost btn-sm" onclick="testarWhatsCloud()">🧪 Testar WhatsApp</button>
               <input type="text" id="cfg-wa-teste-num" placeholder="Nº com DDD para teste" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;width:220px">
               <span id="cfg-wa-teste" style="font-size:12px;color:var(--text-3);align-self:center"></span>
+            </div>
+          </div>
+
+          <!-- Bloco Evolution API -->
+          <div id="cfg-bloco-evolution" style="display:none">
+            <div style="background:rgba(37,211,102,0.06);border:1px solid rgba(37,211,102,0.15);border-radius:10px;padding:16px 18px;margin-bottom:16px;font-size:13px;color:var(--text-2);line-height:1.7">
+              <strong style="color:#25D366">Evolution API (grátis, você hospeda).</strong> As chaves ficam <strong>seguras no Supabase</strong>.<br><br>
+              <strong>Passo a passo:</strong><br>
+              1. Suba o Evolution API num servidor com <strong>HTTPS</strong> (VPS ou Railway/Render). Repositório: <a href="https://github.com/EvolutionAPI/evolution-api" target="_blank" style="color:#25D366">github.com/EvolutionAPI/evolution-api</a>.<br>
+              2. Crie uma <strong>instância</strong> e escaneie o <strong>QR Code</strong> com o WhatsApp do seu número dedicado.<br>
+              3. No Supabase → <strong>Edge Functions → Secrets</strong>, adicione: <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">EVOLUTION_URL</code> (ex: https://seu-servidor.com), <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">EVOLUTION_KEY</code> (a API key) e <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">EVOLUTION_INSTANCE</code> (nome da instância).<br>
+              4. Republique a Edge Function <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">notificar</code> e teste abaixo.
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+              <button class="btn btn-ghost btn-sm" onclick="testarWhatsEvolution()">🧪 Testar WhatsApp</button>
+              <input type="text" id="cfg-evo-teste-num" placeholder="Nº com DDD para teste" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;width:220px">
+              <span id="cfg-evo-teste" style="font-size:12px;color:var(--text-3);align-self:center"></span>
             </div>
           </div>
         </div>
@@ -9136,19 +9154,21 @@ function carregarConfigs(){
 
 function cfgWaProviderChange(){
   var v=$('cfg-wa-provider')?$('cfg-wa-provider').value:'zapi';
-  if($('cfg-bloco-zapi'))  $('cfg-bloco-zapi').style.display  = v==='cloud' ? 'none' : '';
-  if($('cfg-bloco-cloud')) $('cfg-bloco-cloud').style.display = v==='cloud' ? '' : 'none';
+  if($('cfg-bloco-zapi'))      $('cfg-bloco-zapi').style.display      = v==='zapi' ? '' : 'none';
+  if($('cfg-bloco-cloud'))     $('cfg-bloco-cloud').style.display     = v==='cloud' ? '' : 'none';
+  if($('cfg-bloco-evolution')) $('cfg-bloco-evolution').style.display = v==='evolution' ? '' : 'none';
 }
-async function testarWhatsCloud(){
-  var el=$('cfg-wa-teste'); var num=($('cfg-wa-teste-num')?.value||'').trim();
+async function _testarWhatsProvider(provider, elId, numId, nome){
+  var el=$(elId); var num=($(numId)?.value||'').trim();
   if(!num){ el.textContent='⚠️ Informe um número.'; el.style.color='var(--amber)'; return; }
-  // garante que o provider salvo é cloud para o teste
-  var cfg=getCfg(); cfg.waProvider='cloud'; localStorage.setItem('apvc_cfg', JSON.stringify(cfg));
+  var cfg=getCfg(); cfg.waProvider=provider; localStorage.setItem('apvc_cfg', JSON.stringify(cfg));
   el.textContent='⏳ Enviando...'; el.style.color='var(--text-3)';
-  var r=await enviarWhatsApp(num, 'Teste do AdminPro — se você recebeu, o WhatsApp (Cloud API) está funcionando! 🎉');
-  if(r.ok){ el.textContent='✓ Enviado! Verifique o WhatsApp.'; el.style.color='#25D366'; addLog('✓ Teste WhatsApp Cloud API para '+num); }
-  else { el.textContent='✗ '+r.erro; el.style.color='var(--red)'; addLog('✗ Teste WhatsApp Cloud: '+r.erro); }
+  var r=await enviarWhatsApp(num, 'Teste do AdminPro — se você recebeu, o WhatsApp ('+nome+') está funcionando! 🎉');
+  if(r.ok){ el.textContent='✓ Enviado! Verifique o WhatsApp.'; el.style.color='#25D366'; addLog('✓ Teste WhatsApp '+nome+' para '+num); }
+  else { el.textContent='✗ '+r.erro; el.style.color='var(--red)'; addLog('✗ Teste WhatsApp '+nome+': '+r.erro); }
 }
+function testarWhatsCloud(){ return _testarWhatsProvider('cloud','cfg-wa-teste','cfg-wa-teste-num','Cloud API'); }
+function testarWhatsEvolution(){ return _testarWhatsProvider('evolution','cfg-evo-teste','cfg-evo-teste-num','Evolution'); }
 
 function getCfg(){
   var EJS_SERVICE  = 'service_jfvgxm9';
@@ -9240,11 +9260,11 @@ function atualizarStatusCfg(){
 /* ── Enviar WhatsApp via Z-API ── */
 async function enviarWhatsApp(numero, mensagem){
   const cfg = getCfg();
-  // Cloud API (Meta) via Supabase Edge Function — token fica seguro no servidor
-  if(cfg.waProvider === 'cloud'){
+  // Cloud API (Meta) ou Evolution API via Supabase Edge Function — chaves ficam seguras no servidor
+  if(cfg.waProvider === 'cloud' || cfg.waProvider === 'evolution'){
     if(!SB || !SB.functions) return {ok:false, erro:'Supabase indisponível'};
     try{
-      const { data, error } = await SB.functions.invoke(FN_NOTIFICAR, { body:{ channel:'whatsapp', to:numero, message:mensagem } });
+      const { data, error } = await SB.functions.invoke(FN_NOTIFICAR, { body:{ channel:'whatsapp', provider:cfg.waProvider, to:numero, message:mensagem } });
       if(error) return {ok:false, erro:(error.message||JSON.stringify(error))};
       if(data && data.error) return {ok:false, erro:data.error};
       return {ok:true};
