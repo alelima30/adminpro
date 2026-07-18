@@ -3141,6 +3141,22 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         <div class="tabs" style="margin-bottom:20px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="tab active" id="cfgtab-reservas" onclick="cfgSetTab('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Configuração das Reservas</button>
           <button class="tab" id="cfgtab-sistema" onclick="cfgSetTab('sistema')"><i class="fa-solid fa-plug" style="margin-right:6px"></i>Integrações & Sistema</button>
+          <button class="tab" id="cfgtab-modulos" onclick="cfgSetTab('modulos')"><i class="fa-solid fa-list-check" style="margin-right:6px"></i>Módulos dos Moradores</button>
+        </div>
+
+        <!-- ETAPA 2: o admin do condomínio escolhe quais telas os MORADORES veem
+             (apenas dentre as que o sênior liberou para este condomínio) -->
+        <div class="cfg-card cfg-grp-modulos card" style="margin-bottom:18px;display:none">
+          <div class="card-head">
+            <div class="card-title"><div class="card-icon">👁️</div>Módulos visíveis para os moradores</div>
+            <button class="btn btn-gold btn-sm" onclick="salvarModulosMorador()">💾 Salvar</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;line-height:1.6">
+            Marque o que os <strong>moradores</strong> podem ver no portal. Só aparecem aqui os módulos
+            liberados pela administração da plataforma para este condomínio. Administradores e gestores
+            continuam vendo tudo o que estiver liberado.
+          </div>
+          <div id="cfg-modulos-morador" style="display:flex;flex-wrap:wrap;gap:8px"></div>
         </div>
 
         <div class="cfg-card cfg-grp-sistema card" style="margin-bottom:18px;display:none">
@@ -4477,6 +4493,19 @@ function modulosAtivos(){
   return Object.keys(MODULOS_SAAS).filter(k=>m[k]!==false);
 }
 
+// Módulos VISÍVEIS para o usuário atual.
+//  - Camada 1 (sênior): modulosAtivos() = liberados por condomínio.
+//  - Camada 2 (admin do condomínio): filtra o que o MORADOR pode ver.
+// Admin/gestor/super veem tudo o que estiver liberado.
+function modulosVisiveis(){
+  const ativos = modulosAtivos();
+  const nivel = window._userNivel || 'morador';
+  if(isSuperAdmin() || nivel==='admin' || nivel==='gestor') return ativos;
+  const vis = G('modulos_morador');
+  if(!vis || typeof vis!=='object') return ativos; // não configurado => tudo liberado
+  return ativos.filter(k=> vis[k]!==false);
+}
+
 // Painel → módulo. Cada tela é seu próprio módulo (mesmo id).
 // Relatórios é aba dentro de Reservas -> depende do módulo reservas.
 function painelModulo(id){
@@ -4493,12 +4522,12 @@ function _itemModuloAtivo(id){
     return g.itens.some(function(it){ return _itemModuloAtivo(it.id); });
   }
   var m=painelModulo(id);
-  return !m || modulosAtivos().includes(m);
+  return !m || modulosVisiveis().includes(m);
 }
 
 // Algum módulo do grupo do menu está ativo? (para esconder o grupo inteiro)
 function _grupoTemModuloAtivo(grupo){
-  var ativos=modulosAtivos();
+  var ativos=modulosVisiveis();
   return Object.keys(MODULOS_SAAS).some(function(k){
     return MODULOS_SAAS[k].grupo===grupo && ativos.includes(k);
   });
@@ -4508,7 +4537,7 @@ function _grupoTemModuloAtivo(grupo){
 function painelInicial(){
   const nivel = window._userNivel || 'morador';
   const permitidos = ACESSO_PAINEIS[nivel] || ACESSO_PAINEIS.morador;
-  const ativos = modulosAtivos();
+  const ativos = modulosVisiveis();
   const ordem = ['dashboard'];
   ['paineis','administrativo','cadastro','operacoes','sistema'].forEach(function(g){
     ((SB_GRUPOS[g]||{}).itens||[]).forEach(function(it){
@@ -4527,7 +4556,7 @@ function painelInicial(){
 
 // Esconde grupos do menu de módulos desativados; mostra atalho SaaS para super-admin
 function aplicarSaas(){
-  const ativos = modulosAtivos();
+  const ativos = modulosVisiveis();
   const nivel = (window._userNivel==='admin'||window._userNivel==='gestor') ? window._userNivel : 'morador';
   // Só mostra se o NÍVEL permite (data-acesso) E o módulo está liberado.
   const _nivelPermite = el => { const a=el&&el.getAttribute('data-acesso'); return !a || a.split(',').includes(nivel); };
@@ -6356,7 +6385,7 @@ function showPanel(id,el){
   if(!permitidos.includes(id)){ toast('\u26a0\ufe0f Acesso restrito ao seu perfil.'); return; }
   if(id==='saas' && !isSuperAdmin()){ toast('\u26a0\ufe0f Painel exclusivo do administrador da plataforma.'); return; }
   const _mod = painelModulo(id);
-  if(_mod && !modulosAtivos().includes(_mod)){
+  if(_mod && !modulosVisiveis().includes(_mod)){
     const _alt = painelInicial();
     if(_alt && _alt !== id) return showPanel(_alt);
     return;
@@ -6422,7 +6451,7 @@ function initApp(){
   initLotes(); initFuncs(); initFin(); initManut(); initComun(); initPrev(); initRes(); initReg(); initInadimplencia(); initEncomendas();
   const nivel = window._userNivel || 'morador';
   const permitidos = ACESSO_PAINEIS[nivel] || ACESSO_PAINEIS.morador;
-  const _mods = modulosAtivos();
+  const _mods = modulosVisiveis();
   // Landing padrão: admin/gestor -> Dashboard; morador -> Início. Última tela tem prioridade.
   let dest = (nivel==='admin'||nivel==='gestor') ? 'dashboard' : 'inicio';
   try{ const ult = localStorage.getItem('apvc_last_panel'); if(ult) dest = ult; }catch(_){}
@@ -9662,9 +9691,35 @@ const ESPACOS_FIN_PADRAO = ['Salão de Festa','Cozinha / Espaço Lazer','Campo d
 function cfgSetTab(t){
   document.querySelectorAll('.cfg-grp-reservas').forEach(function(e){ e.style.display = t==='reservas' ? '' : 'none'; });
   document.querySelectorAll('.cfg-grp-sistema').forEach(function(e){ e.style.display = t==='sistema' ? '' : 'none'; });
-  var r=$('cfgtab-reservas'), s=$('cfgtab-sistema');
+  document.querySelectorAll('.cfg-grp-modulos').forEach(function(e){ e.style.display = t==='modulos' ? '' : 'none'; });
+  var r=$('cfgtab-reservas'), s=$('cfgtab-sistema'), mo=$('cfgtab-modulos');
   if(r) r.classList.toggle('active', t==='reservas');
   if(s) s.classList.toggle('active', t==='sistema');
+  if(mo) mo.classList.toggle('active', t==='modulos');
+  if(t==='modulos') renderModulosMorador();
+}
+
+// Camada 2 — visibilidade de módulos para os moradores (dentro do que o sênior liberou)
+function renderModulosMorador(){
+  var box=$('cfg-modulos-morador'); if(!box) return;
+  var liberados=modulosAtivos(); // o que o sênior liberou p/ este condomínio
+  var vis=G('modulos_morador')||{};
+  if(!liberados.length){ box.innerHTML='<div style="color:var(--text-3);font-size:13px">Nenhum módulo liberado pela plataforma ainda.</div>'; return; }
+  box.innerHTML='<div style="display:flex;gap:8px;margin-bottom:6px;width:100%">'
+    +'<button type="button" class="btn btn-ghost btn-sm" onclick="mmMarcar(true)"><i class="fa-solid fa-check-double"></i> Todos</button>'
+    +'<button type="button" class="btn btn-ghost btn-sm" onclick="mmMarcar(false)"><i class="fa-solid fa-xmark"></i> Nenhum</button></div>'
+    +liberados.map(function(k){
+      return '<label style="display:flex;align-items:center;gap:8px;background:var(--ink-3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px">'
+        +'<input type="checkbox" class="mm-mod" value="'+k+'" '+(vis[k]!==false?'checked':'')+' style="accent-color:var(--gold);width:16px;height:16px"> '+MODULOS_SAAS[k].label+'</label>';
+    }).join('');
+}
+function mmMarcar(v){ document.querySelectorAll('.mm-mod').forEach(function(c){ c.checked=v; }); }
+function salvarModulosMorador(){
+  var vis={};
+  document.querySelectorAll('.mm-mod').forEach(function(c){ vis[c.value]=c.checked; });
+  S('modulos_morador', vis);
+  toast('✓ Visibilidade dos moradores salva!');
+  try{ aplicarSaas(); }catch(_){}
 }
 
 function renderCfgReservas(){
