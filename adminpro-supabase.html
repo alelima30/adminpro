@@ -4409,12 +4409,29 @@ const ADMIN_EMAIL = 'alessandro.lima30@outlook.com.br';
 // Super-admins da PLATAFORMA: enxergam e configuram todos os condomínios/módulos
 const SUPER_ADMINS = [ADMIN_EMAIL];
 
-// Módulos da plataforma → grupos do menu. Novos módulos: adicione aqui.
+// Módulos da plataforma — UM POR TELA (granularidade "cada tela separada").
+// O sênior (super-admin) libera cada módulo por condomínio no painel SaaS.
+// grupo = grupo do menu onde a tela aparece (null = item standalone).
 const MODULOS_SAAS = {
-  paineis:        { label:'Painéis & Dashboard',                grupos:['paineis'] },
-  administrativo: { label:'Administrativo',                     grupos:['administrativo','cadastro'] },
-  operacoes:      { label:'Operações (Reservas, Comunicados…)', grupos:['operacoes'] },
-  sistema:        { label:'Sistema (Usuários, Configurações)',  grupos:['sistema'] },
+  dashboard:      { label:'Dashboard',                 grupo:null,            secao:'Painéis' },
+  lotes:          { label:'Censo de Lotes',            grupo:'paineis',       secao:'Painéis' },
+  funcionarios:   { label:'Funcionários',              grupo:'paineis',       secao:'Painéis' },
+  financeiro:     { label:'Financeiro',                grupo:'paineis',       secao:'Painéis' },
+  inadimplencia:  { label:'Inadimplência',             grupo:'paineis',       secao:'Painéis' },
+  condominos:     { label:'Condôminos',                grupo:'administrativo', secao:'Administrativo' },
+  unidades:       { label:'Cadastro de Unidades',      grupo:'administrativo', secao:'Administrativo' },
+  localizacoes:   { label:'Localizações',              grupo:'administrativo', secao:'Administrativo' },
+  classificacoes: { label:'Classificação de Condôminos', grupo:'administrativo', secao:'Administrativo' },
+  reservas:       { label:'Reservas',                  grupo:null,            secao:'Operações' },
+  encomendas:     { label:'Encomendas',                grupo:null,            secao:'Operações' },
+  manutencao:     { label:'Manutenção',                grupo:'operacoes',     secao:'Operações' },
+  preventivas:    { label:'Preventivas & Corretivas',  grupo:'operacoes',     secao:'Operações' },
+  comunicados:    { label:'Comunicados',               grupo:'operacoes',     secao:'Operações' },
+  eventos:        { label:'Eventos',                   grupo:'operacoes',     secao:'Operações' },
+  regulamento:    { label:'Regulamentos',              grupo:'operacoes',     secao:'Operações' },
+  procedimentos:  { label:'Procedimentos',             grupo:'operacoes',     secao:'Operações' },
+  usuarios:       { label:'Usuários',                  grupo:'sistema',       secao:'Sistema' },
+  configuracoes:  { label:'Configurações',             grupo:'sistema',       secao:'Sistema' },
 };
 
 function getSaasCondominios(){
@@ -4427,7 +4444,7 @@ function getSaasCondominios(){
     c = { 'APVC': {
       nome:'Associação Parque Village Castelo', logo:'',
       adminEmail: ADMIN_EMAIL, status:'ativo',
-      modulos:{ paineis:true, administrativo:true, operacoes:true, sistema:true }
+      modulos:{}
     }};
     DB_CACHE['saas_condominios']=c;
   }
@@ -4460,21 +4477,31 @@ function modulosAtivos(){
   return Object.keys(MODULOS_SAAS).filter(k=>m[k]!==false);
 }
 
-// Grupo do menu → módulo dono
-function grupoModulo(grupo){
-  for(const k in MODULOS_SAAS){ if((MODULOS_SAAS[k].grupos||[]).includes(grupo)) return k; }
-  return null;
+// Painel → módulo. Cada tela é seu próprio módulo (mesmo id).
+// Relatórios é aba dentro de Reservas -> depende do módulo reservas.
+function painelModulo(id){
+  if(id==='relatorios') return 'reservas';
+  return MODULOS_SAAS[id] ? id : null;
 }
 
-// Painel → módulo (via SB_GRUPOS; dashboard e extras mapeados direto)
-function painelModulo(id){
-  for(const k in MODULOS_SAAS){ if((MODULOS_SAAS[k].extra||[]).includes(id)) return k; }
-  if(typeof SB_GRUPOS!=='undefined'){
-    for(const g in SB_GRUPOS){
-      if(SB_GRUPOS[g].itens.some(it=>it.id===id)) return grupoModulo(SB_GRUPOS[g].parent||g);
-    }
+// Item do menu está liberado? (nav/subgrupo liberado se ao menos 1 filho estiver)
+function _itemModuloAtivo(id){
+  if(String(id).indexOf('__nav:')===0){
+    var sub=id.replace('__nav:','');
+    var g=(typeof SB_GRUPOS!=='undefined')?SB_GRUPOS[sub]:null;
+    if(!g) return true;
+    return g.itens.some(function(it){ return _itemModuloAtivo(it.id); });
   }
-  return null;
+  var m=painelModulo(id);
+  return !m || modulosAtivos().includes(m);
+}
+
+// Algum módulo do grupo do menu está ativo? (para esconder o grupo inteiro)
+function _grupoTemModuloAtivo(grupo){
+  var ativos=modulosAtivos();
+  return Object.keys(MODULOS_SAAS).some(function(k){
+    return MODULOS_SAAS[k].grupo===grupo && ativos.includes(k);
+  });
 }
 
 // Primeiro painel permitido para o usuário atual (nível + módulos liberados)
@@ -4501,12 +4528,20 @@ function painelInicial(){
 // Esconde grupos do menu de módulos desativados; mostra atalho SaaS para super-admin
 function aplicarSaas(){
   const ativos = modulosAtivos();
+  const nivel = (window._userNivel==='admin'||window._userNivel==='gestor') ? window._userNivel : 'morador';
+  // Só mostra se o NÍVEL permite (data-acesso) E o módulo está liberado.
+  const _nivelPermite = el => { const a=el&&el.getAttribute('data-acesso'); return !a || a.split(',').includes(nivel); };
+  // Itens standalone (Dashboard, Reservas, Encomendas): gate por tela
+  ['dashboard','reservas','encomendas'].forEach(function(id){
+    var nav=$('nav-'+id); if(!nav) return;
+    var st=nav.closest('.nav-standalone'); if(!st) return;
+    st.style.display = (ativos.includes(id) && _nivelPermite(st)) ? '' : 'none';
+  });
+  // Grupos: esconde se nenhuma tela liberada OU o nível não permite
   document.querySelectorAll('.sb-group').forEach(g=>{
     const hd=g.querySelector('.sb-group-hd'); if(!hd) return;
-    const mod=grupoModulo(hd.dataset.grupo);
-    if(mod && !ativos.includes(mod)) g.style.display='none';
+    g.style.display = (_grupoTemModuloAtivo(hd.dataset.grupo) && _nivelPermite(g)) ? '' : 'none';
   });
-  // Dashboard fica sempre disponível para admin/gestor (não depende do módulo Painéis)
   const saasEl=$('sb-saas'); if(saasEl) saasEl.style.display = isSuperAdmin()?'':'none';
   const tag=$('tb-tag-cond'); if(tag) tag.textContent=_condAtual;
   montarSeletorCondominio();
@@ -4563,7 +4598,13 @@ function renderSaas(){
   const ents=Object.entries(cs).sort((a,b)=>a[0].localeCompare(b[0]));
   const cnt=$('saas-count'); if(cnt) cnt.textContent=ents.length+' condomínio(s)';
   tb.innerHTML=ents.map(([cod,c])=>{
+    const total=Object.keys(MODULOS_SAAS).length;
     const mods=Object.keys(MODULOS_SAAS).filter(k=>(c.modulos||{})[k]!==false);
+    const modResumo = mods.length===total
+      ? `<span style="font-size:10px;font-weight:600;color:var(--green);background:rgba(40,200,130,0.12);border-radius:5px;padding:2px 7px">Todos (${total})</span>`
+      : mods.length===0
+        ? '<span style="color:var(--text-3)">nenhum</span>'
+        : `<span style="font-size:10px;font-weight:600;color:var(--blue);background:rgba(74,144,217,0.12);border-radius:5px;padding:2px 7px">${mods.length}/${total} liberados</span>`;
     const logo=c.logo?`<img src="${c.logo}" style="width:42px;height:42px;border-radius:9px;object-fit:cover;border:1px solid var(--border)">`
       :'<div style="width:42px;height:42px;border-radius:9px;background:var(--ink-3);display:flex;align-items:center;justify-content:center;color:var(--text-3)"><i class="fa-solid fa-city"></i></div>';
     return `<tr>
@@ -4571,7 +4612,7 @@ function renderSaas(){
       <td><span style="font-weight:700;color:var(--gold);background:rgba(232,119,34,0.12);border-radius:6px;padding:2px 8px;font-size:12px">${escU(cod)}</span></td>
       <td style="font-weight:600;color:var(--text)">${escU(c.nome||'')}</td>
       <td style="font-size:12px">${escU(c.adminEmail||'—')}</td>
-      <td>${mods.map(m=>`<span style="font-size:10px;font-weight:600;color:var(--blue);background:rgba(74,144,217,0.12);border-radius:5px;padding:2px 7px;margin-right:4px;white-space:nowrap">${MODULOS_SAAS[m].label.split(' ')[0]}</span>`).join('')||'<span style="color:var(--text-3)">nenhum</span>'}</td>
+      <td>${modResumo}</td>
       <td>${c.status==='ativo'?'<span class="pill pill-green">Ativo</span>':'<span class="pill pill-red">Suspenso</span>'}</td>
       <td style="text-align:center"><button class="btn btn-ghost btn-sm" onclick="saasEditar('${escU(cod)}')"><i class="fa-solid fa-pen-to-square"></i> Editar</button></td>
     </tr>`;}).join('');
@@ -4579,11 +4620,27 @@ function renderSaas(){
 
 function saasMontarModulos(sel){
   const box=$('saas-modulos'); if(!box) return;
-  box.innerHTML=Object.entries(MODULOS_SAAS).map(([k,m])=>`
-    <label style="display:flex;align-items:center;gap:8px;background:var(--ink-3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px">
-      <input type="checkbox" class="saas-mod" value="${k}" ${(!sel||sel[k]!==false)?'checked':''} style="accent-color:var(--gold);width:16px;height:16px"> ${m.label}
-    </label>`).join('');
+  // Agrupa por seção do menu
+  const secoes={};
+  Object.entries(MODULOS_SAAS).forEach(([k,m])=>{
+    const s=m.secao||'Outros'; (secoes[s]=secoes[s]||[]).push([k,m]);
+  });
+  let html=`<div style="display:flex;gap:8px;margin-bottom:4px">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="saasMarcarModulos(true)"><i class="fa-solid fa-check-double"></i> Liberar todos</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="saasMarcarModulos(false)"><i class="fa-solid fa-xmark"></i> Nenhum</button>
+    </div>`;
+  Object.keys(secoes).forEach(secao=>{
+    html+=`<div style="width:100%;margin-top:6px;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--text-3)">${secao}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;width:100%">`+
+      secoes[secao].map(([k,m])=>`
+        <label style="display:flex;align-items:center;gap:8px;background:var(--ink-3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px">
+          <input type="checkbox" class="saas-mod" value="${k}" ${(!sel||sel[k]!==false)?'checked':''} style="accent-color:var(--gold);width:16px;height:16px"> ${m.label}
+        </label>`).join('')+`</div>`;
+  });
+  box.innerHTML=html;
 }
+
+function saasMarcarModulos(v){ document.querySelectorAll('.saas-mod').forEach(c=>{ c.checked=v; }); }
 
 function saasNovoCondominio(){
   ['saas-cod','saas-nome','saas-admin','saas-admin-senha','saas-admin-senha2'].forEach(id=>{ if($(id)) $(id).value=''; });
@@ -6216,7 +6273,7 @@ function sbAbrirGrupo(key, hdEl){
   if(_sbGrupoRaiz === key){ sbFecharFlyout(); return; }
   const nivel = window._userNivel || 'morador';
   $('sb-flyout-title').textContent = grupo.titulo;
-  const itens = grupo.itens.filter(it => (it.acesso||[]).includes(nivel));
+  const itens = grupo.itens.filter(it => (it.acesso||[]).includes(nivel) && _itemModuloAtivo(it.id));
   $('sb-flyout-body').innerHTML = itens.map(_sbItemHtml).join('');
   _sbGrupoRaiz = key;
   sbFecharFlyout2();
@@ -6232,7 +6289,7 @@ function sbNavFlyout(subkey, el){
   if(!grupo) return;
   const nivel = window._userNivel || 'morador';
   $('sb-flyout2-title').textContent = grupo.titulo;
-  const itens = grupo.itens.filter(it => (it.acesso||[]).includes(nivel));
+  const itens = grupo.itens.filter(it => (it.acesso||[]).includes(nivel) && _itemModuloAtivo(it.id));
   $('sb-flyout2-body').innerHTML = itens.map(_sbItemHtml).join('');
   $('sb-flyout2').classList.add('open');
   // destaca o item pai na primeira coluna
