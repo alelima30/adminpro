@@ -3266,29 +3266,44 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <textarea id="cfg-msg-validacao" rows="3" placeholder="Sua reserva foi registrada e está aguardando validação da administração. Você será avisado assim que for aprovada." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;resize:vertical"></textarea>
         </div>
 
-        <!-- ▸ Notificações automáticas de reservas (por e-mail) -->
+        <!-- ▸ Notificações automáticas de reservas (WhatsApp + e-mail) -->
         <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon" style="background:rgba(42,157,111,0.14);color:var(--green)"><i class="fa-regular fa-envelope"></i></div>Notificações automáticas por e-mail</div>
+            <div class="card-title"><div class="card-icon" style="background:rgba(42,157,111,0.14);color:var(--green)"><i class="fa-brands fa-whatsapp"></i></div>Notificações automáticas (WhatsApp & e-mail)</div>
             <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
           </div>
-          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">O envio usa o e-mail configurado em <strong>Integrações & Sistema</strong> (Supabase + Resend).</div>
-          <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;cursor:pointer;font-size:13px;color:var(--text-2)">
-            <input type="checkbox" id="cfg-notif-admin" style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">
-            <span>Avisar o <b>administrador</b> quando chegar uma nova reserva pendente.</span>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">Usa o WhatsApp/e-mail configurados em <strong>Integrações & Sistema</strong>.</div>
+
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:10px">Avisos ao morador</div>
+          <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;cursor:pointer;font-size:13px;color:var(--text-2)">
+            <input type="checkbox" id="cfg-notif-morador-reserva" style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">
+            <span>Avisar o morador quando ele <b>fizer a reserva</b> (confirmação na hora).</span>
           </label>
-          <div class="fg" style="margin:0 0 16px 28px;max-width:420px"><label>E-mail(s) do administrador para aviso</label>
-            <input type="text" id="cfg-notif-admin-email" placeholder="admin@condominio.com, sindico@condominio.com" style="width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none">
-            <span style="font-size:11px;color:var(--text-3)">Separe vários e-mails com vírgula.</span>
-          </div>
-          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:var(--text-2)">
+          <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;cursor:pointer;font-size:13px;color:var(--text-2)">
             <input type="checkbox" id="cfg-notif-morador" style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">
-            <span>Avisar o <b>morador</b> quando a reserva for <b>aprovada</b> ou <b>recusada</b> (usa o e-mail do cadastro dele).</span>
+            <span>Avisar o morador quando a reserva for <b>aprovada</b> ou <b>recusada</b>.</span>
           </label>
-          <label style="display:flex;align-items:flex-start;gap:10px;margin-top:14px;cursor:pointer;font-size:13px;color:var(--text-2)">
-            <input type="checkbox" id="cfg-notif-lembrete" style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">
-            <span>Enviar <b>lembrete</b> ao morador <b>1 dia antes</b> da reserva (por e-mail).</span>
+          <div style="font-size:12.5px;color:var(--text-2);margin:8px 0 6px">Lembrete antes da reserva:</div>
+          <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:6px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2)"><input type="checkbox" id="cfg-lembrete-24h" style="width:17px;height:17px;accent-color:var(--gold)"> 24 horas antes</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2)"><input type="checkbox" id="cfg-lembrete-1h" style="width:17px;height:17px;accent-color:var(--gold)"> 1 hora antes</label>
+          </div>
+
+          <div style="border-top:1px solid var(--border);margin:16px 0 12px"></div>
+
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Alertar a equipe quando uma reserva for feita</div>
+          <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;cursor:pointer;font-size:13px;color:var(--text-2)">
+            <input type="checkbox" id="cfg-notif-equipe" style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">
+            <span>Avisar a equipe (administração, portaria, manutenção...) a cada nova reserva.</span>
           </label>
+          <div id="cfg-alert-destinos" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+          <div style="display:grid;grid-template-columns:1.1fr 1.2fr 1.4fr auto;gap:8px;align-items:end">
+            <div class="fg" style="margin:0"><label>Setor / Nome</label><input type="text" id="ad-label" placeholder="Ex: Portaria" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%"></div>
+            <div class="fg" style="margin:0"><label>WhatsApp</label><input type="text" id="ad-whats" placeholder="11999999999" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%"></div>
+            <div class="fg" style="margin:0"><label>E-mail (opcional)</label><input type="text" id="ad-email" placeholder="setor@condominio.com" style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%"></div>
+            <button class="btn btn-gold btn-sm" onclick="addAlertDestino()" style="white-space:nowrap"><i class="fa-solid fa-plus"></i> Adicionar</button>
+          </div>
+          <span style="font-size:11px;color:var(--text-3)">Cada setor recebe o aviso no WhatsApp (e e-mail, se preencher). Adicione quantos quiser.</span>
         </div>
 
         <!-- ▸ Regras gerais de reserva -->
@@ -7907,19 +7922,20 @@ function _mudarStatusReserva(id, novo, msg){
   _reservaUpsertSB(all[i]);
   renderReservas(); verificarAlertas(); atualizarBadgePendentes();
   toast(msg);
-  // Notifica o morador (se ativado e houver e-mail dele)
+  // Notifica o morador (WhatsApp + e-mail) quando aprovada/recusada
   const _cfgN=getCfgRes();
-  const _dest=(all[i].criadoPor||'').trim();
-  if(_cfgN.notif_morador_ativo && _dest && (novo==='confirmada'||novo==='cancelada')){
+  const _email=(all[i].criadoPor||'').trim();
+  const _whats=(all[i].tel||'').trim();
+  if(_cfgN.notif_morador_ativo && (_email||_whats) && (novo==='confirmada'||novo==='cancelada')){
     const _dt = all[i].data ? new Date(all[i].data+'T00:00').toLocaleDateString('pt-BR') : all[i].data;
     const _aprovada = novo==='confirmada';
+    const _cond = nomeCondominioAtual();
     const _assunto = _aprovada ? 'Reserva aprovada — '+all[i].espaco : 'Reserva não aprovada — '+all[i].espaco;
     const _corpo = (_aprovada
-        ? 'Boa notícia! Sua reserva foi APROVADA e está confirmada.'
-        : 'Informamos que sua reserva NÃO foi aprovada pela administração.')+
+        ? '✅ '+_cond+'\n\nBoa notícia! Sua reserva foi *APROVADA* e está confirmada. 🎉'
+        : '❌ '+_cond+'\n\nInformamos que sua reserva *não foi aprovada* pela administração.')+
       '\n\nEspaço: '+all[i].espaco+'\nData: '+_dt+'\nHorário: '+all[i].horario+'\nUnidade: '+all[i].lote;
-    enviarEmail(_dest, _assunto, _corpo)
-      .then(function(r){ addLog((r.ok?'✓':'✗')+' Aviso ao morador ('+(_aprovada?'aprovada':'recusada')+')'+(r.ok?'':': '+r.erro)); });
+    _notificarMulti(_whats, _email, _assunto, _corpo, 'morador ('+(_aprovada?'aprovada':'recusada')+')');
   }
 }
 function aprovarReserva(id){
@@ -8497,25 +8513,42 @@ function salvarRes(){
   try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
   _reservaUpsertSB(obj);
   closeModal('m-res'); renderReservas(); verificarAlertas();
-  // Mensagem ao morador: se a reserva ficou pendente (espaço exige validação), avisa que a administração vai validar
+
   const _isMoradorMsg = !(nivel2==='admin'||nivel2==='gestor');
+  const _cfgN = getCfgRes();
+  const _novaReserva = !id; // só notifica quando é reserva NOVA
+  const _dtFmt = obj.data ? new Date(obj.data+'T00:00').toLocaleDateString('pt-BR') : obj.data;
+  const _cond = nomeCondominioAtual();
+
+  // aviso visual pro morador
   if(_isMoradorMsg && statusVal==='pendente'){
-    const _cfgMsg = getCfgRes();
-    const _msg = (_cfgMsg.msg_validacao||'').trim() ||
+    const _msg = (_cfgN.msg_validacao||'').trim() ||
       'Sua reserva foi registrada e está aguardando validação da administração. Você será avisado assim que for aprovada.';
     if(typeof mostrarAvisoReserva==='function') mostrarAvisoReserva(_msg);
     else { toast('✓ Reserva registrada — aguardando validação.'); alert(_msg); }
-    // Notifica o administrador (se ativado)
-    if(_cfgMsg.notif_admin_ativo && (_cfgMsg.notif_admin_email||'').trim()){
-      const _dt = obj.data ? new Date(obj.data+'T00:00').toLocaleDateString('pt-BR') : obj.data;
-      const _corpo = 'Nova reserva PENDENTE aguardando sua aprovação:\n\n'+
-        'Espaço: '+obj.espaco+'\nData: '+_dt+'\nHorário: '+obj.horario+'\n'+
-        'Morador: '+obj.nome+'\nUnidade: '+obj.lote+'\n\nAcesse o portal para aprovar ou recusar.';
-      enviarEmail(_cfgMsg.notif_admin_email.trim(), 'Nova reserva pendente — '+obj.espaco, _corpo)
-        .then(function(r){ addLog((r.ok?'✓':'✗')+' Aviso ao admin de nova reserva pendente'+(r.ok?'':': '+r.erro)); });
-    }
   } else {
     toast('✓ Reserva salva com sucesso.');
+  }
+
+  if(_novaReserva){
+    // 1) Confirmação para o MORADOR (WhatsApp + e-mail)
+    if(_cfgN.notif_morador_reserva){
+      var _txtMor = statusVal==='pendente'
+        ? '📅 '+_cond+'\n\nRecebemos seu pedido de reserva!\n\nEspaço: '+obj.espaco+'\nData: '+_dtFmt+'\nHorário: '+obj.horario+'\nUnidade: '+obj.lote+
+          '\n\n⏳ Está *aguardando aprovação* da administração. Avisaremos assim que for confirmada.'
+        : '✅ '+_cond+'\n\nSua reserva está *confirmada*!\n\nEspaço: '+obj.espaco+'\nData: '+_dtFmt+'\nHorário: '+obj.horario+'\nUnidade: '+obj.lote+
+          '\n\nQualquer dúvida, fale com a administração. Bom evento! 🎉';
+      _notificarMulti(obj.tel, obj.criadoPor, 'Reserva '+(statusVal==='pendente'?'recebida':'confirmada')+' — '+obj.espaco, _txtMor, 'morador (reserva)');
+    }
+    // 2) Alerta para a EQUIPE (todos os setores cadastrados)
+    if(_cfgN.notif_equipe_ativo){
+      var _txtEq = '🔔 '+_cond+' — Nova reserva'+(statusVal==='pendente'?' (PENDENTE de aprovação)':'')+':\n\n'+
+        'Espaço: '+obj.espaco+'\nData: '+_dtFmt+'\nHorário: '+obj.horario+'\nMorador: '+obj.nome+'\nUnidade: '+obj.lote+
+        (obj.finalidade?('\nFinalidade: '+obj.finalidade):'');
+      (_getAlertDestinos()||[]).forEach(function(d){
+        _notificarMulti(d.whats, d.email, 'Nova reserva — '+obj.espaco, _txtEq, 'equipe/'+(d.label||''));
+      });
+    }
   }
 }
 
@@ -8631,32 +8664,77 @@ function atualizarEmptyHorarios(){
 }
 
 // ── Verificar e exibir alertas ──
+/* ── Destinatários de alerta da equipe (Administração, Portaria, Manutenção...) ── */
+function _getAlertDestinos(){ var c=getCfgRes(); return Array.isArray(c.alert_destinos)?c.alert_destinos:[]; }
+function renderAlertDestinos(){
+  var el=$('cfg-alert-destinos'); if(!el) return;
+  var lista=_getAlertDestinos(); window._alertDestinos=lista;
+  if(!lista.length){ el.innerHTML='<div style="font-size:12px;color:var(--text-3)">Nenhum setor cadastrado ainda.</div>'; return; }
+  el.innerHTML=lista.map(function(d,i){
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--ink-2)">'+
+      '<i class="fa-brands fa-whatsapp" style="color:#25D366"></i>'+
+      '<div style="flex:1"><div style="font-size:13px;color:var(--text);font-weight:600">'+(d.label||'—')+'</div>'+
+      '<div style="font-size:11px;color:var(--text-3)">'+(d.whats||'—')+(d.email?(' · '+d.email):'')+'</div></div>'+
+      '<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="removeAlertDestino('+i+')"><i class="fa-solid fa-trash"></i></button></div>';
+  }).join('');
+}
+function addAlertDestino(){
+  var label=($('ad-label').value||'').trim();
+  var whats=($('ad-whats').value||'').trim();
+  var email=($('ad-email').value||'').trim();
+  if(!label){ toast('⚠️ Informe o setor/nome.'); return; }
+  if(!whats && !email){ toast('⚠️ Informe WhatsApp ou e-mail.'); return; }
+  var cfg=getCfgRes(); if(!Array.isArray(cfg.alert_destinos)) cfg.alert_destinos=[];
+  cfg.alert_destinos.push({label:label, whats:whats, email:email});
+  setCfgRes(cfg);
+  $('ad-label').value=''; $('ad-whats').value=''; $('ad-email').value='';
+  renderAlertDestinos(); toast('✓ Setor adicionado.');
+}
+function removeAlertDestino(i){
+  var cfg=getCfgRes(); if(!Array.isArray(cfg.alert_destinos)) return;
+  cfg.alert_destinos.splice(i,1); setCfgRes(cfg); renderAlertDestinos(); toast('✓ Removido.');
+}
+
+// Envia por WhatsApp e/ou e-mail (o que estiver preenchido) e registra no log
+function _notificarMulti(whats, email, assunto, msg, tag){
+  if(whats && typeof enviarWhatsApp==='function'){
+    enviarWhatsApp(whats, msg).then(function(r){ if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' WhatsApp '+tag+' ('+whats+')'+(r.ok?'':': '+r.erro)); });
+  }
+  if(email && typeof enviarEmail==='function'){
+    enviarEmail(email, assunto, msg).then(function(r){ if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' E-mail '+tag+' ('+email+')'+(r.ok?'':': '+r.erro)); });
+  }
+}
+
 // Lembrete automático 1 dia antes (roda enquanto o app está aberto).
 function verificarLembretesReserva(){
   var cfg=getCfgRes();
-  if(!cfg.notif_lembrete_ativo) return;
-  var d=new Date(); d.setDate(d.getDate()+1);
-  var amanha=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  var leads=[]; // minutos antes
+  if(cfg.notif_lembrete_24h || cfg.notif_lembrete_ativo) leads.push({m:1440, tag:'24h'});
+  if(cfg.notif_lembrete_1h) leads.push({m:60, tag:'1h'});
+  if(!leads.length) return;
   var enviados; try{ enviados=JSON.parse(localStorage.getItem('apvc_lembretes_env')||'[]'); }catch(_){ enviados=[]; }
+  var agora=Date.now();
+  function _horaIni(h){ var p=(h||'').split(/[-–]/)[0].trim().split(':'); return {hh:+p[0]||0, mm:+p[1]||0}; }
   (G('reservas')||[]).forEach(function(r){
-    if(r.data!==amanha) return;
     if(r.status!=='confirmada' && r.status!=='pendente') return;
-    var email=(r.criadoPor||'').trim();
-    var tel=(r.tel||'').trim();
-    if(!email && !tel) return;               // sem contato, não dá pra lembrar
-    var chave=r.id+'|'+r.data;
-    if(enviados.indexOf(chave)>=0) return;
-    var corpo='⏰ Lembrete: você tem uma reserva amanhã.\n\nEspaço: '+r.espaco+'\nData: '+
-      new Date(r.data+'T00:00').toLocaleDateString('pt-BR')+'\nHorário: '+r.horario+'\nUnidade: '+r.lote;
-    function _marcar(){ if(enviados.indexOf(chave)<0){ enviados.push(chave); try{ localStorage.setItem('apvc_lembretes_env',JSON.stringify(enviados.slice(-300))); }catch(_){} } }
-    // WhatsApp (número vindo do cadastro do morador)
-    if(tel && typeof enviarWhatsApp==='function'){
-      enviarWhatsApp(tel, corpo).then(function(res){ if(res.ok){ _marcar(); addLog('✓ Lembrete WhatsApp — '+r.espaco+' ('+r.data+')'); } else addLog('✗ Lembrete WhatsApp falhou ('+r.espaco+'): '+res.erro); });
-    }
-    // E-mail
-    if(email && typeof enviarEmail==='function'){
-      enviarEmail(email,'Lembrete de reserva — '+r.espaco,corpo).then(function(res){ if(res.ok){ _marcar(); addLog('✓ Lembrete e-mail — '+r.espaco+' ('+r.data+')'); } else addLog('✗ Lembrete e-mail falhou ('+r.espaco+'): '+res.erro); });
-    }
+    if(!r.data) return;
+    var email=(r.criadoPor||'').trim(), tel=(r.tel||'').trim();
+    if(!email && !tel) return;
+    var hi=_horaIni(r.horario);
+    var inicio=new Date(r.data+'T00:00'); inicio.setHours(hi.hh, hi.mm, 0, 0);
+    var minAte=(inicio.getTime()-agora)/60000; // minutos até o início
+    leads.forEach(function(lead){
+      // dispara quando faltam ~lead minutos (janela de tolerância de 20 min p/ o tick de 15 min)
+      if(minAte > lead.m || minAte < lead.m-20) return;
+      var chave=r.id+'|'+r.data+'|'+lead.tag;
+      if(enviados.indexOf(chave)>=0) return;
+      var quando = lead.tag==='1h' ? 'em 1 hora' : 'amanhã';
+      var corpo='⏰ '+nomeCondominioAtual()+'\n\nLembrete: você tem uma reserva '+quando+'.\n\nEspaço: '+r.espaco+'\nData: '+
+        new Date(r.data+'T00:00').toLocaleDateString('pt-BR')+'\nHorário: '+r.horario+'\nUnidade: '+r.lote;
+      function _marcar(){ if(enviados.indexOf(chave)<0){ enviados.push(chave); try{ localStorage.setItem('apvc_lembretes_env',JSON.stringify(enviados.slice(-500))); }catch(_){} } }
+      if(tel && typeof enviarWhatsApp==='function') enviarWhatsApp(tel, corpo).then(function(res){ if(res.ok){ _marcar(); addLog('✓ Lembrete '+lead.tag+' WhatsApp — '+r.espaco); } else addLog('✗ Lembrete '+lead.tag+' WhatsApp: '+res.erro); });
+      if(email && typeof enviarEmail==='function') enviarEmail(email,'Lembrete de reserva — '+r.espaco,corpo).then(function(res){ if(res.ok){ _marcar(); addLog('✓ Lembrete '+lead.tag+' e-mail — '+r.espaco); } else addLog('✗ Lembrete '+lead.tag+' e-mail: '+res.erro); });
+    });
   });
 }
 
@@ -9507,10 +9585,12 @@ function renderCfgReservas(){
   // Mensagem pós-reserva
   if($('cfg-msg-validacao')) $('cfg-msg-validacao').value = cfgRes.msg_validacao||'';
   // Notificações automáticas
-  if($('cfg-notif-admin'))       $('cfg-notif-admin').checked       = !!cfgRes.notif_admin_ativo;
-  if($('cfg-notif-admin-email')) $('cfg-notif-admin-email').value   = cfgRes.notif_admin_email||'';
+  if($('cfg-notif-morador-reserva')) $('cfg-notif-morador-reserva').checked = !!cfgRes.notif_morador_reserva;
   if($('cfg-notif-morador'))     $('cfg-notif-morador').checked     = !!cfgRes.notif_morador_ativo;
-  if($('cfg-notif-lembrete'))    $('cfg-notif-lembrete').checked    = !!cfgRes.notif_lembrete_ativo;
+  if($('cfg-lembrete-24h'))      $('cfg-lembrete-24h').checked      = (cfgRes.notif_lembrete_24h!==undefined)?!!cfgRes.notif_lembrete_24h:!!cfgRes.notif_lembrete_ativo;
+  if($('cfg-lembrete-1h'))       $('cfg-lembrete-1h').checked       = !!cfgRes.notif_lembrete_1h;
+  if($('cfg-notif-equipe'))      $('cfg-notif-equipe').checked      = !!cfgRes.notif_equipe_ativo;
+  renderAlertDestinos();
   if($('cfg-bloq-inad'))         $('cfg-bloq-inad').checked         = !!cfgRes.bloquear_inadimplente;
   if($('cfg-max-reservas'))      $('cfg-max-reservas').value        = cfgRes.max_reservas_morador||'';
 
@@ -9768,10 +9848,12 @@ function salvarCfgReservas(){
   // Mensagem pós-reserva (validação)
   if($('cfg-msg-validacao')) cfgRes.msg_validacao = $('cfg-msg-validacao').value.trim();
   // Notificações automáticas
-  if($('cfg-notif-admin'))       cfgRes.notif_admin_ativo   = $('cfg-notif-admin').checked;
-  if($('cfg-notif-admin-email')) cfgRes.notif_admin_email   = $('cfg-notif-admin-email').value.trim();
+  if($('cfg-notif-morador-reserva')) cfgRes.notif_morador_reserva = $('cfg-notif-morador-reserva').checked;
   if($('cfg-notif-morador'))     cfgRes.notif_morador_ativo = $('cfg-notif-morador').checked;
-  if($('cfg-notif-lembrete'))    cfgRes.notif_lembrete_ativo = $('cfg-notif-lembrete').checked;
+  if($('cfg-lembrete-24h'))      cfgRes.notif_lembrete_24h  = $('cfg-lembrete-24h').checked;
+  if($('cfg-lembrete-1h'))       cfgRes.notif_lembrete_1h   = $('cfg-lembrete-1h').checked;
+  if($('cfg-notif-equipe'))      cfgRes.notif_equipe_ativo  = $('cfg-notif-equipe').checked;
+  cfgRes.alert_destinos = Array.isArray(cfgRes.alert_destinos) ? cfgRes.alert_destinos : (window._alertDestinos||[]);
   if($('cfg-bloq-inad'))         cfgRes.bloquear_inadimplente = $('cfg-bloq-inad').checked;
   if($('cfg-max-reservas'))      cfgRes.max_reservas_morador = parseInt($('cfg-max-reservas').value,10)||0;
 
@@ -10850,17 +10932,16 @@ async function aprovarUsuario(){
     fecharModalUsr();
     await renderUsuarios();
     toast('✓ Acesso aprovado!');
-    // Envia e-mail de boas-vindas ao usuário aprovado (Supabase + Resend)
-    if(u.email){
+    // Envia boas-vindas ao usuário aprovado (WhatsApp + e-mail)
+    if(u.email || u.tel){
       var _cond = nomeCondominioAtual();
-      var _corpo = 'Olá, '+(u.nome||'')+'!\n\nSeu acesso ao portal '+_cond+' foi APROVADO. ✅\n\n'+
-        'Você já pode entrar com:\n'+
-        '• E-mail: '+u.email+'\n'+
+      var _corpo = '🎉 '+_cond+'\n\nOlá, '+(u.nome||'')+'! Seu cadastro foi *APROVADO*. ✅\n\n'+
+        'Você já pode acessar o portal com:\n'+
+        '• E-mail: '+(u.email||'')+'\n'+
         '• Senha: a que você cadastrou\n\n'+
-        'Acesse o portal e faça login. Bem-vindo(a)!';
-      enviarEmail(u.email, 'Acesso aprovado — '+_cond, _corpo).then(function(r){
-        if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' E-mail de aprovação para '+u.email+(r.ok?'':': '+r.erro));
-      });
+        'Bem-vindo(a)!';
+      if(typeof _notificarMulti==='function') _notificarMulti(u.tel, u.email, 'Cadastro aprovado — '+_cond, _corpo, 'aprovação cadastro');
+      else if(u.email) enviarEmail(u.email, 'Cadastro aprovado — '+_cond, _corpo);
     }
   } catch(e){ toast('⚠️ Erro: '+(e.message||e)); }
 }
