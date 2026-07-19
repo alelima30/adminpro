@@ -3141,6 +3141,22 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         <div class="tabs" style="margin-bottom:20px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="tab active" id="cfgtab-reservas" onclick="cfgSetTab('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Configuração das Reservas</button>
           <button class="tab" id="cfgtab-sistema" onclick="cfgSetTab('sistema')"><i class="fa-solid fa-plug" style="margin-right:6px"></i>Integrações & Sistema</button>
+          <button class="tab" id="cfgtab-modulos" onclick="cfgSetTab('modulos')"><i class="fa-solid fa-list-check" style="margin-right:6px"></i>Módulos dos Moradores</button>
+        </div>
+
+        <!-- ETAPA 2: o admin do condomínio escolhe quais telas os MORADORES veem
+             (apenas dentre as que o sênior liberou para este condomínio) -->
+        <div class="cfg-card cfg-grp-modulos card" style="margin-bottom:18px;display:none">
+          <div class="card-head">
+            <div class="card-title"><div class="card-icon">👁️</div>Módulos visíveis para os moradores</div>
+            <button class="btn btn-gold btn-sm" onclick="salvarModulosMorador()">💾 Salvar</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;line-height:1.6">
+            Marque o que os <strong>moradores</strong> podem ver no portal. Só aparecem aqui os módulos
+            liberados pela administração da plataforma para este condomínio. Administradores e gestores
+            continuam vendo tudo o que estiver liberado.
+          </div>
+          <div id="cfg-modulos-morador" style="display:flex;flex-wrap:wrap;gap:8px"></div>
         </div>
 
         <div class="cfg-card cfg-grp-sistema card" style="margin-bottom:18px;display:none">
@@ -3571,11 +3587,20 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       <div class="fg"><label>Unidade</label><input type="text" id="musr-unidade" placeholder="Ex: K13" style="text-transform:uppercase"></div>
       <div class="fg"><label>E-mail (login — não editável)</label><input type="text" id="musr-email" disabled style="opacity:.65"></div>
       <div class="fg full"><label>Nível de Acesso</label>
-        <select id="musr-nivel" style="padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:14px;outline:none;width:100%">
+        <select id="musr-nivel" onchange="musrNivelChange()" style="padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:14px;outline:none;width:100%">
           <option value="morador">🏠 Morador — Comunicados e Reservas</option>
+          <option value="supervisor">🧰 Supervisor — Acesso só aos módulos marcados</option>
           <option value="gestor">📋 Gestor — Acesso a todos os módulos</option>
           <option value="admin">🔑 Admin — Acesso total ao sistema</option>
         </select>
+      </div>
+      <div class="fg full" id="musr-modulos-box" style="display:none">
+        <label>Módulos deste supervisor</label>
+        <div style="font-size:11px;color:var(--text-3);margin:2px 0 8px;line-height:1.5">
+          Ele poderá <strong>usar (registrar e dar baixa)</strong> apenas os módulos marcados.
+          Só aparecem os módulos liberados pela plataforma para este condomínio.
+        </div>
+        <div id="musr-modulos-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
       </div>
       <div class="fg full"><label>Observação (opcional)</label>
         <input type="text" id="musr-obs" placeholder="Ex: Lote confirmado, aprovado pelo síndico...">
@@ -4409,12 +4434,29 @@ const ADMIN_EMAIL = 'alessandro.lima30@outlook.com.br';
 // Super-admins da PLATAFORMA: enxergam e configuram todos os condomínios/módulos
 const SUPER_ADMINS = [ADMIN_EMAIL];
 
-// Módulos da plataforma → grupos do menu. Novos módulos: adicione aqui.
+// Módulos da plataforma — UM POR TELA (granularidade "cada tela separada").
+// O sênior (super-admin) libera cada módulo por condomínio no painel SaaS.
+// grupo = grupo do menu onde a tela aparece (null = item standalone).
 const MODULOS_SAAS = {
-  paineis:        { label:'Painéis & Dashboard',                grupos:['paineis'] },
-  administrativo: { label:'Administrativo',                     grupos:['administrativo','cadastro'] },
-  operacoes:      { label:'Operações (Reservas, Comunicados…)', grupos:['operacoes'] },
-  sistema:        { label:'Sistema (Usuários, Configurações)',  grupos:['sistema'] },
+  dashboard:      { label:'Dashboard',                 grupo:null,            secao:'Painéis' },
+  lotes:          { label:'Censo de Lotes',            grupo:'paineis',       secao:'Painéis' },
+  funcionarios:   { label:'Funcionários',              grupo:'paineis',       secao:'Painéis' },
+  financeiro:     { label:'Financeiro',                grupo:'paineis',       secao:'Painéis' },
+  inadimplencia:  { label:'Inadimplência',             grupo:'paineis',       secao:'Painéis' },
+  condominos:     { label:'Condôminos',                grupo:'administrativo', secao:'Administrativo' },
+  unidades:       { label:'Cadastro de Unidades',      grupo:'administrativo', secao:'Administrativo' },
+  localizacoes:   { label:'Localizações',              grupo:'administrativo', secao:'Administrativo' },
+  classificacoes: { label:'Classificação de Condôminos', grupo:'administrativo', secao:'Administrativo' },
+  reservas:       { label:'Reservas',                  grupo:null,            secao:'Operações' },
+  encomendas:     { label:'Encomendas',                grupo:null,            secao:'Operações' },
+  manutencao:     { label:'Manutenção',                grupo:'operacoes',     secao:'Operações' },
+  preventivas:    { label:'Preventivas & Corretivas',  grupo:'operacoes',     secao:'Operações' },
+  comunicados:    { label:'Comunicados',               grupo:'operacoes',     secao:'Operações' },
+  eventos:        { label:'Eventos',                   grupo:'operacoes',     secao:'Operações' },
+  regulamento:    { label:'Regulamentos',              grupo:'operacoes',     secao:'Operações' },
+  procedimentos:  { label:'Procedimentos',             grupo:'operacoes',     secao:'Operações' },
+  usuarios:       { label:'Usuários',                  grupo:'sistema',       secao:'Sistema' },
+  configuracoes:  { label:'Configurações',             grupo:'sistema',       secao:'Sistema' },
 };
 
 function getSaasCondominios(){
@@ -4427,7 +4469,7 @@ function getSaasCondominios(){
     c = { 'APVC': {
       nome:'Associação Parque Village Castelo', logo:'',
       adminEmail: ADMIN_EMAIL, status:'ativo',
-      modulos:{ paineis:true, administrativo:true, operacoes:true, sistema:true }
+      modulos:{}
     }};
     DB_CACHE['saas_condominios']=c;
   }
@@ -4460,28 +4502,79 @@ function modulosAtivos(){
   return Object.keys(MODULOS_SAAS).filter(k=>m[k]!==false);
 }
 
-// Grupo do menu → módulo dono
-function grupoModulo(grupo){
-  for(const k in MODULOS_SAAS){ if((MODULOS_SAAS[k].grupos||[]).includes(grupo)) return k; }
-  return null;
+// Módulos VISÍVEIS para o usuário atual.
+//  - Camada 1 (sênior): modulosAtivos() = liberados por condomínio.
+//  - Camada 2 (admin do condomínio): filtra o que o MORADOR pode ver.
+// Admin/gestor/super veem tudo o que estiver liberado.
+function modulosVisiveis(){
+  const ativos = modulosAtivos();
+  const nivel = window._userNivel || 'morador';
+  if(isSuperAdmin() || nivel==='admin' || nivel==='gestor') return ativos;
+  if(nivel==='supervisor'){
+    const mods=_supervisorMods();
+    return ativos.filter(k=> mods[k]===true);
+  }
+  const vis = G('modulos_morador');
+  if(!vis || typeof vis!=='object') return ativos; // não configurado => tudo liberado
+  return ativos.filter(k=> vis[k]!==false);
 }
 
-// Painel → módulo (via SB_GRUPOS; dashboard e extras mapeados direto)
-function painelModulo(id){
-  for(const k in MODULOS_SAAS){ if((MODULOS_SAAS[k].extra||[]).includes(id)) return k; }
-  if(typeof SB_GRUPOS!=='undefined'){
-    for(const g in SB_GRUPOS){
-      if(SB_GRUPOS[g].itens.some(it=>it.id===id)) return grupoModulo(SB_GRUPOS[g].parent||g);
-    }
+// Camada 3 — supervisor com acesso só a módulos específicos (por usuário).
+// Módulos guardados em modulo_dados/supervisores, indexados pelo e-mail.
+function _supervisorMods(){
+  var usr=JSON.parse(localStorage.getItem('apvc_user')||'{}');
+  var sup=G('supervisores')||{};
+  var me=sup[(usr.email||'').toLowerCase()]||{};
+  return me.modulos||{};
+}
+// Nível equivalente para os filtros de menu/data-acesso (supervisor ~ gestor,
+// mas o conjunto real é restringido depois pelos módulos atribuídos a ele)
+function nivelMenu(){ var n=window._userNivel||'morador'; return n==='supervisor'?'gestor':n; }
+// Painéis permitidos por nível (supervisor: interseção gestor ∩ módulos atribuídos)
+function paineisPermitidos(nivel){
+  if(nivel==='supervisor'){
+    var mods=_supervisorMods(), out=['inicio'];
+    (ACESSO_PAINEIS.gestor||[]).forEach(function(id){
+      var m=(id==='relatorios')?'reservas':id;
+      if(mods[m]===true) out.push(id);
+    });
+    return out;
   }
-  return null;
+  return ACESSO_PAINEIS[nivel] || ACESSO_PAINEIS.morador;
+}
+
+// Painel → módulo. Cada tela é seu próprio módulo (mesmo id).
+// Relatórios é aba dentro de Reservas -> depende do módulo reservas.
+function painelModulo(id){
+  if(id==='relatorios') return 'reservas';
+  return MODULOS_SAAS[id] ? id : null;
+}
+
+// Item do menu está liberado? (nav/subgrupo liberado se ao menos 1 filho estiver)
+function _itemModuloAtivo(id){
+  if(String(id).indexOf('__nav:')===0){
+    var sub=id.replace('__nav:','');
+    var g=(typeof SB_GRUPOS!=='undefined')?SB_GRUPOS[sub]:null;
+    if(!g) return true;
+    return g.itens.some(function(it){ return _itemModuloAtivo(it.id); });
+  }
+  var m=painelModulo(id);
+  return !m || modulosVisiveis().includes(m);
+}
+
+// Algum módulo do grupo do menu está ativo? (para esconder o grupo inteiro)
+function _grupoTemModuloAtivo(grupo){
+  var ativos=modulosVisiveis();
+  return Object.keys(MODULOS_SAAS).some(function(k){
+    return MODULOS_SAAS[k].grupo===grupo && ativos.includes(k);
+  });
 }
 
 // Primeiro painel permitido para o usuário atual (nível + módulos liberados)
 function painelInicial(){
   const nivel = window._userNivel || 'morador';
-  const permitidos = ACESSO_PAINEIS[nivel] || ACESSO_PAINEIS.morador;
-  const ativos = modulosAtivos();
+  const permitidos = paineisPermitidos(nivel);
+  const ativos = modulosVisiveis();
   const ordem = ['dashboard'];
   ['paineis','administrativo','cadastro','operacoes','sistema'].forEach(function(g){
     ((SB_GRUPOS[g]||{}).itens||[]).forEach(function(it){
@@ -4500,13 +4593,21 @@ function painelInicial(){
 
 // Esconde grupos do menu de módulos desativados; mostra atalho SaaS para super-admin
 function aplicarSaas(){
-  const ativos = modulosAtivos();
+  const ativos = modulosVisiveis();
+  const nivel = nivelMenu();
+  // Só mostra se o NÍVEL permite (data-acesso) E o módulo está liberado.
+  const _nivelPermite = el => { const a=el&&el.getAttribute('data-acesso'); return !a || a.split(',').includes(nivel); };
+  // Itens standalone (Dashboard, Reservas, Encomendas): gate por tela
+  ['dashboard','reservas','encomendas'].forEach(function(id){
+    var nav=$('nav-'+id); if(!nav) return;
+    var st=nav.closest('.nav-standalone'); if(!st) return;
+    st.style.display = (ativos.includes(id) && _nivelPermite(st)) ? '' : 'none';
+  });
+  // Grupos: esconde se nenhuma tela liberada OU o nível não permite
   document.querySelectorAll('.sb-group').forEach(g=>{
     const hd=g.querySelector('.sb-group-hd'); if(!hd) return;
-    const mod=grupoModulo(hd.dataset.grupo);
-    if(mod && !ativos.includes(mod)) g.style.display='none';
+    g.style.display = (_grupoTemModuloAtivo(hd.dataset.grupo) && _nivelPermite(g)) ? '' : 'none';
   });
-  // Dashboard fica sempre disponível para admin/gestor (não depende do módulo Painéis)
   const saasEl=$('sb-saas'); if(saasEl) saasEl.style.display = isSuperAdmin()?'':'none';
   const tag=$('tb-tag-cond'); if(tag) tag.textContent=_condAtual;
   montarSeletorCondominio();
@@ -4563,7 +4664,13 @@ function renderSaas(){
   const ents=Object.entries(cs).sort((a,b)=>a[0].localeCompare(b[0]));
   const cnt=$('saas-count'); if(cnt) cnt.textContent=ents.length+' condomínio(s)';
   tb.innerHTML=ents.map(([cod,c])=>{
+    const total=Object.keys(MODULOS_SAAS).length;
     const mods=Object.keys(MODULOS_SAAS).filter(k=>(c.modulos||{})[k]!==false);
+    const modResumo = mods.length===total
+      ? `<span style="font-size:10px;font-weight:600;color:var(--green);background:rgba(40,200,130,0.12);border-radius:5px;padding:2px 7px">Todos (${total})</span>`
+      : mods.length===0
+        ? '<span style="color:var(--text-3)">nenhum</span>'
+        : `<span style="font-size:10px;font-weight:600;color:var(--blue);background:rgba(74,144,217,0.12);border-radius:5px;padding:2px 7px">${mods.length}/${total} liberados</span>`;
     const logo=c.logo?`<img src="${c.logo}" style="width:42px;height:42px;border-radius:9px;object-fit:cover;border:1px solid var(--border)">`
       :'<div style="width:42px;height:42px;border-radius:9px;background:var(--ink-3);display:flex;align-items:center;justify-content:center;color:var(--text-3)"><i class="fa-solid fa-city"></i></div>';
     return `<tr>
@@ -4571,7 +4678,7 @@ function renderSaas(){
       <td><span style="font-weight:700;color:var(--gold);background:rgba(232,119,34,0.12);border-radius:6px;padding:2px 8px;font-size:12px">${escU(cod)}</span></td>
       <td style="font-weight:600;color:var(--text)">${escU(c.nome||'')}</td>
       <td style="font-size:12px">${escU(c.adminEmail||'—')}</td>
-      <td>${mods.map(m=>`<span style="font-size:10px;font-weight:600;color:var(--blue);background:rgba(74,144,217,0.12);border-radius:5px;padding:2px 7px;margin-right:4px;white-space:nowrap">${MODULOS_SAAS[m].label.split(' ')[0]}</span>`).join('')||'<span style="color:var(--text-3)">nenhum</span>'}</td>
+      <td>${modResumo}</td>
       <td>${c.status==='ativo'?'<span class="pill pill-green">Ativo</span>':'<span class="pill pill-red">Suspenso</span>'}</td>
       <td style="text-align:center"><button class="btn btn-ghost btn-sm" onclick="saasEditar('${escU(cod)}')"><i class="fa-solid fa-pen-to-square"></i> Editar</button></td>
     </tr>`;}).join('');
@@ -4579,11 +4686,27 @@ function renderSaas(){
 
 function saasMontarModulos(sel){
   const box=$('saas-modulos'); if(!box) return;
-  box.innerHTML=Object.entries(MODULOS_SAAS).map(([k,m])=>`
-    <label style="display:flex;align-items:center;gap:8px;background:var(--ink-3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px">
-      <input type="checkbox" class="saas-mod" value="${k}" ${(!sel||sel[k]!==false)?'checked':''} style="accent-color:var(--gold);width:16px;height:16px"> ${m.label}
-    </label>`).join('');
+  // Agrupa por seção do menu
+  const secoes={};
+  Object.entries(MODULOS_SAAS).forEach(([k,m])=>{
+    const s=m.secao||'Outros'; (secoes[s]=secoes[s]||[]).push([k,m]);
+  });
+  let html=`<div style="display:flex;gap:8px;margin-bottom:4px">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="saasMarcarModulos(true)"><i class="fa-solid fa-check-double"></i> Liberar todos</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="saasMarcarModulos(false)"><i class="fa-solid fa-xmark"></i> Nenhum</button>
+    </div>`;
+  Object.keys(secoes).forEach(secao=>{
+    html+=`<div style="width:100%;margin-top:6px;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--text-3)">${secao}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;width:100%">`+
+      secoes[secao].map(([k,m])=>`
+        <label style="display:flex;align-items:center;gap:8px;background:var(--ink-3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px">
+          <input type="checkbox" class="saas-mod" value="${k}" ${(!sel||sel[k]!==false)?'checked':''} style="accent-color:var(--gold);width:16px;height:16px"> ${m.label}
+        </label>`).join('')+`</div>`;
+  });
+  box.innerHTML=html;
 }
+
+function saasMarcarModulos(v){ document.querySelectorAll('.saas-mod').forEach(c=>{ c.checked=v; }); }
 
 function saasNovoCondominio(){
   ['saas-cod','saas-nome','saas-admin','saas-admin-senha','saas-admin-senha2'].forEach(id=>{ if($(id)) $(id).value=''; });
@@ -4944,15 +5067,16 @@ function mresLoteClear(){
 
 function aplicarAcesso(nivel){
   // Normaliza: qualquer nível que não seja admin ou gestor é tratado como morador
-  const n = (nivel === 'admin' || nivel === 'gestor') ? nivel : 'morador';
+  const real = (nivel==='admin'||nivel==='gestor'||nivel==='supervisor') ? nivel : 'morador';
+  const n = real==='supervisor' ? 'gestor' : real;
   document.querySelectorAll('[data-acesso]').forEach(el=>{
     const permitidos = el.getAttribute('data-acesso').split(',');
     el.style.display = permitidos.includes(n) ? '' : 'none';
   });
-  const roles = {admin:'Administrador', gestor:'Gestor', morador:'Morador'};
+  const roles = {admin:'Administrador', gestor:'Gestor', supervisor:'Supervisor', morador:'Morador'};
   const roleEl = document.querySelector('.sb-user-role');
-  if(roleEl) roleEl.textContent = roles[n] || 'Morador';
-  window._userNivel = n;
+  if(roleEl) roleEl.textContent = roles[real] || 'Morador';
+  window._userNivel = real;
 }
 
 function entrarNoPortal(nome){
@@ -6214,9 +6338,9 @@ function sbAbrirGrupo(key, hdEl){
   const grupo = SB_GRUPOS[key];
   if(!grupo) return;
   if(_sbGrupoRaiz === key){ sbFecharFlyout(); return; }
-  const nivel = window._userNivel || 'morador';
+  const nivel = nivelMenu();
   $('sb-flyout-title').textContent = grupo.titulo;
-  const itens = grupo.itens.filter(it => (it.acesso||[]).includes(nivel));
+  const itens = grupo.itens.filter(it => (it.acesso||[]).includes(nivel) && _itemModuloAtivo(it.id));
   $('sb-flyout-body').innerHTML = itens.map(_sbItemHtml).join('');
   _sbGrupoRaiz = key;
   sbFecharFlyout2();
@@ -6230,9 +6354,9 @@ function sbAbrirGrupo(key, hdEl){
 function sbNavFlyout(subkey, el){
   const grupo = SB_GRUPOS[subkey];
   if(!grupo) return;
-  const nivel = window._userNivel || 'morador';
+  const nivel = nivelMenu();
   $('sb-flyout2-title').textContent = grupo.titulo;
-  const itens = grupo.itens.filter(it => (it.acesso||[]).includes(nivel));
+  const itens = grupo.itens.filter(it => (it.acesso||[]).includes(nivel) && _itemModuloAtivo(it.id));
   $('sb-flyout2-body').innerHTML = itens.map(_sbItemHtml).join('');
   $('sb-flyout2').classList.add('open');
   // destaca o item pai na primeira coluna
@@ -6295,11 +6419,11 @@ function sbMarkActive(id){
 
 function showPanel(id,el){
   const nivel = window._userNivel || 'morador';
-  const permitidos = ACESSO_PAINEIS[nivel] || ACESSO_PAINEIS.morador;
+  const permitidos = paineisPermitidos(nivel);
   if(!permitidos.includes(id)){ toast('\u26a0\ufe0f Acesso restrito ao seu perfil.'); return; }
   if(id==='saas' && !isSuperAdmin()){ toast('\u26a0\ufe0f Painel exclusivo do administrador da plataforma.'); return; }
   const _mod = painelModulo(id);
-  if(_mod && !modulosAtivos().includes(_mod)){
+  if(_mod && !modulosVisiveis().includes(_mod)){
     const _alt = painelInicial();
     if(_alt && _alt !== id) return showPanel(_alt);
     return;
@@ -6364,8 +6488,8 @@ const fmt=v=>(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 function initApp(){
   initLotes(); initFuncs(); initFin(); initManut(); initComun(); initPrev(); initRes(); initReg(); initInadimplencia(); initEncomendas();
   const nivel = window._userNivel || 'morador';
-  const permitidos = ACESSO_PAINEIS[nivel] || ACESSO_PAINEIS.morador;
-  const _mods = modulosAtivos();
+  const permitidos = paineisPermitidos(nivel);
+  const _mods = modulosVisiveis();
   // Landing padrão: admin/gestor -> Dashboard; morador -> Início. Última tela tem prioridade.
   let dest = (nivel==='admin'||nivel==='gestor') ? 'dashboard' : 'inicio';
   try{ const ult = localStorage.getItem('apvc_last_panel'); if(ult) dest = ult; }catch(_){}
@@ -7941,7 +8065,7 @@ function resCalDiaClick(dataStr){
 function atualizarBadgePendentes(){
   const b=$('badge-pendentes'); if(!b) return;
   const nivel=window._userNivel||'morador';
-  const isAdm=(nivel==='admin'||nivel==='gestor');
+  const isAdm=(nivel==='admin'||nivel==='gestor'||nivel==='supervisor');
   const n=isAdm ? (G('reservas')||[]).filter(r=>r.status==='pendente').length : 0;
   if(n>0){ b.textContent=n; b.style.display=''; }
   else b.style.display='none';
@@ -8145,7 +8269,7 @@ function atualizarHorariosEspaco(espaco, manterValor){
   var cfg=getCfgRes(); var chv=_chvEsp(espaco||'');
   var raw=(cfg['disp_'+chv+'_slots']||'').trim();
   var nivel=window._userNivel||'morador';
-  var isAdm=(nivel==='admin'||nivel==='gestor');
+  var isAdm=(nivel==='admin'||nivel==='gestor'||nivel==='supervisor');
   var atual=(manterValor!==undefined&&manterValor!==null)?manterValor:sel.value;
   if(raw){
     var slots=raw.split(',').map(function(x){return x.trim().replace(/-/g,'–');}).filter(Boolean);
@@ -8184,7 +8308,7 @@ function mresPopularEspacos(incluirEspaco){
   var sel=$('mres-espaco'); if(!sel) return;
   var cfg=getCfgRes();
   var nivel=window._userNivel||'morador';
-  var isAdm=(nivel==='admin'||nivel==='gestor');
+  var isAdm=(nivel==='admin'||nivel==='gestor'||nivel==='supervisor');
   var lista=(typeof ESPACOS_CFG!=='undefined')?ESPACOS_CFG:[].map.call(sel.options,function(o){return o.value;});
   var html='';
   lista.forEach(function(esp){
@@ -8200,7 +8324,7 @@ function mresPopularEspacos(incluirEspaco){
 function mresAplicarLimitesData(){
   var inp=$('mres-data'); if(!inp) return;
   var nivel=window._userNivel||'morador';
-  var isAdm=(nivel==='admin'||nivel==='gestor');
+  var isAdm=(nivel==='admin'||nivel==='gestor'||nivel==='supervisor');
   if(isAdm){ inp.removeAttribute('min'); inp.removeAttribute('max'); return; }
   var cfg=getCfgRes(); var chv=_chvEsp(($('mres-espaco')?$('mres-espaco').value:'')||'');
   var antmin=parseInt(cfg['disp_'+chv+'_antmin'],10); if(isNaN(antmin)||antmin<0) antmin=0;
@@ -8228,7 +8352,7 @@ function onEspacoChange(reservaExistente){
   if(typeof mresAplicarLimitesData==='function') mresAplicarLimitesData();
   const cfg    = JSON.parse(localStorage.getItem('apvc_cfg_reservas')||'{}');
   const nivel  = window._userNivel||'morador';
-  const isAdmin= nivel==='admin'||nivel==='gestor';
+  const isAdmin= nivel==='admin'||nivel==='gestor'||nivel==='supervisor';
 
   /* ── Espacos com financeiro habilitado ──────────────────────────────
      Por padrão: Salão de Festa, Cozinha / Espaço Lazer, Campo de Futebol.
@@ -9605,9 +9729,35 @@ const ESPACOS_FIN_PADRAO = ['Salão de Festa','Cozinha / Espaço Lazer','Campo d
 function cfgSetTab(t){
   document.querySelectorAll('.cfg-grp-reservas').forEach(function(e){ e.style.display = t==='reservas' ? '' : 'none'; });
   document.querySelectorAll('.cfg-grp-sistema').forEach(function(e){ e.style.display = t==='sistema' ? '' : 'none'; });
-  var r=$('cfgtab-reservas'), s=$('cfgtab-sistema');
+  document.querySelectorAll('.cfg-grp-modulos').forEach(function(e){ e.style.display = t==='modulos' ? '' : 'none'; });
+  var r=$('cfgtab-reservas'), s=$('cfgtab-sistema'), mo=$('cfgtab-modulos');
   if(r) r.classList.toggle('active', t==='reservas');
   if(s) s.classList.toggle('active', t==='sistema');
+  if(mo) mo.classList.toggle('active', t==='modulos');
+  if(t==='modulos') renderModulosMorador();
+}
+
+// Camada 2 — visibilidade de módulos para os moradores (dentro do que o sênior liberou)
+function renderModulosMorador(){
+  var box=$('cfg-modulos-morador'); if(!box) return;
+  var liberados=modulosAtivos(); // o que o sênior liberou p/ este condomínio
+  var vis=G('modulos_morador')||{};
+  if(!liberados.length){ box.innerHTML='<div style="color:var(--text-3);font-size:13px">Nenhum módulo liberado pela plataforma ainda.</div>'; return; }
+  box.innerHTML='<div style="display:flex;gap:8px;margin-bottom:6px;width:100%">'
+    +'<button type="button" class="btn btn-ghost btn-sm" onclick="mmMarcar(true)"><i class="fa-solid fa-check-double"></i> Todos</button>'
+    +'<button type="button" class="btn btn-ghost btn-sm" onclick="mmMarcar(false)"><i class="fa-solid fa-xmark"></i> Nenhum</button></div>'
+    +liberados.map(function(k){
+      return '<label style="display:flex;align-items:center;gap:8px;background:var(--ink-3);border:1px solid var(--border);border-radius:10px;padding:9px 14px;cursor:pointer;font-size:13px">'
+        +'<input type="checkbox" class="mm-mod" value="'+k+'" '+(vis[k]!==false?'checked':'')+' style="accent-color:var(--gold);width:16px;height:16px"> '+MODULOS_SAAS[k].label+'</label>';
+    }).join('');
+}
+function mmMarcar(v){ document.querySelectorAll('.mm-mod').forEach(function(c){ c.checked=v; }); }
+function salvarModulosMorador(){
+  var vis={};
+  document.querySelectorAll('.mm-mod').forEach(function(c){ vis[c.value]=c.checked; });
+  S('modulos_morador', vis);
+  toast('✓ Visibilidade dos moradores salva!');
+  try{ aplicarSaas(); }catch(_){}
 }
 
 function renderCfgReservas(){
@@ -10841,6 +10991,7 @@ function renderUsrBody(){
   if(!body) return;
   var nivelLabel = {
     morador:'<span class="pill" style="background:rgba(59,130,246,0.15);color:#60A5FA;font-size:11px">&#127968; Morador</span>',
+    supervisor:'<span class="pill" style="background:rgba(16,185,129,0.15);color:#34D399;font-size:11px">&#129520; Supervisor</span>',
     gestor:'<span class="pill pill-amber" style="font-size:11px">&#128203; Gestor</span>',
     admin:'<span class="pill" style="background:rgba(232,119,34,0.15);color:var(--gold);font-size:11px">&#128273; Admin</span>'
   };
@@ -10913,9 +11064,44 @@ function abrirModalUsr(docId){
   if($('musr-email')) $('musr-email').value = u.email || '';
   $('musr-nivel').value = u.nivel || 'morador';
   $('musr-obs').value = u.obs || '';
+  _musrCarregarModulos(u.email, u.nivel);
   if($('musr-btn-aprovar')) $('musr-btn-aprovar').style.display = pend ? '' : 'none';
   if($('musr-btn-salvar'))  $('musr-btn-salvar').style.display  = pend ? 'none' : '';
   $('m-usr').classList.add('open');
+}
+
+// ── Camada 3: seleção de módulos do supervisor no modal ──
+function musrNivelChange(){
+  var email = ($('musr-email')&&$('musr-email').value)||'';
+  _musrCarregarModulos(email, $('musr-nivel').value);
+}
+function _musrCarregarModulos(email, nivel){
+  var box=$('musr-modulos-box'); if(!box) return;
+  var sup = nivel==='supervisor';
+  box.style.display = sup ? '' : 'none';
+  if(!sup) return;
+  var cfg=(G('supervisores')||{})[(email||'').toLowerCase()]||{};
+  _musrRenderModulos(cfg.modulos||{});
+}
+function _musrRenderModulos(sel){
+  var box=$('musr-modulos-list'); if(!box) return;
+  var liberados=modulosAtivos();                 // liberados pelo sênior
+  var gestor=ACESSO_PAINEIS.gestor||[];
+  var ops=liberados.filter(function(k){ return gestor.indexOf(k)>=0; }); // faz sentido p/ supervisor
+  if(!ops.length){ box.innerHTML='<span style="color:var(--text-3);font-size:13px">Nenhum módulo liberado pela plataforma.</span>'; return; }
+  box.innerHTML=ops.map(function(k){
+    var chk=(sel&&sel[k]===true)?'checked':'';
+    return '<label style="display:flex;align-items:center;gap:8px;background:var(--ink-3);border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px">'
+      +'<input type="checkbox" class="musr-mod" value="'+k+'" '+chk+' style="accent-color:var(--gold);width:16px;height:16px"> '+MODULOS_SAAS[k].label+'</label>';
+  }).join('');
+}
+function _salvarSupervisorMods(email){
+  var map=G('supervisores')||{};
+  var key=(email||'').toLowerCase(); if(!key) return;
+  var mods={};
+  document.querySelectorAll('.musr-mod').forEach(function(c){ mods[c.value]=c.checked; });
+  map[key]={ modulos:mods };
+  S('supervisores', map);
 }
 
 // Salva alterações de dados de um usuário já ativo (nome, WhatsApp, unidade, nível, obs)
@@ -10935,6 +11121,7 @@ async function salvarDadosUsr(){
     var tabela = u._tipo==='sol' ? 'solicitacoes' : 'usuarios';
     var up = await SB.from(tabela).update(dados).eq('id', docId);
     if(up.error) throw up.error;
+    if(dados.nivel==='supervisor') _salvarSupervisorMods(u.email);
     fecharModalUsr();
     await renderUsuarios();
     toast('✓ Dados atualizados.');
@@ -10964,6 +11151,7 @@ async function aprovarUsuario(){
       var up = await SB.from('usuarios').update({ status:'ativo', nivel:nivel, obs:obs||null }).eq('id', u._docId);
       if(up.error) throw up.error;
     }
+    if(nivel==='supervisor') _salvarSupervisorMods(u.email);
     fecharModalUsr();
     await renderUsuarios();
     toast('✓ Acesso aprovado!');
