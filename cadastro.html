@@ -77,7 +77,7 @@
     <label class="req">Telefone / WhatsApp</label>
     <div class="iw"><i class="fa-brands fa-whatsapp"></i>
       <input type="text" id="c-tel" placeholder="(11) 99999-9999 — receberá os avisos" autocomplete="tel"></div>
-    <div class="hint">Usaremos este WhatsApp para avisar reservas e encomendas.</div>
+    <div class="hint">Usaremos este WhatsApp para avisar reservas e encomendas. Brasil: DDD + 9 + número (11 dígitos). Outro país: comece com <b>+</b> e o código (ex.: +1 305 555 1234).</div>
 
     <div class="row2">
       <div>
@@ -231,7 +231,14 @@ async function enviar(){
 
   if(!nome){ return showMsg('Informe seu nome completo.','err'); }
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ return showMsg('Informe um e-mail válido.','err'); }
-  if(tel.replace(/\D/g,'').length < 10){ return showMsg('Informe um número de WhatsApp válido (com DDD).','err'); }
+  // WhatsApp: Brasil exige 11 dígitos (DDD + 9 + 8). Outro país: começa com "+" e código.
+  const _dig = tel.replace(/\D/g,'');
+  if(tel.trim().charAt(0)==='+'){
+    if(_dig.length < 8){ return showMsg('Número internacional inválido. Use + e o código do país com o número completo. Ex: +1 305 555 1234','err'); }
+  } else {
+    if(_dig.length !== 11){ return showMsg('WhatsApp do Brasil deve ter 11 dígitos: DDD + 9 + número. Ex: (88) 98175-9113. Se for de outro país, comece com + e o código (ex: +1 305 555 1234).','err'); }
+    if(_dig.charAt(2) !== '9'){ return showMsg('Faltou o 9 do celular. O número deve ser DDD + 9 + 8 dígitos. Ex: (88) 98175-9113.','err'); }
+  }
   if(!condominio){ return showMsg('Selecione o seu condomínio.','err'); }
   if(!unidade){ return showMsg('Selecione a sua unidade.','err'); }
   if(!vinculo){ return showMsg('Selecione o seu vínculo com a unidade.','err'); }
