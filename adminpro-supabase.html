@@ -11105,15 +11105,31 @@ function _salvarSupervisorMods(email){
   S('supervisores', map);
 }
 
+// Valida WhatsApp: Brasil = 11 dígitos (DDD+9+8); outro país = começa com "+" e código.
+// Retorna string de erro, ou '' se ok. Aceita vazio (deixa a critério de quem chama).
+function _validarWhats(tel){
+  tel=(tel||'').trim(); if(!tel) return '';
+  var dig=tel.replace(/\D/g,'');
+  if(tel.charAt(0)==='+'){
+    return dig.length<8 ? 'Número internacional inválido. Use + e o código do país. Ex: +1 305 555 1234' : '';
+  }
+  if(dig.length!==11) return 'WhatsApp do Brasil deve ter 11 dígitos: DDD + 9 + número. Ex: (88) 98175-9113. Se for de outro país, comece com + e o código.';
+  if(dig.charAt(2)!=='9') return 'Faltou o 9 do celular. Deve ser DDD + 9 + 8 dígitos. Ex: (88) 98175-9113.';
+  return '';
+}
+
 // Salva alterações de dados de um usuário já ativo (nome, WhatsApp, unidade, nível, obs)
 async function salvarDadosUsr(){
   var docId = $('musr-docid').value;
   if(!docId || !SB){ toast('⚠️ Banco não disponível.'); return; }
   var u = (window._usrLista||[]).find(function(x){return x._docId===docId;});
   if(!u){ toast('⚠️ Registro não encontrado.'); return; }
+  var _telUsr = ($('musr-tel').value||'').trim();
+  var _telErr = _validarWhats(_telUsr);
+  if(_telErr){ toast('⚠️ '+_telErr); return; }
   var dados = {
     nome: ($('musr-nome').value||'').trim(),
-    tel: ($('musr-tel').value||'').trim(),
+    tel: _telUsr,
     unidade: ($('musr-unidade').value||'').trim().toUpperCase(),
     nivel: $('musr-nivel').value,
     obs: ($('musr-obs').value||'').trim()
