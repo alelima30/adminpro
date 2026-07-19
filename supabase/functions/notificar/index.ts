@@ -40,9 +40,12 @@ async function enviarEvolution(to: string, message: string) {
   if (!URL || !KEY || !INSTANCE) {
     return J({ error: "EVOLUTION_URL/EVOLUTION_KEY/EVOLUTION_INSTANCE nao configurados nos Secrets." }, 500);
   }
+  // "+" na frente = numero internacional ja completo (ex: +1 EUA) -> usa como esta.
+  // Sem "+", assume Brasil e coloca o 55.
+  const intl = String(to).trim().startsWith("+");
   let num = String(to).replace(/\D/g, "");
   if (!num) return J({ error: "Numero invalido." }, 400);
-  if (!num.startsWith("55")) num = "55" + num;
+  if (!intl && !num.startsWith("55")) num = "55" + num;
 
   const resp = await fetch(`${URL}/message/sendText/${INSTANCE}`, {
     method: "POST",
@@ -62,9 +65,10 @@ async function enviarWhatsapp(to: string, message: string) {
   const LANG = Deno.env.get("WHATSAPP_LANG") ?? "pt_BR";
   if (!TOKEN || !PHONE_ID) return J({ error: "WHATSAPP_TOKEN/WHATSAPP_PHONE_ID nao configurados nos Secrets." }, 500);
 
+  const intl = String(to).trim().startsWith("+");
   let num = String(to).replace(/\D/g, "");
   if (!num) return J({ error: "Numero invalido." }, 400);
-  if (!num.startsWith("55")) num = "55" + num;
+  if (!intl && !num.startsWith("55")) num = "55" + num;
 
   // hello_world (modelo pronto da Meta) nao aceita variaveis -> envia sem componentes.
   const template: Record<string, unknown> =

@@ -9509,9 +9509,10 @@ async function enviarWhatsApp(numero, mensagem){
   }
   // Z-API (padrão) — chamada direta do navegador
   if(!cfg.zapiInstance || !cfg.zapiToken) return {ok:false, erro:'Z-API não configurada'};
+  const intl = String(numero).trim().startsWith('+'); // +cod internacional (ex: +1 EUA) usa como está
   let num = numero.replace(/\D/g,'');
   if(!num) return {ok:false, erro:'Número inválido'};
-  if(!num.startsWith('55')) num = '55' + num;
+  if(!intl && !num.startsWith('55')) num = '55' + num;
   const url = `https://api.z-api.io/instances/${cfg.zapiInstance}/token/${cfg.zapiToken}/send-text`;
   try{
     const headers = {'Content-Type':'application/json'};
