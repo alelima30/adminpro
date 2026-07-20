@@ -9727,7 +9727,10 @@ const ESPACOS_CFG = [
 // Espaços com financeiro habilitado por padrão (não aparecem no painel de habilitação)
 const ESPACOS_FIN_PADRAO = ['Salão de Festa','Cozinha / Espaço Lazer','Campo de Futebol'];
 
+let _cfgTabAtual = 'reservas';   // lembra a última aba de Configurações aberta
 function cfgSetTab(t){
+  _cfgTabAtual = t;
+  try{ localStorage.setItem('apvc_cfg_tab', t); }catch(_){}
   document.querySelectorAll('.cfg-grp-reservas').forEach(function(e){ e.style.display = t==='reservas' ? '' : 'none'; });
   document.querySelectorAll('.cfg-grp-sistema').forEach(function(e){ e.style.display = t==='sistema' ? '' : 'none'; });
   document.querySelectorAll('.cfg-grp-modulos').forEach(function(e){ e.style.display = t==='modulos' ? '' : 'none'; });
@@ -9762,7 +9765,9 @@ function salvarModulosMorador(){
 }
 
 function renderCfgReservas(){
-  if(!$('cfgtab-reservas')||!$('cfgtab-reservas').classList.contains('active')) cfgSetTab('reservas');
+  // Restaura a última aba aberta (Reservas / Integrações / Módulos) em vez de forçar Reservas
+  var _tab; try{ _tab=localStorage.getItem('apvc_cfg_tab'); }catch(_){}
+  cfgSetTab(_tab || _cfgTabAtual || 'reservas');
   const elTermos = $('cfg-reservas-espacos');
   const elFin    = $('cfg-fin-espacos');
   if(!elTermos && !elFin) return;
