@@ -9350,7 +9350,7 @@ function baixarPDF(id){
 
 function salvarConfigs(){
   const cfg = {
-    waProvider:       $('cfg-wa-provider')?.value || 'zapi',
+    waProvider:       $('cfg-wa-provider')?.value || 'evolution',
     zapiInstance:     $('cfg-zapi-instance')?.value.trim()||'',
     zapiToken:        $('cfg-zapi-token')?.value.trim()||'',
     zapiClientToken:  $('cfg-zapi-client-token')?.value.trim()||'',
@@ -9377,7 +9377,7 @@ function carregarConfigs(){
   cfg.ejsService  = cfg.ejsService  || EJS_DEFAULTS.ejsService;
   cfg.ejsTemplate = cfg.ejsTemplate || EJS_DEFAULTS.ejsTemplate;
   cfg.ejsPubkey   = cfg.ejsPubkey   || EJS_DEFAULTS.ejsPubkey;
-  if($('cfg-wa-provider'))      { $('cfg-wa-provider').value = cfg.waProvider||'zapi'; cfgWaProviderChange(); }
+  if($('cfg-wa-provider'))      { $('cfg-wa-provider').value = cfg.waProvider||'evolution'; cfgWaProviderChange(); }
   if($('cfg-zapi-instance'))    $('cfg-zapi-instance').value    = cfg.zapiInstance||'';
   if($('cfg-zapi-token'))       $('cfg-zapi-token').value       = cfg.zapiToken||'';
   if($('cfg-zapi-client-token'))$('cfg-zapi-client-token').value= cfg.zapiClientToken||'';
@@ -9418,6 +9418,9 @@ function getCfg(){
     cfg.ejsService  = cfg.ejsService  || EJS_SERVICE;
     cfg.ejsTemplate = cfg.ejsTemplate || EJS_TEMPLATE;
     cfg.ejsPubkey   = cfg.ejsPubkey   || EJS_PUBKEY;
+    // Padrão da plataforma: Evolution (central). Assim todo condomínio novo
+    // já envia WhatsApp sem o admin precisar configurar nada técnico.
+    if(!cfg.waProvider) cfg.waProvider = 'evolution';
     return cfg;
   } catch(e){
     return {ejsService:EJS_SERVICE, ejsTemplate:EJS_TEMPLATE, ejsPubkey:EJS_PUBKEY};
@@ -9727,7 +9730,12 @@ const ESPACOS_CFG = [
 // Espaços com financeiro habilitado por padrão (não aparecem no painel de habilitação)
 const ESPACOS_FIN_PADRAO = ['Salão de Festa','Cozinha / Espaço Lazer','Campo de Futebol'];
 
+let _cfgTabAtual = 'reservas';   // lembra a última aba de Configurações aberta
 function cfgSetTab(t){
+  // Integrações & Sistema (config técnica central) só para o sênior da plataforma
+  if(t==='sistema' && !isSuperAdmin()) t='reservas';
+  _cfgTabAtual = t;
+  try{ localStorage.setItem('apvc_cfg_tab', t); }catch(_){}
   document.querySelectorAll('.cfg-grp-reservas').forEach(function(e){ e.style.display = t==='reservas' ? '' : 'none'; });
   document.querySelectorAll('.cfg-grp-sistema').forEach(function(e){ e.style.display = t==='sistema' ? '' : 'none'; });
   document.querySelectorAll('.cfg-grp-modulos').forEach(function(e){ e.style.display = t==='modulos' ? '' : 'none'; });
@@ -9762,7 +9770,11 @@ function salvarModulosMorador(){
 }
 
 function renderCfgReservas(){
-  if(!$('cfgtab-reservas')||!$('cfgtab-reservas').classList.contains('active')) cfgSetTab('reservas');
+  // Integrações & Sistema (config técnica central) visível só para o sênior
+  var _tbSis=$('cfgtab-sistema'); if(_tbSis) _tbSis.style.display = isSuperAdmin() ? '' : 'none';
+  // Restaura a última aba aberta (Reservas / Integrações / Módulos) em vez de forçar Reservas
+  var _tab; try{ _tab=localStorage.getItem('apvc_cfg_tab'); }catch(_){}
+  cfgSetTab(_tab || _cfgTabAtual || 'reservas');
   const elTermos = $('cfg-reservas-espacos');
   const elFin    = $('cfg-fin-espacos');
   if(!elTermos && !elFin) return;
