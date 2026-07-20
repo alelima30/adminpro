@@ -384,6 +384,25 @@ table.report .lote-cell { font-weight: 700; color: var(--brand-dark); }
   color: var(--text-3); font-size: 13px; text-align: center;
 }
 
+/* ============ Rodapé do censo + cadeado de acesso admin =============== */
+.censo-footer {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 30px 0 44px; margin-top: 10px;
+}
+.admin-lock {
+  width: 44px; height: 44px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface-1); border: 1px solid var(--border);
+  color: var(--text-3); box-shadow: var(--shadow-sm);
+  transition: all .18s ease;
+}
+.admin-lock svg { width: 20px; height: 20px; }
+.admin-lock:hover {
+  color: var(--brand); border-color: var(--brand);
+  transform: translateY(-2px); box-shadow: var(--shadow);
+}
+.censo-footer-txt { font-size: 12px; color: var(--text-3); }
+
 /* ==================== Tela de acesso (admin gate) ===================== */
 .admin-gate {
   position: fixed; inset: 0; z-index: 200;
