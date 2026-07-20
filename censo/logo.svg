@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 210" role="img" aria-label="Village Castelo">
+  <!-- Losango laranja -->
+  <rect x="45" y="30" width="130" height="130" rx="22" transform="rotate(45 110 95)" fill="#E8771F"/>
+  <!-- Folha (dois pingos: verde + escuro) -->
+  <g>
+    <path d="M0,-26 C12,-7 12,9 0,17 C-12,9 -12,-7 0,-26 Z" fill="#2f7d31" transform="translate(101,54) rotate(-10)"/>
+    <path d="M0,-26 C12,-7 12,9 0,17 C-12,9 -12,-7 0,-26 Z" fill="#151515" transform="translate(119,54) rotate(10)"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="110" y="120" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Arial,sans-serif" font-weight="800" font-size="30" letter-spacing="1.5" fill="#0f3d2e">VILLAGE</text>
+  <text x="110" y="151" text-anchor="middle" font-family="system-ui,-apple-system,'Segoe UI',Arial,sans-serif" font-weight="800" font-size="30" letter-spacing="1.5" fill="#0f3d2e">CASTELO</text>
+</svg>
