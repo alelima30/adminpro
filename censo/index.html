@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Censo dos Moradores 2026 · Parque Village Castelo</title>
+<meta name="theme-color" content="#1e6e4f">
+<meta name="description" content="Censo de idade dos moradores — Associação Parque Village Castelo. Levantamento da faixa etária por lote para fins estatísticos.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ============================ Cabeçalho ============================ -->
+  <header class="topbar">
+    <div class="container">
+      <!-- Logo da Associação (espaço reservado) -->
+      <div class="logo" title="Logo da Associação">
+        <!-- Substitua por: <img src="logo.png" alt="Associação Parque Village Castelo"> -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>
+        </svg>
+      </div>
+      <div class="topbar-titles">
+        <h1>Censo dos Moradores 2026</h1>
+        <p>Associação Parque Village Castelo</p>
+      </div>
+      <div class="topbar-actions">
+        <a class="btn btn-ghost" href="dashboard.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg>
+          Dashboard
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================ Conteúdo ============================ -->
+  <main class="censo-wrap">
+    <div class="container">
+
+      <!-- Introdução -->
+      <section class="intro">
+        <span class="badge-ano">CENSO 2026</span>
+        <h2>Levantamento da faixa etária dos moradores</h2>
+        <p>
+          A Associação Parque Village Castelo está realizando um levantamento da faixa etária
+          dos moradores para auxiliar no planejamento de atividades, eventos e investimentos.
+          As informações serão utilizadas apenas para fins estatísticos.
+        </p>
+      </section>
+
+      <!-- Formulário do Censo -->
+      <section class="card card-pad">
+
+        <!-- 1) Seleção do lote (combobox pesquisável) -->
+        <div class="form-section">
+          <label class="form-label" for="loteInput">1. Selecione o lote</label>
+          <p class="form-hint">Digite a quadra e o número (ex.: <b>B15</b>). Só é possível escolher um lote existente na lista.</p>
+          <div class="combo">
+            <input
+              type="text"
+              id="loteInput"
+              class="field"
+              placeholder="Pesquisar lote…"
+              autocomplete="off"
+              role="combobox"
+              aria-expanded="false"
+              aria-autocomplete="list"
+              aria-controls="loteList">
+            <div id="loteList" class="combo-list hidden" role="listbox"></div>
+          </div>
+          <div id="loteStatus"></div>
+        </div>
+
+        <!-- 2) Quantidade de moradores -->
+        <div class="form-section" id="qtdSection" hidden>
+          <label class="form-label" for="qtdInput">2. Quantas pessoas moram neste lote?</label>
+          <p class="form-hint">Informe o total de moradores. Os cartões serão gerados automaticamente.</p>
+          <input type="number" id="qtdInput" class="field" min="0" max="30" step="1" inputmode="numeric" placeholder="Ex.: 3" style="max-width:220px;">
+        </div>
+
+        <!-- 3) Cartões de moradores (ano de nascimento) -->
+        <div class="form-section" id="moradoresSection" hidden>
+          <label class="form-label">3. Ano de nascimento de cada morador</label>
+          <p class="form-hint">Informe apenas o <b>ano de nascimento</b>. A idade é calculada automaticamente (ano atual: <span id="anoAtualTxt"></span>).</p>
+          <div id="moradoresGrid" class="moradores-grid"></div>
+        </div>
+
+        <!-- Ações -->
+        <div class="form-actions" id="acoesSection" hidden>
+          <button type="button" id="btnSalvar" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+            Salvar censo do lote
+          </button>
+          <button type="button" id="btnLimpar" class="btn btn-light btn-sm">Limpar</button>
+          <button type="button" id="btnRemover" class="btn btn-light btn-sm hidden" style="color:var(--danger);border-color:#f3d3d3;">Remover cadastro deste lote</button>
+        </div>
+
+        <!-- Links rápidos -->
+        <div class="quick-links">
+          <a class="btn btn-light btn-sm" href="dashboard.html">Ver dashboard administrativo →</a>
+          <span class="muted" style="align-self:center;font-size:13px;" id="progressoInfo"></span>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
