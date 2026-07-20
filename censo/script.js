@@ -254,7 +254,7 @@
     try {
       await CensoData.salvar(registro);
       state.lotesRespondidos.add(state.loteSelecionado);
-      toast(`Censo do lote ${state.loteSelecionado} salvo com sucesso!`, 'ok');
+      toast(`Obrigado por responder o censo! Lote ${state.loteSelecionado} registrado. 💚`, 'ok');
       atualizarProgresso();
       resetForm();
     } catch (e) {
@@ -291,7 +291,7 @@
       const n = state.lotesRespondidos.size;
       const total = CensoData.TOTAL_LOTES;
       const perc = ((n / total) * 100).toFixed(1);
-      el.progressoInfo.textContent = `${n} de ${total} lotes respondidos (${perc}%)`;
+      el.progressoInfo.innerHTML = `${n} de ${total} lotes respondidos <b>(${perc}%)</b>`;
     } catch (e) {
       console.warn('Progresso indisponível:', e);
     }
