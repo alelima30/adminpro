@@ -196,7 +196,7 @@
   function renderKPIs() {
     const s = CensoData.estatisticas(state.registros);
     const cards = [
-      { icon: 'home',        cor: '#1e6e4f', label: 'Lotes respondidos', valor: s.lotesRespondidos, sub: `de ${s.totalLotes} lotes` },
+      { icon: 'home',        cor: '#1B2B5E', label: 'Lotes respondidos', valor: s.lotesRespondidos, sub: `de ${s.totalLotes} lotes` },
       { icon: 'users',       cor: '#2a78d6', label: 'Total de moradores', valor: s.totalMoradores, sub: `${s.mediaIdadeGeral.toFixed(1)} anos de idade média` },
       { icon: 'calculator',  cor: '#7c5cff', label: 'Média por lote', valor: s.mediaMoradoresPorLote.toFixed(1), sub: 'moradores por lote respondido' },
       { icon: 'baby',            cor: CORES_FAIXA.criancas,     label: 'Crianças',     valor: s.porFaixa.criancas,     sub: '0–12 anos' },
@@ -488,7 +488,7 @@
       }).join('');
       const html =
         `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8">
-         <style>th{background:#1e6e4f;color:#fff}td,th{border:1px solid #ccc;padding:4px}</style></head>
+         <style>th{background:#1B2B5E;color:#fff}td,th{border:1px solid #ccc;padding:4px}</style></head>
          <body><table>${linhas}</table></body></html>`;
       Exportar._baixar(html, 'censo_moradores_2026.xls', 'application/vnd.ms-excel');
       toast('Planilha Excel exportada.', 'ok');
@@ -510,10 +510,10 @@
         <title>Censo dos Moradores 2026 — Relatório</title>
         <style>
           body{font-family:system-ui,'Segoe UI',sans-serif;color:#0f1b2d;padding:28px;}
-          h1{font-size:20px;color:#1e6e4f;margin:0 0 4px;}
+          h1{font-size:20px;color:#1B2B5E;margin:0 0 4px;}
           p.sub{color:#52617a;margin:0 0 18px;font-size:13px;}
           table{width:100%;border-collapse:collapse;font-size:12px;}
-          th{background:#1e6e4f;color:#fff;text-align:left;}
+          th{background:#1B2B5E;color:#fff;text-align:left;}
           th,td{border:1px solid #d8dee9;padding:7px 9px;}
           tr:nth-child(even) td{background:#f6f8fb;}
         </style></head><body>
