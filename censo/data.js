@@ -80,7 +80,7 @@ const CensoData = (() => {
    * real, use a autenticação do Supabase (Supabase Auth) na integração futura.
    * ------------------------------------------------------------------------ */
   const ADMIN = {
-    senha: 'castelo2026',   // << troque pela senha da Diretoria
+    senha: '@castelo2026',   // << troque pela senha da Diretoria
     chaveSessao: 'censo_admin_ok',
     autenticado() {
       try { return sessionStorage.getItem(this.chaveSessao) === '1'; }
