@@ -3682,6 +3682,13 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         </div>
         <input type="hidden" id="mres-lote">
       </div>
+      <div class="fg" id="mres-pessoa-wrap" style="grid-column:1/-1;display:none">
+        <label><i class="fa-solid fa-user-group" style="color:var(--gold)"></i> Morador / Dependente da unidade</label>
+        <select id="mres-pessoa-sel" onchange="mresPessoaSel()">
+          <option value="">— selecione a unidade acima —</option>
+        </select>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px">Selecione quem está reservando — nome e telefone preenchem sozinhos.</div>
+      </div>
       <div class="fg">
         <label>Telefone</label>
         <input type="text" id="mres-tel" placeholder="(11) 99999-9999">
@@ -5041,6 +5048,39 @@ function mresLoteSelecionar(lote){
   }
   const dd=$('mres-lote-dd');
   if(dd) dd.style.display='none';
+  mresPreencherPessoas(lote);
+}
+
+// Admin: ao escolher a unidade, lista moradores + dependentes daquela unidade
+function mresPreencherPessoas(lote){
+  var wrap=$('mres-pessoa-wrap'), sel=$('mres-pessoa-sel');
+  if(!wrap||!sel) return;
+  var nivel=window._userNivel||'morador';
+  var isAdm=(nivel==='admin'||nivel==='gestor'||nivel==='supervisor');
+  if(!isAdm){ wrap.style.display='none'; return; }
+  if(!String(lote||'').trim()){
+    sel.innerHTML='<option value="">— selecione a unidade acima —</option>';
+    wrap.style.display=''; return;
+  }
+  var pessoas=(typeof encPessoasDaUnidade==='function')?encPessoasDaUnidade(String(lote||'')):[];
+  window._mresPessoas=pessoas;
+  if(!pessoas.length){
+    sel.innerHTML='<option value="">(sem morador cadastrado — preencha manualmente)</option>';
+    wrap.style.display='';
+    return;
+  }
+  sel.innerHTML='<option value="">— selecione o morador/dependente —</option>'+
+    pessoas.map(function(p,i){ return '<option value="'+i+'">'+escU(p.nome)+(p.tel?' — '+escU(p.tel):'')+'</option>'; }).join('');
+  wrap.style.display='';
+}
+
+// Ao escolher uma pessoa, preenche nome e telefone automaticamente
+function mresPessoaSel(){
+  var sel=$('mres-pessoa-sel'); if(!sel) return;
+  var i=sel.value; if(i==='') return;
+  var p=(window._mresPessoas||[])[+i]; if(!p) return;
+  if($('mres-nome')) $('mres-nome').value=p.nome||'';
+  if($('mres-tel'))  $('mres-tel').value =p.tel||'';
 }
 
 // Fecha ao clicar fora
@@ -8474,6 +8514,8 @@ function abrirModalRes(id){
     mresLoteSet(r?.lote||'');  // popula seletor com lote da reserva existente
     $('mres-tel').value=r?.tel||'';
   }
+  // Admin/gestor: lista moradores+dependentes da unidade (preenche nome/telefone)
+  mresPreencherPessoas(r?.lote || (isMorador ? (JSON.parse(localStorage.getItem('apvc_user')||'{}').lote||'') : ''));
 
   $('mres-pessoas').value=r?.pessoas||'';
   mresPopularEspacos(r?.espaco||'');
@@ -8578,7 +8620,14 @@ function salvarRes(){
 
   // ── Regras de disponibilidade (dias da semana, bloqueios, limite de horas/morador) ──
   const _viol = reservaViolaRegra(espacoRes, dataRes, hr, ($('mres-lote').value||'').trim(), id?+id:null);
-  if(_viol){ toast('⛔ '+_viol); return; }
+  if(_viol){
+    if(_isAdminRes){
+      // Admin pode reservar mesmo assim, mas confirma antes (ex: fim de semana bloqueado)
+      if(!confirm('⚠️ '+_viol+'\n\nVocê é administrador e pode reservar assim mesmo.\nTem certeza que deseja fazer esta reserva?')) return;
+    } else {
+      toast('⛔ '+_viol); return;
+    }
+  }
 
   // ── Regras gerais (só para morador; admin/gestor ficam livres) ──
   if(!_isAdminRes){
