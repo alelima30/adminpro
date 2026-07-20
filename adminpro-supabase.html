@@ -8548,8 +8548,10 @@ function abrirModalRes(id){
   carregarAlertas(r?.alertas||[]);
 
   // Alertas & Notificações: seção inteira só para admin/gestor
-  if($('mres-alertas-head'))  $('mres-alertas-head').style.display  = isMorador ? 'none' : '';
-  if($('mres-alertas-bloco')) $('mres-alertas-bloco').style.display = isMorador ? 'none' : '';
+  // Alertas & Notificações removidos do formulário — já usamos o sistema central
+  // de notificação (confirmação/lembretes por WhatsApp). Seção sempre oculta.
+  if($('mres-alertas-head'))  $('mres-alertas-head').style.display  = 'none';
+  if($('mres-alertas-bloco')) $('mres-alertas-bloco').style.display = 'none';
 
   // Atualiza blocos financeiro + termo por espaço (passa reserva para pré-preencher campos)
   onEspacoChange(r||null);
@@ -8709,9 +8711,7 @@ function salvarRes(){
     chkRegras:$('mres-chk-regras').checked,
     chkDevolucao:$('mres-chk-devolucao').checked,
     obs:$('mres-obs').value.trim(),
-    alertaWhatsapp:$('mres-alerta-whatsapp')?$('mres-alerta-whatsapp').value.trim():'',
-    alertaEmail:$('mres-alerta-email')?$('mres-alerta-email').value.trim():'',
-    alertas: coletarAlertas(),
+    alertaWhatsapp:'', alertaEmail:'', alertas:[],  // seção removida do formulário
     criadoPor: (JSON.parse(localStorage.getItem('apvc_user')||'{}')).email||'',
     loteResponsavel: $('mres-lote').value.trim(), // ← identificador robusto por lote
   };
