@@ -8460,8 +8460,17 @@ function onEspacoChange(reservaExistente){
     else     { $('mres-termo-link').style.display='none'; }
   }
 
-  // Esconde admin-only checklist para moradores
-  if($('mres-chk-admin')) $('mres-chk-admin').style.display = isAdmin ? 'grid' : 'none';
+  // Checklist de acompanhamento (Vistoria/Caução/Chave/Regras): só ao EDITAR uma
+  // reserva já existente (na criação não faz sentido — o evento ainda nem ocorreu).
+  var _editId = $('mres-id') ? ($('mres-id').value||'') : '';
+  var _resExiste = !!_editId;
+  if($('mres-chk-admin')) $('mres-chk-admin').style.display = (isAdmin && _resExiste) ? 'grid' : 'none';
+  // "Caução Devolvida" só aparece se a reserva tiver caução (> 0)
+  var _cxCaucao = $('mres-chk-caucao-dev');
+  if(_cxCaucao && _cxCaucao.closest('label')){
+    var _cv = parseFloat($('mres-caucao-val') ? $('mres-caucao-val').value : 0) || 0;
+    _cxCaucao.closest('label').style.display = _cv>0 ? '' : 'none';
+  }
   if($('mres-status')) $('mres-status').closest('.fg').style.display = isAdmin ? '' : 'none';
 
   // Financeiro: morador NÃO edita valores nem status de pagamento (definido pelo admin)
