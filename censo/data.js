@@ -69,6 +69,36 @@ const CensoData = (() => {
   const STORAGE_KEY = 'censo_pvc_2026';
 
   /* --------------------------------------------------------------------------
+   * Acesso administrativo (Dashboard)
+   *
+   * O Dashboard é protegido por senha. Troque o valor de `senha` abaixo pela
+   * senha desejada da Diretoria.
+   *
+   * IMPORTANTE (segurança): por ser um sistema 100% no navegador (sem servidor),
+   * esta senha fica visível no código-fonte — ela serve para impedir o acesso
+   * casual de moradores, não como segurança forte. Para controle de acesso
+   * real, use a autenticação do Supabase (Supabase Auth) na integração futura.
+   * ------------------------------------------------------------------------ */
+  const ADMIN = {
+    senha: 'castelo2026',   // << troque pela senha da Diretoria
+    chaveSessao: 'censo_admin_ok',
+    autenticado() {
+      try { return sessionStorage.getItem(this.chaveSessao) === '1'; }
+      catch (_) { return false; }
+    },
+    entrar(tentativa) {
+      if (String(tentativa) === String(this.senha)) {
+        try { sessionStorage.setItem(this.chaveSessao, '1'); } catch (_) {}
+        return true;
+      }
+      return false;
+    },
+    sair() {
+      try { sessionStorage.removeItem(this.chaveSessao); } catch (_) {}
+    }
+  };
+
+  /* --------------------------------------------------------------------------
    * Geração automática dos lotes: A01, A02, … U05
    * ------------------------------------------------------------------------ */
   function gerarLotes() {
@@ -281,6 +311,7 @@ const CensoData = (() => {
     FAIXAS,
     ANO_ATUAL,
     SUPABASE,
+    ADMIN,
     gerarLotes,
     quadraDoLote,
     loteValido,

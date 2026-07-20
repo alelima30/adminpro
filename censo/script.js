@@ -18,7 +18,6 @@
     acoesSection: document.getElementById('acoesSection'),
     btnSalvar:   document.getElementById('btnSalvar'),
     btnLimpar:   document.getElementById('btnLimpar'),
-    btnRemover:  document.getElementById('btnRemover'),
     anoAtualTxt: document.getElementById('anoAtualTxt'),
     progressoInfo: document.getElementById('progressoInfo'),
     toast:       document.getElementById('toast')
@@ -95,7 +94,6 @@
       : `<span class="lote-status novo">＋ Novo cadastro para o lote ${lote}</span>`;
 
     el.qtdSection.hidden = false;
-    el.btnRemover.classList.toggle('hidden', !jaRespondido);
 
     if (jaRespondido) {
       el.qtdInput.value = registro.moradores.length;
@@ -269,21 +267,6 @@
 
   el.btnLimpar.addEventListener('click', resetForm);
 
-  el.btnRemover.addEventListener('click', async () => {
-    if (!state.loteSelecionado) return;
-    if (!confirm(`Remover o cadastro do lote ${state.loteSelecionado}?`)) return;
-    try {
-      await CensoData.remover(state.loteSelecionado);
-      state.lotesRespondidos.delete(state.loteSelecionado);
-      toast(`Cadastro do lote ${state.loteSelecionado} removido.`, 'ok');
-      atualizarProgresso();
-      resetForm();
-    } catch (e) {
-      console.error(e);
-      toast('Não foi possível remover.', 'erro');
-    }
-  });
-
   function resetForm() {
     state.loteSelecionado = null;
     el.loteInput.value = '';
@@ -293,7 +276,6 @@
     el.qtdSection.hidden = true;
     el.moradoresSection.hidden = true;
     el.acoesSection.hidden = true;
-    el.btnRemover.classList.add('hidden');
     el.loteInput.focus();
   }
 
@@ -325,4 +307,15 @@
 
   // ---- Inicialização --------------------------------------------------------
   atualizarProgresso();
+
+  // Abre um lote automaticamente via ?lote=XXX (usado pelo botão "editar" do
+  // Dashboard administrativo) e rola até o formulário.
+  (function abrirLotePelaURL() {
+    const params = new URLSearchParams(window.location.search);
+    const lote = (params.get('lote') || '').toUpperCase();
+    if (lote && CensoData.loteValido(lote)) {
+      selecionarLote(lote);
+      setTimeout(() => el.qtdSection.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+    }
+  })();
 })();
