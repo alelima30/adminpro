@@ -18,7 +18,8 @@
     registros: [],          // todos os registros com moradores
     filtro: { quadra: '', lote: '', faixa: '' },
     ordenacao: { campo: 'lote', dir: 'asc' },
-    charts: {}
+    charts: {},
+    eventosVinculados: false
   };
 
   const $ = (id) => document.getElementById(id);
@@ -44,7 +45,11 @@
     $('semDados').classList.add('hidden');
     $('conteudo').classList.remove('hidden');
 
-    montarFiltros();
+    popularFiltros();
+    if (!state.eventosVinculados) {
+      montarFiltros();               // registra os eventos apenas uma vez
+      state.eventosVinculados = true;
+    }
     renderTudo();
 
     if (window.lucide) lucide.createIcons();
@@ -84,19 +89,22 @@
   /* ==========================================================================
    * Filtros
    * ======================================================================== */
-  function montarFiltros() {
-    // Quadras presentes
+  // (Re)constrói as opções dos selects de filtro — sem registrar eventos
+  function popularFiltros() {
     const quadras = [...new Set(state.registros.map((r) => CensoData.quadraDoLote(r.lote)))].sort();
     $('fQuadra').innerHTML = '<option value="">Todas</option>' +
       quadras.map((q) => `<option value="${q}">Quadra ${q}</option>`).join('');
+    $('fQuadra').value = state.filtro.quadra || '';
 
-    // Lotes
     preencherSelectLotes();
 
-    // Faixas
     $('fFaixa').innerHTML = '<option value="">Todas</option>' +
       CensoData.FAIXAS.map((f) => `<option value="${f.id}">${f.label} (${f.intervalo})</option>`).join('');
+    $('fFaixa').value = state.filtro.faixa || '';
+  }
 
+  // Registra os eventos dos filtros/tabela — chamado uma única vez
+  function montarFiltros() {
     $('fQuadra').addEventListener('change', (e) => {
       state.filtro.quadra = e.target.value;
       state.filtro.lote = '';           // reinicia lote ao trocar quadra
@@ -133,6 +141,26 @@
     $('btnCSV').addEventListener('click', Exportar.csv);
     $('btnXLSX').addEventListener('click', Exportar.xlsx);
     $('btnPDF').addEventListener('click', Exportar.pdf);
+
+    // Exclusão de lote (admin) — delegação de evento na tabela
+    $('relatorioBody').addEventListener('click', async (ev) => {
+      const btn = ev.target.closest('[data-excluir]');
+      if (!btn) return;
+      const lote = btn.dataset.excluir;
+      if (!confirm(`Excluir definitivamente o cadastro do lote ${lote}?\n\nEsta ação não pode ser desfeita.`)) return;
+      try {
+        await CensoData.remover(lote);
+        state.registros = state.registros.filter((r) => r.lote !== lote);
+        // Se o lote excluído estava filtrado, reseta o filtro de lote
+        if (state.filtro.lote === lote) state.filtro.lote = '';
+        popularFiltros();     // recria selects sem o lote removido
+        renderTudo();
+        toast(`Lote ${lote} excluído com sucesso.`, 'ok');
+      } catch (e) {
+        console.error(e);
+        toast('Não foi possível excluir. Tente novamente.', 'erro');
+      }
+    });
   }
 
   function preencherSelectLotes() {
@@ -382,7 +410,7 @@
     const body = $('relatorioBody');
 
     if (linhas.length === 0) {
-      body.innerHTML = '<tr><td colspan="5" class="empty-row">Nenhum lote corresponde aos filtros.</td></tr>';
+      body.innerHTML = '<tr><td colspan="6" class="empty-row">Nenhum lote corresponde aos filtros.</td></tr>';
     } else {
       body.innerHTML = linhas.map((l) => `
         <tr>
@@ -391,8 +419,16 @@
           <td class="num">${l.moradores}</td>
           <td class="idades-inline">${l.idades.join(', ')}</td>
           <td class="num">${l.media.toFixed(1)}</td>
+          <td>
+            <div class="row-actions">
+              <a class="icon-btn" href="index.html?lote=${l.lote}" title="Editar lote ${l.lote}"><i data-lucide="pencil"></i></a>
+              <button class="icon-btn danger" data-excluir="${l.lote}" title="Excluir lote ${l.lote}"><i data-lucide="trash-2"></i></button>
+            </div>
+          </td>
         </tr>`).join('');
     }
+
+    if (window.lucide) lucide.createIcons();
 
     // Marca coluna ordenada
     document.querySelectorAll('#tabelaRelatorio th[data-sort]').forEach((th) => {
@@ -512,6 +548,43 @@
     toastTimer = setTimeout(() => { t.className = 'toast'; }, 3000);
   }
 
+  /* ==========================================================================
+   * Controle de acesso administrativo (gate de senha)
+   * ======================================================================== */
+  function bootstrap() {
+    const gate = $('adminGate');
+
+    if (CensoData.ADMIN.autenticado()) {
+      gate.classList.add('hidden');
+      init();
+    } else {
+      // Mantém o painel oculto até autenticar
+      gate.classList.remove('hidden');
+      $('gateForm').addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const senha = $('gateSenha').value;
+        if (CensoData.ADMIN.entrar(senha)) {
+          $('gateErro').classList.add('hidden');
+          gate.classList.add('hidden');
+          init();
+        } else {
+          $('gateErro').classList.remove('hidden');
+          $('gateSenha').value = '';
+          $('gateSenha').focus();
+        }
+      });
+    }
+
+    // Botão sair (logout)
+    const btnSair = $('btnSair');
+    if (btnSair) {
+      btnSair.addEventListener('click', () => {
+        CensoData.ADMIN.sair();
+        location.reload();
+      });
+    }
+  }
+
   // ---- Start ----------------------------------------------------------------
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', bootstrap);
 })();
