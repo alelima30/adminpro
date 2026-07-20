@@ -13,6 +13,21 @@
 </head>
 <body class="dash-body">
 
+  <!-- ==================== Tela de acesso (admin) ==================== -->
+  <div id="adminGate" class="admin-gate">
+    <form class="gate-card" id="gateForm">
+      <div class="gate-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h2>Acesso administrativo</h2>
+      <p>Este painel é restrito à Diretoria da Associação. Informe a senha para continuar.</p>
+      <input type="password" id="gateSenha" class="field" placeholder="Senha" autocomplete="current-password" autofocus>
+      <div id="gateErro" class="gate-erro hidden">Senha incorreta. Tente novamente.</div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Entrar</button>
+      <a href="index.html" class="gate-voltar">← Voltar ao censo</a>
+    </form>
+  </div>
+
   <!-- ============================ Cabeçalho ============================ -->
   <header class="topbar">
     <div class="container">
@@ -31,6 +46,9 @@
         </a>
         <button class="btn btn-ghost" id="btnAtualizar">
           <i data-lucide="refresh-cw"></i> Atualizar
+        </button>
+        <button class="btn btn-ghost" id="btnSair" title="Sair do painel">
+          <i data-lucide="log-out"></i> Sair
         </button>
       </div>
     </div>
@@ -147,6 +165,7 @@
                   <th data-sort="moradores">Moradores <span class="arrow">↕</span></th>
                   <th data-sort="idades">Idades</th>
                   <th data-sort="media">Média de idade <span class="arrow">↕</span></th>
+                  <th style="text-align:center;cursor:default;">Ações</th>
                 </tr>
               </thead>
               <tbody id="relatorioBody"></tbody>
