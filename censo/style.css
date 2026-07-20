@@ -85,12 +85,10 @@ a { color: var(--accent); }
 .logo {
   flex: 0 0 auto;
   display: inline-flex; align-items: center; justify-content: center;
-  background: #fff;
-  border-radius: 12px;
-  padding: 7px 12px;
-  box-shadow: 0 4px 14px rgba(0,0,0,.18);
+  background: transparent;
+  padding: 0;
 }
-.logo-img { height: 40px; width: auto; display: block; }
+.logo-img { height: 52px; width: auto; display: block; }
 .logo svg { width: 30px; height: 30px; }
 .topbar-titles h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: .2px; }
 .topbar-titles p  { margin: 2px 0 0; font-size: 13px; color: rgba(255,255,255,.82); }
