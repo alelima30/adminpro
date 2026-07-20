@@ -384,6 +384,45 @@ table.report .lote-cell { font-weight: 700; color: var(--brand-dark); }
   color: var(--text-3); font-size: 13px; text-align: center;
 }
 
+/* ==================== Tela de acesso (admin gate) ===================== */
+.admin-gate {
+  position: fixed; inset: 0; z-index: 200;
+  background: linear-gradient(160deg, #16543c, #0f3527);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.admin-gate.hidden { display: none; }
+.gate-card {
+  background: #fff; border-radius: var(--radius);
+  padding: 34px 30px; width: 100%; max-width: 380px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.3); text-align: center;
+  animation: fadeUp .4s ease both;
+}
+.gate-logo {
+  width: 60px; height: 60px; border-radius: 16px; margin: 0 auto 16px;
+  background: var(--brand-soft); color: var(--brand);
+  display: flex; align-items: center; justify-content: center;
+}
+.gate-logo svg { width: 30px; height: 30px; }
+.gate-card h2 { margin: 0 0 6px; font-size: 20px; }
+.gate-card p { margin: 0 0 20px; color: var(--text-2); font-size: 14px; }
+.gate-card .field { margin-bottom: 14px; text-align: center; }
+.gate-erro { color: var(--danger); font-size: 13px; margin: -6px 0 12px; font-weight: 600; }
+.gate-voltar { display: inline-block; margin-top: 16px; font-size: 13px; color: var(--text-2); text-decoration: none; }
+.gate-voltar:hover { color: var(--brand); }
+
+/* Botões de ação na tabela (editar / excluir) */
+.row-actions { display: flex; gap: 6px; justify-content: center; }
+.icon-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface-1);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-2); transition: all .15s ease;
+}
+.icon-btn svg, .icon-btn i { width: 16px; height: 16px; }
+.icon-btn:hover { border-color: var(--brand); color: var(--brand); }
+.icon-btn.danger:hover { border-color: var(--danger); color: var(--danger); background: #fdeeee; }
+
 /* ============================ Responsivo =============================== */
 @media (max-width: 900px) {
   .charts-grid { grid-template-columns: 1fr; }
