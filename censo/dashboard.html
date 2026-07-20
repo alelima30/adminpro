@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Dashboard · Censo dos Moradores 2026 — Parque Village Castelo</title>
+<meta name="theme-color" content="#1e6e4f">
+<link rel="stylesheet" href="style.css">
+<!-- Chart.js (gráficos interativos) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<!-- Ícones Lucide -->
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.454.0/dist/umd/lucide.min.js"></script>
+</head>
+<body class="dash-body">
+
+  <!-- ============================ Cabeçalho ============================ -->
+  <header class="topbar">
+    <div class="container">
+      <div class="logo" title="Logo da Associação">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/>
+        </svg>
+      </div>
+      <div class="topbar-titles">
+        <h1>Dashboard Administrativo</h1>
+        <p>Censo dos Moradores 2026 · Parque Village Castelo</p>
+      </div>
+      <div class="topbar-actions">
+        <a class="btn btn-ghost" href="index.html">
+          <i data-lucide="clipboard-list"></i> Novo cadastro
+        </a>
+        <button class="btn btn-ghost" id="btnAtualizar">
+          <i data-lucide="refresh-cw"></i> Atualizar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="dash-main">
+    <div class="container">
+
+      <!-- Aviso quando não há dados -->
+      <div id="semDados" class="card card-pad hidden" style="text-align:center;">
+        <i data-lucide="inbox" style="width:40px;height:40px;color:var(--text-3)"></i>
+        <h3 style="margin:12px 0 6px;">Nenhum censo cadastrado ainda</h3>
+        <p class="muted" style="margin:0 0 16px;">Comece registrando os moradores dos lotes na tela de coleta.</p>
+        <a class="btn btn-primary" href="index.html"><i data-lucide="plus"></i> Cadastrar censo</a>
+      </div>
+
+      <div id="conteudo">
+
+        <!-- ===================== Indicadores ===================== -->
+        <div class="section-title"><i data-lucide="gauge"></i> Indicadores</div>
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <!-- Progresso -->
+        <div class="card card-pad progress-card">
+          <div class="progress-head">
+            <b>Progresso do censo</b>
+            <span class="muted" id="progressTxt"></span>
+          </div>
+          <div class="progress-bar"><span id="progressFill" style="width:0%"></span></div>
+          <div class="progress-legend">
+            <span><span class="sw" style="background:var(--brand)"></span> Respondidos: <b id="legRespondidos">0</b></span>
+            <span><span class="sw" style="background:var(--border)"></span> Pendentes: <b id="legPendentes">0</b></span>
+          </div>
+        </div>
+
+        <!-- ===================== Gráficos ===================== -->
+        <div class="section-title"><i data-lucide="pie-chart"></i> Gráficos</div>
+        <div class="charts-grid">
+          <div class="card chart-card">
+            <h3>Distribuição por faixa etária</h3>
+            <p class="chart-sub">Percentual de moradores em cada faixa</p>
+            <div class="chart-box"><canvas id="chartPizza"></canvas></div>
+          </div>
+          <div class="card chart-card">
+            <h3>Moradores por faixa etária</h3>
+            <p class="chart-sub">Total de pessoas em cada faixa</p>
+            <div class="chart-box"><canvas id="chartColunas"></canvas></div>
+          </div>
+          <div class="card chart-card">
+            <h3>Moradores por quadra</h3>
+            <p class="chart-sub">Soma de moradores em cada quadra (A–U)</p>
+            <div class="chart-box"><canvas id="chartQuadra"></canvas></div>
+          </div>
+          <div class="card chart-card">
+            <h3>Moradores por lote</h3>
+            <p class="chart-sub">Lotes respondidos, ordenados por quantidade</p>
+            <div class="chart-box tall chart-scroll"><canvas id="chartLote"></canvas></div>
+          </div>
+        </div>
+
+        <!-- ===================== Filtros ===================== -->
+        <div class="section-title"><i data-lucide="sliders-horizontal"></i> Filtros</div>
+        <div class="card card-pad">
+          <div class="filters">
+            <div class="filter">
+              <label for="fQuadra">Quadra</label>
+              <select id="fQuadra"><option value="">Todas</option></select>
+            </div>
+            <div class="filter">
+              <label for="fLote">Lote</label>
+              <select id="fLote"><option value="">Todos</option></select>
+            </div>
+            <div class="filter">
+              <label for="fFaixa">Faixa etária</label>
+              <select id="fFaixa"><option value="">Todas</option></select>
+            </div>
+            <div class="filter">
+              <button class="btn btn-light" id="btnLimparFiltros" style="margin-bottom:0;">
+                <i data-lucide="x"></i> Limpar filtros
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================== Pesquisa de lote ===================== -->
+        <div class="section-title"><i data-lucide="search"></i> Pesquisa de lote</div>
+        <div class="card card-pad">
+          <div class="filters">
+            <div class="filter grow">
+              <label for="buscaLote">Pesquisar um lote específico</label>
+              <input type="text" id="buscaLote" placeholder="Ex.: B15" autocomplete="off">
+            </div>
+          </div>
+          <div id="buscaResultado" class="busca-resultado"></div>
+        </div>
+
+        <!-- ===================== Relatório ===================== -->
+        <div class="section-title"><i data-lucide="table"></i> Relatório por lote</div>
+        <div class="card card-pad">
+          <div class="table-tools">
+            <span class="muted" id="relatorioResumo"></span>
+            <div class="export-group">
+              <button class="btn btn-light btn-sm" id="btnCSV"><i data-lucide="file-text"></i> CSV</button>
+              <button class="btn btn-light btn-sm" id="btnXLSX"><i data-lucide="file-spreadsheet"></i> Excel</button>
+              <button class="btn btn-light btn-sm" id="btnPDF"><i data-lucide="file-down"></i> PDF</button>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="report" id="tabelaRelatorio">
+              <thead>
+                <tr>
+                  <th data-sort="quadra">Quadra <span class="arrow">↕</span></th>
+                  <th data-sort="lote">Lote <span class="arrow">↕</span></th>
+                  <th data-sort="moradores">Moradores <span class="arrow">↕</span></th>
+                  <th data-sort="idades">Idades</th>
+                  <th data-sort="media">Média de idade <span class="arrow">↕</span></th>
+                </tr>
+              </thead>
+              <tbody id="relatorioBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /#conteudo -->
+
+      <footer class="footer">
+        Associação Parque Village Castelo · Censo dos Moradores 2026 — dados para fins estatísticos.
+      </footer>
+
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="data.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>
