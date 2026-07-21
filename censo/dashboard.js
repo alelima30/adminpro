@@ -9,6 +9,9 @@
   // ---- Paleta de faixas (alinhada ao data.js) ------------------------------
   const CORES_FAIXA = {};
   CensoData.FAIXAS.forEach((f) => (CORES_FAIXA[f.id] = f.cor));
+  const CORES_SEXO = {};
+  CensoData.GENEROS.forEach((g) => (CORES_SEXO[g.id] = g.cor));
+  const ABBR_SEXO = { homem: 'H', mulher: 'M', nao_informado: 'N/R' };
   const COR_SERIE = '#2a78d6';   // série única (quadra / lote)
   const INK = '#52617a';
   const GRID = '#e4e9f2';
@@ -16,7 +19,7 @@
   // ---- Estado ---------------------------------------------------------------
   const state = {
     registros: [],          // todos os registros com moradores
-    filtro: { quadra: '', lote: '', faixa: '' },
+    filtro: { quadra: '', lote: '', faixa: '', sexo: '' },
     ordenacao: { campo: 'lote', dir: 'asc' },
     charts: {},
     eventosVinculados: false
@@ -101,6 +104,10 @@
     $('fFaixa').innerHTML = '<option value="">Todas</option>' +
       CensoData.FAIXAS.map((f) => `<option value="${f.id}">${f.label} (${f.intervalo})</option>`).join('');
     $('fFaixa').value = state.filtro.faixa || '';
+
+    $('fSexo').innerHTML = '<option value="">Todos</option>' +
+      CensoData.GENEROS.map((g) => `<option value="${g.id}">${g.label}</option>`).join('');
+    $('fSexo').value = state.filtro.sexo || '';
   }
 
   // Registra os eventos dos filtros/tabela — chamado uma única vez
@@ -113,9 +120,10 @@
     });
     $('fLote').addEventListener('change', (e) => { state.filtro.lote = e.target.value; renderTudo(); });
     $('fFaixa').addEventListener('change', (e) => { state.filtro.faixa = e.target.value; renderTudo(); });
+    $('fSexo').addEventListener('change', (e) => { state.filtro.sexo = e.target.value; renderTudo(); });
     $('btnLimparFiltros').addEventListener('click', () => {
-      state.filtro = { quadra: '', lote: '', faixa: '' };
-      $('fQuadra').value = ''; $('fFaixa').value = '';
+      state.filtro = { quadra: '', lote: '', faixa: '', sexo: '' };
+      $('fQuadra').value = ''; $('fFaixa').value = ''; $('fSexo').value = '';
       preencherSelectLotes();
       renderTudo();
     });
@@ -173,18 +181,24 @@
     $('fLote').value = state.filtro.lote || '';
   }
 
-  // Aplica os filtros de quadra/lote/faixa. Ao filtrar por faixa, mantém no lote
-  // apenas os moradores daquela faixa (afeta gráficos e relatório).
+  // Aplica os filtros de quadra/lote/faixa/sexo. Ao filtrar por faixa ou sexo,
+  // mantém no lote apenas os moradores que atendem (afeta gráficos e relatório).
   function aplicarFiltros(registros) {
     return registros
       .filter((r) => !state.filtro.quadra || CensoData.quadraDoLote(r.lote) === state.filtro.quadra)
       .filter((r) => !state.filtro.lote || r.lote === state.filtro.lote)
       .map((r) => {
-        if (!state.filtro.faixa) return r;
-        const moradores = r.moradores.filter((m) => {
-          const f = CensoData.faixaEtaria(m.idade);
-          return f && f.id === state.filtro.faixa;
-        });
+        if (!state.filtro.faixa && !state.filtro.sexo) return r;
+        let moradores = r.moradores;
+        if (state.filtro.faixa) {
+          moradores = moradores.filter((m) => {
+            const f = CensoData.faixaEtaria(m.idade);
+            return f && f.id === state.filtro.faixa;
+          });
+        }
+        if (state.filtro.sexo) {
+          moradores = moradores.filter((m) => CensoData.generoPorId(m.sexo).id === state.filtro.sexo);
+        }
         return { ...r, moradores };
       })
       .filter((r) => r.moradores.length > 0);
@@ -204,6 +218,9 @@
       { icon: 'graduation-cap',  cor: CORES_FAIXA.jovens,       label: 'Jovens',       valor: s.porFaixa.jovens,       sub: '18–29 anos' },
       { icon: 'briefcase',       cor: CORES_FAIXA.adultos,      label: 'Adultos',      valor: s.porFaixa.adultos,      sub: '30–59 anos' },
       { icon: 'accessibility',   cor: CORES_FAIXA.idosos,       label: 'Idosos',       valor: s.porFaixa.idosos,       sub: '60+ anos' },
+      { icon: 'user',            cor: CORES_SEXO.homem,         label: 'Homens',       valor: s.porSexo.homem,         sub: 'sexo masculino' },
+      { icon: 'user',            cor: CORES_SEXO.mulher,        label: 'Mulheres',     valor: s.porSexo.mulher,        sub: 'sexo feminino' },
+      { icon: 'user',            cor: CORES_SEXO.nao_informado, label: 'Prefiro não responder', valor: s.porSexo.nao_informado, sub: 'sexo não informado' },
       { icon: 'check-circle',    cor: '#0ca30c', label: 'Lotes respondidos', valor: `${s.percRespondidos.toFixed(1)}%`, sub: 'do total de lotes' },
       { icon: 'clock',           cor: '#eda100', label: 'Lotes pendentes',   valor: `${s.percPendentes.toFixed(1)}%`,   sub: `${s.lotesPendentes} lotes` }
     ];
@@ -406,12 +423,35 @@
       <div style="margin-top:14px;">
         <div class="l muted" style="font-size:13px;margin-bottom:2px;">Idades</div>
         <div class="idade-chips">${chips}</div>
+      </div>
+      <div style="margin-top:12px;">
+        <div class="l muted" style="font-size:13px;margin-bottom:2px;">Sexo</div>
+        <div class="idade-chips">${sexoResumoHTML(contarSexos(reg.moradores))}</div>
       </div>`;
   }
 
   /* ==========================================================================
    * Relatório (tabela ordenável)
    * ======================================================================== */
+  function contarSexos(moradores) {
+    const c = { homem: 0, mulher: 0, nao_informado: 0 };
+    moradores.forEach((m) => { c[CensoData.generoPorId(m.sexo).id]++; });
+    return c;
+  }
+
+  // Resumo textual de sexo (ex.: "2 H, 1 M")
+  function sexoResumoTexto(sexos) {
+    return CensoData.GENEROS.filter((g) => sexos[g.id] > 0)
+      .map((g) => `${sexos[g.id]} ${ABBR_SEXO[g.id]}`).join(', ');
+  }
+
+  // Resumo de sexo com chips coloridos (para a tabela/busca)
+  function sexoResumoHTML(sexos) {
+    return CensoData.GENEROS.filter((g) => sexos[g.id] > 0)
+      .map((g) => `<span class="sexo-chip" style="background:${CORES_SEXO[g.id]}" title="${g.label}">${sexos[g.id]} ${ABBR_SEXO[g.id]}</span>`)
+      .join(' ');
+  }
+
   function linhasRelatorio(registros) {
     return registros.map((r) => {
       const idades = r.moradores.map((m) => m.idade).sort((a, b) => a - b);
@@ -421,6 +461,7 @@
         lote: r.lote,
         moradores: r.moradores.length,
         idades,
+        sexos: contarSexos(r.moradores),
         media
       };
     });
@@ -442,7 +483,7 @@
     const body = $('relatorioBody');
 
     if (linhas.length === 0) {
-      body.innerHTML = '<tr><td colspan="6" class="empty-row">Nenhum lote corresponde aos filtros.</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" class="empty-row">Nenhum lote corresponde aos filtros.</td></tr>';
     } else {
       body.innerHTML = linhas.map((l) => `
         <tr>
@@ -450,6 +491,7 @@
           <td class="lote-cell col-compact" data-label="Lote">${l.lote}</td>
           <td class="col-num" data-label="Moradores">${l.moradores}</td>
           <td class="idades-inline" data-label="Idades">${l.idades.join(', ')}</td>
+          <td class="col-compact" data-label="Sexo"><div class="sexo-chips">${sexoResumoHTML(l.sexos)}</div></td>
           <td class="col-num" data-label="Média de idade">${l.media.toFixed(1)}</td>
           <td class="col-acoes" data-label="Ações">
             <div class="row-actions">
@@ -485,9 +527,9 @@
       return ordenar(linhasRelatorio(aplicarFiltros(state.registros)));
     },
     _matriz() {
-      const cab = ['Quadra', 'Lote', 'Moradores', 'Idades', 'Média de Idade'];
+      const cab = ['Quadra', 'Lote', 'Moradores', 'Idades', 'Sexo', 'Média de Idade'];
       const corpo = this._linhas().map((l) => [
-        `Quadra ${l.quadra}`, l.lote, l.moradores, l.idades.join(' '), l.media.toFixed(1)
+        `Quadra ${l.quadra}`, l.lote, l.moradores, l.idades.join(' '), sexoResumoTexto(l.sexos), l.media.toFixed(1)
       ]);
       return [cab, ...corpo];
     },
