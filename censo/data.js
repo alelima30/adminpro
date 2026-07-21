@@ -51,8 +51,8 @@ const CensoData = (() => {
    *   );
    * ------------------------------------------------------------------------ */
   const SUPABASE = {
-    url: '',        // ex.: 'https://xxxxxxxx.supabase.co'
-    anonKey: '',    // chave pública (anon key)
+    url: 'https://xrwdkzavxbttxqgkeast.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhyd2RremF2eGJ0dHhxZ2tlYXN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MzU5NjksImV4cCI6MjEwMDIxMTk2OX0.eoIShrA_zxzDQsqR3B6Wtb6Oz1QPsOG6sLNBcMtKdr4',
     table: 'censo_moradores',
     ativo() { return Boolean(this.url && this.anonKey); },
     headers() {
