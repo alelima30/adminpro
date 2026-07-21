@@ -90,7 +90,7 @@
 
     const jaRespondido = registro && registro.moradores.length > 0;
     el.loteStatus.innerHTML = jaRespondido
-      ? `<span class="lote-status edicao">✎ Lote já cadastrado — você está editando os dados</span>`
+      ? `<span class="lote-status edicao">✎ Lote selecionado</span>`
       : '';
 
     el.qtdSection.hidden = false;
