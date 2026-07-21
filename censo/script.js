@@ -291,7 +291,7 @@
       const n = state.lotesRespondidos.size;
       const total = CensoData.TOTAL_LOTES;
       const perc = ((n / total) * 100).toFixed(1);
-      el.progressoInfo.innerHTML = `${n} de ${total} lotes respondidos <b>(${perc}%)</b>`;
+      el.progressoInfo.innerHTML = `<b>${perc}%</b> respondido`;
     } catch (e) {
       console.warn('Progresso indisponível:', e);
     }
