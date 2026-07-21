@@ -430,6 +430,8 @@ table.report .lote-cell { font-weight: 700; color: var(--brand-dark); }
   box-shadow: 0 12px 26px rgba(19,32,64,.36);
 }
 .censo-footer-txt { font-size: 12px; color: var(--text-3); }
+.censo-credito { font-size: 12px; color: var(--text-3); margin-top: -6px; }
+.censo-credito b { color: var(--brand); font-weight: 700; }
 
 /* ==================== Tela de acesso (admin gate) ===================== */
 .admin-gate {
