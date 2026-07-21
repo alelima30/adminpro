@@ -38,6 +38,18 @@ const CensoData = (() => {
   ];
 
   /* --------------------------------------------------------------------------
+   * Sexo dos moradores (rótulos e cores usadas nos gráficos)
+   * ------------------------------------------------------------------------ */
+  const GENEROS = [
+    { id: 'homem',         label: 'Homem',                cor: '#2a78d6' },
+    { id: 'mulher',        label: 'Mulher',               cor: '#e87ba4' },
+    { id: 'nao_informado', label: 'Prefiro não responder', cor: '#8a97ab' }
+  ];
+  function generoPorId(id) {
+    return GENEROS.find((g) => g.id === id) || GENEROS[2];
+  }
+
+  /* --------------------------------------------------------------------------
    * Configuração do Supabase (integração futura)
    *
    * Preencha url e anonKey para ativar a persistência na nuvem.
@@ -149,7 +161,8 @@ const CensoData = (() => {
     const moradores = (registro.moradores || [])
       .map((m) => {
         const anoNascimento = Number(m.anoNascimento);
-        return { anoNascimento, idade: calcularIdade(anoNascimento) };
+        const sexo = generoPorId(m.sexo).id;
+        return { anoNascimento, idade: calcularIdade(anoNascimento), sexo };
       })
       .filter((m) => m.anoNascimento > 0);
     return { lote, moradores, atualizado: registro.atualizado || new Date().toISOString() };
@@ -180,7 +193,8 @@ const CensoData = (() => {
     if (SUPABASE.ativo()) {
       const resp = await fetch(`${SUPABASE.endpoint()}?select=*`, {
         method: 'GET',
-        headers: SUPABASE.headers()
+        headers: SUPABASE.headers(),
+        cache: 'no-store'
       });
       if (!resp.ok) throw new Error(`Supabase: falha ao listar (${resp.status})`);
       const linhas = await resp.json();
@@ -196,7 +210,7 @@ const CensoData = (() => {
     if (SUPABASE.ativo()) {
       const resp = await fetch(
         `${SUPABASE.endpoint()}?lote=eq.${encodeURIComponent(alvo)}&select=*`,
-        { method: 'GET', headers: SUPABASE.headers() }
+        { method: 'GET', headers: SUPABASE.headers(), cache: 'no-store' }
       );
       if (!resp.ok) throw new Error(`Supabase: falha ao obter (${resp.status})`);
       const linhas = await resp.json();
@@ -262,6 +276,10 @@ const CensoData = (() => {
     const porFaixa = {};
     FAIXAS.forEach((f) => (porFaixa[f.id] = 0));
 
+    // Contagem por sexo
+    const porSexo = {};
+    GENEROS.forEach((g) => (porSexo[g.id] = 0));
+
     // Moradores por quadra e por lote
     const porQuadra = {};
     Object.keys(quadras).forEach((q) => (porQuadra[q] = 0));
@@ -277,6 +295,7 @@ const CensoData = (() => {
       r.moradores.forEach((m) => {
         const f = faixaEtaria(m.idade);
         if (f) porFaixa[f.id]++;
+        porSexo[generoPorId(m.sexo).id]++;
         if (m.idade != null && !isNaN(m.idade)) {
           somaIdades += m.idade;
           totalIdadesValidas++;
@@ -296,6 +315,7 @@ const CensoData = (() => {
       percRespondidos: TOTAL_LOTES ? (nRespondidos / TOTAL_LOTES) * 100 : 0,
       percPendentes: TOTAL_LOTES ? ((TOTAL_LOTES - nRespondidos) / TOTAL_LOTES) * 100 : 0,
       porFaixa,
+      porSexo,
       porQuadra,
       porLote
     };
@@ -309,6 +329,8 @@ const CensoData = (() => {
     LOTES,
     TOTAL_LOTES,
     FAIXAS,
+    GENEROS,
+    generoPorId,
     ANO_ATUAL,
     SUPABASE,
     ADMIN,
