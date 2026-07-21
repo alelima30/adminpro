@@ -277,6 +277,38 @@
       }
     });
 
+    // --- Pizza: distribuição por sexo ---
+    destruir('sexo');
+    const totSexo = CensoData.GENEROS.reduce((a, g) => a + s.porSexo[g.id], 0) || 1;
+    state.charts.sexo = new Chart($('chartSexo'), {
+      type: 'doughnut',
+      data: {
+        labels: CensoData.GENEROS.map((g) => g.label),
+        datasets: [{
+          data: CensoData.GENEROS.map((g) => s.porSexo[g.id]),
+          backgroundColor: CensoData.GENEROS.map((g) => g.cor),
+          borderColor: '#fff', borderWidth: 2, hoverOffset: 6
+        }]
+      },
+      options: {
+        ...baseOpts,
+        cutout: '58%',
+        plugins: {
+          ...baseOpts.plugins,
+          legend: { ...baseOpts.plugins.legend, position: 'right' },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const v = ctx.parsed;
+                const perc = ((v / totSexo) * 100).toFixed(1);
+                return ` ${ctx.label}: ${v} (${perc}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+
     // --- Colunas: moradores por faixa etária ---
     destruir('colunas');
     state.charts.colunas = new Chart($('chartColunas'), {

@@ -184,10 +184,17 @@
 
     // Preserva valores já digitados ao aumentar/diminuir a quantidade
     const atuais = coletarAnos();
+    const sexosAtuais = coletarSexos();
 
     let html = '';
     for (let i = 0; i < qtd; i++) {
       const valor = dados[i] ? dados[i].anoNascimento : (atuais[i] || '');
+      const sexoSel = dados[i] ? dados[i].sexo : (sexosAtuais[i] || '');
+      const opcoes = CensoData.GENEROS.map((g) => `
+            <label class="sexo-opt">
+              <input type="radio" name="sexo_${i}" value="${g.id}" ${sexoSel === g.id ? 'checked' : ''}>
+              <span>${g.label}</span>
+            </label>`).join('');
       html += `
         <div class="morador-card" style="animation-delay:${i * 0.03}s">
           <h4><span class="n">${i + 1}</span> Morador ${i + 1}</h4>
@@ -197,6 +204,8 @@
             min="1900" max="${CensoData.ANO_ATUAL}" step="1" inputmode="numeric"
             placeholder="Ex.: 1998" value="${valor}">
           <div class="idade-out" id="idade_${i}"></div>
+          <label style="margin-top:10px;">Sexo</label>
+          <div class="sexo-group">${opcoes}</div>
         </div>`;
     }
     el.moradoresGrid.innerHTML = html;
@@ -230,6 +239,14 @@
       .map((inp) => (inp.value ? parseInt(inp.value, 10) : ''));
   }
 
+  function coletarSexos() {
+    const cards = el.moradoresGrid.querySelectorAll('.morador-card');
+    return Array.from(cards).map((card) => {
+      const sel = card.querySelector('input[type="radio"]:checked');
+      return sel ? sel.value : '';
+    });
+  }
+
   /* ==========================================================================
    * Salvar / limpar / remover
    * ======================================================================== */
@@ -238,13 +255,17 @@
       return toast('Selecione um lote válido antes de salvar.', 'erro');
     }
     const anos = coletarAnos();
+    const sexos = coletarSexos();
     const moradores = [];
     for (let i = 0; i < anos.length; i++) {
       const ano = anos[i];
       if (!ano || ano < 1900 || ano > CensoData.ANO_ATUAL) {
         return toast(`Informe um ano de nascimento válido para o Morador ${i + 1}.`, 'erro');
       }
-      moradores.push({ anoNascimento: ano, idade: CensoData.calcularIdade(ano) });
+      if (!sexos[i]) {
+        return toast(`Selecione o sexo do Morador ${i + 1}.`, 'erro');
+      }
+      moradores.push({ anoNascimento: ano, idade: CensoData.calcularIdade(ano), sexo: sexos[i] });
     }
 
     // Estrutura de dados conforme especificação
