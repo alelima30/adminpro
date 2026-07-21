@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Dashboard · Censo dos Moradores 2026 — Parque Village Castelo</title>
 <meta name="theme-color" content="#1B2B5E">
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
 <!-- Chart.js (gráficos interativos) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <!-- Ícones Lucide -->
@@ -32,7 +32,7 @@
   <header class="topbar">
     <div class="container">
       <div class="logo" title="Village Castelo">
-        <img src="village-castelo-logotipo-150.png" alt="Village Castelo" class="logo-img" onerror="this.onerror=null;this.src='logo.svg?v=8';">
+        <img src="village-castelo-logotipo-150.png" alt="Village Castelo" class="logo-img" onerror="this.onerror=null;this.src='logo.svg?v=9';">
       </div>
       <div class="topbar-titles">
         <h1>Dashboard Administrativo</h1>
@@ -158,12 +158,12 @@
             <table class="report" id="tabelaRelatorio">
               <thead>
                 <tr>
-                  <th data-sort="quadra">Quadra <span class="arrow">↕</span></th>
-                  <th data-sort="lote">Lote <span class="arrow">↕</span></th>
-                  <th data-sort="moradores">Moradores <span class="arrow">↕</span></th>
+                  <th data-sort="quadra" class="col-compact">Quadra <span class="arrow">↕</span></th>
+                  <th data-sort="lote" class="col-compact">Lote <span class="arrow">↕</span></th>
+                  <th data-sort="moradores" class="col-num">Moradores <span class="arrow">↕</span></th>
                   <th data-sort="idades">Idades</th>
-                  <th data-sort="media">Média de idade <span class="arrow">↕</span></th>
-                  <th style="text-align:center;cursor:default;">Ações</th>
+                  <th data-sort="media" class="col-num">Média de idade <span class="arrow">↕</span></th>
+                  <th class="col-acoes" style="cursor:default;">Ações</th>
                 </tr>
               </thead>
               <tbody id="relatorioBody"></tbody>
@@ -182,7 +182,7 @@
 
   <div id="toast" class="toast"></div>
 
-  <script src="data.js?v=8"></script>
-  <script src="dashboard.js?v=8"></script>
+  <script src="data.js?v=9"></script>
+  <script src="dashboard.js?v=9"></script>
 </body>
 </html>

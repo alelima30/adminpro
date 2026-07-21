@@ -414,12 +414,12 @@
     } else {
       body.innerHTML = linhas.map((l) => `
         <tr>
-          <td>Quadra ${l.quadra}</td>
-          <td class="lote-cell">${l.lote}</td>
-          <td class="num">${l.moradores}</td>
-          <td class="idades-inline">${l.idades.join(', ')}</td>
-          <td class="num">${l.media.toFixed(1)}</td>
-          <td>
+          <td class="col-compact" data-label="Quadra">Quadra ${l.quadra}</td>
+          <td class="lote-cell col-compact" data-label="Lote">${l.lote}</td>
+          <td class="col-num" data-label="Moradores">${l.moradores}</td>
+          <td class="idades-inline" data-label="Idades">${l.idades.join(', ')}</td>
+          <td class="col-num" data-label="Média de idade">${l.media.toFixed(1)}</td>
+          <td class="col-acoes" data-label="Ações">
             <div class="row-actions">
               <a class="icon-btn" href="index.html?lote=${l.lote}" title="Editar lote ${l.lote}"><i data-lucide="pencil"></i></a>
               <button class="icon-btn danger" data-excluir="${l.lote}" title="Excluir lote ${l.lote}"><i data-lucide="trash-2"></i></button>

@@ -366,9 +366,22 @@ table.report thead th:hover { color: var(--brand); }
 table.report thead th .arrow { opacity: .4; font-size: 11px; margin-left: 4px; }
 table.report thead th.sorted .arrow { opacity: 1; color: var(--brand); }
 table.report tbody tr:hover { background: var(--surface-2); }
+
+/* Colunas numéricas: centralizadas (cabeçalho + valor), largura pelo conteúdo */
+table.report th.col-num, table.report td.col-num {
+  text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; width: 1%;
+}
+table.report th.col-num .arrow { margin-left: 4px; }
+/* Colunas compactas (quadra, lote): encolhem ao conteúdo, deixando "Idades" livre */
+table.report th.col-compact, table.report td.col-compact { white-space: nowrap; width: 1%; }
+/* Coluna de ações: centralizada e compacta */
+table.report th.col-acoes, table.report td.col-acoes {
+  text-align: center; white-space: nowrap; width: 1%;
+}
+
 table.report td.num { text-align: right; font-variant-numeric: tabular-nums; }
 table.report .lote-cell { font-weight: 700; color: var(--brand-dark); }
-.idades-inline { color: var(--text-2); font-variant-numeric: tabular-nums; }
+.idades-inline { color: var(--text-2); font-variant-numeric: tabular-nums; min-width: 160px; }
 .empty-row { text-align: center; color: var(--text-3); padding: 30px !important; }
 
 .faixa-tag-static {
@@ -473,8 +486,43 @@ table.report .lote-cell { font-weight: 700; color: var(--brand-dark); }
 }
 @media (max-width: 640px) {
   .topbar .container { flex-wrap: wrap; }
-  .topbar-actions { margin-left: 0; width: 100%; }
-  .topbar-actions .btn { flex: 1; justify-content: center; }
+  .topbar-actions { margin-left: 0; width: 100%; flex-wrap: wrap; }
+  .topbar-actions .btn { flex: 1 1 40%; justify-content: center; }
   .intro h2 { font-size: 19px; }
   .kpi-value { font-size: 23px; }
+
+  /* Gráfico de lotes não empurra a página (rola dentro do próprio card) */
+  .chart-box.chart-scroll { min-width: 0 !important; }
+
+  /* Relatório: linhas viram cartões empilhados no celular */
+  .table-scroll { overflow-x: visible; }
+  table.report { min-width: 0; width: 100%; }
+  table.report thead { display: none; }
+  table.report, table.report tbody, table.report tr, table.report td { display: block; width: 100%; }
+  table.report tr {
+    border: 1px solid var(--border); border-radius: 12px;
+    margin-bottom: 12px; background: var(--surface-1); overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  table.report td {
+    display: flex; justify-content: space-between; align-items: center; gap: 14px;
+    text-align: right !important; width: auto !important; white-space: normal !important;
+    min-width: 0 !important; border-bottom: 1px solid var(--border-2); padding: 11px 14px;
+  }
+  table.report tr td:last-child { border-bottom: none; }
+  table.report td::before {
+    content: attr(data-label);
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+    color: var(--text-2); text-align: left; flex: 0 0 auto;
+  }
+  table.report td.lote-cell { font-size: 16px; }
+  table.report td.col-acoes .row-actions { justify-content: flex-end; }
+  table.report td.empty-row { justify-content: center; }
+  table.report td.empty-row::before { content: none; }
+
+  .table-tools { flex-direction: column; align-items: stretch; }
+  .export-group { justify-content: stretch; }
+  .export-group .btn { flex: 1; justify-content: center; }
+  .filters .filter, .filters select, .filters input { width: 100%; }
+  .filters .filter { flex: 1 1 100%; }
 }
