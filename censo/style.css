@@ -357,6 +357,11 @@ a { color: var(--accent); }
   font-size: 12px; font-weight: 600; color: #fff;
   padding: 3px 10px; border-radius: 999px;
 }
+.sexo-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.sexo-chip {
+  display: inline-block; font-size: 11px; font-weight: 700; color: #fff;
+  padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+}
 
 /* Tabela de relatório */
 .table-tools { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
