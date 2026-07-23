@@ -38,21 +38,25 @@
    * ======================================================================== */
   function abrirLista(filtro = '') {
     const termo = filtro.trim().toUpperCase();
-    const lista = CensoData.LOTES.filter((l) => l.includes(termo)).slice(0, 60);
+    // Mostra apenas lotes que AINDA NÃO foram respondidos
+    const lista = CensoData.LOTES
+      .filter((l) => !state.lotesRespondidos.has(l))
+      .filter((l) => l.includes(termo))
+      .slice(0, 60);
     state.comboVisiveis = lista;
     state.comboIndex = -1;
 
     if (lista.length === 0) {
-      el.loteList.innerHTML = '<div class="combo-empty">Nenhum lote encontrado</div>';
+      el.loteList.innerHTML = termo
+        ? '<div class="combo-empty">Nenhum lote disponível com esse texto</div>'
+        : '<div class="combo-empty">Todos os lotes já foram respondidos 🎉</div>';
     } else {
       el.loteList.innerHTML = lista.map((lote) => {
-        const respondido = state.lotesRespondidos.has(lote);
         const quadra = CensoData.quadraDoLote(lote);
         return `
-          <div class="combo-item ${respondido ? 'answered' : ''}" role="option" data-lote="${lote}">
+          <div class="combo-item" role="option" data-lote="${lote}">
             <span>${lote}</span>
             <span class="q">Quadra ${quadra}</span>
-            ${respondido ? '<span class="dot" title="Já respondido"></span>' : ''}
           </div>`;
       }).join('');
     }
@@ -146,14 +150,18 @@
     if (!ev.target.closest('.combo')) fecharLista();
   });
 
-  // Impede lote inexistente ao sair do campo
+  // Impede lote inexistente ou já respondido ao sair do campo
   el.loteInput.addEventListener('blur', () => {
     setTimeout(() => {
       if (!state.loteSelecionado) {
         const digitado = el.loteInput.value.trim().toUpperCase();
-        if (digitado && CensoData.loteValido(digitado)) {
+        const respondido = state.lotesRespondidos.has(digitado);
+        if (digitado && CensoData.loteValido(digitado) && !respondido) {
           selecionarLote(digitado);
-        } else if (digitado) {
+        } else {
+          if (digitado && respondido) {
+            toast(`O lote ${digitado} já foi respondido.`, 'erro');
+          }
           el.loteInput.value = '';
           el.loteStatus.innerHTML = '';
           el.qtdSection.hidden = true;
