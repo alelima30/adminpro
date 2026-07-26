@@ -70,6 +70,16 @@ async function enviarWhatsapp(to: string, message: string) {
   if (!num) return J({ error: "Numero invalido." }, 400);
   if (!intl && !num.startsWith("55")) num = "55" + num;
 
+  // Parametro de template NAO pode ter quebra de linha / tab / 4+ espacos.
+  // As mensagens do app tem varias linhas -> vira uma linha so, legivel.
+  const paramTexto = String(message ?? "")
+    .replace(/\r/g, "")
+    .replace(/\n{2,}/g, " — ")
+    .replace(/\n/g, " · ")
+    .replace(/\t/g, " ")
+    .replace(/ {4,}/g, "   ")
+    .trim();
+
   // hello_world (modelo pronto da Meta) nao aceita variaveis -> envia sem componentes.
   const template: Record<string, unknown> =
     TEMPLATE === "hello_world"
@@ -77,7 +87,7 @@ async function enviarWhatsapp(to: string, message: string) {
       : {
           name: TEMPLATE,
           language: { code: LANG },
-          components: [{ type: "body", parameters: [{ type: "text", text: message ?? "" }] }],
+          components: [{ type: "body", parameters: [{ type: "text", text: paramTexto }] }],
         };
 
   const resp = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
