@@ -70,13 +70,15 @@ async function enviarWhatsapp(to: string, message: string) {
   if (!num) return J({ error: "Numero invalido." }, 400);
   if (!intl && !num.startsWith("55")) num = "55" + num;
 
-  // Mantem as quebras de linha para a mensagem sair ORGANIZADA.
-  // So normaliza o que pode incomodar: tabs, 3+ quebras e 4+ espacos.
+  // A Cloud API da Meta NAO aceita quebra de linha dentro da variavel {{1}}.
+  // Entao juntamos tudo em UMA linha legivel: paragrafo -> bullet, linha -> ", ".
+  // Usamos • (bullet) como escape: renderiza certo mesmo apos copiar/colar.
   const paramTexto = String(message ?? "")
     .replace(/\r/g, "")
     .replace(/\t/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .replace(/ {4,}/g, "   ")
+    .replace(/\n{2,}/g, " \u2022 ")
+    .replace(/\n/g, ", ")
+    .replace(/ {2,}/g, " ")
     .trim();
 
   // hello_world (modelo pronto da Meta) nao aceita variaveis -> envia sem componentes.
