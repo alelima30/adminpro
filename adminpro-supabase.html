@@ -8761,17 +8761,14 @@ function _enviarNotifsReserva(_novaReserva, _cfgN, obj, statusVal, _dtFmt, _cond
     // 1) Confirmação para o MORADOR (WhatsApp + e-mail)
     if(_cfgN.notif_morador_reserva){
       var _txtMor = statusVal==='pendente'
-        ? '📅 '+_cond+'\n\nRecebemos seu pedido de reserva!\n\nEspaço: '+obj.espaco+'\nData: '+_dtFmt+'\nHorário: '+obj.horario+'\nUnidade: '+obj.lote+
-          '\n\n⏳ Está *aguardando aprovação* da administração. Avisaremos assim que for confirmada.'
-        : '✅ '+_cond+'\n\nSua reserva está *confirmada*!\n\nEspaço: '+obj.espaco+'\nData: '+_dtFmt+'\nHorário: '+obj.horario+'\nUnidade: '+obj.lote+
-          '\n\nQualquer dúvida, fale com a administração. Bom evento! 🎉';
+        ? '📅 *Reserva recebida!*  •  📍 '+obj.espaco+'  •  '+_dtFmt+' às '+obj.horario+'  •  🏠 Unidade '+obj.lote+'  •  ⏳ Aguardando aprovação da administração — avisaremos quando confirmar.'
+        : '✅ *Reserva confirmada!*  •  📍 '+obj.espaco+'  •  '+_dtFmt+' às '+obj.horario+'  •  🏠 Unidade '+obj.lote+'  •  Bom evento! 🎉';
       _notificarMulti(obj.tel, obj.criadoPor, 'Reserva '+(statusVal==='pendente'?'recebida':'confirmada')+' — '+obj.espaco, _txtMor, 'morador (reserva)');
     }
     // 2) Alerta para a EQUIPE (todos os setores cadastrados)
     if(_cfgN.notif_equipe_ativo){
-      var _txtEq = '🔔 '+_cond+' — Nova reserva'+(statusVal==='pendente'?' (PENDENTE de aprovação)':'')+':\n\n'+
-        'Espaço: '+obj.espaco+'\nData: '+_dtFmt+'\nHorário: '+obj.horario+'\nMorador: '+obj.nome+'\nUnidade: '+obj.lote+
-        (obj.finalidade?('\nFinalidade: '+obj.finalidade):'');
+      var _txtEq = '🔔 *Nova reserva*'+(statusVal==='pendente'?' (pendente de aprovação)':'')+'  •  👤 '+obj.nome+' (Unidade '+obj.lote+')  •  📍 '+obj.espaco+'  •  '+_dtFmt+' às '+obj.horario+
+        (obj.finalidade?('  •  '+obj.finalidade):'');
       (_getAlertDestinos()||[]).forEach(function(d){
         _notificarMulti(d.whats, d.email, 'Nova reserva — '+obj.espaco, _txtEq, 'equipe/'+(d.label||''));
       });
