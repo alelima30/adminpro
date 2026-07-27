@@ -8729,13 +8729,19 @@ function salvarRes(){
   DB_CACHE['reservas']=all;
   try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
   _reservaUpsertSB(obj);
-  closeModal('m-res'); renderReservas(); verificarAlertas();
 
   const _isMoradorMsg = !(nivel2==='admin'||nivel2==='gestor');
   const _cfgN = getCfgRes();
   const _novaReserva = !id; // só notifica quando é reserva NOVA
   const _dtFmt = obj.data ? new Date(obj.data+'T00:00').toLocaleDateString('pt-BR') : obj.data;
   const _cond = nomeCondominioAtual();
+
+  // ⚑ NOTIFICA PRIMEIRO — não pode depender de render/alertas (que podem falhar
+  // por RLS quando um morador salva). Só depois mexe na tela (protegido).
+  _enviarNotifsReserva(_novaReserva, _cfgN, obj, statusVal, _dtFmt, _cond);
+
+  // Tela depois — se algo aqui falhar, a notificação JÁ foi enviada.
+  try{ closeModal('m-res'); renderReservas(); verificarAlertas(); }catch(_e){ console.error('pós-reserva (ignorado):', _e); }
 
   // aviso visual pro morador
   if(_isMoradorMsg && statusVal==='pendente'){
@@ -8746,7 +8752,11 @@ function salvarRes(){
   } else {
     toast('✓ Reserva salva com sucesso.');
   }
+}
 
+// Envia as notificações de reserva (morador + equipe). Isolada pra rodar
+// logo após salvar, sem depender da renderização (que pode falhar por RLS).
+function _enviarNotifsReserva(_novaReserva, _cfgN, obj, statusVal, _dtFmt, _cond){
   if(_novaReserva){
     // 1) Confirmação para o MORADOR (WhatsApp + e-mail)
     if(_cfgN.notif_morador_reserva){
