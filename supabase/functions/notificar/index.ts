@@ -70,13 +70,13 @@ async function enviarWhatsapp(to: string, message: string) {
   if (!num) return J({ error: "Numero invalido." }, 400);
   if (!intl && !num.startsWith("55")) num = "55" + num;
 
-  // Parametro de template NAO pode ter quebra de linha / tab / 4+ espacos.
-  // As mensagens do app tem varias linhas -> vira uma linha so, legivel.
+  // Mantem a formatacao (quebras de linha) para a mensagem sair organizada.
+  // So limpa o que a Cloud API nao aceita em parametro: tabs, 4+ espacos e
+  // 3+ quebras seguidas viram no maximo uma linha em branco.
   const paramTexto = String(message ?? "")
     .replace(/\r/g, "")
-    .replace(/\n{2,}/g, " — ")
-    .replace(/\n/g, " · ")
     .replace(/\t/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
     .replace(/ {4,}/g, "   ")
     .trim();
 
