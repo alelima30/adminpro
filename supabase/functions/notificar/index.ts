@@ -58,10 +58,13 @@ async function enviarEvolution(to: string, message: string) {
 }
 
 // ── WhatsApp Cloud API (template message) ──
-async function enviarWhatsapp(to: string, message: string) {
+function limpaVar(s: unknown): string {
+  return String(s ?? "").replace(/\r/g, "").replace(/[\n\t]+/g, " ").replace(/ {2,}/g, " ").trim();
+}
+async function enviarWhatsapp(to: string, message: string, tplName?: string, params?: unknown[]) {
   const TOKEN = Deno.env.get("WHATSAPP_TOKEN");
   const PHONE_ID = Deno.env.get("WHATSAPP_PHONE_ID");
-  const TEMPLATE = Deno.env.get("WHATSAPP_TEMPLATE") ?? "aviso_condominio";
+  const TEMPLATE = tplName || Deno.env.get("WHATSAPP_TEMPLATE") || "aviso_condominio";
   const LANG = Deno.env.get("WHATSAPP_LANG") ?? "pt_BR";
   if (!TOKEN || !PHONE_ID) return J({ error: "WHATSAPP_TOKEN/WHATSAPP_PHONE_ID nao configurados nos Secrets." }, 500);
 
@@ -81,15 +84,16 @@ async function enviarWhatsapp(to: string, message: string) {
     .replace(/ {2,}/g, " ")
     .trim();
 
-  // hello_world (modelo pronto da Meta) nao aceita variaveis -> envia sem componentes.
-  const template: Record<string, unknown> =
-    TEMPLATE === "hello_world"
-      ? { name: "hello_world", language: { code: "en_US" } }
-      : {
-          name: TEMPLATE,
-          language: { code: LANG },
-          components: [{ type: "body", parameters: [{ type: "text", text: paramTexto }] }],
-        };
+  let template: Record<string, unknown>;
+  if (TEMPLATE === "hello_world") {
+    template = { name: "hello_world", language: { code: "en_US" } };
+  } else if (Array.isArray(params) && params.length) {
+    // Modelo ESTRUTURADO: cada campo vira uma variavel {{1}}..{{n}}.
+    const parameters = params.map((p) => ({ type: "text", text: limpaVar(p) }));
+    template = { name: TEMPLATE, language: { code: LANG }, components: [{ type: "body", parameters }] };
+  } else {
+    template = { name: TEMPLATE, language: { code: LANG }, components: [{ type: "body", parameters: [{ type: "text", text: paramTexto }] }] };
+  }
 
   const resp = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
     method: "POST",
@@ -128,14 +132,14 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
     const body = await req.json();
-    const { channel, provider, to, subject, message, html } = body ?? {};
+    const { channel, provider, to, subject, message, html, template: tplName, params } = body ?? {};
     if (!to) return J({ error: "Campo 'to' e obrigatorio." }, 400);
 
     if (channel === "whatsapp") {
       // provider vem do app; se ausente (ex: cron), usa o secret WA_PROVIDER
       const prov = provider || Deno.env.get("WA_PROVIDER") || "cloud";
       if (prov === "evolution") return await enviarEvolution(to, message ?? "");
-      return await enviarWhatsapp(to, message ?? "");
+      return await enviarWhatsapp(to, message ?? "", tplName, params);
     }
     if (!subject) return J({ error: "Campo 'subject' e obrigatorio para e-mail." }, 400);
     return await enviarEmail(to, subject, message ?? "", html);
