@@ -8757,25 +8757,41 @@ function salvarRes(){
 // Envia as notificações de reserva (morador + equipe). Isolada pra rodar
 // logo após salvar, sem depender da renderização (que pode falhar por RLS).
 function _enviarNotifsReserva(_novaReserva, _cfgN, obj, statusVal, _dtFmt, _cond){
-  if(_novaReserva){
-    // 1) Confirmação para o MORADOR (WhatsApp + e-mail)
-    if(_cfgN.notif_morador_reserva){
-      var _txtMor = statusVal==='pendente'
-        ? '📅 '+_cond+'\n\nRecebemos seu pedido de reserva!\n\nEspaço: '+obj.espaco+'\nData: '+_dtFmt+'\nHorário: '+obj.horario+'\nUnidade: '+obj.lote+
-          '\n\n⏳ Está *aguardando aprovação* da administração. Avisaremos assim que for confirmada.'
-        : '✅ '+_cond+'\n\nSua reserva está *confirmada*!\n\nEspaço: '+obj.espaco+'\nData: '+_dtFmt+'\nHorário: '+obj.horario+'\nUnidade: '+obj.lote+
-          '\n\nQualquer dúvida, fale com a administração. Bom evento! 🎉';
-      _notificarMulti(obj.tel, obj.criadoPor, 'Reserva '+(statusVal==='pendente'?'recebida':'confirmada')+' — '+obj.espaco, _txtMor, 'morador (reserva)');
-    }
-    // 2) Alerta para a EQUIPE (todos os setores cadastrados)
-    if(_cfgN.notif_equipe_ativo){
-      var _txtEq = '🔔 '+_cond+' — Nova reserva'+(statusVal==='pendente'?' (PENDENTE de aprovação)':'')+':\n\n'+
-        'Espaço: '+obj.espaco+'\nData: '+_dtFmt+'\nHorário: '+obj.horario+'\nMorador: '+obj.nome+'\nUnidade: '+obj.lote+
-        (obj.finalidade?('\nFinalidade: '+obj.finalidade):'');
-      (_getAlertDestinos()||[]).forEach(function(d){
-        _notificarMulti(d.whats, d.email, 'Nova reserva — '+obj.espaco, _txtEq, 'equipe/'+(d.label||''));
-      });
-    }
+  if(!_novaReserva) return;
+  var statusTxt = statusVal==='pendente' ? 'Aguardando aprovação'
+                : statusVal==='confirmada' ? 'Confirmada' : (statusVal||'—');
+  // Modelo ESTRUTURADO no WhatsApp (linhas organizadas). Ordem = variáveis {{1}}..{{6}}.
+  var TPL='reserva_detalhe';
+  var params=[ obj.nome||'—', obj.lote||'—', obj.espaco||'—', _dtFmt||'—', obj.horario||'—', statusTxt ];
+  // Versão multi-linha (para o e-mail, que aceita quebras, e como fallback).
+  var _corpo='🔔 Nova reserva — AdminPro\n\n'+
+    '👤 Morador: '+(obj.nome||'—')+'\n🏠 Unidade: '+(obj.lote||'—')+'\n📍 Espaço: '+(obj.espaco||'—')+
+    '\n📅 Data: '+(_dtFmt||'—')+'\n🕐 Horário: '+(obj.horario||'—')+'\n📌 Status: '+statusTxt;
+
+  function _waLog(num, tag){
+    if(!num || typeof enviarWhatsApp!=='function') return;
+    enviarWhatsApp(num, _corpo, {template:TPL, params:params}).then(function(r){
+      if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' WhatsApp '+tag+' ('+num+')'+(r.ok?'':': '+r.erro));
+    });
+  }
+  function _mailLog(email, assunto, tag){
+    if(!email || typeof enviarEmail!=='function') return;
+    enviarEmail(email, assunto, _corpo).then(function(r){
+      if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' E-mail '+tag+' ('+email+')'+(r.ok?'':': '+r.erro));
+    });
+  }
+
+  // 1) MORADOR
+  if(_cfgN.notif_morador_reserva){
+    _waLog(obj.tel, 'morador (reserva)');
+    _mailLog(obj.criadoPor, 'Reserva '+(statusVal==='pendente'?'recebida':'confirmada')+' — '+obj.espaco, 'morador (reserva)');
+  }
+  // 2) EQUIPE
+  if(_cfgN.notif_equipe_ativo){
+    (_getAlertDestinos()||[]).forEach(function(d){
+      _waLog(d.whats, 'equipe/'+(d.label||''));
+      _mailLog(d.email, 'Nova reserva — '+obj.espaco, 'equipe/'+(d.label||''));
+    });
   }
 }
 
@@ -9566,13 +9582,15 @@ function atualizarStatusCfg(){
 }
 
 /* ── Enviar WhatsApp via Z-API ── */
-async function enviarWhatsApp(numero, mensagem){
+async function enviarWhatsApp(numero, mensagem, opts){
   const cfg = getCfg();
   // Cloud API (Meta) ou Evolution API via Supabase Edge Function — chaves ficam seguras no servidor
   if(cfg.waProvider === 'cloud' || cfg.waProvider === 'evolution'){
     if(!SB || !SB.functions) return {ok:false, erro:'Supabase indisponível'};
     try{
-      const { data, error } = await SB.functions.invoke(FN_NOTIFICAR, { body:{ channel:'whatsapp', provider:cfg.waProvider, to:numero, message:mensagem } });
+      const _body={ channel:'whatsapp', provider:cfg.waProvider, to:numero, message:mensagem };
+      if(opts && opts.template){ _body.template=opts.template; _body.params=opts.params; } // modelo estruturado
+      const { data, error } = await SB.functions.invoke(FN_NOTIFICAR, { body:_body });
       if(error) return {ok:false, erro:(error.message||JSON.stringify(error))};
       if(data && data.error) return {ok:false, erro:data.error};
       return {ok:true};
