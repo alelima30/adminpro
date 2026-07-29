@@ -128,11 +128,39 @@ async function enviarEmail(to: string, subject: string, message: string, html?: 
   return J({ ok: true, id: data?.id });
 }
 
+// Busca (com service role) os numeros da equipe de um condominio (alert_destinos em cfg_reservas).
+async function destinosEquipe(condominio: string): Promise<any[]> {
+  const URL = Deno.env.get("SUPABASE_URL");
+  const SVC = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!URL || !SVC) return [];
+  try {
+    const r = await fetch(
+      `${URL}/rest/v1/modulo_dados?condominio_id=eq.${encodeURIComponent(condominio)}&modulo=eq.cfg_reservas&select=valor`,
+      { headers: { apikey: SVC, Authorization: `Bearer ${SVC}` } },
+    );
+    if (!r.ok) return [];
+    const rows = await r.json();
+    return (rows?.[0]?.valor?.alert_destinos) || [];
+  } catch (_) { return []; }
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
     const body = await req.json();
     const { channel, provider, to, subject, message, html, template: tplName, params } = body ?? {};
+
+    // Novo cadastro: avisa a EQUIPE (numeros do condominio) que ha alguem para aprovar.
+    if (body?.action === "novo_cadastro") {
+      const destinos = await destinosEquipe(body.condominio || "");
+      const msg = "📝 Novo cadastro aguardando aprovação\n\n👤 " + (body.nome || "") +
+        "\n🏠 Unidade: " + (body.unidade || "") + "\n✉️ " + (body.email || "") +
+        (body.tel ? "\n📱 " + body.tel : "") + "\n\nAprove no portal AdminPro.";
+      let n = 0;
+      for (const d of destinos) { if (d?.whats) { try { await enviarWhatsapp(d.whats, msg); n++; } catch (_) {} } }
+      return J({ ok: true, enviados: n });
+    }
+
     if (!to) return J({ error: "Campo 'to' e obrigatorio." }, 400);
 
     if (channel === "whatsapp") {
