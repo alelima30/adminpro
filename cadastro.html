@@ -273,7 +273,13 @@ async function enviar(){
     if(sol.error) throw sol.error;
 
     // Avisa a equipe (WhatsApp) que há um novo cadastro para aprovar.
-    try{ await SB.functions.invoke('dynamic-handler', { body:{ action:'novo_cadastro', condominio, nome, email, tel, unidade } }); }catch(_){}
+    // Monta a mensagem AQUI (arquivo, sem corromper emoji/acento) e passa pronta.
+    try{
+      var _msgAdm='📝 Novo cadastro aguardando aprovação\n\n'+
+        '👤 '+nome+'\n🏠 Unidade: '+unidade+'\n✉️ '+email+(tel?('\n📱 '+tel):'')+
+        '\n\nAprove no portal AdminPro.';
+      await SB.functions.invoke('dynamic-handler', { body:{ action:'novo_cadastro', condominio, message:_msgAdm } });
+    }catch(_){}
 
     // Não deixa o solicitante logado no navegador
     try{ await SB.auth.signOut(); }catch(_){}
