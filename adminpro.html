@@ -8758,19 +8758,22 @@ function salvarRes(){
 // logo após salvar, sem depender da renderização (que pode falhar por RLS).
 function _enviarNotifsReserva(_novaReserva, _cfgN, obj, statusVal, _dtFmt, _cond){
   if(!_novaReserva) return;
-  var statusTxt = statusVal==='pendente' ? 'Aguardando aprovação'
+  var statusTxt = statusVal==='pendente' ? 'Aguardando aprovação da administração'
                 : statusVal==='confirmada' ? 'Confirmada' : (statusVal||'—');
-  // Modelo ESTRUTURADO no WhatsApp (linhas organizadas). Ordem = variáveis {{1}}..{{6}}.
-  var TPL='reserva_detalhe';
-  var params=[ obj.nome||'—', obj.lote||'—', obj.espaco||'—', _dtFmt||'—', obj.horario||'—', statusTxt ];
-  // Versão multi-linha (para o e-mail, que aceita quebras, e como fallback).
-  var _corpo='🔔 Nova reserva — AdminPro\n\n'+
+  // EQUIPE/ADMIN: modelo reserva_detalhe (6 campos, com Morador — mostra quem reservou).
+  var TPL_EQ='reserva_detalhe';
+  var params_eq=[ obj.nome||'—', obj.lote||'—', obj.espaco||'—', _dtFmt||'—', obj.horario||'—', statusTxt ];
+  // MORADOR: modelo reserva_morador (5 campos, tom amigável — sem repetir o nome dele).
+  var TPL_MOR='reserva_morador';
+  var params_mor=[ obj.espaco||'—', _dtFmt||'—', obj.horario||'—', obj.lote||'—', statusTxt ];
+  // Versão multi-linha (para o e-mail, que aceita quebras).
+  var _corpo='🔔 Reserva — AdminPro\n\n'+
     '👤 Morador: '+(obj.nome||'—')+'\n🏠 Unidade: '+(obj.lote||'—')+'\n📍 Espaço: '+(obj.espaco||'—')+
     '\n📅 Data: '+(_dtFmt||'—')+'\n🕐 Horário: '+(obj.horario||'—')+'\n📌 Status: '+statusTxt;
 
-  function _waLog(num, tag){
+  function _wa(num, tpl, params, tag){
     if(!num || typeof enviarWhatsApp!=='function') return;
-    enviarWhatsApp(num, _corpo, {template:TPL, params:params}).then(function(r){
+    enviarWhatsApp(num, _corpo, {template:tpl, params:params}).then(function(r){
       if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' WhatsApp '+tag+' ('+num+')'+(r.ok?'':': '+r.erro));
     });
   }
@@ -8781,15 +8784,15 @@ function _enviarNotifsReserva(_novaReserva, _cfgN, obj, statusVal, _dtFmt, _cond
     });
   }
 
-  // 1) MORADOR
+  // 1) MORADOR — modelo amigável reserva_morador
   if(_cfgN.notif_morador_reserva){
-    _waLog(obj.tel, 'morador (reserva)');
+    _wa(obj.tel, TPL_MOR, params_mor, 'morador (reserva)');
     _mailLog(obj.criadoPor, 'Reserva '+(statusVal==='pendente'?'recebida':'confirmada')+' — '+obj.espaco, 'morador (reserva)');
   }
-  // 2) EQUIPE
+  // 2) EQUIPE — modelo reserva_detalhe (com o nome do morador)
   if(_cfgN.notif_equipe_ativo){
     (_getAlertDestinos()||[]).forEach(function(d){
-      _waLog(d.whats, 'equipe/'+(d.label||''));
+      _wa(d.whats, TPL_EQ, params_eq, 'equipe/'+(d.label||''));
       _mailLog(d.email, 'Nova reserva — '+obj.espaco, 'equipe/'+(d.label||''));
     });
   }
