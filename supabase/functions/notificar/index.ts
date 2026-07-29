@@ -151,11 +151,11 @@ serve(async (req: Request) => {
     const { channel, provider, to, subject, message, html, template: tplName, params } = body ?? {};
 
     // Novo cadastro: avisa a EQUIPE (numeros do condominio) que ha alguem para aprovar.
+    // A mensagem vem pronta do cadastro.html (arquivo, sem corromper emoji/acento).
     if (body?.action === "novo_cadastro") {
       const destinos = await destinosEquipe(body.condominio || "");
-      const msg = "📝 Novo cadastro aguardando aprovação\n\n👤 " + (body.nome || "") +
-        "\n🏠 Unidade: " + (body.unidade || "") + "\n✉️ " + (body.email || "") +
-        (body.tel ? "\n📱 " + body.tel : "") + "\n\nAprove no portal AdminPro.";
+      const msg = body.message ||
+        ("Novo cadastro aguardando aprovacao. Nome: " + (body.nome || "") + " Unidade: " + (body.unidade || ""));
       let n = 0;
       for (const d of destinos) { if (d?.whats) { try { await enviarWhatsapp(d.whats, msg); n++; } catch (_) {} } }
       return J({ ok: true, enviados: n });
