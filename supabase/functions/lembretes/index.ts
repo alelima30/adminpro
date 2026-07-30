@@ -34,9 +34,16 @@ function inicioMs(data: string, horario: string) {
   return new Date(iso).getTime();
 }
 
-async function enviar(to: string, subject: string, message: string, whatsapp: boolean) {
+async function enviar(
+  to: string,
+  subject: string,
+  message: string,
+  whatsapp: boolean,
+  template?: string,
+  params?: unknown[],
+) {
   const body = whatsapp
-    ? { channel: "whatsapp", to, message }
+    ? { channel: "whatsapp", to, message, template, params }
     : { to, subject, message };
   try {
     await fetch(NOTIFICAR, { method: "POST", headers: H, body: JSON.stringify(body) });
@@ -87,7 +94,11 @@ serve(async () => {
           `⏰ Lembrete de reserva\n\nVoce tem uma reserva ${quando}.\n\n` +
           `Espaco: ${r.espaco}\nData: ${dataBR}\nHorario: ${r.horario}\nUnidade: ${r.unidade || ""}`;
 
-        if (tel) await enviar(tel, "", msg, true);
+        // Modelo ESTRUTURADO (Meta) -> texto organizado em varias linhas.
+        // Variaveis: {{1}} quando, {{2}} espaco, {{3}} data, {{4}} horario, {{5}} unidade
+        const paramsLembrete = [quando, r.espaco || "", dataBR, r.horario || "", r.unidade || ""];
+
+        if (tel) await enviar(tel, "", msg, true, "lembrete_reserva", paramsLembrete);
         if (email) await enviar(email, `Lembrete de reserva — ${r.espaco}`, msg, false);
 
         enviados.add(chave);
