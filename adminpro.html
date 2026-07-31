@@ -9602,8 +9602,10 @@ function atualizarStatusCfg(){
 /* ── Enviar WhatsApp via Z-API ── */
 async function enviarWhatsApp(numero, mensagem, opts){
   const cfg = getCfg();
-  // Cloud API (Meta) ou Evolution API via Supabase Edge Function — chaves ficam seguras no servidor
-  if(cfg.waProvider === 'cloud' || cfg.waProvider === 'evolution'){
+  // Envio SEMPRE pelo servidor (Cloud API oficial da Meta). Nao depende da config
+  // local do aparelho: antes, um celular sem 'waProvider' salvo caia no Z-API e nao enviava.
+  // So usa Z-API se o usuario escolher explicitamente esse provedor.
+  if(cfg.waProvider !== 'zapi'){
     if(!SB || !SB.functions) return {ok:false, erro:'Supabase indisponível'};
     try{
       const _body={ channel:'whatsapp', to:numero, message:mensagem };
