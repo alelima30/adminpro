@@ -101,6 +101,22 @@ serve(async () => {
         if (tel) await enviar(tel, "", msg, true, "lembrete_reserva", paramsLembrete);
         if (email) await enviar(email, `Lembrete de reserva - ${r.espaco}`, msg, false);
 
+        // EQUIPE/ADMIN: mesmos destinos que recebem "Nova reserva" (alert_destinos).
+        // Usa o mesmo modelo aprovado (lembrete_reserva).
+        if (cfg.notif_equipe_ativo) {
+          const destinos = Array.isArray(cfg.alert_destinos) ? cfg.alert_destinos : [];
+          for (const d of destinos) {
+            const w = (d?.whats || "").trim();
+            if (w && w !== tel) {
+              await enviar(w, "", msg, true, "lembrete_reserva", paramsLembrete);
+            }
+            const em = (d?.email || "").trim();
+            if (em && em !== email) {
+              await enviar(em, `Lembrete de reserva - ${r.espaco}`, msg, false);
+            }
+          }
+        }
+
         enviados.add(chave);
         novas.push(chave);
         contador++;
