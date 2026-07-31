@@ -4327,12 +4327,27 @@ const _NORM = {
   saas_condominios: { tabela:'condominios',  pk:'codigo', hasCond:false, toApp:_condRowToApp, toRow:_condAppToRow, superOnly:true },
 };
 
+// Modulos que so admin/gestor pode gravar (RLS bloqueia morador).
+const _MOD_ADMIN = ['lotes','unidades','condominos','localizacoes','saas_condominios','usuarios'];
+function _podeGravarModulo(k){
+  if(_MOD_ADMIN.indexOf(k) === -1) return true;          // modulo livre
+  try{
+    if(_isSuper) return true;
+    var n = window._userNivel || '';
+    if(!n) return true;                                   // nivel desconhecido: nao bloqueia
+    return n === 'admin' || n === 'gestor';
+  }catch(_){ return true; }
+}
+
 // Grava no cache + Supabase
 const S = (k, v) => {
   DB_CACHE[k] = v;
   try{ localStorage.setItem('apvc_'+k, JSON.stringify(v)); }catch(_){}
   if(!SB) return;
   if(k==='reservas') return;   // reservas vao por linha (via _reservaUpsertSB/_reservaDeleteSB)
+  // Modulos administrativos: morador nao tem permissao (RLS) — nem tenta gravar,
+  // evitando 403 no console. Leitura continua normal.
+  if(!_podeGravarModulo(k)) return;
   const cfg = _NORM[k];
   if(cfg){
     if(cfg.superOnly && !_isSuper) return;   // so super-admin grava condominios
@@ -9587,8 +9602,10 @@ function atualizarStatusCfg(){
 /* ── Enviar WhatsApp via Z-API ── */
 async function enviarWhatsApp(numero, mensagem, opts){
   const cfg = getCfg();
-  // Cloud API (Meta) ou Evolution API via Supabase Edge Function — chaves ficam seguras no servidor
-  if(cfg.waProvider === 'cloud' || cfg.waProvider === 'evolution'){
+  // Envio SEMPRE pelo servidor (Cloud API oficial da Meta). Nao depende da config
+  // local do aparelho: antes, um celular sem 'waProvider' salvo caia no Z-API e nao enviava.
+  // So usa Z-API se o usuario escolher explicitamente esse provedor.
+  if(cfg.waProvider !== 'zapi'){
     if(!SB || !SB.functions) return {ok:false, erro:'Supabase indisponível'};
     try{
       const _body={ channel:'whatsapp', to:numero, message:mensagem };
