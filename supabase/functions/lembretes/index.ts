@@ -4,10 +4,10 @@
 //
 // Secrets usados (ja existem no projeto):
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY  (injetados automaticamente)
-//   WA_PROVIDER = evolution   (define o canal de WhatsApp no servidor)
-//   + os secrets do Evolution/Resend ja configurados
+//   WA_PROVIDER = cloud   (define o canal de WhatsApp no servidor)
 //
 // Requer a tabela public.lembretes_enviados (ver SQL fornecido).
+// Requer o modelo aprovado na Meta: lembrete_reserva (5 variaveis).
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
@@ -91,7 +91,7 @@ serve(async () => {
         const quando = lead.tag === "1h" ? "em 1 hora" : "amanha";
         const dataBR = r.data.split("-").reverse().join("/");
         const msg =
-          `⏰ Lembrete de reserva\n\nVoce tem uma reserva ${quando}.\n\n` +
+          `\u23F0 Lembrete de reserva\n\nVoce tem uma reserva ${quando}.\n\n` +
           `Espaco: ${r.espaco}\nData: ${dataBR}\nHorario: ${r.horario}\nUnidade: ${r.unidade || ""}`;
 
         // Modelo ESTRUTURADO (Meta) -> texto organizado em varias linhas.
@@ -99,7 +99,7 @@ serve(async () => {
         const paramsLembrete = [quando, r.espaco || "", dataBR, r.horario || "", r.unidade || ""];
 
         if (tel) await enviar(tel, "", msg, true, "lembrete_reserva", paramsLembrete);
-        if (email) await enviar(email, `Lembrete de reserva — ${r.espaco}`, msg, false);
+        if (email) await enviar(email, `Lembrete de reserva - ${r.espaco}`, msg, false);
 
         enviados.add(chave);
         novas.push(chave);
