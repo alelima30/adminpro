@@ -8374,8 +8374,18 @@ function atualizarHorariosEspaco(espaco, manterValor){
       return ocupados.some(function(o){ var oi=_min(o.horario), of=_fim(o.horario); return si<of && sf>oi; }); };
     // Horario ocupado continua visivel, porem desabilitado e marcado como "ocupado",
     // para o morador entender que o horario existe mas ja foi reservado.
+    // Horario que JA PASSOU (quando a data escolhida e hoje) tambem fica bloqueado.
+    var _hojeISO=(function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
+    var _agoraMin=(function(){ var d=new Date(); return d.getHours()*60+d.getMinutes(); })();
+    var _ehHoje=(dataSel===_hojeISO);
     [].slice.call(sel.options).forEach(function(o){
-      if(o.value!=='personalizado' && conflita(o.value)){
+      if(o.value==='personalizado') return;
+      if(_ehHoje && _fim(o.value) <= _agoraMin){
+        o.disabled = true;
+        if(o.text.indexOf('encerrado') === -1) o.text = o.text + ' \u2014 encerrado';
+        return;
+      }
+      if(conflita(o.value)){
         o.disabled = true;
         if(o.text.indexOf('ocupado') === -1) o.text = o.text + ' \u2014 ocupado';
       }
@@ -10136,6 +10146,17 @@ function reservaViolaRegra(espaco, data, horario, lote, idAtual){
     var minD=new Date(hoje2); minD.setDate(minD.getDate()+antmin);
     if(new Date(data+'T00:00') < minD)
       return espaco+' exige reserva com pelo menos '+antmin+' dia(s) de antecedência (a partir de '+minD.toLocaleDateString('pt-BR')+').';
+  }
+  // 1c-bis) horario ja encerrado: ninguem reserva um horario que ja passou hoje.
+  if(data){
+    var _hj=new Date(); var _hjISO=_hj.getFullYear()+'-'+String(_hj.getMonth()+1).padStart(2,'0')+'-'+String(_hj.getDate()).padStart(2,'0');
+    if(data===_hjISO){
+      var _pr=String(horario||'').split(/[-\u2013]/);
+      var _q=(_pr.length>1?_pr[1]:_pr[0]||'').trim().split(':');
+      var _fimH=(+_q[0]||0)*60+(+_q[1]||0); if(_pr.length<2) _fimH+=60;
+      if(_fimH <= (_hj.getHours()*60+_hj.getMinutes()))
+        return 'Este horário já passou. Escolha um horário futuro.';
+    }
   }
   // 1d) horários permitidos (morador só usa os horários configurados)
   var rawSlots=(cfg['disp_'+chv+'_slots']||'').trim();
