@@ -204,6 +204,20 @@ body{
    LOGIN — AdminPro Split Screen
 ══════════════════════════════ */
 #mres-horario option:disabled{ color:#8b93a7; font-style:italic }
+/* Filtros: no celular cada controle ocupa a largura toda e nada estoura o card */
+.filtros-wrap{ width:100%; box-sizing:border-box }
+.filtros-wrap > *{ min-width:0 }
+@media(max-width:820px){
+  .filtros-wrap{ flex-direction:column; align-items:stretch !important; gap:10px !important }
+  .filtros-wrap > input,
+  .filtros-wrap > select,
+  .filtros-wrap > button{ width:100% !important; box-sizing:border-box }
+  .filtros-datas{ width:100%; display:grid !important; grid-template-columns:auto 1fr auto 1fr; gap:8px; align-items:center }
+  .filtros-datas input{ width:100% !important; box-sizing:border-box; min-width:0 }
+}
+@media(max-width:430px){
+  .filtros-datas{ grid-template-columns:auto 1fr }
+}
 #login-screen{
   position:fixed;inset:0;z-index:9999;
   display:flex;
@@ -2584,7 +2598,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
                 <option value="Hidráulica">Hidráulica</option>
                 <option value="Geral">Geral</option>
               </select>
-              <div style="display:flex;align-items:center;gap:6px">
+              <div class="filtros-datas" style="display:flex;align-items:center;gap:6px">
                 <span style="font-size:12px;color:var(--text-2);white-space:nowrap">De:</span>
                 <input type="date" id="prev-data-ini" onchange="renderPreventivas()"
                   style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;">
@@ -2744,7 +2758,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         <div class="card" id="res-filtros-card" style="margin-bottom:16px">
           <div class="card-head" style="flex-wrap:wrap;gap:10px">
             <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-magnifying-glass"></i></div>Pesquisa & Filtros</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <div class="filtros-wrap" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
               <input type="text" id="res-busca" placeholder="Nome, lote, observação..." oninput="renderReservas()"
                 style="padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:200px;outline:none;">
               <select id="res-f-espaco" onchange="renderReservas()"
@@ -2770,7 +2784,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
                 <option value="realizada">Realizada</option>
                 <option value="concluida">Concluída</option>
               </select>
-              <div style="display:flex;align-items:center;gap:6px">
+              <div class="filtros-datas" style="display:flex;align-items:center;gap:6px">
                 <span style="font-size:12px;color:var(--text-2);white-space:nowrap">De:</span>
                 <input type="date" id="res-f-ini" onchange="renderReservas()"
                   style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;">
@@ -7527,7 +7541,16 @@ function renderReservas(){
   const real=kpiBase.filter(r=>r.status==='realizada').length;
   const canc=kpiBase.filter(r=>r.status==='cancelada').length;
   const conc=kpiBase.filter(r=>r.status==='concluida').length;
-  const hj=kpiBase.filter(r=>r.data===hoje).length;
+  // "Hoje" conta apenas as reservas de hoje que AINDA nao terminaram
+  // (uma reserva das 07:00-08:00 nao deve contar as 14h).
+  const _agoraMin=(function(){ const d=new Date(); return d.getHours()*60+d.getMinutes(); })();
+  const _fimMin=function(h){
+    const p=String(h||'').split(/[-\u2013]/);
+    const q=(p.length>1?p[1]:p[0]||'').trim().split(':');
+    const m=(+q[0]||0)*60+(+q[1]||0);
+    return p.length>1 ? m : m+60;            // sem fim definido: assume 1 hora
+  };
+  const hj=kpiBase.filter(r=>r.data===hoje && _fimMin(r.horario)>=_agoraMin).length;
   const receitaTotal=kpiBase.reduce((s,r)=>(r.pgto==='pago'?s+(parseFloat(r.taxa)||0):s),0);
   // Conta quantas passadas estão ocultas
   const passadasOcultas=mostrarPassadas?0:kpiBase.filter(r=>(r.data||'')<hoje).length;
