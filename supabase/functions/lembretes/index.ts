@@ -27,6 +27,17 @@ function horaIni(h: string) {
   const p = (h || "").split(/[-–]/)[0].trim().split(":");
   return { hh: +p[0] || 0, mm: +p[1] || 0 };
 }
+// Fim do horario em minutos. Sem fim definido: assume 1 hora.
+// Fim <= inicio (ex.: 22:00-01:00): a reserva vira a madrugada, soma 24h.
+function fimMin(h: string) {
+  const p = String(h || "").split(/[-–]/);
+  const ini = (() => { const q = horaIni(h); return q.hh * 60 + q.mm; })();
+  if (p.length < 2 || !p[1].trim()) return ini + 60;
+  const q = p[1].trim().split(":");
+  let f = (+q[0] || 0) * 60 + (+q[1] || 0);
+  if (f <= ini) f += 24 * 60;
+  return f;
+}
 // data (YYYY-MM-DD) + horario -> epoch ms considerando fuso do Brasil (-03:00)
 function inicioMs(data: string, horario: string) {
   const { hh, mm } = horaIni(horario);
@@ -59,8 +70,10 @@ serve(async () => {
 
     // 2) Reservas futuras (hoje em diante)
     const hoje = new Date(Date.now() - 3 * 3600 * 1000).toISOString().slice(0, 10); // data BR
+    // Somente CONFIRMADAS: nao faz sentido lembrar de uma reserva que a
+    // administracao ainda nao aprovou (evita mal-entendido com o morador).
     const reservas = await rest(
-      `reservas?status=in.(confirmada,pendente)&data=gte.${hoje}&select=id,condominio_id,espaco,data,horario,tel,criado_por,nome,unidade`,
+      `reservas?status=eq.confirmada&data=gte.${hoje}&select=id,condominio_id,espaco,data,horario,tel,criado_por,nome,unidade`,
     );
 
     // 3) Chaves ja enviadas
