@@ -145,7 +145,8 @@ serve(async () => {
       });
     }
 
-    return new Response(JSON.stringify({ ok: true, enviados: contador }), {
+    // "versao" serve para conferir, pelo Test, se o deploy pegou o codigo novo.
+    return new Response(JSON.stringify({ ok: true, versao: "v3-equipe", enviados: contador }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
