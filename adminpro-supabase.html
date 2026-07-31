@@ -8173,7 +8173,13 @@ function _mudarStatusReserva(id, novo, msg){
         ? '✅ '+_cond+'\n\nBoa notícia! Sua reserva foi *APROVADA* e está confirmada. 🎉'
         : '❌ '+_cond+'\n\nInformamos que sua reserva *não foi aprovada* pela administração.')+
       '\n\nEspaço: '+all[i].espaco+'\nData: '+_dt+'\nHorário: '+all[i].horario+'\nUnidade: '+all[i].lote;
-    _notificarMulti(_whats, _email, _assunto, _corpo, 'morador ('+(_aprovada?'aprovada':'recusada')+')');
+    // Modelo ESTRUTURADO ja aprovado (reserva_morador): 5 variaveis, texto em linhas.
+    // {{1}} espaco, {{2}} data, {{3}} horario, {{4}} unidade, {{5}} status
+    var _statusTxt = _aprovada ? 'Aprovada e confirmada \uD83C\uDF89'
+                               : 'Não aprovada pela administração';
+    var _paramsAprov = [ all[i].espaco||'—', _dt||'—', all[i].horario||'—', all[i].lote||'—', _statusTxt ];
+    _notificarMulti(_whats, _email, _assunto, _corpo, 'morador ('+(_aprovada?'aprovada':'recusada')+')',
+                    { template:'reserva_morador', params:_paramsAprov });
   }
 }
 function aprovarReserva(id){
@@ -9001,9 +9007,9 @@ function removeAlertDestino(i){
 }
 
 // Envia por WhatsApp e/ou e-mail (o que estiver preenchido) e registra no log
-function _notificarMulti(whats, email, assunto, msg, tag){
+function _notificarMulti(whats, email, assunto, msg, tag, opts){
   if(whats && typeof enviarWhatsApp==='function'){
-    enviarWhatsApp(whats, msg).then(function(r){ if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' WhatsApp '+tag+' ('+whats+')'+(r.ok?'':': '+r.erro)); });
+    enviarWhatsApp(whats, msg, opts).then(function(r){ if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' WhatsApp '+tag+' ('+whats+')'+(r.ok?'':': '+r.erro)); });
   }
   if(email && typeof enviarEmail==='function'){
     enviarEmail(email, assunto, msg).then(function(r){ if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' E-mail '+tag+' ('+email+')'+(r.ok?'':': '+r.erro)); });
