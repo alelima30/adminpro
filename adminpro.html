@@ -203,6 +203,7 @@ body{
 /* ══════════════════════════════
    LOGIN — AdminPro Split Screen
 ══════════════════════════════ */
+#mres-horario option:disabled{ color:#8b93a7; font-style:italic }
 #login-screen{
   position:fixed;inset:0;z-index:9999;
   display:flex;
@@ -8348,12 +8349,22 @@ function atualizarHorariosEspaco(espaco, manterValor){
     var _fim=function(h){ var p=(h||'').split(/[-–]/); if(p.length<2) return _min(h)+60; var q=p[1].trim().split(':'); return (+q[0]||0)*60+(+q[1]||0); };
     var conflita=function(slot){ var si=_min(slot), sf=_fim(slot);
       return ocupados.some(function(o){ var oi=_min(o.horario), of=_fim(o.horario); return si<of && sf>oi; }); };
-    [].slice.call(sel.options).forEach(function(o){ if(o.value!=='personalizado' && conflita(o.value)) o.remove(); });
+    // Horario ocupado continua visivel, porem desabilitado e marcado como "ocupado",
+    // para o morador entender que o horario existe mas ja foi reservado.
+    [].slice.call(sel.options).forEach(function(o){
+      if(o.value!=='personalizado' && conflita(o.value)){
+        o.disabled = true;
+        if(o.text.indexOf('ocupado') === -1) o.text = o.text + ' \u2014 ocupado';
+      }
+    });
   }
-  var tem=[].some.call(sel.options,function(o){return o.value===atual;});
+  var tem=[].some.call(sel.options,function(o){return o.value===atual && !o.disabled;});
   if(atual && tem){ sel.value=atual; }
   else if(atual && isAdm){ sel.value='personalizado'; if($('mres-hr-custom')) $('mres-hr-custom').value=atual; }
-  else { sel.selectedIndex=0; }
+  else {
+    var _livre=[].filter.call(sel.options,function(o){ return !o.disabled; })[0];
+    sel.selectedIndex = _livre ? _livre.index : 0;
+  }
   var wrap=$('mres-hr-custom-wrap');
   if(wrap) wrap.style.display = sel.value==='personalizado' ? '' : 'none';
 }
