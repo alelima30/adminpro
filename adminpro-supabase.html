@@ -4327,12 +4327,27 @@ const _NORM = {
   saas_condominios: { tabela:'condominios',  pk:'codigo', hasCond:false, toApp:_condRowToApp, toRow:_condAppToRow, superOnly:true },
 };
 
+// Modulos que so admin/gestor pode gravar (RLS bloqueia morador).
+const _MOD_ADMIN = ['lotes','unidades','condominos','localizacoes','saas_condominios','usuarios'];
+function _podeGravarModulo(k){
+  if(_MOD_ADMIN.indexOf(k) === -1) return true;          // modulo livre
+  try{
+    if(_isSuper) return true;
+    var n = window._userNivel || '';
+    if(!n) return true;                                   // nivel desconhecido: nao bloqueia
+    return n === 'admin' || n === 'gestor';
+  }catch(_){ return true; }
+}
+
 // Grava no cache + Supabase
 const S = (k, v) => {
   DB_CACHE[k] = v;
   try{ localStorage.setItem('apvc_'+k, JSON.stringify(v)); }catch(_){}
   if(!SB) return;
   if(k==='reservas') return;   // reservas vao por linha (via _reservaUpsertSB/_reservaDeleteSB)
+  // Modulos administrativos: morador nao tem permissao (RLS) — nem tenta gravar,
+  // evitando 403 no console. Leitura continua normal.
+  if(!_podeGravarModulo(k)) return;
   const cfg = _NORM[k];
   if(cfg){
     if(cfg.superOnly && !_isSuper) return;   // so super-admin grava condominios
