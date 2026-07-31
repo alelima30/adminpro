@@ -7544,11 +7544,13 @@ function renderReservas(){
   // "Hoje" conta apenas as reservas de hoje que AINDA nao terminaram
   // (uma reserva das 07:00-08:00 nao deve contar as 14h).
   const _agoraMin=(function(){ const d=new Date(); return d.getHours()*60+d.getMinutes(); })();
+  const _iniMin=function(h){ const q=String(h||'').split(/[-\u2013]/)[0].trim().split(':'); return (+q[0]||0)*60+(+q[1]||0); };
   const _fimMin=function(h){
-    const p=String(h||'').split(/[-\u2013]/);
-    const q=(p.length>1?p[1]:p[0]||'').trim().split(':');
-    const m=(+q[0]||0)*60+(+q[1]||0);
-    return p.length>1 ? m : m+60;            // sem fim definido: assume 1 hora
+    const p=String(h||'').split(/[-\u2013]/); const i=_iniMin(h);
+    if(p.length<2 || !p[1].trim()) return i+60;   // sem fim definido: assume 1 hora
+    const q=p[1].trim().split(':'); let m=(+q[0]||0)*60+(+q[1]||0);
+    if(m<=i) m+=1440;                              // vira a madrugada
+    return m;
   };
   const hj=kpiBase.filter(r=>r.data===hoje && _fimMin(r.horario)>=_agoraMin).length;
   const receitaTotal=kpiBase.reduce((s,r)=>(r.pgto==='pago'?s+(parseFloat(r.taxa)||0):s),0);
@@ -8173,7 +8175,13 @@ function _mudarStatusReserva(id, novo, msg){
         ? '✅ '+_cond+'\n\nBoa notícia! Sua reserva foi *APROVADA* e está confirmada. 🎉'
         : '❌ '+_cond+'\n\nInformamos que sua reserva *não foi aprovada* pela administração.')+
       '\n\nEspaço: '+all[i].espaco+'\nData: '+_dt+'\nHorário: '+all[i].horario+'\nUnidade: '+all[i].lote;
-    _notificarMulti(_whats, _email, _assunto, _corpo, 'morador ('+(_aprovada?'aprovada':'recusada')+')');
+    // Modelo ESTRUTURADO ja aprovado (reserva_morador): 5 variaveis, texto em linhas.
+    // {{1}} espaco, {{2}} data, {{3}} horario, {{4}} unidade, {{5}} status
+    var _statusTxt = _aprovada ? 'Aprovada e confirmada \uD83C\uDF89'
+                               : 'Não aprovada pela administração';
+    var _paramsAprov = [ all[i].espaco||'—', _dt||'—', all[i].horario||'—', all[i].lote||'—', _statusTxt ];
+    _notificarMulti(_whats, _email, _assunto, _corpo, 'morador ('+(_aprovada?'aprovada':'recusada')+')',
+                    { template:'reserva_morador', params:_paramsAprov });
   }
 }
 function aprovarReserva(id){
@@ -8369,7 +8377,11 @@ function atualizarHorariosEspaco(espaco, manterValor){
       return r.status!=='cancelada' && r.status!=='concluida';
     });
     var _min=function(h){ var p=(h||'').split(/[-–]/)[0].trim().split(':'); return (+p[0]||0)*60+(+p[1]||0); };
-    var _fim=function(h){ var p=(h||'').split(/[-–]/); if(p.length<2) return _min(h)+60; var q=p[1].trim().split(':'); return (+q[0]||0)*60+(+q[1]||0); };
+    var _fim=function(h){ var p=(h||'').split(/[-–]/); var i=_min(h);
+      if(p.length<2 || !p[1].trim()) return i+60;
+      var q=p[1].trim().split(':'); var f=(+q[0]||0)*60+(+q[1]||0);
+      if(f<=i) f+=1440;                       // 22:00-01:00 vira a madrugada
+      return f; };
     var conflita=function(slot){ var si=_min(slot), sf=_fim(slot);
       return ocupados.some(function(o){ var oi=_min(o.horario), of=_fim(o.horario); return si<of && sf>oi; }); };
     // Horario ocupado continua visivel, porem desabilitado e marcado como "ocupado",
@@ -8668,7 +8680,8 @@ function salvarRes(){
 
   const hrIniNova = horaParaMin(extrairHoraInicio(hr));
   const hrFimRaw  = extrairHoraFim(hr);
-  const hrFimNova = hrFimRaw ? horaParaMin(hrFimRaw) : hrIniNova + 60; // assume 1h se não tiver fim
+  let   hrFimNova = hrFimRaw ? horaParaMin(hrFimRaw) : hrIniNova + 60; // assume 1h se não tiver fim
+  if(hrFimRaw && hrFimNova <= hrIniNova) hrFimNova += 1440;            // 22:00-01:00 vira a madrugada
 
   const conflito = all.find(r => {
     if(id && r.id===+id) return false; // ignora a própria reserva ao editar
@@ -8678,7 +8691,8 @@ function salvarRes(){
     // Verifica sobreposição de horário
     const hrIniExist = horaParaMin(extrairHoraInicio(r.horario));
     const hrFimExistRaw = extrairHoraFim(r.horario);
-    const hrFimExist = hrFimExistRaw ? horaParaMin(hrFimExistRaw) : hrIniExist + 60;
+    let   hrFimExist = hrFimExistRaw ? horaParaMin(hrFimExistRaw) : hrIniExist + 60;
+    if(hrFimExistRaw && hrFimExist <= hrIniExist) hrFimExist += 1440;
     return hrIniNova < hrFimExist && hrFimNova > hrIniExist;
   });
 
@@ -9001,9 +9015,9 @@ function removeAlertDestino(i){
 }
 
 // Envia por WhatsApp e/ou e-mail (o que estiver preenchido) e registra no log
-function _notificarMulti(whats, email, assunto, msg, tag){
+function _notificarMulti(whats, email, assunto, msg, tag, opts){
   if(whats && typeof enviarWhatsApp==='function'){
-    enviarWhatsApp(whats, msg).then(function(r){ if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' WhatsApp '+tag+' ('+whats+')'+(r.ok?'':': '+r.erro)); });
+    enviarWhatsApp(whats, msg, opts).then(function(r){ if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' WhatsApp '+tag+' ('+whats+')'+(r.ok?'':': '+r.erro)); });
   }
   if(email && typeof enviarEmail==='function'){
     enviarEmail(email, assunto, msg).then(function(r){ if(typeof addLog==='function') addLog((r.ok?'✓':'✗')+' E-mail '+tag+' ('+email+')'+(r.ok?'':': '+r.erro)); });
@@ -10153,7 +10167,10 @@ function reservaViolaRegra(espaco, data, horario, lote, idAtual){
     if(data===_hjISO){
       var _pr=String(horario||'').split(/[-\u2013]/);
       var _q=(_pr.length>1?_pr[1]:_pr[0]||'').trim().split(':');
-      var _fimH=(+_q[0]||0)*60+(+_q[1]||0); if(_pr.length<2) _fimH+=60;
+      var _iniH=(function(){var z=String(horario||'').split(/[-\u2013]/)[0].trim().split(':');return (+z[0]||0)*60+(+z[1]||0);})();
+      var _fimH=(+_q[0]||0)*60+(+_q[1]||0);
+      if(_pr.length<2 || !String(_pr[1]||'').trim()) _fimH=_iniH+60;
+      else if(_fimH<=_iniH) _fimH+=1440;
       if(_fimH <= (_hj.getHours()*60+_hj.getMinutes()))
         return 'Este horário já passou. Escolha um horário futuro.';
     }
