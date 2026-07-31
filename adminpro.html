@@ -372,11 +372,11 @@ body{
 
 /* Responsivo */
 @media(max-width:900px){
-  #login-screen{ flex-direction:column }
-  .login-left{ width:100%;padding:40px 24px 36px;padding-top:calc(40px + env(safe-area-inset-top,0px));min-height:auto }
+  #login-screen{ flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch }
+  .login-left{ width:100%;padding:40px 24px 36px;padding-top:calc(40px + env(safe-area-inset-top,0px));min-height:auto;flex:0 0 auto }
 
   .login-left .ap-slogan h2{ font-size:20px }
-  .login-right{ width:100%;padding:40px 24px 48px }
+  .login-right{ width:100%;padding:40px 24px 48px;flex:0 0 auto }
 }
 
 /* ══════════════════════════════
