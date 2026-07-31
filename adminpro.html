@@ -12107,10 +12107,10 @@ async function excluirUsuario(docId){
 (function(){
   let _deferredPrompt = null;
 
-  function _mostrarInstall(){ const w=document.getElementById('pwa-install-wrap'); if(w && localStorage.getItem('apvc_pwa_dispensado')!=='1') w.style.display='inline-flex'; }
+  function _mostrarInstall(){ const w=document.getElementById('pwa-install-wrap'); if(w && localStorage.getItem('apvc_pwa_disp2')!=='1') w.style.display='inline-flex'; }
   function _ocultarInstall(){ const w=document.getElementById('pwa-install-wrap'); if(w) w.style.display='none'; }
 
-  window.pwaDispensar = function(){ localStorage.setItem('apvc_pwa_dispensado','1'); _ocultarInstall(); };
+  window.pwaDispensar = function(){ localStorage.setItem('apvc_pwa_disp2','1'); _ocultarInstall(); };
 
   // Captura o evento de instalação (Android / Chrome / Edge desktop)
   window.addEventListener('beforeinstallprompt', e => {
@@ -12151,8 +12151,10 @@ async function excluirUsuario(docId){
 
   // iOS: mostra o botão (instruções) quando ainda não está instalado
   document.addEventListener('DOMContentLoaded', ()=>{
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    if(isIOS && !isStandalone()){ _mostrarInstall(); }
+    // Mostra o botão "Instalar app" em qualquer celular que ainda não instalou.
+    // Se o Chrome disparar beforeinstallprompt, o botão vira instalação de 1 toque;
+    // se não, o toque mostra as instruções do menu.
+    if(!isStandalone()){ _mostrarInstall(); }
   });
 })();
 </script>
