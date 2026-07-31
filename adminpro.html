@@ -9591,7 +9591,7 @@ async function enviarWhatsApp(numero, mensagem, opts){
   if(cfg.waProvider === 'cloud' || cfg.waProvider === 'evolution'){
     if(!SB || !SB.functions) return {ok:false, erro:'Supabase indisponível'};
     try{
-      const _body={ channel:'whatsapp', provider:cfg.waProvider, to:numero, message:mensagem };
+      const _body={ channel:'whatsapp', to:numero, message:mensagem };
       if(opts && opts.template){ _body.template=opts.template; _body.params=opts.params; } // modelo estruturado
       const { data, error } = await SB.functions.invoke(FN_NOTIFICAR, { body:_body });
       if(error) return {ok:false, erro:(error.message||JSON.stringify(error))};
