@@ -268,8 +268,16 @@ const CensoData = (() => {
   /* --------------------------------------------------------------------------
    * Estatísticas / agregações (usadas pelo Dashboard)
    * ------------------------------------------------------------------------ */
+  // Um terreno é um lote salvo com 0 moradores
+  function isTerreno(r) {
+    return r && Array.isArray(r.moradores) && r.moradores.length === 0;
+  }
+
   function estatisticas(registros) {
-    const lotesRespondidos = registros.filter((r) => r.moradores.length > 0);
+    // Toda linha salva conta como "respondida" (inclusive terrenos, com 0 moradores)
+    const nRespondidos = registros.length;
+    const lotesComMoradores = registros.filter((r) => r.moradores.length > 0).length;
+    const totalTerrenos = registros.filter(isTerreno).length;
     const totalMoradores = registros.reduce((s, r) => s + r.moradores.length, 0);
 
     // Contagem por faixa etária
@@ -303,14 +311,14 @@ const CensoData = (() => {
       });
     });
 
-    const nRespondidos = lotesRespondidos.length;
-
     return {
       totalLotes: TOTAL_LOTES,
       lotesRespondidos: nRespondidos,
+      lotesComMoradores,
+      totalTerrenos,
       lotesPendentes: TOTAL_LOTES - nRespondidos,
       totalMoradores,
-      mediaMoradoresPorLote: nRespondidos ? totalMoradores / nRespondidos : 0,
+      mediaMoradoresPorLote: lotesComMoradores ? totalMoradores / lotesComMoradores : 0,
       mediaIdadeGeral: totalIdadesValidas ? somaIdades / totalIdadesValidas : 0,
       percRespondidos: TOTAL_LOTES ? (nRespondidos / TOTAL_LOTES) * 100 : 0,
       percPendentes: TOTAL_LOTES ? ((TOTAL_LOTES - nRespondidos) / TOTAL_LOTES) * 100 : 0,
@@ -340,6 +348,7 @@ const CensoData = (() => {
     calcularIdade,
     faixaEtaria,
     faixaPorId,
+    isTerreno,
     listar,
     obter,
     salvar,

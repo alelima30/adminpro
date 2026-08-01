@@ -6,7 +6,7 @@
 <title>Censo dos Moradores 2026 · Parque Village Castelo</title>
 <meta name="theme-color" content="#1B2B5E">
 <meta name="description" content="Censo de idade dos moradores — Associação Parque Village Castelo. Levantamento da faixa etária por lote para fins estatísticos.">
-<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
 
@@ -15,7 +15,7 @@
     <div class="container">
       <!-- Logo da Associação (espaço reservado) -->
       <div class="logo" title="Village Castelo">
-        <img src="village-castelo-logotipo-150.png" alt="Village Castelo" class="logo-img" onerror="this.onerror=null;this.src='logo.svg?v=15';">
+        <img src="village-castelo-logotipo-150.png" alt="Village Castelo" class="logo-img" onerror="this.onerror=null;this.src='logo.svg?v=16';">
       </div>
       <div class="topbar-titles">
         <h1>Censo dos Moradores 2026</h1>
@@ -62,6 +62,14 @@
           <div id="loteStatus"></div>
         </div>
 
+        <!-- Terreno (lote sem moradores) -->
+        <div class="form-section" id="terrenoSection" hidden>
+          <label class="terreno-check">
+            <input type="checkbox" id="terrenoCheck">
+            <span>Este lote é um <b>terreno</b> (sem moradores)</span>
+          </label>
+        </div>
+
         <!-- 2) Quantidade de moradores -->
         <div class="form-section" id="qtdSection" hidden>
           <label class="form-label" for="qtdInput">2. Quantas pessoas moram neste lote?</label>
@@ -105,7 +113,7 @@
 
   <div id="toast" class="toast"></div>
 
-  <script src="data.js?v=15"></script>
-  <script src="script.js?v=15"></script>
+  <script src="data.js?v=16"></script>
+  <script src="script.js?v=16"></script>
 </body>
 </html>
