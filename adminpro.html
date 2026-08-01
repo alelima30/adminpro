@@ -8176,7 +8176,10 @@ function _mudarStatusReserva(id, novo, msg){
   DB_CACHE['reservas']=all;
   try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
   _reservaUpsertSB(all[i]);
-  renderReservas(); verificarAlertas(); atualizarBadgePendentes();
+  // A tela vem DEPOIS: se render/alertas falharem (ex.: RLS), a notificacao
+  // abaixo ja foi disparada. Mesmo cuidado usado ao salvar a reserva.
+  try{ renderReservas(); verificarAlertas(); atualizarBadgePendentes(); }
+  catch(_e){ console.error('render pos-status', _e); }
   toast(msg);
   // Notifica o morador (WhatsApp + e-mail) quando aprovada/recusada
   const _cfgN=getCfgRes();
@@ -11375,7 +11378,10 @@ async function aprovarUsuario(){
         '• E-mail: '+(u.email||'')+'\n'+
         '• Senha: a que você cadastrou\n\n'+
         'Bem-vindo(a)!';
-      if(typeof _notificarMulti==='function') _notificarMulti(u.tel, u.email, 'Cadastro aprovado — '+_cond, _corpo, 'aprovação cadastro');
+      // Modelo ESTRUTURADO cadastro_aprovado: {{1}} nome, {{2}} condominio, {{3}} email
+      var _paramsCad=[ (u.nome||'—'), (_cond||'—'), (u.email||'—') ];
+      if(typeof _notificarMulti==='function') _notificarMulti(u.tel, u.email, 'Cadastro aprovado — '+_cond, _corpo, 'aprovação cadastro',
+        { template:'cadastro_aprovado', params:_paramsCad });
       else if(u.email) enviarEmail(u.email, 'Cadastro aprovado — '+_cond, _corpo);
     }
   } catch(e){ toast('⚠️ Erro: '+(e.message||e)); }
