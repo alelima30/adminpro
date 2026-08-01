@@ -19,9 +19,9 @@ const CensoData = (() => {
    * Configuração das quadras (quantidade de lotes por quadra)
    * ------------------------------------------------------------------------ */
   const quadras = {
-    A: 2,  B: 23, C: 21, D: 19, E: 17, F: 10, G: 6,
+    A: 2,  B: 23, C: 21, D: 19, E: 17, F: 10, G: 4,
     H: 8,  I: 16, J: 19, K: 24, L: 24, M: 24, N: 23,
-    O: 5,  P: 10, Q: 5,  R: 16, S: 24, T: 21, U: 5
+    O: 4,  P: 10, Q: 5,  R: 16, S: 24, T: 21, U: 5
   };
 
   const ANO_ATUAL = new Date().getFullYear();
@@ -268,16 +268,8 @@ const CensoData = (() => {
   /* --------------------------------------------------------------------------
    * Estatísticas / agregações (usadas pelo Dashboard)
    * ------------------------------------------------------------------------ */
-  // Um terreno é um lote salvo com 0 moradores
-  function isTerreno(r) {
-    return r && Array.isArray(r.moradores) && r.moradores.length === 0;
-  }
-
   function estatisticas(registros) {
-    // Toda linha salva conta como "respondida" (inclusive terrenos, com 0 moradores)
-    const nRespondidos = registros.length;
-    const lotesComMoradores = registros.filter((r) => r.moradores.length > 0).length;
-    const totalTerrenos = registros.filter(isTerreno).length;
+    const lotesRespondidos = registros.filter((r) => r.moradores.length > 0);
     const totalMoradores = registros.reduce((s, r) => s + r.moradores.length, 0);
 
     // Contagem por faixa etária
@@ -311,14 +303,14 @@ const CensoData = (() => {
       });
     });
 
+    const nRespondidos = lotesRespondidos.length;
+
     return {
       totalLotes: TOTAL_LOTES,
       lotesRespondidos: nRespondidos,
-      lotesComMoradores,
-      totalTerrenos,
       lotesPendentes: TOTAL_LOTES - nRespondidos,
       totalMoradores,
-      mediaMoradoresPorLote: lotesComMoradores ? totalMoradores / lotesComMoradores : 0,
+      mediaMoradoresPorLote: nRespondidos ? totalMoradores / nRespondidos : 0,
       mediaIdadeGeral: totalIdadesValidas ? somaIdades / totalIdadesValidas : 0,
       percRespondidos: TOTAL_LOTES ? (nRespondidos / TOTAL_LOTES) * 100 : 0,
       percPendentes: TOTAL_LOTES ? ((TOTAL_LOTES - nRespondidos) / TOTAL_LOTES) * 100 : 0,
@@ -348,7 +340,6 @@ const CensoData = (() => {
     calcularIdade,
     faixaEtaria,
     faixaPorId,
-    isTerreno,
     listar,
     obter,
     salvar,
