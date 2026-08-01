@@ -36,5 +36,8 @@ falha por causa dele. Assim o mesmo problema não volta.
 
 ## No GitHub
 
-`.github/workflows/ci.yml` roda os dois a cada envio para `main`.
-**Se um teste falhar, o deploy das funções não acontece.**
+`.github/workflows/ci.yml` roda os dois a cada envio para `main` e mostra
+o resultado na aba **Actions** (✓ verde ou ✗ vermelho).
+
+O deploy automático das Edge Functions ficou para depois — por enquanto
+ele continua sendo feito manualmente no painel do Supabase.
