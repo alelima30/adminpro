@@ -33,7 +33,8 @@
   async function init() {
     try {
       const registros = await CensoData.listar();
-      state.registros = registros.filter((r) => r.moradores.length > 0);
+      // Inclui todos os lotes salvos, inclusive terrenos (0 moradores)
+      state.registros = registros;
     } catch (e) {
       console.error('Falha ao carregar dados:', e);
       state.registros = [];
@@ -184,11 +185,12 @@
   // Aplica os filtros de quadra/lote/faixa/sexo. Ao filtrar por faixa ou sexo,
   // mantém no lote apenas os moradores que atendem (afeta gráficos e relatório).
   function aplicarFiltros(registros) {
+    const filtrandoPessoas = Boolean(state.filtro.faixa || state.filtro.sexo);
     return registros
       .filter((r) => !state.filtro.quadra || CensoData.quadraDoLote(r.lote) === state.filtro.quadra)
       .filter((r) => !state.filtro.lote || r.lote === state.filtro.lote)
       .map((r) => {
-        if (!state.filtro.faixa && !state.filtro.sexo) return r;
+        if (!filtrandoPessoas) return r;
         let moradores = r.moradores;
         if (state.filtro.faixa) {
           moradores = moradores.filter((m) => {
@@ -201,7 +203,8 @@
         }
         return { ...r, moradores };
       })
-      .filter((r) => r.moradores.length > 0);
+      // Terrenos (0 moradores) aparecem quando não se filtra por faixa/sexo
+      .filter((r) => r.moradores.length > 0 || (!filtrandoPessoas && CensoData.isTerreno(r)));
   }
 
   /* ==========================================================================
@@ -212,7 +215,8 @@
     const cards = [
       { icon: 'home',        cor: '#1B2B5E', label: 'Lotes respondidos', valor: s.lotesRespondidos, sub: `de ${s.totalLotes} lotes` },
       { icon: 'users',       cor: '#2a78d6', label: 'Total de moradores', valor: s.totalMoradores, sub: `${s.mediaIdadeGeral.toFixed(1)} anos de idade média` },
-      { icon: 'calculator',  cor: '#7c5cff', label: 'Média por lote', valor: s.mediaMoradoresPorLote.toFixed(1), sub: 'moradores por lote respondido' },
+      { icon: 'calculator',  cor: '#7c5cff', label: 'Média por lote', valor: s.mediaMoradoresPorLote.toFixed(1), sub: 'moradores por lote habitado' },
+      { icon: 'trees',       cor: '#1e8e5a', label: 'Terrenos', valor: s.totalTerrenos, sub: 'lotes sem moradores' },
       { icon: 'baby',            cor: CORES_FAIXA.criancas,     label: 'Crianças',     valor: s.porFaixa.criancas,     sub: '0–12 anos' },
       { icon: 'backpack',        cor: CORES_FAIXA.adolescentes, label: 'Adolescentes', valor: s.porFaixa.adolescentes, sub: '13–17 anos' },
       { icon: 'graduation-cap',  cor: CORES_FAIXA.jovens,       label: 'Jovens',       valor: s.porFaixa.jovens,       sub: '18–29 anos' },
@@ -361,6 +365,7 @@
     destruir('lote');
     const lotes = Object.keys(s.porLote)
       .map((l) => ({ lote: l, n: s.porLote[l] }))
+      .filter((x) => x.n > 0)   // terrenos (0 moradores) ficam fora deste gráfico
       .sort((a, b) => b.n - a.n);
     const canvasLote = $('chartLote');
     // largura mínima para permitir rolagem horizontal quando há muitos lotes
@@ -462,7 +467,8 @@
         moradores: r.moradores.length,
         idades,
         sexos: contarSexos(r.moradores),
-        media
+        media,
+        terreno: CensoData.isTerreno(r)
       };
     });
   }
@@ -490,9 +496,9 @@
           <td class="col-compact" data-label="Quadra">Quadra ${l.quadra}</td>
           <td class="lote-cell col-compact" data-label="Lote">${l.lote}</td>
           <td class="col-num" data-label="Moradores">${l.moradores}</td>
-          <td class="idades-inline" data-label="Idades">${l.idades.join(', ')}</td>
-          <td class="col-compact" data-label="Sexo"><div class="sexo-chips">${sexoResumoHTML(l.sexos)}</div></td>
-          <td class="col-num" data-label="Média de idade">${l.media.toFixed(1)}</td>
+          <td class="idades-inline" data-label="Idades">${l.terreno ? '<span class="terreno-badge">Terreno</span>' : l.idades.join(', ')}</td>
+          <td class="col-compact" data-label="Sexo"><div class="sexo-chips">${l.terreno ? '<span class="muted">—</span>' : (sexoResumoHTML(l.sexos) || '<span class="muted">—</span>')}</div></td>
+          <td class="col-num" data-label="Média de idade">${l.terreno ? '—' : l.media.toFixed(1)}</td>
           <td class="col-acoes" data-label="Ações">
             <div class="row-actions">
               <a class="icon-btn" href="index.html?lote=${l.lote}" title="Editar lote ${l.lote}"><i data-lucide="pencil"></i></a>
@@ -529,7 +535,10 @@
     _matriz() {
       const cab = ['Quadra', 'Lote', 'Moradores', 'Idades', 'Sexo', 'Média de Idade'];
       const corpo = this._linhas().map((l) => [
-        `Quadra ${l.quadra}`, l.lote, l.moradores, l.idades.join(' '), sexoResumoTexto(l.sexos), l.media.toFixed(1)
+        `Quadra ${l.quadra}`, l.lote, l.moradores,
+        l.terreno ? 'Terreno' : l.idades.join(' '),
+        l.terreno ? '' : sexoResumoTexto(l.sexos),
+        l.terreno ? '' : l.media.toFixed(1)
       ]);
       return [cab, ...corpo];
     },
