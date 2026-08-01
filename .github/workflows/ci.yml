@@ -1,0 +1,66 @@
+name: Testes e Deploy
+
+# Roda a cada envio para a branch principal (e em pull requests).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:        # permite rodar manualmente pelo botão do GitHub
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # 1) TESTES — sempre rodam. Se falharem, o deploy nao acontece.
+  # ──────────────────────────────────────────────────────────────
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verificar sintaxe do adminpro.html
+        run: node tests/sintaxe.js
+
+      - name: Regras de reserva
+        run: node tests/reservas.test.js
+
+  # ──────────────────────────────────────────────────────────────
+  # 2) DEPLOY das Edge Functions do Supabase (so na branch main)
+  #    Requer os segredos SUPABASE_ACCESS_TOKEN e SUPABASE_PROJECT_REF
+  #    em: GitHub -> Settings -> Secrets and variables -> Actions
+  # ──────────────────────────────────────────────────────────────
+  deploy-funcoes:
+    needs: testes
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Publicar funcao notificar (slug dynamic-handler)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          mkdir -p supabase/functions/dynamic-handler
+          cp supabase/functions/notificar/index.ts supabase/functions/dynamic-handler/index.ts
+          supabase functions deploy dynamic-handler \
+            --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" \
+            --no-verify-jwt
+
+      - name: Publicar funcao lembrete
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          mkdir -p supabase/functions/lembrete
+          cp supabase/functions/lembretes/index.ts supabase/functions/lembrete/index.ts
+          supabase functions deploy lembrete \
+            --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" \
+            --no-verify-jwt
+
+# O site (adminprogestao.com.br) ja e publicado automaticamente pelo
+# GitHub Pages a partir da branch main — nao precisa de passo aqui.
