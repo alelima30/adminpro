@@ -9035,7 +9035,7 @@ function verificarLembretesReserva(){
   var agora=Date.now();
   function _horaIni(h){ var p=(h||'').split(/[-–]/)[0].trim().split(':'); return {hh:+p[0]||0, mm:+p[1]||0}; }
   (G('reservas')||[]).forEach(function(r){
-    if(r.status!=='confirmada' && r.status!=='pendente') return;
+    if(r.status!=='confirmada') return;   // pendente ainda nao foi aprovada
     if(!r.data) return;
     var email=(r.criadoPor||'').trim(), tel=(r.tel||'').trim();
     if(!email && !tel) return;
@@ -9048,10 +9048,15 @@ function verificarLembretesReserva(){
       var chave=r.id+'|'+r.data+'|'+lead.tag;
       if(enviados.indexOf(chave)>=0) return;
       var quando = lead.tag==='1h' ? 'em 1 hora' : 'amanhã';
+      var _dataBR=new Date(r.data+'T00:00').toLocaleDateString('pt-BR');
       var corpo='⏰ '+nomeCondominioAtual()+'\n\nLembrete: você tem uma reserva '+quando+'.\n\nEspaço: '+r.espaco+'\nData: '+
-        new Date(r.data+'T00:00').toLocaleDateString('pt-BR')+'\nHorário: '+r.horario+'\nUnidade: '+r.lote;
+        _dataBR+'\nHorário: '+r.horario+'\nUnidade: '+r.lote;
+      // Modelo ESTRUTURADO aprovado (lembrete_reserva): texto organizado em linhas.
+      // {{1}} quando, {{2}} espaco, {{3}} data, {{4}} horario, {{5}} unidade
+      var _optLembrete={ template:'lembrete_reserva',
+        params:[ quando, r.espaco||'—', _dataBR, r.horario||'—', r.lote||'—' ] };
       function _marcar(){ if(enviados.indexOf(chave)<0){ enviados.push(chave); try{ localStorage.setItem('apvc_lembretes_env',JSON.stringify(enviados.slice(-500))); }catch(_){} } }
-      if(tel && typeof enviarWhatsApp==='function') enviarWhatsApp(tel, corpo).then(function(res){ if(res.ok){ _marcar(); addLog('✓ Lembrete '+lead.tag+' WhatsApp — '+r.espaco); } else addLog('✗ Lembrete '+lead.tag+' WhatsApp: '+res.erro); });
+      if(tel && typeof enviarWhatsApp==='function') enviarWhatsApp(tel, corpo, _optLembrete).then(function(res){ if(res.ok){ _marcar(); addLog('✓ Lembrete '+lead.tag+' WhatsApp — '+r.espaco); } else addLog('✗ Lembrete '+lead.tag+' WhatsApp: '+res.erro); });
       if(email && typeof enviarEmail==='function') enviarEmail(email,'Lembrete de reserva — '+r.espaco,corpo).then(function(res){ if(res.ok){ _marcar(); addLog('✓ Lembrete '+lead.tag+' e-mail — '+r.espaco); } else addLog('✗ Lembrete '+lead.tag+' e-mail: '+res.erro); });
     });
   });
