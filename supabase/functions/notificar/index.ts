@@ -216,7 +216,11 @@ serve(async (req: Request) => {
       const msg = body.message ||
         ("Novo cadastro aguardando aprovacao. Nome: " + (body.nome || "") + " Unidade: " + (body.unidade || ""));
       let n = 0;
-      for (const d of destinos) { if (d?.whats) { try { await enviarWhatsapp(d.whats, msg); n++; } catch (_) {} } }
+      for (const d of destinos) {
+        if (d?.whats) {
+          try { await enviarWhatsapp(d.whats, msg, body.template, body.params); n++; } catch (_) {}
+        }
+      }
       return J({ ok: true, enviados: n });
     }
 
