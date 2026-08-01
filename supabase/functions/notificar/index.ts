@@ -144,6 +144,60 @@ async function destinosEquipe(condominio: string): Promise<any[]> {
   } catch (_) { return []; }
 }
 
+
+// ── Foto do perfil do WhatsApp (via API — funciona mesmo com o painel bloqueado) ──
+// Fluxo da Meta: 1) abre sessao de upload no APP  2) envia os bytes e recebe um "handle"
+// 3) grava o handle no perfil do numero.
+// Secrets necessarios: WHATSAPP_TOKEN, WHATSAPP_PHONE_ID, WHATSAPP_APP_ID
+async function definirFotoPerfil(imagemUrl: string) {
+  const TOKEN = Deno.env.get("WHATSAPP_TOKEN");
+  const PHONE_ID = Deno.env.get("WHATSAPP_PHONE_ID");
+  const APP_ID = Deno.env.get("WHATSAPP_APP_ID");
+  if (!TOKEN || !PHONE_ID || !APP_ID) {
+    return J({ error: "Configure WHATSAPP_TOKEN, WHATSAPP_PHONE_ID e WHATSAPP_APP_ID nos Secrets." }, 500);
+  }
+
+  // 1) baixa a imagem
+  const img = await fetch(imagemUrl);
+  if (!img.ok) return J({ error: "Nao consegui baixar a imagem: " + imagemUrl }, 400);
+  const bytes = new Uint8Array(await img.arrayBuffer());
+  const tipo = img.headers.get("content-type") || "image/png";
+
+  // 2) abre a sessao de upload
+  const sess = await fetch(
+    `https://graph.facebook.com/v21.0/${APP_ID}/uploads?file_length=${bytes.length}` +
+    `&file_type=${encodeURIComponent(tipo)}&access_token=${encodeURIComponent(TOKEN)}`,
+    { method: "POST" },
+  );
+  const sessData = await sess.json();
+  if (!sess.ok || !sessData?.id) {
+    return J({ error: sessData?.error?.message || "Falha ao abrir upload.", etapa: "sessao", detalhe: sessData }, 502);
+  }
+
+  // 3) envia os bytes e recebe o handle
+  const up = await fetch(`https://graph.facebook.com/v21.0/${sessData.id}`, {
+    method: "POST",
+    headers: { Authorization: `OAuth ${TOKEN}`, file_offset: "0", "Content-Type": tipo },
+    body: bytes,
+  });
+  const upData = await up.json();
+  if (!up.ok || !upData?.h) {
+    return J({ error: upData?.error?.message || "Falha no upload.", etapa: "upload", detalhe: upData }, 502);
+  }
+
+  // 4) grava no perfil do numero
+  const perfil = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/whatsapp_business_profile`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ messaging_product: "whatsapp", profile_picture_handle: upData.h }),
+  });
+  const perfilData = await perfil.json();
+  if (!perfil.ok) {
+    return J({ error: perfilData?.error?.message || "Falha ao salvar a foto.", etapa: "perfil", detalhe: perfilData }, 502);
+  }
+  return J({ ok: true, foto: imagemUrl });
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
@@ -152,6 +206,11 @@ serve(async (req: Request) => {
 
     // Novo cadastro: avisa a EQUIPE (numeros do condominio) que ha alguem para aprovar.
     // A mensagem vem pronta do cadastro.html (arquivo, sem corromper emoji/acento).
+    // Define a foto do perfil do WhatsApp pela API (contorna o painel bloqueado).
+    if (body?.action === "set_foto") {
+      return await definirFotoPerfil(body.url || "https://adminprogestao.com.br/icon512.png");
+    }
+
     if (body?.action === "novo_cadastro") {
       const destinos = await destinosEquipe(body.condominio || "");
       const msg = body.message ||
