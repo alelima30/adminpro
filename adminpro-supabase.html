@@ -40,6 +40,21 @@ function hrFim(h){
   if(f<=i) f+=1440;
   return f;
 }
+/* ══════════════════════════════════════════════════════════════
+   MODELOS DE MENSAGEM (WhatsApp / Meta) — nomes num lugar só.
+   Trocar um modelo aqui vale para o app inteiro.
+   IMPORTANTE: use sempre modelos da categoria UTILIDADE.
+   Modelos de MARKETING podem ser aceitos pela API e mesmo assim
+   não ser entregues (quando o destinatário optou por não receber
+   marketing), sem erro nenhum aparecer no log.
+════════════════════════════════════════════════════════════════ */
+var TPL = {
+  reservaEquipe:   'reserva_detalhe',    // Utilidade
+  reservaMorador:  'reserva_morador',    // ATENCAO: hoje esta como Marketing
+  lembrete:        'lembrete_reserva',   // Utilidade
+  cadastroNovo:    'cadastro_novo',      // Utilidade
+  cadastroAprovado:'cadastro_aprovado'   // Utilidade
+};
 /* true se dois horários se sobrepõem */
 function hrConflita(a,b){ return hrIni(a) < hrFim(b) && hrFim(a) > hrIni(b); }
 </script>
@@ -8200,7 +8215,7 @@ function _mudarStatusReserva(id, novo, msg){
                                : 'Não aprovada pela administração';
     var _paramsAprov = [ all[i].espaco||'—', _dt||'—', all[i].horario||'—', all[i].lote||'—', _statusTxt ];
     _notificarMulti(_whats, _email, _assunto, _corpo, 'morador ('+(_aprovada?'aprovada':'recusada')+')',
-                    { template:'reserva_morador', params:_paramsAprov });
+                    { template:TPL.reservaMorador, params:_paramsAprov });
   }
 }
 function aprovarReserva(id){
@@ -8836,10 +8851,10 @@ function _enviarNotifsReserva(_novaReserva, _cfgN, obj, statusVal, _dtFmt, _cond
   var statusTxt = statusVal==='pendente' ? 'Aguardando aprovação da administração'
                 : statusVal==='confirmada' ? 'Confirmada' : (statusVal||'—');
   // EQUIPE/ADMIN: modelo reserva_detalhe (6 campos, com Morador — mostra quem reservou).
-  var TPL_EQ='reserva_detalhe';
+  var TPL_EQ=TPL.reservaEquipe;
   var params_eq=[ obj.nome||'—', obj.lote||'—', obj.espaco||'—', _dtFmt||'—', obj.horario||'—', statusTxt ];
   // MORADOR: modelo reserva_morador (5 campos, tom amigável — sem repetir o nome dele).
-  var TPL_MOR='reserva_morador';
+  var TPL_MOR=TPL.reservaMorador;
   var params_mor=[ obj.espaco||'—', _dtFmt||'—', obj.horario||'—', obj.lote||'—', statusTxt ];
   // Versão multi-linha (para o e-mail, que aceita quebras).
   var _corpo='🔔 Reserva — AdminPro\n\n'+
@@ -9061,7 +9076,7 @@ function verificarLembretesReserva(){
         _dataBR+'\nHorário: '+r.horario+'\nUnidade: '+r.lote;
       // Modelo ESTRUTURADO aprovado (lembrete_reserva): texto organizado em linhas.
       // {{1}} quando, {{2}} espaco, {{3}} data, {{4}} horario, {{5}} unidade
-      var _optLembrete={ template:'lembrete_reserva',
+      var _optLembrete={ template:TPL.lembrete,
         params:[ quando, r.espaco||'—', _dataBR, r.horario||'—', r.lote||'—' ] };
       function _marcar(){ if(enviados.indexOf(chave)<0){ enviados.push(chave); try{ localStorage.setItem('apvc_lembretes_env',JSON.stringify(enviados.slice(-500))); }catch(_){} } }
       if(tel && typeof enviarWhatsApp==='function') enviarWhatsApp(tel, corpo, _optLembrete).then(function(res){ if(res.ok){ _marcar(); addLog('✓ Lembrete '+lead.tag+' WhatsApp — '+r.espaco); } else addLog('✗ Lembrete '+lead.tag+' WhatsApp: '+res.erro); });
@@ -11381,7 +11396,7 @@ async function aprovarUsuario(){
       // Modelo ESTRUTURADO cadastro_aprovado: {{1}} nome, {{2}} condominio, {{3}} email
       var _paramsCad=[ (u.nome||'—'), (_cond||'—'), (u.email||'—') ];
       if(typeof _notificarMulti==='function') _notificarMulti(u.tel, u.email, 'Cadastro aprovado — '+_cond, _corpo, 'aprovação cadastro',
-        { template:'cadastro_aprovado', params:_paramsCad });
+        { template:TPL.cadastroAprovado, params:_paramsCad });
       else if(u.email) enviarEmail(u.email, 'Cadastro aprovado — '+_cond, _corpo);
     }
   } catch(e){ toast('⚠️ Erro: '+(e.message||e)); }
