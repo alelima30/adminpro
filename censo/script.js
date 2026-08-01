@@ -11,8 +11,6 @@
     loteInput:   document.getElementById('loteInput'),
     loteList:    document.getElementById('loteList'),
     loteStatus:  document.getElementById('loteStatus'),
-    terrenoSection: document.getElementById('terrenoSection'),
-    terrenoCheck:   document.getElementById('terrenoCheck'),
     qtdSection:  document.getElementById('qtdSection'),
     qtdInput:    document.getElementById('qtdInput'),
     moradoresSection: document.getElementById('moradoresSection'),
@@ -94,42 +92,22 @@
       console.warn('Falha ao carregar lote:', e);
     }
 
-    const existe = Boolean(registro);
-    const ehTerreno = existe && registro.moradores.length === 0;
-    const comMoradores = existe && registro.moradores.length > 0;
-
-    el.loteStatus.innerHTML = existe
+    const jaRespondido = registro && registro.moradores.length > 0;
+    el.loteStatus.innerHTML = jaRespondido
       ? `<span class="lote-status edicao">✎ Lote selecionado</span>`
       : '';
 
-    // Mostra a opção de terreno e marca conforme o registro existente
-    el.terrenoSection.hidden = false;
-    el.terrenoCheck.checked = ehTerreno;
+    el.qtdSection.hidden = false;
 
-    if (comMoradores) {
+    if (jaRespondido) {
       el.qtdInput.value = registro.moradores.length;
-      el.qtdSection.hidden = false;
       gerarCartoes(registro.moradores.length, registro.moradores);
-      el.qtdInput.focus();
     } else {
       el.qtdInput.value = '';
-      atualizarModoTerreno();
-      if (!ehTerreno) el.qtdInput.focus();
-    }
-  }
-
-  // Alterna entre "terreno" (sem moradores) e o modo normal (quantidade)
-  function atualizarModoTerreno() {
-    if (el.terrenoCheck.checked) {
-      el.qtdSection.hidden = true;
       el.moradoresSection.hidden = true;
-      el.moradoresGrid.innerHTML = '';
-      el.acoesSection.hidden = false;   // permite salvar o terreno
-    } else {
-      el.qtdSection.hidden = false;
-      const qtd = parseInt(el.qtdInput.value, 10);
-      gerarCartoes(isNaN(qtd) ? 0 : qtd);
+      el.acoesSection.hidden = true;
     }
+    el.qtdInput.focus();
   }
 
   // Eventos do combobox
@@ -203,8 +181,6 @@
     if (qtd > 30) { qtd = 30; el.qtdInput.value = 30; }
     gerarCartoes(qtd);
   });
-
-  el.terrenoCheck.addEventListener('change', atualizarModoTerreno);
 
   function gerarCartoes(qtd, dados = []) {
     if (!qtd || qtd < 1) {
@@ -286,37 +262,28 @@
     if (!state.loteSelecionado) {
       return toast('Selecione um lote válido antes de salvar.', 'erro');
     }
-    const ehTerreno = el.terrenoCheck.checked;
+    const anos = coletarAnos();
+    const sexos = coletarSexos();
     const moradores = [];
-
-    if (!ehTerreno) {
-      const anos = coletarAnos();
-      const sexos = coletarSexos();
-      if (anos.length === 0) {
-        return toast('Informe a quantidade de moradores ou marque como terreno.', 'erro');
+    for (let i = 0; i < anos.length; i++) {
+      const ano = anos[i];
+      if (!ano || ano < 1900 || ano > CensoData.ANO_ATUAL) {
+        return toast(`Informe um ano de nascimento válido para o Morador ${i + 1}.`, 'erro');
       }
-      for (let i = 0; i < anos.length; i++) {
-        const ano = anos[i];
-        if (!ano || ano < 1900 || ano > CensoData.ANO_ATUAL) {
-          return toast(`Informe um ano de nascimento válido para o Morador ${i + 1}.`, 'erro');
-        }
-        if (!sexos[i]) {
-          return toast(`Selecione o sexo do Morador ${i + 1}.`, 'erro');
-        }
-        moradores.push({ anoNascimento: ano, idade: CensoData.calcularIdade(ano), sexo: sexos[i] });
+      if (!sexos[i]) {
+        return toast(`Selecione o sexo do Morador ${i + 1}.`, 'erro');
       }
+      moradores.push({ anoNascimento: ano, idade: CensoData.calcularIdade(ano), sexo: sexos[i] });
     }
 
-    // Estrutura de dados (terreno = moradores vazio)
+    // Estrutura de dados conforme especificação
     const registro = { lote: state.loteSelecionado, moradores };
 
     el.btnSalvar.disabled = true;
     try {
       await CensoData.salvar(registro);
       state.lotesRespondidos.add(state.loteSelecionado);
-      toast(ehTerreno
-        ? `Lote ${state.loteSelecionado} registrado como terreno (sem moradores).`
-        : `Obrigado por responder o censo! Lote ${state.loteSelecionado} registrado. 💚`, 'ok');
+      toast(`Obrigado por responder o censo! Lote ${state.loteSelecionado} registrado. 💚`, 'ok');
       atualizarProgresso();
       resetForm();
     } catch (e) {
@@ -335,8 +302,6 @@
     el.loteStatus.innerHTML = '';
     el.qtdInput.value = '';
     el.moradoresGrid.innerHTML = '';
-    el.terrenoCheck.checked = false;
-    el.terrenoSection.hidden = true;
     el.qtdSection.hidden = true;
     el.moradoresSection.hidden = true;
     el.acoesSection.hidden = true;
@@ -349,8 +314,9 @@
   async function atualizarProgresso() {
     try {
       const registros = await CensoData.listar();
-      // Todo lote salvo conta como respondido (inclusive terrenos, com 0 moradores)
-      state.lotesRespondidos = new Set(registros.map((r) => r.lote));
+      state.lotesRespondidos = new Set(
+        registros.filter((r) => r.moradores.length > 0).map((r) => r.lote)
+      );
       const n = state.lotesRespondidos.size;
       const total = CensoData.TOTAL_LOTES;
       const perc = ((n / total) * 100).toFixed(1);
