@@ -1,0 +1,32 @@
+name: Testes
+
+# Roda a cada envio para a branch principal, em pull requests,
+# e também pelo botao "Run workflow" na aba Actions.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verificar sintaxe das paginas
+        run: node tests/sintaxe.js
+
+      - name: Regras de reserva
+        run: node tests/reservas.test.js
+
+# ─────────────────────────────────────────────────────────────────────
+# Deploy automatico das Edge Functions: fica para depois.
+# Quando quiser ligar, basta acrescentar um job aqui usando
+# supabase/setup-cli e os segredos SUPABASE_ACCESS_TOKEN /
+# SUPABASE_PROJECT_REF. Por enquanto o deploy continua manual.
+# ─────────────────────────────────────────────────────────────────────
