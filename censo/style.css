@@ -229,23 +229,6 @@ a { color: var(--accent); }
   font-size: 11px; font-weight: 700; color: #fff;
 }
 
-/* Checkbox de terreno (sem moradores) */
-.terreno-check {
-  display: inline-flex; align-items: center; gap: 10px; cursor: pointer;
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-  padding: 12px 16px; background: var(--surface-2); font-size: 14px;
-  transition: border-color .15s ease, background .15s ease;
-}
-.terreno-check:hover { border-color: var(--brand); }
-.terreno-check input { width: 18px; height: 18px; accent-color: var(--brand); margin: 0; }
-.terreno-check:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); font-weight: 600; }
-
-/* Badge "Terreno" no relatório */
-.terreno-badge {
-  display: inline-block; padding: 2px 10px; border-radius: 999px;
-  font-size: 11px; font-weight: 700; color: #fff; background: #1e8e5a;
-}
-
 .sexo-group { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
 .sexo-opt {
   display: flex; align-items: center; gap: 8px;
