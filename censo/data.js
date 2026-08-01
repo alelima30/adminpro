@@ -19,9 +19,9 @@ const CensoData = (() => {
    * Configuração das quadras (quantidade de lotes por quadra)
    * ------------------------------------------------------------------------ */
   const quadras = {
-    A: 2,  B: 23, C: 21, D: 19, E: 17, F: 10, G: 4,
+    A: 2,  B: 23, C: 21, D: 19, E: 17, F: 10, G: 6,
     H: 8,  I: 16, J: 19, K: 24, L: 24, M: 24, N: 23,
-    O: 4,  P: 10, Q: 5,  R: 16, S: 24, T: 21, U: 5
+    O: 5,  P: 10, Q: 5,  R: 16, S: 24, T: 21, U: 5
   };
 
   const ANO_ATUAL = new Date().getFullYear();
