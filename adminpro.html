@@ -21,6 +21,29 @@
 <!-- Segoe UI — fonte nativa do Windows -->
 <!-- Aplica tema antes do render para evitar flash -->
 <script>
+/* ══════════════════════════════════════════════════════════════
+   HORÁRIO — fonte única da verdade.
+   Interpreta "07:00–08:00", "07:00-08:00" ou "07:00" e devolve
+   minutos desde a meia-noite. Regras (valem para o app inteiro):
+     • sem hora de fim  -> assume 1 hora de duração
+     • fim <= início    -> a reserva vira a madrugada (soma 24h)
+   Usar SEMPRE estas funções; não escrever outra interpretação.
+════════════════════════════════════════════════════════════════ */
+function hrIni(h){
+  var q=String(h||'').split(/[-\u2013]/)[0].trim().split(':');
+  return (+q[0]||0)*60+(+q[1]||0);
+}
+function hrFim(h){
+  var p=String(h||'').split(/[-\u2013]/), i=hrIni(h);
+  if(p.length<2 || !String(p[1]||'').trim()) return i+60;
+  var q=String(p[1]).trim().split(':'); var f=(+q[0]||0)*60+(+q[1]||0);
+  if(f<=i) f+=1440;
+  return f;
+}
+/* true se dois horários se sobrepõem */
+function hrConflita(a,b){ return hrIni(a) < hrFim(b) && hrFim(a) > hrIni(b); }
+</script>
+<script>
   (function(){
     var t = localStorage.getItem('vc_theme');
     if(t !== 'dark') document.documentElement.classList.add('light');
@@ -7544,14 +7567,7 @@ function renderReservas(){
   // "Hoje" conta apenas as reservas de hoje que AINDA nao terminaram
   // (uma reserva das 07:00-08:00 nao deve contar as 14h).
   const _agoraMin=(function(){ const d=new Date(); return d.getHours()*60+d.getMinutes(); })();
-  const _iniMin=function(h){ const q=String(h||'').split(/[-\u2013]/)[0].trim().split(':'); return (+q[0]||0)*60+(+q[1]||0); };
-  const _fimMin=function(h){
-    const p=String(h||'').split(/[-\u2013]/); const i=_iniMin(h);
-    if(p.length<2 || !p[1].trim()) return i+60;   // sem fim definido: assume 1 hora
-    const q=p[1].trim().split(':'); let m=(+q[0]||0)*60+(+q[1]||0);
-    if(m<=i) m+=1440;                              // vira a madrugada
-    return m;
-  };
+  const _fimMin=hrFim;   // fonte unica
   const hj=kpiBase.filter(r=>r.data===hoje && _fimMin(r.horario)>=_agoraMin).length;
   const receitaTotal=kpiBase.reduce((s,r)=>(r.pgto==='pago'?s+(parseFloat(r.taxa)||0):s),0);
   // Conta quantas passadas estão ocultas
@@ -8376,14 +8392,9 @@ function atualizarHorariosEspaco(espaco, manterValor){
       if(r.espaco!==espaco || r.data!==dataSel) return false;
       return r.status!=='cancelada' && r.status!=='concluida';
     });
-    var _min=function(h){ var p=(h||'').split(/[-–]/)[0].trim().split(':'); return (+p[0]||0)*60+(+p[1]||0); };
-    var _fim=function(h){ var p=(h||'').split(/[-–]/); var i=_min(h);
-      if(p.length<2 || !p[1].trim()) return i+60;
-      var q=p[1].trim().split(':'); var f=(+q[0]||0)*60+(+q[1]||0);
-      if(f<=i) f+=1440;                       // 22:00-01:00 vira a madrugada
-      return f; };
-    var conflita=function(slot){ var si=_min(slot), sf=_fim(slot);
-      return ocupados.some(function(o){ var oi=_min(o.horario), of=_fim(o.horario); return si<of && sf>oi; }); };
+    // usa a fonte unica (hrIni/hrFim/hrConflita)
+    var _min=hrIni, _fim=hrFim;
+    var conflita=function(slot){ return ocupados.some(function(o){ return hrConflita(slot, o.horario); }); };
     // Horario ocupado continua visivel, porem desabilitado e marcado como "ocupado",
     // para o morador entender que o horario existe mas ja foi reservado.
     // Horario que JA PASSOU (quando a data escolhida e hoje) tambem fica bloqueado.
@@ -8674,26 +8685,14 @@ function salvarRes(){
 
   // ── Verificação de conflito de horário ──
   // Extrai hora de início de uma string de horário como "09:00 - 12:00" ou "09:00"
-  function extrairHoraInicio(h){ return (h||'').split(/[-–]/)[0].trim(); }
-  function extrairHoraFim(h){ const p=(h||'').split(/[-–]/); return p.length>1?p[1].trim():null; }
-  function horaParaMin(h){ const [hh,mm]=(h||'00:00').split(':').map(Number); return hh*60+(mm||0); }
-
-  const hrIniNova = horaParaMin(extrairHoraInicio(hr));
-  const hrFimRaw  = extrairHoraFim(hr);
-  let   hrFimNova = hrFimRaw ? horaParaMin(hrFimRaw) : hrIniNova + 60; // assume 1h se não tiver fim
-  if(hrFimRaw && hrFimNova <= hrIniNova) hrFimNova += 1440;            // 22:00-01:00 vira a madrugada
+  // horário interpretado pela fonte única (hrIni/hrFim/hrConflita)
 
   const conflito = all.find(r => {
     if(id && r.id===+id) return false; // ignora a própria reserva ao editar
     if(r.espaco !== espacoRes) return false;
     if(r.data    !== dataRes)  return false;
     if(r.status === 'cancelada' || r.status === 'concluida') return false;
-    // Verifica sobreposição de horário
-    const hrIniExist = horaParaMin(extrairHoraInicio(r.horario));
-    const hrFimExistRaw = extrairHoraFim(r.horario);
-    let   hrFimExist = hrFimExistRaw ? horaParaMin(hrFimExistRaw) : hrIniExist + 60;
-    if(hrFimExistRaw && hrFimExist <= hrIniExist) hrFimExist += 1440;
-    return hrIniNova < hrFimExist && hrFimNova > hrIniExist;
+    return hrConflita(hr, r.horario);
   });
 
   if(conflito){
@@ -9026,6 +9025,12 @@ function _notificarMulti(whats, email, assunto, msg, tag, opts){
 
 // Lembrete automático 1 dia antes (roda enquanto o app está aberto).
 function verificarLembretesReserva(){
+  // DESLIGADO de proposito. Quem envia os lembretes agora e a funcao "lembrete"
+  // do Supabase (cron a cada 15 min): funciona com o app fechado, avisa tambem a
+  // equipe e tem controle de duplicidade no banco. Manter os dois ligados fazia
+  // a mesma mensagem chegar duas vezes (cada um com seu proprio controle).
+  // Para reativar o envio pelo app, basta remover a linha abaixo.
+  if(true) return;
   var cfg=getCfgRes();
   var leads=[]; // minutos antes
   if(cfg.notif_lembrete_24h || cfg.notif_lembrete_ativo) leads.push({m:1440, tag:'24h'});
@@ -10170,12 +10175,7 @@ function reservaViolaRegra(espaco, data, horario, lote, idAtual){
   if(data){
     var _hj=new Date(); var _hjISO=_hj.getFullYear()+'-'+String(_hj.getMonth()+1).padStart(2,'0')+'-'+String(_hj.getDate()).padStart(2,'0');
     if(data===_hjISO){
-      var _pr=String(horario||'').split(/[-\u2013]/);
-      var _q=(_pr.length>1?_pr[1]:_pr[0]||'').trim().split(':');
-      var _iniH=(function(){var z=String(horario||'').split(/[-\u2013]/)[0].trim().split(':');return (+z[0]||0)*60+(+z[1]||0);})();
-      var _fimH=(+_q[0]||0)*60+(+_q[1]||0);
-      if(_pr.length<2 || !String(_pr[1]||'').trim()) _fimH=_iniH+60;
-      else if(_fimH<=_iniH) _fimH+=1440;
+      var _fimH=hrFim(horario);   // fonte unica
       if(_fimH <= (_hj.getHours()*60+_hj.getMinutes()))
         return 'Este horário já passou. Escolha um horário futuro.';
     }
