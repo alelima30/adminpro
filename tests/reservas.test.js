@@ -39,7 +39,7 @@ bloco('Conflito de horário', () => {
 // ── Regras de negócio da reserva ───────────────────────────────────────
 // reservaViolaRegra devolve uma MENSAGEM quando viola, ou algo falso quando pode.
 function montar(cfg, nivel) {
-  return carregar(['reservaViolaRegra', '_chvEsp', 'hrIni', 'hrFim'], {
+  return carregar(['reservaViolaRegra', '_chvEsp', 'hrIni', 'hrFim', '_minHora'], {
     getCfgRes: () => cfg,
     window: { _userNivel: nivel || 'morador' },
     G: () => [],
@@ -86,6 +86,26 @@ bloco('Dias da semana permitidos', () => {
   while (d.getDay() === 0) d.setDate(d.getDate() + 1);   // garante que não é domingo
   const naoDomingo = d.toISOString().slice(0, 10);
   checa('bloqueia dia não permitido', viola(api, 'Ginásio', naoDomingo, '14:00–15:00', 'A01', ''), true);
+});
+
+bloco('Bloqueios da administração', () => {
+  const hoje = dataDaqui(3);
+  // dia inteiro bloqueado
+  const diaTodo = montar({ bloqueios: [{ ini: hoje, fim: hoje, motivo: 'Manutenção' }] }, 'morador');
+  checa('dia inteiro bloqueado barra qualquer horário',
+    viola(diaTodo, 'Quadra de Areia', hoje, '14:00–15:00', 'A01', ''), true);
+
+  // apenas uma faixa de horário bloqueada
+  const faixa = montar({ bloqueios: [{ ini: hoje, fim: hoje, h1: '13:00', h2: '16:00' }] }, 'morador');
+  checa('horário dentro da faixa bloqueada é barrado',
+    viola(faixa, 'Quadra de Areia', hoje, '14:00–15:00', 'A01', ''), true);
+  checa('horário fora da faixa bloqueada é liberado',
+    viola(faixa, 'Quadra de Areia', hoje, '09:00–10:00', 'A01', ''), false);
+
+  // bloqueio de um espaço não afeta outro
+  const porEspaco = montar({ bloqueios: [{ ini: hoje, fim: hoje, espaco: 'Ginásio' }] }, 'morador');
+  checa('bloqueio de outro espaço não afeta este',
+    viola(porEspaco, 'Quadra de Areia', hoje, '14:00–15:00', 'A01', ''), false);
 });
 
 // ── Resultado ──────────────────────────────────────────────────────────
