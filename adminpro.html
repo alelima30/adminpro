@@ -7734,7 +7734,7 @@ function renderReservas(){
           ${(!isMorador && r.status==='pendente')?`
           <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="aprovarReserva(${r.id})"><i class="fa-solid fa-check"></i> Aprovar</button>
           <button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="recusarReserva(${r.id})"><i class="fa-solid fa-xmark"></i> Recusar</button>`:''}
-          <button class="btn btn-ghost btn-sm" onclick="abrirModalRes(${r.id})">Editar</button>
+          ${!isMorador?`<button class="btn btn-ghost btn-sm" onclick="abrirModalRes(${r.id})">Editar</button>`:''}
           ${!isMorador?`<button class="btn btn-ghost btn-sm" onclick="imprimirComprovante(${r.id})"><i class="fa-solid fa-receipt"></i> Comprovante</button>`:''}
           <button class="btn btn-red btn-sm" onclick="excluirRes(${r.id})">Excluir</button>
         </div>
@@ -8652,6 +8652,12 @@ function abrirModalRes(id){
   }
   const all=G('reservas')||[], r=id?all.find(x=>x.id===id):null;
   const nivel = window._userNivel||'morador';
+  // Morador nao edita reserva ja criada — evita, por exemplo, mudar o horario
+  // de uma reserva ja aprovada sem a administracao saber.
+  if(id && (nivel!=='admin' && nivel!=='gestor' && nivel!=='supervisor')){
+    toast('Para alterar esta reserva, cancele e faça uma nova, ou fale com a administração.');
+    return;
+  }
   const isMorador = nivel !== 'admin' && nivel !== 'gestor';
   $('mres-t').textContent=r?'Editar Reserva':'Nova Reserva';
   $('mres-id').value=r?.id||'';
@@ -8740,6 +8746,11 @@ function salvarRes(){
   }
   if($('mres-lote')) $('mres-lote').value=uniSel; // garante o valor sincronizado
   const all=G('reservas')||[], id=$('mres-id').value;
+  // Trava: morador so CRIA reserva; alterar reserva existente e da administracao.
+  if(id && !_isAdminRes && _nivelRes!=='supervisor'){
+    toast('⚠️ Alterações em reservas são feitas pela administração.');
+    return;
+  }
   const hrSel=$('mres-horario').value;
   const hr=hrSel==='personalizado'?$('mres-hr-custom').value.trim():hrSel;
   const dataRes=$('mres-data').value;
