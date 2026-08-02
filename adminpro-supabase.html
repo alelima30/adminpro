@@ -8645,9 +8645,11 @@ function onEspacoChange(reservaExistente){
   ──────────────────────────────────────────────────────────────────── */
   const ESPACOS_COM_FIN_PADRAO = ['Salão de Festa','Cozinha / Espaço Lazer','Campo de Futebol'];
   const chaveEsp = espaco.toLowerCase().replace(/[^a-z0-9]/g,'_');
-  const finAtivoPadrao = ESPACOS_COM_FIN_PADRAO.includes(espaco);
-  const finAtivoAdmin  = cfg['fin_'+chaveEsp+'_ativo'] === true;
-  const finAtivo = finAtivoPadrao || finAtivoAdmin;
+  // Escolha explicita do admin (true/false) manda; sem escolha, vale o padrao.
+  const finEscolha = cfg['fin_'+chaveEsp+'_ativo'];
+  const finAtivo = (finEscolha === undefined || finEscolha === null)
+    ? ESPACOS_COM_FIN_PADRAO.includes(espaco)
+    : finEscolha === true;
 
   // Mostra/oculta seção financeiro
   if($('mres-fin-section')) $('mres-fin-section').style.display = finAtivo ? '' : 'none';
@@ -10167,16 +10169,19 @@ function renderCfgReservas(){
 
     elFin.innerHTML = ESPACOS_CFG.map(esp=>{
       const chv   = esp.toLowerCase().replace(/[^a-z0-9]/g,'_');
-      const ativo = ESPACOS_FIN_PADRAO.includes(esp) || cfgRes['fin_'+chv+'_ativo']===true;
+      // Se o admin escolheu explicitamente (true/false), vale a escolha dele.
+      // Se nunca mexeu, vale o padrao do espaco.
+      const ativo = (cfgRes['fin_'+chv+'_ativo']===undefined || cfgRes['fin_'+chv+'_ativo']===null)
+        ? ESPACOS_FIN_PADRAO.includes(esp)
+        : cfgRes['fin_'+chv+'_ativo']===true;
       const taxa  = cfgRes['fin_'+chv+'_taxa']  ?? (DEFAULT_TAXA[esp]||'');
       const caucao= cfgRes['fin_'+chv+'_caucao']?? (DEFAULT_CAUCAO[esp]||'');
       const padrao= ESPACOS_FIN_PADRAO.includes(esp);
       return `<div style="background:var(--ink-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span style="font-size:13px;font-weight:700;color:var(--text);flex:1">${esp}</span>
-          ${padrao
-            ? `<span style="font-size:11px;color:var(--gold);background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.25);border-radius:6px;padding:2px 8px;font-weight:700">PADRÃO</span>`
-            : `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-2)">
+          ${padrao?`<span title="Vem habilitado por padrão, mas você pode desligar" style="font-size:11px;color:var(--gold);background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.25);border-radius:6px;padding:2px 8px;font-weight:700">PADRÃO</span>`:''}
+          ${`<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-2)">
                 <input type="checkbox" data-fin-ativo="${chv}" ${ativo?'checked':''} style="accent-color:var(--gold);width:15px;height:15px" onchange="toggleFinEspaco(this,'${chv}')">
                 Habilitar financeiro
                </label>`
