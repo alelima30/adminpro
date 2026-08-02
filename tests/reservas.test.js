@@ -39,7 +39,7 @@ bloco('Conflito de horário', () => {
 // ── Regras de negócio da reserva ───────────────────────────────────────
 // reservaViolaRegra devolve uma MENSAGEM quando viola, ou algo falso quando pode.
 function montar(cfg, nivel) {
-  return carregar(['reservaViolaRegra', '_chvEsp', 'hrIni', 'hrFim'], {
+  return carregar(['reservaViolaRegra', '_chvEsp', 'hrIni', 'hrFim', '_minHora'], {
     getCfgRes: () => cfg,
     window: { _userNivel: nivel || 'morador' },
     G: () => [],
@@ -86,6 +86,47 @@ bloco('Dias da semana permitidos', () => {
   while (d.getDay() === 0) d.setDate(d.getDate() + 1);   // garante que não é domingo
   const naoDomingo = d.toISOString().slice(0, 10);
   checa('bloqueia dia não permitido', viola(api, 'Ginásio', naoDomingo, '14:00–15:00', 'A01', ''), true);
+});
+
+bloco('Bloqueios da administração', () => {
+  const hoje = dataDaqui(3);
+  // dia inteiro bloqueado
+  const diaTodo = montar({ bloqueios: [{ ini: hoje, fim: hoje, motivo: 'Manutenção' }] }, 'morador');
+  checa('dia inteiro bloqueado barra qualquer horário',
+    viola(diaTodo, 'Quadra de Areia', hoje, '14:00–15:00', 'A01', ''), true);
+
+  // apenas uma faixa de horário bloqueada
+  const faixa = montar({ bloqueios: [{ ini: hoje, fim: hoje, h1: '13:00', h2: '16:00' }] }, 'morador');
+  checa('horário dentro da faixa bloqueada é barrado',
+    viola(faixa, 'Quadra de Areia', hoje, '14:00–15:00', 'A01', ''), true);
+  checa('horário fora da faixa bloqueada é liberado',
+    viola(faixa, 'Quadra de Areia', hoje, '09:00–10:00', 'A01', ''), false);
+
+  // bloqueio de um espaço não afeta outro
+  const porEspaco = montar({ bloqueios: [{ ini: hoje, fim: hoje, espaco: 'Ginásio' }] }, 'morador');
+  checa('bloqueio de outro espaço não afeta este',
+    viola(porEspaco, 'Quadra de Areia', hoje, '14:00–15:00', 'A01', ''), false);
+});
+
+// ── Pix (BR Code) ──────────────────────────────────────────────────────
+const pix = carregar(['pixCopiaECola', '_pixCampo', '_pixTexto', '_pixCRC']);
+
+bloco('Pix — código copia e cola', () => {
+  const cod = pix.pixCopiaECola('12345678000199', 'Associação Parque Village', 'São Paulo', 20, 'RES7');
+  checa('começa com o cabeçalho do BR Code', cod.slice(0, 6), '000201');
+  checa('contém o domínio do Pix', cod.includes('br.gov.bcb.pix'), true);
+  checa('moeda é real (986)', cod.includes('5303986'), true);
+  checa('valor com 2 casas', cod.includes('540520.00'), true);
+  checa('país BR', cod.includes('5802BR'), true);
+  checa('acento removido do nome', cod.includes('ASSOCIACAO PARQUE VILLAGE'), true);
+  checa('CRC final confere', pix._pixCRC(cod.slice(0, -4)), cod.slice(-4));
+  checa('sem chave devolve vazio', pix.pixCopiaECola('', 'X', 'Y', 10, 'Z'), '');
+
+  const semValor = pix.pixCopiaECola('chave@teste.com', 'Cond Teste', 'RIO', 0, 'RES1');
+  checa('sem valor não inclui campo 54', /54\d{2}0/.test(semValor), false);
+  checa('CRC confere também sem valor', pix._pixCRC(semValor.slice(0, -4)), semValor.slice(-4));
+
+  checa('nome longo é cortado em 25', pix._pixTexto('A'.repeat(40), 25).length, 25);
 });
 
 // ── Resultado ──────────────────────────────────────────────────────────
