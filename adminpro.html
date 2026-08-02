@@ -55,6 +55,85 @@ var TPL = {
   cadastroNovo:    'cadastro_novo',      // Utilidade
   cadastroAprovado:'cadastro_aprovado'   // Utilidade
 };
+/* ══════════════════════════════════════════════════════════════
+   PIX — gera o "copia e cola" (BR Code) do Banco Central.
+   Nao depende de biblioteca nem de servico externo: o codigo e
+   montado aqui e o dinheiro vai direto para a chave do condominio.
+════════════════════════════════════════════════════════════════ */
+function _pixCampo(id, valor){
+  var v = String(valor==null?'':valor);
+  return id + String(v.length).padStart(2,'0') + v;
+}
+/* Remove acento e caractere que o BR Code nao aceita */
+function _pixTexto(t, max){
+  var r = String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+          .replace(/[^A-Za-z0-9 .\-]/g,'').trim().toUpperCase();
+  return r.slice(0, max||25) || 'N/A';
+}
+/* CRC16-CCITT (polinomio 0x1021), exigido no fim do BR Code */
+function _pixCRC(str){
+  var crc = 0xFFFF;
+  for(var i=0;i<str.length;i++){
+    crc ^= (str.charCodeAt(i) & 0xFF) << 8;
+    for(var b=0;b<8;b++){
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4,'0');
+}
+/* Monta o payload completo. valor em reais (numero); txid ate 25 chars */
+function pixCopiaECola(chave, nome, cidade, valor, txid){
+  if(!chave) return '';
+  var mai = _pixCampo('00','br.gov.bcb.pix') + _pixCampo('01', String(chave).trim());
+  var v   = (parseFloat(valor)||0);
+  var id  = _pixTexto(txid||'***', 25).replace(/ /g,'') || '***';
+  var p =
+    _pixCampo('00','01') +
+    _pixCampo('26', mai) +
+    _pixCampo('52','0000') +
+    _pixCampo('53','986') +
+    (v>0 ? _pixCampo('54', v.toFixed(2)) : '') +
+    _pixCampo('58','BR') +
+    _pixCampo('59', _pixTexto(nome,25)) +
+    _pixCampo('60', _pixTexto(cidade,15)) +
+    _pixCampo('62', _pixCampo('05', id)) +
+    '6304';
+  return p + _pixCRC(p);
+}
+
+/* Abre o QR Code Pix da reserva (valor da taxa ja embutido) */
+function abrirPixReserva(id){
+  var r=(G('reservas')||[]).find(function(x){return x.id===id;});
+  if(!r) return;
+  var cfg=getCfgRes();
+  if(!cfg.pix_chave){ toast('Chave Pix do condomínio não configurada.'); return; }
+
+  var valor=parseFloat(r.taxa)||0;
+  var codigo=pixCopiaECola(cfg.pix_chave, cfg.pix_nome||nomeCondominioAtual(),
+                           cfg.pix_cidade||'BRASIL', valor, 'RES'+r.id);
+  var ov=$('pix-ov'); if(!ov) return;
+  $('pix-valor').textContent = valor>0
+    ? valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
+    : 'Valor a combinar';
+  $('pix-info').textContent = r.espaco+' \u2022 '+(r.data?new Date(r.data+'T00:00').toLocaleDateString('pt-BR'):'');
+  $('pix-codigo').value = codigo;
+  ov.style.display='flex';
+
+  var cv=$('pix-qr'); if(cv && window.QRCode && QRCode.toCanvas){
+    QRCode.toCanvas(cv, codigo, {width:220, margin:1}, function(err){
+      if(err) console.error('qr', err);
+    });
+  }
+}
+function fecharPix(){ var o=$('pix-ov'); if(o) o.style.display='none'; }
+function copiarPix(){
+  var i=$('pix-codigo'); if(!i) return;
+  i.select(); i.setSelectionRange(0, 99999);
+  try{ document.execCommand('copy'); toast('\u2713 Código Pix copiado!'); }
+  catch(_){ if(navigator.clipboard) navigator.clipboard.writeText(i.value).then(function(){ toast('\u2713 Código Pix copiado!'); }); }
+}
+
 /* true se dois horários se sobrepõem */
 function hrConflita(a,b){ return hrIni(a) < hrFim(b) && hrFim(a) > hrIni(b); }
 </script>
@@ -3340,6 +3419,26 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <textarea id="cfg-msg-validacao" rows="3" placeholder="Sua reserva foi registrada e está aguardando validação da administração. Você será avisado assim que for aprovada." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;resize:vertical"></textarea>
         </div>
 
+        <!-- ▸ Pix do condomínio (pagamento da taxa de reserva) -->
+        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:16px">
+          <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(42,157,111,0.14);color:var(--green-l)">💰</div>Pix para a taxa de reserva</div></div>
+          <div style="font-size:12.5px;color:var(--text-3);margin-bottom:12px">
+            Informe a chave Pix <b>do condomínio</b>. O morador verá o QR Code e o "copia e cola" já com o valor da taxa.
+            O dinheiro cai direto na conta do condomínio — o AdminPro não intermedia o pagamento.
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+            <div class="fg"><label>Chave Pix</label>
+              <input type="text" id="cfg-pix-chave" placeholder="CNPJ, e-mail, telefone ou chave aleatória"></div>
+            <div class="fg"><label>Nome do beneficiário</label>
+              <input type="text" id="cfg-pix-nome" placeholder="Ex: Associacao Parque Village" maxlength="25"></div>
+            <div class="fg"><label>Cidade</label>
+              <input type="text" id="cfg-pix-cidade" placeholder="Ex: SAO PAULO" maxlength="15"></div>
+          </div>
+          <div style="font-size:12px;color:var(--text-3);margin-top:8px">
+            Deixe a chave em branco para desativar o Pix nas reservas.
+          </div>
+        </div>
+
         <!-- ▸ Notificações automáticas de reservas (WhatsApp + e-mail) -->
         <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
           <div class="card-head">
@@ -4326,6 +4425,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 <div class="toast" id="toast"></div>
 
 <script>window.emailjs={init:function(){},send:function(){return Promise.reject(new Error('emailjs desativado'));}};</script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ══════════════════════════
@@ -7734,6 +7834,7 @@ function renderReservas(){
           ${(!isMorador && r.status==='pendente')?`
           <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="aprovarReserva(${r.id})"><i class="fa-solid fa-check"></i> Aprovar</button>
           <button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="recusarReserva(${r.id})"><i class="fa-solid fa-xmark"></i> Recusar</button>`:''}
+          ${(r.taxa>0 && r.pgto!=='pago' && r.pgto!=='isento' && (getCfgRes().pix_chave||''))?`<button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="abrirPixReserva(${r.id})">💰 Pagar com Pix</button>`:''}
           ${!isMorador?`<button class="btn btn-ghost btn-sm" onclick="abrirModalRes(${r.id})">Editar</button>`:''}
           ${!isMorador?`<button class="btn btn-ghost btn-sm" onclick="imprimirComprovante(${r.id})"><i class="fa-solid fa-receipt"></i> Comprovante</button>`:''}
           <button class="btn btn-red btn-sm" onclick="excluirRes(${r.id})">Excluir</button>
@@ -10038,6 +10139,9 @@ function renderCfgReservas(){
   if($('cfg-lembrete-eq-24h'))   $('cfg-lembrete-eq-24h').checked   = !!cfgRes.notif_lembrete_eq_24h;
   if($('cfg-lembrete-eq-1h'))    $('cfg-lembrete-eq-1h').checked    = !!cfgRes.notif_lembrete_eq_1h;
   if($('cfg-lembrete-eq-espacos')) $('cfg-lembrete-eq-espacos').value = cfgRes.lembrete_eq_espacos || '';
+  if($('cfg-pix-chave'))  $('cfg-pix-chave').value  = cfgRes.pix_chave  || '';
+  if($('cfg-pix-nome'))   $('cfg-pix-nome').value   = cfgRes.pix_nome   || '';
+  if($('cfg-pix-cidade')) $('cfg-pix-cidade').value = cfgRes.pix_cidade || '';
   renderAlertDestinos();
   if($('cfg-bloq-inad'))         $('cfg-bloq-inad').checked         = !!cfgRes.bloquear_inadimplente;
   if($('cfg-max-reservas'))      $('cfg-max-reservas').value        = cfgRes.max_reservas_morador||'';
@@ -10314,6 +10418,9 @@ function salvarCfgReservas(){
   if($('cfg-lembrete-eq-24h'))   cfgRes.notif_lembrete_eq_24h = $('cfg-lembrete-eq-24h').checked;
   if($('cfg-lembrete-eq-1h'))    cfgRes.notif_lembrete_eq_1h  = $('cfg-lembrete-eq-1h').checked;
   if($('cfg-lembrete-eq-espacos')) cfgRes.lembrete_eq_espacos = $('cfg-lembrete-eq-espacos').value.trim();
+  if($('cfg-pix-chave'))  cfgRes.pix_chave  = $('cfg-pix-chave').value.trim();
+  if($('cfg-pix-nome'))   cfgRes.pix_nome   = $('cfg-pix-nome').value.trim();
+  if($('cfg-pix-cidade')) cfgRes.pix_cidade = $('cfg-pix-cidade').value.trim();
   cfgRes.alert_destinos = Array.isArray(cfgRes.alert_destinos) ? cfgRes.alert_destinos : (window._alertDestinos||[]);
   if($('cfg-bloq-inad'))         cfgRes.bloquear_inadimplente = $('cfg-bloq-inad').checked;
   if($('cfg-max-reservas'))      cfgRes.max_reservas_morador = parseInt($('cfg-max-reservas').value,10)||0;
@@ -12339,5 +12446,26 @@ async function excluirUsuario(docId){
 <script>
 window.DADOS_INICIAIS = {}; // dados pessoais removidos do historico
 </script>
+<!-- Modal Pix da reserva -->
+<div id="pix-ov" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:380px;width:100%;padding:22px;text-align:center;box-sizing:border-box">
+    <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">Pagar com Pix</div>
+    <div id="pix-info" style="font-size:12.5px;color:var(--text-3);margin-bottom:10px"></div>
+    <div id="pix-valor" style="font-size:24px;font-weight:700;color:var(--green-l);margin-bottom:14px"></div>
+    <div style="background:#fff;display:inline-block;padding:10px;border-radius:10px;margin-bottom:14px">
+      <canvas id="pix-qr"></canvas>
+    </div>
+    <div style="font-size:12px;color:var(--text-3);margin-bottom:6px">Ou use o código abaixo no seu banco:</div>
+    <textarea id="pix-codigo" readonly rows="3" style="width:100%;box-sizing:border-box;font-size:11px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text-2);resize:none"></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn" style="flex:1;background:var(--green);color:#fff;border:none" onclick="copiarPix()">Copiar código</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="fecharPix()">Fechar</button>
+    </div>
+    <div style="font-size:11px;color:var(--text-3);margin-top:10px;line-height:1.5">
+      O pagamento vai direto para a conta do condomínio.<br>
+      A administração confirma o recebimento no sistema.
+    </div>
+  </div>
+</div>
 </body>
 </html>
