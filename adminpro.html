@@ -40,6 +40,21 @@ function hrFim(h){
   if(f<=i) f+=1440;
   return f;
 }
+/* ══════════════════════════════════════════════════════════════
+   MODELOS DE MENSAGEM (WhatsApp / Meta) — nomes num lugar só.
+   Trocar um modelo aqui vale para o app inteiro.
+   IMPORTANTE: use sempre modelos da categoria UTILIDADE.
+   Modelos de MARKETING podem ser aceitos pela API e mesmo assim
+   não ser entregues (quando o destinatário optou por não receber
+   marketing), sem erro nenhum aparecer no log.
+════════════════════════════════════════════════════════════════ */
+var TPL = {
+  reservaEquipe:   'reserva_detalhe',    // Utilidade
+  reservaMorador:  'reserva_morador1',   // Utilidade (o antigo 'reserva_morador' era Marketing e nao entregava)
+  lembrete:        'lembrete_reserva',   // Utilidade
+  cadastroNovo:    'cadastro_novo',      // Utilidade
+  cadastroAprovado:'cadastro_aprovado'   // Utilidade
+};
 /* true se dois horários se sobrepõem */
 function hrConflita(a,b){ return hrIni(a) < hrFim(b) && hrFim(a) > hrIni(b); }
 </script>
@@ -3350,6 +3365,18 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
           <div style="border-top:1px solid var(--border);margin:16px 0 12px"></div>
 
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Lembrete para a equipe (administração/portaria)</div>
+          <div style="font-size:12.5px;color:var(--text-2);margin-bottom:8px">Independente do aviso de nova reserva. Desmarque os dois se a equipe não deve receber lembretes.</div>
+          <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:8px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2)"><input type="checkbox" id="cfg-lembrete-eq-24h" style="width:17px;height:17px;accent-color:var(--gold)"> 24 horas antes</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2)"><input type="checkbox" id="cfg-lembrete-eq-1h" style="width:17px;height:17px;accent-color:var(--gold)"> 1 hora antes</label>
+          </div>
+          <div style="font-size:12.5px;color:var(--text-2);margin-bottom:6px">Receber lembrete apenas destes espaços (em branco = todos):</div>
+          <input type="text" id="cfg-lembrete-eq-espacos" placeholder="Ex: Salão de Festa, Quiosque"
+            style="width:100%;box-sizing:border-box;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;margin-bottom:6px">
+
+          <div style="border-top:1px solid var(--border);margin:16px 0 12px"></div>
+
           <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Alertar a equipe quando uma reserva for feita</div>
           <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;cursor:pointer;font-size:13px;color:var(--text-2)">
             <input type="checkbox" id="cfg-notif-equipe" style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">
@@ -3770,6 +3797,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       </div>
       <div class="fg">
         <label>Horário</label>
+        <div id="mres-hr-aviso" style="display:none;font-size:12.5px;color:#E87722;margin-bottom:6px"></div>
         <select id="mres-horario" onchange="$('mres-hr-custom-wrap').style.display=this.value==='personalizado'?'':'none'">
           <option value="07:00–10:00">07:00 – 10:00</option>
           <option value="08:00–12:00">08:00 – 12:00</option>
@@ -8176,7 +8204,10 @@ function _mudarStatusReserva(id, novo, msg){
   DB_CACHE['reservas']=all;
   try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
   _reservaUpsertSB(all[i]);
-  renderReservas(); verificarAlertas(); atualizarBadgePendentes();
+  // A tela vem DEPOIS: se render/alertas falharem (ex.: RLS), a notificacao
+  // abaixo ja foi disparada. Mesmo cuidado usado ao salvar a reserva.
+  try{ renderReservas(); verificarAlertas(); atualizarBadgePendentes(); }
+  catch(_e){ console.error('render pos-status', _e); }
   toast(msg);
   // Notifica o morador (WhatsApp + e-mail) quando aprovada/recusada
   const _cfgN=getCfgRes();
@@ -8197,7 +8228,7 @@ function _mudarStatusReserva(id, novo, msg){
                                : 'Não aprovada pela administração';
     var _paramsAprov = [ all[i].espaco||'—', _dt||'—', all[i].horario||'—', all[i].lote||'—', _statusTxt ];
     _notificarMulti(_whats, _email, _assunto, _corpo, 'morador ('+(_aprovada?'aprovada':'recusada')+')',
-                    { template:'reserva_morador', params:_paramsAprov });
+                    { template:TPL.reservaMorador, params:_paramsAprov });
   }
 }
 function aprovarReserva(id){
@@ -8366,8 +8397,10 @@ function togglePgtoRes(sim){
 
 // Reconstrói as opções de horário conforme os horários permitidos do espaço
 var _HR_OPTS_DEFAULT=null;
+var _motivoDiaBloqueado='';
 function atualizarHorariosEspaco(espaco, manterValor){
   var sel=$('mres-horario'); if(!sel) return;
+  _motivoDiaBloqueado='';
   if(!_HR_OPTS_DEFAULT) _HR_OPTS_DEFAULT=[].map.call(sel.options,function(o){return {v:o.value,t:o.text};});
   var cfg=getCfgRes(); var chv=_chvEsp(espaco||'');
   var raw=(cfg['disp_'+chv+'_slots']||'').trim();
@@ -8401,8 +8434,30 @@ function atualizarHorariosEspaco(espaco, manterValor){
     var _hojeISO=(function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
     var _agoraMin=(function(){ var d=new Date(); return d.getHours()*60+d.getMinutes(); })();
     var _ehHoje=(dataSel===_hojeISO);
+    // Bloqueios da administracao (data inteira ou faixa de horario) -> cinza tambem.
+    var _blqs=(cfg.bloqueios||[]).filter(function(b){
+      if(b.espaco && b.espaco!==espaco) return false;
+      return !(dataSel < b.ini || dataSel > (b.fim||b.ini));
+    });
+    var _diaTodoBloqueado=_blqs.some(function(b){ return !(b.h1 && b.h2); });
+    var _bTot=_blqs.filter(function(b){ return !(b.h1 && b.h2); })[0];
+    _motivoDiaBloqueado = _bTot
+      ? ('Data bloqueada pela administração'+(_bTot.motivo?': '+_bTot.motivo:'')+'.')
+      : '';
+    var _bloqueado=function(slot){
+      if(_diaTodoBloqueado) return true;
+      return _blqs.some(function(b){
+        return hrIni(slot) < hrIni(b.h2) && hrFim(slot) > hrIni(b.h1);
+      });
+    };
+
     [].slice.call(sel.options).forEach(function(o){
       if(o.value==='personalizado') return;
+      if(_bloqueado(o.value)){
+        o.disabled = true;
+        if(o.text.indexOf('bloqueado') === -1) o.text = o.text + ' \u2014 bloqueado';
+        return;
+      }
       if(_ehHoje && _fim(o.value) <= _agoraMin){
         o.disabled = true;
         if(o.text.indexOf('encerrado') === -1) o.text = o.text + ' \u2014 encerrado';
@@ -8413,6 +8468,13 @@ function atualizarHorariosEspaco(espaco, manterValor){
         if(o.text.indexOf('ocupado') === -1) o.text = o.text + ' \u2014 ocupado';
       }
     });
+  }
+  // Aviso quando o dia inteiro esta bloqueado pela administracao
+  var _av=$('mres-hr-aviso');
+  if(_av){
+    var _bd=(typeof _motivoDiaBloqueado==='string')?_motivoDiaBloqueado:'';
+    if(_bd){ _av.textContent='\u26A0 '+_bd; _av.style.display=''; }
+    else { _av.textContent=''; _av.style.display='none'; }
   }
   var tem=[].some.call(sel.options,function(o){return o.value===atual && !o.disabled;});
   if(atual && tem){ sel.value=atual; }
@@ -8833,10 +8895,10 @@ function _enviarNotifsReserva(_novaReserva, _cfgN, obj, statusVal, _dtFmt, _cond
   var statusTxt = statusVal==='pendente' ? 'Aguardando aprovação da administração'
                 : statusVal==='confirmada' ? 'Confirmada' : (statusVal||'—');
   // EQUIPE/ADMIN: modelo reserva_detalhe (6 campos, com Morador — mostra quem reservou).
-  var TPL_EQ='reserva_detalhe';
+  var TPL_EQ=TPL.reservaEquipe;
   var params_eq=[ obj.nome||'—', obj.lote||'—', obj.espaco||'—', _dtFmt||'—', obj.horario||'—', statusTxt ];
   // MORADOR: modelo reserva_morador (5 campos, tom amigável — sem repetir o nome dele).
-  var TPL_MOR='reserva_morador';
+  var TPL_MOR=TPL.reservaMorador;
   var params_mor=[ obj.espaco||'—', _dtFmt||'—', obj.horario||'—', obj.lote||'—', statusTxt ];
   // Versão multi-linha (para o e-mail, que aceita quebras).
   var _corpo='🔔 Reserva — AdminPro\n\n'+
@@ -9058,7 +9120,7 @@ function verificarLembretesReserva(){
         _dataBR+'\nHorário: '+r.horario+'\nUnidade: '+r.lote;
       // Modelo ESTRUTURADO aprovado (lembrete_reserva): texto organizado em linhas.
       // {{1}} quando, {{2}} espaco, {{3}} data, {{4}} horario, {{5}} unidade
-      var _optLembrete={ template:'lembrete_reserva',
+      var _optLembrete={ template:TPL.lembrete,
         params:[ quando, r.espaco||'—', _dataBR, r.horario||'—', r.lote||'—' ] };
       function _marcar(){ if(enviados.indexOf(chave)<0){ enviados.push(chave); try{ localStorage.setItem('apvc_lembretes_env',JSON.stringify(enviados.slice(-500))); }catch(_){} } }
       if(tel && typeof enviarWhatsApp==='function') enviarWhatsApp(tel, corpo, _optLembrete).then(function(res){ if(res.ok){ _marcar(); addLog('✓ Lembrete '+lead.tag+' WhatsApp — '+r.espaco); } else addLog('✗ Lembrete '+lead.tag+' WhatsApp: '+res.erro); });
@@ -9962,6 +10024,9 @@ function renderCfgReservas(){
   if($('cfg-lembrete-24h'))      $('cfg-lembrete-24h').checked      = (cfgRes.notif_lembrete_24h!==undefined)?!!cfgRes.notif_lembrete_24h:!!cfgRes.notif_lembrete_ativo;
   if($('cfg-lembrete-1h'))       $('cfg-lembrete-1h').checked       = !!cfgRes.notif_lembrete_1h;
   if($('cfg-notif-equipe'))      $('cfg-notif-equipe').checked      = !!cfgRes.notif_equipe_ativo;
+  if($('cfg-lembrete-eq-24h'))   $('cfg-lembrete-eq-24h').checked   = !!cfgRes.notif_lembrete_eq_24h;
+  if($('cfg-lembrete-eq-1h'))    $('cfg-lembrete-eq-1h').checked    = !!cfgRes.notif_lembrete_eq_1h;
+  if($('cfg-lembrete-eq-espacos')) $('cfg-lembrete-eq-espacos').value = cfgRes.lembrete_eq_espacos || '';
   renderAlertDestinos();
   if($('cfg-bloq-inad'))         $('cfg-bloq-inad').checked         = !!cfgRes.bloquear_inadimplente;
   if($('cfg-max-reservas'))      $('cfg-max-reservas').value        = cfgRes.max_reservas_morador||'';
@@ -10234,6 +10299,10 @@ function salvarCfgReservas(){
   if($('cfg-lembrete-24h'))      cfgRes.notif_lembrete_24h  = $('cfg-lembrete-24h').checked;
   if($('cfg-lembrete-1h'))       cfgRes.notif_lembrete_1h   = $('cfg-lembrete-1h').checked;
   if($('cfg-notif-equipe'))      cfgRes.notif_equipe_ativo  = $('cfg-notif-equipe').checked;
+  // Lembrete da EQUIPE: independente do aviso de nova reserva
+  if($('cfg-lembrete-eq-24h'))   cfgRes.notif_lembrete_eq_24h = $('cfg-lembrete-eq-24h').checked;
+  if($('cfg-lembrete-eq-1h'))    cfgRes.notif_lembrete_eq_1h  = $('cfg-lembrete-eq-1h').checked;
+  if($('cfg-lembrete-eq-espacos')) cfgRes.lembrete_eq_espacos = $('cfg-lembrete-eq-espacos').value.trim();
   cfgRes.alert_destinos = Array.isArray(cfgRes.alert_destinos) ? cfgRes.alert_destinos : (window._alertDestinos||[]);
   if($('cfg-bloq-inad'))         cfgRes.bloquear_inadimplente = $('cfg-bloq-inad').checked;
   if($('cfg-max-reservas'))      cfgRes.max_reservas_morador = parseInt($('cfg-max-reservas').value,10)||0;
@@ -11375,7 +11444,10 @@ async function aprovarUsuario(){
         '• E-mail: '+(u.email||'')+'\n'+
         '• Senha: a que você cadastrou\n\n'+
         'Bem-vindo(a)!';
-      if(typeof _notificarMulti==='function') _notificarMulti(u.tel, u.email, 'Cadastro aprovado — '+_cond, _corpo, 'aprovação cadastro');
+      // Modelo ESTRUTURADO cadastro_aprovado: {{1}} nome, {{2}} condominio, {{3}} email
+      var _paramsCad=[ (u.nome||'—'), (_cond||'—'), (u.email||'—') ];
+      if(typeof _notificarMulti==='function') _notificarMulti(u.tel, u.email, 'Cadastro aprovado — '+_cond, _corpo, 'aprovação cadastro',
+        { template:TPL.cadastroAprovado, params:_paramsCad });
       else if(u.email) enviarEmail(u.email, 'Cadastro aprovado — '+_cond, _corpo);
     }
   } catch(e){ toast('⚠️ Erro: '+(e.message||e)); }
