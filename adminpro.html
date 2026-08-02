@@ -7713,7 +7713,7 @@ function renderReservas(){
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
             <span style="font-size:16px;font-weight:700;color:var(--text)">${r.espaco}</span>
             <span class="pill ${st.pill}" style="font-size:11px">${st.label}</span>
-            ${r.pgto?`<span style="font-size:11px;color:var(--text-2)">${pgtoMap[r.pgto]||''}</span>`:''}
+            ${(r.pgto && (r.taxa>0 || r.pgto==='pago'))?`<span title="Situação do pagamento da taxa" style="font-size:11px;color:${r.pgto==='pago'?'var(--green-l)':r.pgto==='isento'?'var(--text-3)':'var(--gold)'};border:1px solid var(--border);border-radius:6px;padding:2px 8px">💰 Pagamento: ${pgtoMap[r.pgto]||''}</span>`:''}
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 20px;margin-bottom:10px">
             <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Morador</span><div style="font-size:13px;color:var(--text);font-weight:600">${r.nome||'—'}</div></div>
