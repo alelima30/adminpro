@@ -108,6 +108,27 @@ bloco('Bloqueios da administração', () => {
     viola(porEspaco, 'Quadra de Areia', hoje, '14:00–15:00', 'A01', ''), false);
 });
 
+// ── Pix (BR Code) ──────────────────────────────────────────────────────
+const pix = carregar(['pixCopiaECola', '_pixCampo', '_pixTexto', '_pixCRC']);
+
+bloco('Pix — código copia e cola', () => {
+  const cod = pix.pixCopiaECola('12345678000199', 'Associação Parque Village', 'São Paulo', 20, 'RES7');
+  checa('começa com o cabeçalho do BR Code', cod.slice(0, 6), '000201');
+  checa('contém o domínio do Pix', cod.includes('br.gov.bcb.pix'), true);
+  checa('moeda é real (986)', cod.includes('5303986'), true);
+  checa('valor com 2 casas', cod.includes('540520.00'), true);
+  checa('país BR', cod.includes('5802BR'), true);
+  checa('acento removido do nome', cod.includes('ASSOCIACAO PARQUE VILLAGE'), true);
+  checa('CRC final confere', pix._pixCRC(cod.slice(0, -4)), cod.slice(-4));
+  checa('sem chave devolve vazio', pix.pixCopiaECola('', 'X', 'Y', 10, 'Z'), '');
+
+  const semValor = pix.pixCopiaECola('chave@teste.com', 'Cond Teste', 'RIO', 0, 'RES1');
+  checa('sem valor não inclui campo 54', /54\d{2}0/.test(semValor), false);
+  checa('CRC confere também sem valor', pix._pixCRC(semValor.slice(0, -4)), semValor.slice(-4));
+
+  checa('nome longo é cortado em 25', pix._pixTexto('A'.repeat(40), 25).length, 25);
+});
+
 // ── Resultado ──────────────────────────────────────────────────────────
 console.log('\n' + '-'.repeat(50));
 console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
