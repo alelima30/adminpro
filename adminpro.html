@@ -134,6 +134,23 @@ function copiarPix(){
   catch(_){ if(navigator.clipboard) navigator.clipboard.writeText(i.value).then(function(){ toast('\u2713 Código Pix copiado!'); }); }
 }
 
+/* Taxa do espaco conforme o HORARIO da reserva.
+   Se o admin definiu "a partir de HH:MM" + uma taxa para esse periodo,
+   reservas que comecam nesse horario ou depois usam a taxa especial.
+   Ex.: campo gratis de dia (taxa 0) e pago a partir das 18:00. */
+function taxaDoHorario(cfg, espaco, horario){
+  var chv = String(espaco||'').toLowerCase().replace(/[^a-z0-9]/g,'_');
+  var padraoTaxa = {'Campo de Futebol':20,'Salão de Festa':1500,'Cozinha / Espaço Lazer':300};
+  var base = parseFloat(cfg['fin_'+chv+'_taxa']);
+  if(isNaN(base)) base = padraoTaxa[espaco] || 0;
+
+  var hIni = String(cfg['fin_'+chv+'_hnoite']||'').trim();
+  var tEsp = parseFloat(cfg['fin_'+chv+'_taxanoite']);
+  if(!hIni || isNaN(tEsp) || !horario) return base;
+
+  return (hrIni(horario) >= hrIni(hIni)) ? tEsp : base;
+}
+
 /* true se dois horários se sobrepõem */
 function hrConflita(a,b){ return hrIni(a) < hrFim(b) && hrFim(a) > hrIni(b); }
 </script>
@@ -3897,7 +3914,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       <div class="fg">
         <label>Horário</label>
         <div id="mres-hr-aviso" style="display:none;font-size:12.5px;color:#E87722;margin-bottom:6px"></div>
-        <select id="mres-horario" onchange="$('mres-hr-custom-wrap').style.display=this.value==='personalizado'?'':'none'">
+        <select id="mres-horario" onchange="$('mres-hr-custom-wrap').style.display=this.value==='personalizado'?'':'none';try{onEspacoChange()}catch(_){}">
           <option value="07:00–10:00">07:00 – 10:00</option>
           <option value="08:00–12:00">08:00 – 12:00</option>
           <option value="10:00–13:00">10:00 – 13:00</option>
@@ -8660,7 +8677,10 @@ function onEspacoChange(reservaExistente){
     if($('mres-fin-titulo')) $('mres-fin-titulo').textContent = 'Financeiro — '+espaco;
 
     // Valores pré-configurados pelo admin (ou padrões)
-    const taxaCfg   = parseFloat(cfg['fin_'+chaveEsp+'_taxa']  || (espaco==='Campo de Futebol'?20: espaco==='Salão de Festa'?1500: espaco==='Cozinha / Espaço Lazer'?300: 0)) || 0;
+    // Taxa depende do HORARIO escolhido (ex.: campo so cobra a noite)
+    var _hrSel = $('mres-horario') ? $('mres-horario').value : '';
+    if(_hrSel==='personalizado' && $('mres-hr-custom')) _hrSel = $('mres-hr-custom').value;
+    const taxaCfg   = taxaDoHorario(cfg, espaco, _hrSel);
     const caucaoCfg = parseFloat(cfg['fin_'+chaveEsp+'_caucao']|| (espaco==='Salão de Festa'?cfg.salao_caucao||0:0)) || 0;
 
     // Preenche campos com valor salvo na reserva (edição) ou com o padrão do admin (nova)
@@ -10176,6 +10196,8 @@ function renderCfgReservas(){
         : cfgRes['fin_'+chv+'_ativo']===true;
       const taxa  = cfgRes['fin_'+chv+'_taxa']  ?? (DEFAULT_TAXA[esp]||'');
       const caucao= cfgRes['fin_'+chv+'_caucao']?? (DEFAULT_CAUCAO[esp]||'');
+      const hnoite    = cfgRes['fin_'+chv+'_hnoite']    || '';
+      const taxaNoite = cfgRes['fin_'+chv+'_taxanoite'] ?? '';
       const padrao= ESPACOS_FIN_PADRAO.includes(esp);
       return `<div style="background:var(--ink-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -10195,6 +10217,18 @@ function renderCfgReservas(){
           <div class="fg" style="margin:0"><label>Caução (R$)</label>
             <input type="number" data-fin-caucao="${chv}" value="${caucao}" placeholder="0,00" min="0" step="0.01"
               style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;outline:none;width:100%">
+          </div>
+          <div class="fg" style="margin:0"><label>Taxa a partir de (opcional)</label>
+            <input type="time" data-fin-hnoite="${chv}" value="${hnoite}"
+              style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;outline:none;width:100%">
+          </div>
+          <div class="fg" style="margin:0"><label>Taxa nesse horário (R$)</label>
+            <input type="number" data-fin-taxanoite="${chv}" value="${taxaNoite}" placeholder="0,00" min="0" step="0.01"
+              style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;outline:none;width:100%">
+          </div>
+          <div style="grid-column:1/-1;font-size:11.5px;color:var(--text-3);line-height:1.5">
+            Ex.: campo grátis de dia e pago à noite → Taxa (R$) = 0, "a partir de" = 18:00 e a taxa noturna.
+            Deixe o horário em branco para cobrar o mesmo valor o dia todo.
           </div>
         </div>
       </div>`;
@@ -10447,6 +10481,12 @@ function salvarCfgReservas(){
     });
     elFin.querySelectorAll('input[data-fin-caucao]').forEach(inp=>{
       cfgRes['fin_'+inp.dataset.finCaucao+'_caucao'] = inp.value;
+    });
+    elFin.querySelectorAll('input[data-fin-hnoite]').forEach(inp=>{
+      cfgRes['fin_'+inp.dataset.finHnoite+'_hnoite'] = inp.value;
+    });
+    elFin.querySelectorAll('input[data-fin-taxanoite]').forEach(inp=>{
+      cfgRes['fin_'+inp.dataset.finTaxanoite+'_taxanoite'] = inp.value;
     });
   }
 
