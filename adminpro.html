@@ -3436,6 +3436,21 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <textarea id="cfg-msg-validacao" rows="3" placeholder="Sua reserva foi registrada e está aguardando validação da administração. Você será avisado assim que for aprovada." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;resize:vertical"></textarea>
         </div>
 
+        <!-- ▸ Espaços do condomínio -->
+        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:16px">
+          <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)">🏢</div>Espaços do condomínio</div></div>
+          <div style="font-size:12.5px;color:var(--text-3);margin-bottom:10px">
+            Um espaço por linha. Estes são os espaços que aparecem para reserva, com as regras e o financeiro de cada um.
+            Deixe em branco para usar a lista padrão.
+          </div>
+          <textarea id="cfg-espacos" rows="8" placeholder="Quadra de Areia&#10;Salão de Festa&#10;Piscina&#10;Churrasqueira"
+            style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;resize:vertical;font-family:inherit"></textarea>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:8px;line-height:1.6">
+            ⚠️ Ao <b>renomear</b> um espaço, as reservas antigas continuam com o nome anterior e as regras dele são
+            reaproveitadas apenas se o nome for igual. Prefira renomear antes de começar a usar.
+          </div>
+        </div>
+
         <!-- ▸ Pix do condomínio (pagamento da taxa de reserva) -->
         <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:16px">
           <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(42,157,111,0.14);color:var(--green-l)">💰</div>Pix para a taxa de reserva</div></div>
@@ -10092,10 +10107,24 @@ document.addEventListener('DOMContentLoaded', function(){
 /* ══════════════════════════
    CONFIG DE RESERVAS — Termos e Caução
 ══════════════════════════ */
-const ESPACOS_CFG = [
+/* Lista PADRAO — usada quando o condominio ainda nao cadastrou os proprios.
+   Cada condominio pode ter seus espacos (nomes e quantidade) em
+   Configuracoes -> Reservas -> "Espacos do condominio". */
+const ESPACOS_PADRAO = [
   'Quadra de Areia','Quadra de Tennis','Quadra de Saibro',
   'Ginásio','Campo de Futebol','Sala de Jogos','Quiosque','Salão de Festa','Cozinha / Espaço Lazer'
 ];
+
+/* Espacos DESTE condominio. Sem cadastro proprio, usa a lista padrao. */
+function espacosDoCondominio(){
+  try{
+    var lista = (getCfgRes().espacos || []);
+    if(Array.isArray(lista) && lista.length) return lista.slice();
+  }catch(_){}
+  return ESPACOS_PADRAO.slice();
+}
+/* Mantido com o nome antigo para nao quebrar o resto do app. */
+Object.defineProperty(window, 'ESPACOS_CFG', { get: espacosDoCondominio, configurable: true });
 
 // Espaços com financeiro habilitado por padrão (não aparecem no painel de habilitação)
 const ESPACOS_FIN_PADRAO = ['Salão de Festa','Cozinha / Espaço Lazer','Campo de Futebol'];
@@ -10161,6 +10190,7 @@ function renderCfgReservas(){
   if($('cfg-lembrete-eq-24h'))   $('cfg-lembrete-eq-24h').checked   = !!cfgRes.notif_lembrete_eq_24h;
   if($('cfg-lembrete-eq-1h'))    $('cfg-lembrete-eq-1h').checked    = !!cfgRes.notif_lembrete_eq_1h;
   if($('cfg-lembrete-eq-espacos')) $('cfg-lembrete-eq-espacos').value = cfgRes.lembrete_eq_espacos || '';
+  if($('cfg-espacos')) $('cfg-espacos').value = (cfgRes.espacos||[]).join('\n');
   if($('cfg-pix-chave'))  $('cfg-pix-chave').value  = cfgRes.pix_chave  || '';
   if($('cfg-pix-nome'))   $('cfg-pix-nome').value   = cfgRes.pix_nome   || '';
   if($('cfg-pix-cidade')) $('cfg-pix-cidade').value = cfgRes.pix_cidade || '';
@@ -10457,6 +10487,15 @@ function salvarCfgReservas(){
   if($('cfg-lembrete-eq-24h'))   cfgRes.notif_lembrete_eq_24h = $('cfg-lembrete-eq-24h').checked;
   if($('cfg-lembrete-eq-1h'))    cfgRes.notif_lembrete_eq_1h  = $('cfg-lembrete-eq-1h').checked;
   if($('cfg-lembrete-eq-espacos')) cfgRes.lembrete_eq_espacos = $('cfg-lembrete-eq-espacos').value.trim();
+  if($('cfg-espacos')){
+    var _lin = $('cfg-espacos').value.split('\n').map(function(x){return x.trim();}).filter(Boolean);
+    cfgRes.espacos = _lin;                    // vazio = usa a lista padrao
+    // Os seletores de espaco sao preenchidos uma vez e ficam em cache;
+    // limpa a marca para que peguem a lista nova.
+    ['res-cal-espaco','res-f-espaco','rel-espaco'].forEach(function(idSel){
+      var el=$(idSel); if(el) el._filled=false;
+    });
+  }
   if($('cfg-pix-chave'))  cfgRes.pix_chave  = $('cfg-pix-chave').value.trim();
   if($('cfg-pix-nome'))   cfgRes.pix_nome   = $('cfg-pix-nome').value.trim();
   if($('cfg-pix-cidade')) cfgRes.pix_cidade = $('cfg-pix-cidade').value.trim();
