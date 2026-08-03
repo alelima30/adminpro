@@ -165,6 +165,30 @@ bloco('Taxa que muda conforme o horário', () => {
     fin.taxaDoHorario(cfg, 'Campo de Futebol', ''), 0);
 });
 
+// ── Espaços por condomínio ─────────────────────────────────────────────
+bloco('Espaços de cada condomínio', () => {
+  const comLista = carregar(['espacosDoCondominio'], {
+    getCfgRes: () => ({ espacos: ['Piscina', 'Churrasqueira', 'Salão Gourmet'] }),
+    ESPACOS_PADRAO: ['Quadra de Areia', 'Salão de Festa'],
+  });
+  checa('usa os espaços cadastrados pelo condomínio',
+    comLista.espacosDoCondominio(), ['Piscina', 'Churrasqueira', 'Salão Gourmet']);
+
+  const semLista = carregar(['espacosDoCondominio'], {
+    getCfgRes: () => ({}),
+    ESPACOS_PADRAO: ['Quadra de Areia', 'Salão de Festa'],
+  });
+  checa('sem cadastro próprio, usa a lista padrão',
+    semLista.espacosDoCondominio(), ['Quadra de Areia', 'Salão de Festa']);
+
+  const vazia = carregar(['espacosDoCondominio'], {
+    getCfgRes: () => ({ espacos: [] }),
+    ESPACOS_PADRAO: ['Quadra de Areia'],
+  });
+  checa('lista vazia volta para o padrão',
+    vazia.espacosDoCondominio(), ['Quadra de Areia']);
+});
+
 // ── Resultado ──────────────────────────────────────────────────────────
 console.log('\n' + '-'.repeat(50));
 console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
