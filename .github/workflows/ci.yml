@@ -33,7 +33,9 @@ jobs:
   #    Requer, em Settings -> Secrets and variables -> Actions:
   #      SUPABASE_ACCESS_TOKEN  (supabase.com/dashboard/account/tokens)
   #      SUPABASE_PROJECT_REF   (lusibpbafbkyygxrxvzr)
-  #    Sem os segredos, o passo e pulado com aviso — nao quebra o CI.
+  #    Faltando algum, o workflow FALHA e diz qual — de proposito.
+  #    Pular em silencio faria o check verde mentir: voce acharia que
+  #    publicou e nao publicou.
   # ────────────────────────────────────────────────────────────────
   deploy-funcoes:
     needs: testes
@@ -43,27 +45,27 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Conferir se os segredos estao configurados
-        id: chk
         env:
           TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           REF: ${{ secrets.SUPABASE_PROJECT_REF }}
         run: |
-          if [ -z "$TOKEN" ] || [ -z "$REF" ]; then
-            echo "tem=nao" >> "$GITHUB_OUTPUT"
-            echo "::warning::Deploy pulado: falta SUPABASE_ACCESS_TOKEN e/ou SUPABASE_PROJECT_REF nos segredos do repositorio."
-          else
-            echo "tem=sim" >> "$GITHUB_OUTPUT"
+          falta=""
+          if [ -z "$TOKEN" ]; then falta="$falta SUPABASE_ACCESS_TOKEN"; fi
+          if [ -z "$REF" ];   then falta="$falta SUPABASE_PROJECT_REF"; fi
+          if [ -n "$falta" ]; then
+            echo "::error::Nada foi publicado. Faltam estes segredos no repositorio:$falta"
+            echo "Crie em: Settings -> Secrets and variables -> Actions -> New repository secret"
+            exit 1
           fi
+          echo "Segredos encontrados. Seguindo para a publicacao."
 
       - uses: supabase/setup-cli@v1
-        if: steps.chk.outputs.tem == 'sim'
         with:
           version: latest
 
       # A pasta do codigo chama "notificar", mas a funcao publicada
       # tem o slug "dynamic-handler" — por isso a copia antes.
       - name: Publicar funcao dynamic-handler (notificar)
-        if: steps.chk.outputs.tem == 'sim'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -73,7 +75,6 @@ jobs:
 
       # Mesma coisa: a pasta e "lembretes" (plural), a funcao e "lembrete".
       - name: Publicar funcao lembrete
-        if: steps.chk.outputs.tem == 'sim'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -82,7 +83,6 @@ jobs:
           supabase functions deploy lembrete --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
 
       - name: Resumo
-        if: steps.chk.outputs.tem == 'sim'
         run: echo "Funcoes publicadas. Confira em Supabase -> Edge Functions."
 
 # O site (adminprogestao.com.br) ja e publicado automaticamente pelo
