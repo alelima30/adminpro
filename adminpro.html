@@ -3446,8 +3446,21 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <textarea id="cfg-espacos" rows="8" placeholder="Quadra de Areia&#10;Salão de Festa&#10;Piscina&#10;Churrasqueira"
             style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;resize:vertical;font-family:inherit"></textarea>
           <div style="font-size:11.5px;color:var(--text-3);margin-top:8px;line-height:1.6">
-            ⚠️ Ao <b>renomear</b> um espaço, as reservas antigas continuam com o nome anterior e as regras dele são
-            reaproveitadas apenas se o nome for igual. Prefira renomear antes de começar a usar.
+            Para <b>renomear</b> um espaço já em uso, use a ferramenta abaixo — ela leva junto as regras,
+            o financeiro, os bloqueios e as reservas já feitas.
+          </div>
+
+          <div style="border-top:1px solid var(--border);margin:14px 0 12px"></div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Renomear um espaço</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+            <div class="fg" style="margin:0;flex:1;min-width:160px"><label>Espaço atual</label>
+              <select id="cfg-ren-de"></select></div>
+            <div class="fg" style="margin:0;flex:1;min-width:160px"><label>Novo nome</label>
+              <input type="text" id="cfg-ren-para" placeholder="Ex: Quadra Principal"></div>
+            <button class="btn btn-sm" style="background:var(--gold);color:#fff;border:none;height:38px" onclick="renomearEspaco()">Renomear</button>
+          </div>
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:8px">
+            Renomear atualiza tudo de uma vez: nada é perdido e o histórico continua correto.
           </div>
         </div>
 
@@ -10266,6 +10279,88 @@ function renderCfgReservas(){
   }
   renderCfgDisponibilidade();
   renderCfgBloqueios();
+  try{ preencherSelRenomear(); }catch(_){}
+}
+
+/* Renomeia um espaco levando junto TUDO que depende do nome:
+   regras (disp_*), financeiro (fin_*), bloqueios, a lista de espacos
+   e as reservas ja feitas (cache local + banco). */
+async function renomearEspaco(){
+  var de   = ($('cfg-ren-de')   ? $('cfg-ren-de').value   : '').trim();
+  var para = ($('cfg-ren-para') ? $('cfg-ren-para').value : '').trim();
+  if(!de){ toast('Escolha o espaço que quer renomear.'); return; }
+  if(!para){ toast('Informe o novo nome.'); return; }
+  if(de===para){ toast('O nome é o mesmo.'); return; }
+
+  var cfg = getCfgRes();
+  var lista = espacosDoCondominio();
+  if(lista.indexOf(para) >= 0){ toast('Já existe um espaço com esse nome.'); return; }
+
+  var qtd = (G('reservas')||[]).filter(function(r){ return r.espaco===de; }).length;
+  if(!confirm('Renomear "'+de+'" para "'+para+'"?\n\n'+
+              qtd+' reserva(s) serão atualizadas, junto com as regras e o financeiro do espaço.')) return;
+
+  var chvDe   = de.toLowerCase().replace(/[^a-z0-9]/g,'_');
+  var chvPara = para.toLowerCase().replace(/[^a-z0-9]/g,'_');
+
+  // 1) chaves de configuracao (disp_* e fin_*)
+  Object.keys(cfg).forEach(function(k){
+    var m = k.match(/^(disp|fin)_(.+?)_([a-z0-9]+)$/);
+    if(m && m[2]===chvDe){
+      cfg[m[1]+'_'+chvPara+'_'+m[3]] = cfg[k];
+      delete cfg[k];
+    }
+  });
+
+  // 2) bloqueios que apontam para o espaco
+  (cfg.bloqueios||[]).forEach(function(b){ if(b.espaco===de) b.espaco=para; });
+
+  // 3) lista de espacos (mantendo a ordem)
+  cfg.espacos = lista.map(function(e){ return e===de ? para : e; });
+
+  // 4) filtro de lembrete da equipe, se citar o espaco
+  if(cfg.lembrete_eq_espacos){
+    cfg.lembrete_eq_espacos = cfg.lembrete_eq_espacos.split(',')
+      .map(function(x){ return x.trim()===de ? para : x.trim(); })
+      .filter(Boolean).join(', ');
+  }
+
+  setCfgRes(cfg);
+
+  // 5) reservas: cache local
+  var all = G('reservas')||[];
+  all.forEach(function(r){ if(r.espaco===de) r.espaco=para; });
+  DB_CACHE['reservas']=all;
+  try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
+
+  // 6) reservas: banco (uma unica atualizacao)
+  if(typeof SB!=='undefined' && SB){
+    try{
+      var up = await SB.from('reservas').update({espaco:para})
+        .eq('condominio_id', _condAtual).eq('espaco', de);
+      if(up && up.error) throw up.error;
+    }catch(e){
+      toast('⚠️ Renomeado no app, mas o banco recusou: '+(e.message||e));
+      return;
+    }
+  }
+
+  // 7) seletores voltam a se popular com a lista nova
+  ['res-cal-espaco','res-f-espaco','rel-espaco'].forEach(function(idSel){
+    var el=$(idSel); if(el) el._filled=false;
+  });
+  if($('cfg-ren-para')) $('cfg-ren-para').value='';
+  try{ renderCfgReservas(); }catch(_){}
+  try{ renderReservas(); }catch(_){}
+  toast('✓ Espaço renomeado para "'+para+'".');
+}
+
+/* Preenche o seletor de "espaço atual" da ferramenta de renomear */
+function preencherSelRenomear(){
+  var sel=$('cfg-ren-de'); if(!sel) return;
+  sel.innerHTML = espacosDoCondominio().map(function(e){
+    return '<option>'+e+'</option>';
+  }).join('');
 }
 
 function toggleFinEspaco(cb, chv){
