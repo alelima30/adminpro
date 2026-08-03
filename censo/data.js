@@ -19,9 +19,9 @@ const CensoData = (() => {
    * Configuração das quadras (quantidade de lotes por quadra)
    * ------------------------------------------------------------------------ */
   const quadras = {
-    A: 2,  B: 23, C: 21, D: 19, E: 17, F: 10, G: 4,
+    A: 2,  B: 23, C: 21, D: 19, E: 17, F: 10, G: 6,
     H: 8,  I: 16, J: 19, K: 24, L: 24, M: 24, N: 23,
-    O: 4,  P: 10, Q: 5,  R: 16, S: 24, T: 21, U: 5
+    O: 5,  P: 10, Q: 5,  R: 16, S: 24, T: 21, U: 5
   };
 
   const ANO_ATUAL = new Date().getFullYear();
@@ -165,7 +165,10 @@ const CensoData = (() => {
         return { anoNascimento, idade: calcularIdade(anoNascimento), sexo };
       })
       .filter((m) => m.anoNascimento > 0);
-    return { lote, moradores, atualizado: registro.atualizado || new Date().toISOString() };
+    // Terreno só quando marcado EXPLICITAMENTE (e sem nenhum morador).
+    // Uma linha vazia sem essa marca nunca é tratada como terreno.
+    const terreno = registro.terreno === true && moradores.length === 0;
+    return { lote, moradores, terreno, atualizado: registro.atualizado || new Date().toISOString() };
   }
 
   /* --------------------------------------------------------------------------
@@ -235,6 +238,7 @@ const CensoData = (() => {
         body: JSON.stringify({
           lote: dado.lote,
           moradores: dado.moradores,
+          terreno: dado.terreno,
           atualizado: dado.atualizado
         })
       });
@@ -268,8 +272,16 @@ const CensoData = (() => {
   /* --------------------------------------------------------------------------
    * Estatísticas / agregações (usadas pelo Dashboard)
    * ------------------------------------------------------------------------ */
+  // Terreno = lote marcado explicitamente como terreno (e sem moradores)
+  function isTerreno(r) {
+    return Boolean(r && r.terreno === true && r.moradores.length === 0);
+  }
+
   function estatisticas(registros) {
-    const lotesRespondidos = registros.filter((r) => r.moradores.length > 0);
+    // Conta como respondido: lote com moradores OU terreno marcado
+    const lotesComMoradores = registros.filter((r) => r.moradores.length > 0).length;
+    const totalTerrenos = registros.filter(isTerreno).length;
+    const nRespondidos = lotesComMoradores + totalTerrenos;
     const totalMoradores = registros.reduce((s, r) => s + r.moradores.length, 0);
 
     // Contagem por faixa etária
@@ -303,14 +315,14 @@ const CensoData = (() => {
       });
     });
 
-    const nRespondidos = lotesRespondidos.length;
-
     return {
       totalLotes: TOTAL_LOTES,
       lotesRespondidos: nRespondidos,
+      lotesComMoradores,
+      totalTerrenos,
       lotesPendentes: TOTAL_LOTES - nRespondidos,
       totalMoradores,
-      mediaMoradoresPorLote: nRespondidos ? totalMoradores / nRespondidos : 0,
+      mediaMoradoresPorLote: lotesComMoradores ? totalMoradores / lotesComMoradores : 0,
       mediaIdadeGeral: totalIdadesValidas ? somaIdades / totalIdadesValidas : 0,
       percRespondidos: TOTAL_LOTES ? (nRespondidos / TOTAL_LOTES) * 100 : 0,
       percPendentes: TOTAL_LOTES ? ((TOTAL_LOTES - nRespondidos) / TOTAL_LOTES) * 100 : 0,
@@ -340,6 +352,7 @@ const CensoData = (() => {
     calcularIdade,
     faixaEtaria,
     faixaPorId,
+    isTerreno,
     listar,
     obter,
     salvar,
