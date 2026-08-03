@@ -85,5 +85,43 @@ jobs:
       - name: Resumo
         run: echo "Funcoes publicadas. Confira em Supabase -> Edge Functions."
 
+  # ────────────────────────────────────────────────────────────────
+  # 3) MIGRATIONS do banco (supabase/migrations/)
+  #    Roda DEPOIS das funcoes: a migration do cron aponta para a
+  #    funcao "lembrete", entao ela precisa existir antes.
+  #    Requer mais um segredo:
+  #      SUPABASE_DB_URL  (Supabase -> Project Settings -> Database
+  #                        -> Connection string -> URI, com a senha)
+  #    So aplica arquivo novo: o que ja foi aplicado fica registrado
+  #    em supabase_migrations.schema_migrations e nao roda de novo.
+  # ────────────────────────────────────────────────────────────────
+  migrar-banco:
+    needs: deploy-funcoes
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir o segredo do banco
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB" ]; then
+            echo "::error::Nenhuma migration aplicada. Falta o segredo SUPABASE_DB_URL."
+            echo "Pegue em: Supabase -> Project Settings -> Database -> Connection string -> URI"
+            echo "Crie em:  Settings -> Secrets and variables -> Actions -> New repository secret"
+            exit 1
+          fi
+          echo "Segredo encontrado. Seguindo para as migrations."
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Aplicar migrations
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: supabase db push --db-url "$DB" --include-all
+
 # O site (adminprogestao.com.br) ja e publicado automaticamente pelo
 # GitHub Pages a partir da branch main — nao precisa de passo aqui.
