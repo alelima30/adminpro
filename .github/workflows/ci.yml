@@ -1,4 +1,4 @@
-name: Testes
+name: Testes e Deploy
 
 # Roda a cada envio para a branch principal, em pull requests,
 # e também pelo botao "Run workflow" na aba Actions.
@@ -9,6 +9,9 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ────────────────────────────────────────────────────────────────
+  # 1) TESTES — sempre rodam. Se falharem, nada e publicado.
+  # ────────────────────────────────────────────────────────────────
   testes:
     runs-on: ubuntu-latest
     steps:
@@ -24,9 +27,63 @@ jobs:
       - name: Regras de reserva
         run: node tests/reservas.test.js
 
-# ─────────────────────────────────────────────────────────────────────
-# Deploy automatico das Edge Functions: fica para depois.
-# Quando quiser ligar, basta acrescentar um job aqui usando
-# supabase/setup-cli e os segredos SUPABASE_ACCESS_TOKEN /
-# SUPABASE_PROJECT_REF. Por enquanto o deploy continua manual.
-# ─────────────────────────────────────────────────────────────────────
+  # ────────────────────────────────────────────────────────────────
+  # 2) DEPLOY das Edge Functions do Supabase
+  #    So roda na branch main e so se os testes passarem.
+  #    Requer, em Settings -> Secrets and variables -> Actions:
+  #      SUPABASE_ACCESS_TOKEN  (supabase.com/dashboard/account/tokens)
+  #      SUPABASE_PROJECT_REF   (lusibpbafbkyygxrxvzr)
+  #    Sem os segredos, o passo e pulado com aviso — nao quebra o CI.
+  # ────────────────────────────────────────────────────────────────
+  deploy-funcoes:
+    needs: testes
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir se os segredos estao configurados
+        id: chk
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$REF" ]; then
+            echo "tem=nao" >> "$GITHUB_OUTPUT"
+            echo "::warning::Deploy pulado: falta SUPABASE_ACCESS_TOKEN e/ou SUPABASE_PROJECT_REF nos segredos do repositorio."
+          else
+            echo "tem=sim" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: supabase/setup-cli@v1
+        if: steps.chk.outputs.tem == 'sim'
+        with:
+          version: latest
+
+      # A pasta do codigo chama "notificar", mas a funcao publicada
+      # tem o slug "dynamic-handler" — por isso a copia antes.
+      - name: Publicar funcao dynamic-handler (notificar)
+        if: steps.chk.outputs.tem == 'sim'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          mkdir -p supabase/functions/dynamic-handler
+          cp supabase/functions/notificar/index.ts supabase/functions/dynamic-handler/index.ts
+          supabase functions deploy dynamic-handler --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      # Mesma coisa: a pasta e "lembretes" (plural), a funcao e "lembrete".
+      - name: Publicar funcao lembrete
+        if: steps.chk.outputs.tem == 'sim'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          mkdir -p supabase/functions/lembrete
+          cp supabase/functions/lembretes/index.ts supabase/functions/lembrete/index.ts
+          supabase functions deploy lembrete --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      - name: Resumo
+        if: steps.chk.outputs.tem == 'sim'
+        run: echo "Funcoes publicadas. Confira em Supabase -> Edge Functions."
+
+# O site (adminprogestao.com.br) ja e publicado automaticamente pelo
+# GitHub Pages a partir da branch main — nao precisa de passo aqui.
