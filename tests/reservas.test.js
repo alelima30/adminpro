@@ -129,6 +129,42 @@ bloco('Pix — código copia e cola', () => {
   checa('nome longo é cortado em 25', pix._pixTexto('A'.repeat(40), 25).length, 25);
 });
 
+// ── Taxa por horário ───────────────────────────────────────────────────
+const fin = carregar(['taxaDoHorario', 'hrIni', 'hrFim']);
+
+bloco('Taxa que muda conforme o horário', () => {
+  // Campo: grátis de dia, R$ 20 a partir das 18h
+  const cfg = {
+    fin_campo_de_futebol_taxa: '0',
+    fin_campo_de_futebol_hnoite: '18:00',
+    fin_campo_de_futebol_taxanoite: '20',
+  };
+  const t = (h) => fin.taxaDoHorario(cfg, 'Campo de Futebol', h);
+  checa('de manhã é grátis', t('10:00–11:00'), 0);
+  checa('até 17h continua grátis', t('17:00–18:00'), 0);
+  checa('às 18h já cobra', t('18:00–19:00'), 20);
+  checa('à noite cobra', t('20:00–21:00'), 20);
+
+  // Sem configuração de horário: taxa única o dia todo
+  const unica = { fin_quiosque_taxa: '50' };
+  checa('sem horário definido usa a taxa única',
+    fin.taxaDoHorario(unica, 'Quiosque', '09:00–10:00'), 50);
+  checa('taxa única vale também à noite',
+    fin.taxaDoHorario(unica, 'Quiosque', '22:00–23:00'), 50);
+
+  // Serve para qualquer espaço, não só o campo
+  const salao = {
+    'fin_sal_o_de_festa_taxa': '800',
+    'fin_sal_o_de_festa_hnoite': '19:00',
+    'fin_sal_o_de_festa_taxanoite': '1500',
+  };
+  checa('salão de dia', fin.taxaDoHorario(salao, 'Salão de Festa', '14:00–18:00'), 800);
+  checa('salão à noite', fin.taxaDoHorario(salao, 'Salão de Festa', '19:00–23:00'), 1500);
+
+  checa('sem horário informado devolve a taxa base',
+    fin.taxaDoHorario(cfg, 'Campo de Futebol', ''), 0);
+});
+
 // ── Resultado ──────────────────────────────────────────────────────────
 console.log('\n' + '-'.repeat(50));
 console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
