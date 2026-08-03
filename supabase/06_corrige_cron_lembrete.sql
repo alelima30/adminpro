@@ -7,11 +7,14 @@
 -- pelo servidor.
 --
 -- COMO USAR
---   1) Troque SUA_ANON_KEY abaixo pela anon key do projeto
---      (Supabase -> Project Settings -> API -> Project API keys -> anon public).
---      A anon key NAO e segredo — ela ja fica no site.
---   2) Rode este arquivo inteiro no SQL Editor.
---   3) Confira com as consultas do final.
+--   1) Rode este arquivo inteiro no SQL Editor. Nao precisa editar nada:
+--      a chave publicavel abaixo e a mesma que ja esta no site
+--      (adminpro.html), e ela NAO e segredo.
+--   2) Confira com as consultas do final.
+--
+-- OBS: este arquivo tambem existe como migration, aplicada sozinha pelo
+-- GitHub Actions (supabase/migrations/). Rodar aqui na mao nao atrapalha:
+-- cron.schedule com o mesmo nome substitui o agendamento anterior.
 -- ===========================================================================
 
 create extension if not exists pg_cron;
@@ -38,7 +41,7 @@ select cron.schedule(
     url     := 'https://lusibpbafbkyygxrxvzr.supabase.co/functions/v1/lembrete',
     headers := jsonb_build_object(
                  'Content-Type',  'application/json',
-                 'Authorization', 'Bearer SUA_ANON_KEY'
+                 'Authorization', 'Bearer sb_publishable_w0CUYP7hq4okx5cdyL_zZw_JponH6bU'
                ),
     body    := '{}'::jsonb
   );
