@@ -4667,14 +4667,19 @@ function _resAppToRow(o){
 }
 // Grava/remove UMA reserva (permite o morador salvar a propria, respeitando o RLS)
 async function _reservaUpsertSB(o){
-  if(!SB) return;
+  if(!SB) return {ok:true, offline:true};
   var r=await SB.from('reservas').upsert(_resAppToRow(o), { onConflict:'condominio_id,id' });
-  if(r.error){ console.error('reserva upsert', r.error.message); toast('⚠️ Não foi possível salvar no servidor: '+r.error.message); }
+  if(r.error){
+    console.error('reserva upsert', r.error.message);
+    return {ok:false, erro:r.error.message};
+  }
+  return {ok:true};
 }
 async function _reservaDeleteSB(id){
-  if(!SB) return;
+  if(!SB) return {ok:true, offline:true};
   var r=await SB.from('reservas').delete().eq('condominio_id',_condAtual).eq('id', id);
-  if(r.error){ console.error('reserva delete', r.error.message); }
+  if(r.error){ console.error('reserva delete', r.error.message); return {ok:false, erro:r.error.message}; }
+  return {ok:true};
 }
 
 const $=id=>document.getElementById(id);
@@ -8365,14 +8370,26 @@ function atualizarBadgePendentes(){
   else b.style.display='none';
 }
 
-function _mudarStatusReserva(id, novo, msg){
+async function _mudarStatusReserva(id, novo, msg){
   const all=G('reservas')||[];
   const i=all.findIndex(x=>x.id===id);
   if(i<0) return;
+  const _statusAntes = all[i].status;
   all[i].status=novo;
   DB_CACHE['reservas']=all;
   try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
-  _reservaUpsertSB(all[i]);
+
+  // Espera o servidor: sem isso, uma recusa do banco passava despercebida e o
+  // morador recebia "reserva aprovada" de algo que nao foi gravado.
+  const _g = await _reservaUpsertSB(all[i]);
+  if(_g && _g.ok === false){
+    all[i].status = _statusAntes;                       // desfaz
+    DB_CACHE['reservas']=all;
+    try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
+    toast('⚠️ Não foi possível alterar o status: '+(_g.erro||'erro no servidor'));
+    try{ renderReservas(); }catch(_){}
+    return;
+  }
   // A tela vem DEPOIS: se render/alertas falharem (ex.: RLS), a notificacao
   // abaixo ja foi disparada. Mesmo cuidado usado ao salvar a reserva.
   try{ renderReservas(); verificarAlertas(); atualizarBadgePendentes(); }
@@ -8907,7 +8924,7 @@ function abrirModalRes(id){
 
 // Mostrar/ocultar campo horário personalizado - controlado via onchange no select
 
-function salvarRes(){
+async function salvarRes(){
   if(!$('mres-nome').value.trim()){toast('⚠️ Informe o nome do morador.');return;}
   if(!$('mres-data').value){toast('⚠️ Informe a data da reserva.');return;}
   // ── Unidade: precisa estar cadastrada (para admin/gestor); morador usa a vinculada ──
@@ -9043,11 +9060,26 @@ function salvarRes(){
     criadoPor: (JSON.parse(localStorage.getItem('apvc_user')||'{}')).email||'',
     loteResponsavel: $('mres-lote').value.trim(), // ← identificador robusto por lote
   };
+  // Guarda o estado anterior para poder desfazer se o servidor recusar.
+  const _antes = all.slice();
   if(id){const i=all.findIndex(x=>x.id===+id);if(i>=0)all[i]=obj;}else all.push(obj);
-  // Atualiza o cache local e grava SOMENTE esta reserva no banco (1 linha).
   DB_CACHE['reservas']=all;
   try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
-  _reservaUpsertSB(obj);
+
+  // ESPERA o servidor. O banco tem travas proprias (ex.: duas reservas no mesmo
+  // horario). Sem esperar, o app dizia "salvo" e mandava WhatsApp de uma reserva
+  // que o banco havia recusado.
+  const _grav = await _reservaUpsertSB(obj);
+  if(_grav && _grav.ok === false){
+    DB_CACHE['reservas'] = _antes;                       // desfaz
+    try{ localStorage.setItem('apvc_reservas', JSON.stringify(_antes)); }catch(_){}
+    var _msg = /sobreposicao|exclusion|overlap/i.test(_grav.erro||'')
+      ? '⚠️ Este horário acabou de ser reservado por outra pessoa. Escolha outro.'
+      : '⚠️ Não foi possível salvar: '+(_grav.erro||'erro no servidor');
+    toast(_msg);
+    try{ renderReservas(); }catch(_){}
+    return;                                              // nao notifica ninguem
+  }
 
   const _isMoradorMsg = !(nivel2==='admin'||nivel2==='gestor');
   const _cfgN = getCfgRes();
@@ -9135,12 +9167,23 @@ function mostrarAvisoReserva(msg){
   ov.classList.add('open');
 }
 
-function excluirRes(id){
+async function excluirRes(id){
   if(!confirm('Remover esta reserva?')) return;
-  const restantes = (G('reservas')||[]).filter(r=>r.id!==id);
+  const _antes = (G('reservas')||[]).slice();
+  const restantes = _antes.filter(r=>r.id!==id);
   DB_CACHE['reservas']=restantes;
   try{ localStorage.setItem('apvc_reservas', JSON.stringify(restantes)); }catch(_){}
-  _reservaDeleteSB(id);
+
+  // Espera o servidor: se o banco recusar (ex.: sem permissao), a reserva
+  // reaparecia sozinha no proximo carregamento, sem explicacao.
+  const _d = await _reservaDeleteSB(id);
+  if(_d && _d.ok === false){
+    DB_CACHE['reservas']=_antes;                        // desfaz
+    try{ localStorage.setItem('apvc_reservas', JSON.stringify(_antes)); }catch(_){}
+    renderReservas();
+    toast('⚠️ Não foi possível remover: '+(_d.erro||'erro no servidor'));
+    return;
+  }
   renderReservas(); toast('✓ Reserva removida.');
 }
 
