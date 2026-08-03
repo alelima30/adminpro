@@ -114,9 +114,16 @@ serve(async () => {
         if (tel) await enviar(tel, "", msg, true, "lembrete_reserva", paramsLembrete);
         if (email) await enviar(email, `Lembrete de reserva - ${r.espaco}`, msg, false);
 
-        // EQUIPE/ADMIN: mesmos destinos que recebem "Nova reserva" (alert_destinos).
-        // Usa o mesmo modelo aprovado (lembrete_reserva).
-        if (cfg.notif_equipe_ativo) {
+        // EQUIPE/ADMIN: controle PROPRIO, separado do aviso de nova reserva.
+        //   notif_lembrete_eq_1h / _24h  -> quais lembretes a equipe recebe
+        //   lembrete_eq_espacos          -> lista de espacos (vazio = todos)
+        const eqLead = lead.tag === "1h" ? cfg.notif_lembrete_eq_1h : cfg.notif_lembrete_eq_24h;
+        const filtro = String(cfg.lembrete_eq_espacos || "").trim();
+        const eqEspaco = !filtro || filtro.split(",")
+          .map((x: string) => x.trim().toLowerCase())
+          .filter(Boolean)
+          .includes(String(r.espaco || "").trim().toLowerCase());
+        if (eqLead && eqEspaco) {
           const destinos = Array.isArray(cfg.alert_destinos) ? cfg.alert_destinos : [];
           for (const d of destinos) {
             const w = (d?.whats || "").trim();
@@ -146,7 +153,7 @@ serve(async () => {
     }
 
     // "versao" serve para conferir, pelo Test, se o deploy pegou o codigo novo.
-    return new Response(JSON.stringify({ ok: true, versao: "v3-equipe", enviados: contador }), {
+    return new Response(JSON.stringify({ ok: true, versao: "v4-equipe-config", enviados: contador }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
