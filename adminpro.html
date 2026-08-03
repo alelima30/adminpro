@@ -163,6 +163,16 @@ function taxaDoHorario(cfg, espaco, horario){
   return (hrIni(horario) >= hrIni(hIni)) ? tEsp : base;
 }
 
+/* Escapa texto do usuario antes de ir para innerHTML.
+   Sem isso, alguem poderia digitar HTML/script num campo (observacao,
+   finalidade, nome...) e esse codigo rodaria na tela de quem abrisse a
+   lista — inclusive na do administrador. */
+function escHtml(v){
+  return String(v==null?'':v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 /* true se dois horários se sobrepõem */
 function hrConflita(a,b){ return hrIni(a) < hrFim(b) && hrFim(a) > hrIni(b); }
 </script>
@@ -7869,24 +7879,24 @@ function renderReservas(){
       <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
-            <span style="font-size:16px;font-weight:700;color:var(--text)">${r.espaco}</span>
+            <span style="font-size:16px;font-weight:700;color:var(--text)">${escHtml(r.espaco)}</span>
             <span class="pill ${st.pill}" style="font-size:11px">${st.label}</span>
             ${(r.pgto && (r.taxa>0 || r.pgto==='pago'))?`<span title="Situação do pagamento da taxa" style="font-size:11px;color:${r.pgto==='pago'?'var(--green-l)':r.pgto==='isento'?'var(--text-3)':'var(--gold)'};border:1px solid var(--border);border-radius:6px;padding:2px 8px">💰 Pagamento: ${pgtoMap[r.pgto]||''}</span>`:''}
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 20px;margin-bottom:10px">
-            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Morador</span><div style="font-size:13px;color:var(--text);font-weight:600">${r.nome||'—'}</div></div>
-            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Unidade</span><div style="font-size:13px;color:var(--text)">${r.lote||'—'}</div></div>
-            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Telefone</span><div style="font-size:13px;color:var(--text)">${r.tel||'—'}</div></div>
-            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Pessoas</span><div style="font-size:13px;color:var(--text)">${r.pessoas||'—'}</div></div>
+            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Morador</span><div style="font-size:13px;color:var(--text);font-weight:600">${escHtml(r.nome)||'—'}</div></div>
+            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Unidade</span><div style="font-size:13px;color:var(--text)">${escHtml(r.lote)||'—'}</div></div>
+            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Telefone</span><div style="font-size:13px;color:var(--text)">${escHtml(r.tel)||'—'}</div></div>
+            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Pessoas</span><div style="font-size:13px;color:var(--text)">${escHtml(r.pessoas)||'—'}</div></div>
             <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Data</span><div style="font-size:13px;color:var(--gold);font-weight:600">${dataFmt}</div></div>
-            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Horário</span><div style="font-size:13px;color:var(--text)">${r.horario||'—'}</div></div>
-            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Finalidade</span><div style="font-size:13px;color:var(--text)">${r.finalidade||'—'}</div></div>
+            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Horário</span><div style="font-size:13px;color:var(--text)">${escHtml(r.horario)||'—'}</div></div>
+            <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Finalidade</span><div style="font-size:13px;color:var(--text)">${escHtml(r.finalidade)||'—'}</div></div>
             <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Taxa</span><div style="font-size:13px;color:var(--text)">${taxa}</div></div>
             <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Caução</span><div style="font-size:13px;color:var(--text)">${caucao}</div></div>
           </div>
           <!-- Checklist -->
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:${r.obs?'10px':'0'}">${chkHtml}</div>
-          ${r.obs?`<div style="font-size:13px;color:var(--text-2);font-style:italic;border-left:2px solid var(--border-h);padding-left:10px;margin-top:4px">${r.obs}</div>`:''}
+          ${r.obs?`<div style="font-size:13px;color:var(--text-2);font-style:italic;border-left:2px solid var(--border-h);padding-left:10px;margin-top:4px">${escHtml(r.obs)}</div>`:''}
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
           ${(!isMorador && r.status==='pendente')?`
@@ -8222,14 +8232,14 @@ function renderEncomendas(){
           : '<div style="width:44px;height:44px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:'+(aguardando?'rgba(240,168,67,0.15)':'rgba(42,157,111,0.15)')+'"><i class="fa-solid '+(aguardando?'fa-box':'fa-circle-check')+'" style="font-size:18px;color:'+(aguardando?'var(--amber)':'var(--green-l)')+'"></i></div>')+
         '<div style="flex:1;min-width:0">'+
           '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">'+
-            '<span style="font-size:15px;font-weight:700;color:var(--text)">'+(e.numero?('#'+e.numero+' · '):'')+'Unidade '+(e.unidade||'—')+'</span>'+
+            '<span style="font-size:15px;font-weight:700;color:var(--text)">'+(e.numero?('#'+e.numero+' · '):'')+'Unidade '+escHtml(e.unidade||'—')+'</span>'+
             '<span class="pill '+(aguardando?'pill-amber':'pill-green')+'" style="font-size:11px">'+(aguardando?'Aguardando retirada':'Retirada')+'</span>'+
             (e.registrado?'<span class="pill pill-blue" style="font-size:11px">Registrada'+(e.numeroRegistro?(' '+e.numeroRegistro):'')+'</span>':'')+
             (aguardando&&e.codigo?('<span style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.3);border-radius:6px;padding:2px 8px">🔑 Código: '+e.codigo+'</span>'):'')+
           '</div>'+
           '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:4px 18px;font-size:13px">'+
-            '<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Destinatário</span><div style="color:var(--text)">'+(e.destinatario||'—')+'</div></div>'+
-            '<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Remetente</span><div style="color:var(--text)">'+(e.remetente||'—')+'</div></div>'+
+            '<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Destinatário</span><div style="color:var(--text)">'+escHtml(e.destinatario||'—')+'</div></div>'+
+            '<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Remetente</span><div style="color:var(--text)">'+escHtml(e.remetente||'—')+'</div></div>'+
             '<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Tipo</span><div style="color:var(--text)">'+(e.tipo||'—')+'</div></div>'+
             '<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Recebida</span><div style="color:var(--text)">'+_encFmtDataHora(e.recebidoEm)+'</div></div>'+
             (e.status==='retirada'?('<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Retirada por</span><div style="color:var(--green-l)">'+(e.retiradoPor||'—')+'</div></div>'+
@@ -8323,7 +8333,7 @@ function renderCalendario(){
     var ehHoje=dataStr===hojeStr;
     var chips=lista.slice(0,3).map(function(r){
       var cor=_CAL_CORES[r.status]||'#888';
-      return '<div title="'+(r.horario||'')+' '+(r.espaco||'')+' — '+(r.nome||'')+'" style="font-size:10px;color:#fff;background:'+cor+';border-radius:4px;padding:1px 4px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(r.horario||'').split(/[-–]/)[0]+' '+(r.espaco||'').slice(0,10)+'</div>';
+      return '<div title="'+escHtml((r.horario||'')+' '+(r.espaco||'')+' — '+(r.nome||''))+'" style="font-size:10px;color:#fff;background:'+cor+';border-radius:4px;padding:1px 4px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(r.horario||'').split(/[-–]/)[0]+' '+(r.espaco||'').slice(0,10)+'</div>';
     }).join('');
     var mais=lista.length>3?'<div style="font-size:10px;color:var(--text-3);margin-top:2px">+'+(lista.length-3)+' mais</div>':'';
     html+='<div onclick="resCalDiaClick(\''+dataStr+'\')" style="min-height:78px;border:1px solid '+(ehHoje?'var(--gold)':'var(--border)')+';border-radius:8px;padding:4px 5px;cursor:pointer;background:'+(ehHoje?'rgba(232,119,34,0.06)':'var(--ink-2)')+';overflow:hidden">'+
@@ -8440,10 +8450,10 @@ function renderRelatorios(){
     lista.map(function(r){
       return '<tr style="border-top:1px solid var(--border)">'+
         '<td style="padding:8px;color:var(--gold);font-weight:600">'+_relFmtData(r.data)+'</td>'+
-        '<td style="padding:8px">'+(r.horario||'—')+'</td>'+
-        '<td style="padding:8px">'+(r.espaco||'—')+'</td>'+
-        '<td style="padding:8px">'+(r.nome||'—')+'</td>'+
-        '<td style="padding:8px">'+(r.lote||'—')+'</td>'+
+        '<td style="padding:8px">'+escHtml(r.horario||'—')+'</td>'+
+        '<td style="padding:8px">'+escHtml(r.espaco||'—')+'</td>'+
+        '<td style="padding:8px">'+escHtml(r.nome||'—')+'</td>'+
+        '<td style="padding:8px">'+escHtml(r.lote||'—')+'</td>'+
         '<td style="padding:8px">'+(_REL_STATUS_LABEL[r.status]||r.status||'—')+'</td>'+
         '<td style="padding:8px">'+_relFmtMoeda(r.taxa)+'</td>'+
         '<td style="padding:8px">'+(r.pgto==='pago'?'Pago':r.pgto==='isento'?'Isento':'Pendente')+'</td>'+
@@ -8510,7 +8520,7 @@ function imprimirRelatorioReservas(){
   var totalTaxa=lista.reduce(function(s,r){return s+(parseFloat(r.taxa)||0);},0);
   var totalPago=lista.reduce(function(s,r){return s+(r.pgto==='pago'?(parseFloat(r.taxa)||0):0);},0);
   var linhas=lista.map(function(r){
-    return '<tr><td>'+_relFmtData(r.data)+'</td><td>'+(r.horario||'—')+'</td><td>'+(r.espaco||'—')+'</td><td>'+(r.nome||'—')+'</td><td>'+(r.lote||'—')+'</td><td>'+(_REL_STATUS_LABEL[r.status]||r.status||'—')+'</td><td>'+_relFmtMoeda(r.taxa)+'</td><td>'+(r.pgto==='pago'?'Pago':r.pgto==='isento'?'Isento':'Pendente')+'</td></tr>';
+    return '<tr><td>'+_relFmtData(r.data)+'</td><td>'+escHtml(r.horario||'—')+'</td><td>'+escHtml(r.espaco||'—')+'</td><td>'+escHtml(r.nome||'—')+'</td><td>'+escHtml(r.lote||'—')+'</td><td>'+(_REL_STATUS_LABEL[r.status]||r.status||'—')+'</td><td>'+_relFmtMoeda(r.taxa)+'</td><td>'+(r.pgto==='pago'?'Pago':r.pgto==='isento'?'Isento':'Pendente')+'</td></tr>';
   }).join('');
   var corpo='<table><thead><tr><th>Data</th><th>Horário</th><th>Espaço</th><th>Morador</th><th>Unid.</th><th>Status</th><th>Taxa</th><th>Pgto</th></tr></thead><tbody>'+linhas+'</tbody></table>'+
     '<div class="tot">Total de reservas: '+lista.length+' &nbsp;·&nbsp; Taxas: '+_relFmtMoeda(totalTaxa)+' &nbsp;·&nbsp; Pagas: '+_relFmtMoeda(totalPago)+'</div>';
@@ -11587,8 +11597,8 @@ function renderUsrBody(){
           '<div style="display:flex;align-items:center;gap:14px">'+
             '<div style="width:42px;height:42px;border-radius:50%;background:var(--gold);color:#1A1E28;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0">'+inicial+'</div>'+
             '<div>'+
-              '<div style="font-size:14px;font-weight:700;color:var(--text)">'+(u.nome||'—')+'</div>'+
-              '<div style="font-size:12px;color:var(--text-3)">'+(u.email||'—')+' &middot; Unidade: <strong>'+(u.lote||'—')+'</strong> &middot; '+(u.tel||'—')+'</div>'+
+              '<div style="font-size:14px;font-weight:700;color:var(--text)">'+escHtml(u.nome||'—')+'</div>'+
+              '<div style="font-size:12px;color:var(--text-3)">'+escHtml(u.email||'—')+' &middot; Unidade: <strong>'+escHtml(u.lote||'—')+'</strong> &middot; '+(u.tel||'—')+'</div>'+
               '<div style="font-size:11px;color:var(--text-3);margin-top:2px">Cadastrado em: '+dt+'</div>'+
             '</div>'+
           '</div>'+
@@ -11614,9 +11624,9 @@ function renderUsrBody(){
         '<button class="btn btn-sm" style="background:rgba(224,82,82,0.18);color:var(--red);border:1px solid rgba(224,82,82,0.4);padding:5px 10px;border-radius:7px;cursor:pointer;font-size:12px" onclick="excluirUsuario(\''+u._docId+'\')">&#128465;</button>'
       : '<button class="btn btn-gold btn-sm" onclick="abrirModalUsr(\''+u._docId+'\')">&#8635; Reativar</button> '+
         '<button class="btn btn-sm" style="background:rgba(224,82,82,0.18);color:var(--red);border:1px solid rgba(224,82,82,0.4);padding:5px 10px;border-radius:7px;cursor:pointer;font-size:12px" onclick="excluirUsuario(\''+u._docId+'\')">&#128465; Excluir</button>';
-    return '<tr><td><strong>'+(u.nome||'—')+'</strong></td>'+
-      '<td style="color:var(--text-2);font-size:12px">'+(u.email||'—')+'</td>'+
-      '<td>'+(u.lote||'—')+'</td>'+
+    return '<tr><td><strong>'+escHtml(u.nome||'—')+'</strong></td>'+
+      '<td style="color:var(--text-2);font-size:12px">'+escHtml(u.email||'—')+'</td>'+
+      '<td>'+escHtml(u.lote||'—')+'</td>'+
       '<td>'+(nivelLabel[u.nivel]||u.nivel||'—')+'</td>'+
       '<td>'+statusPill+'</td>'+
       '<td style="color:var(--text-3);font-size:12px">'+dt+'</td>'+
