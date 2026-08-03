@@ -5464,7 +5464,8 @@ const ACESSO_PAINEIS = {
 ══════════════════════════ */
 const UF_LISTA = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 
-function escU(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+/* Mantido pelo nome antigo (usado em ~45 lugares); a implementacao e uma so. */
+function escU(v){ return escHtml(v); }
 // Normaliza texto para busca: minúsculas e sem acentos (joão == joao)
 function semAcento(s){ return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); }
 
@@ -5716,6 +5717,12 @@ function salvarUnidade(){
     morador:      $('uni-morador')?.value || '',
   };
   const dados = getUnidades();
+  // Protecao contra perda de dados: criar uma unidade com codigo que ja existe
+  // substituia o cadastro anterior em silencio.
+  const _editando = ($('uni-btn-excluir') && $('uni-btn-excluir').style.display !== 'none');
+  if(!_editando && dados[cod]){
+    if(!confirm('Já existe a unidade '+cod+'.\n\nSalvar vai SUBSTITUIR os dados dela. Continuar?')) return;
+  }
   dados[cod] = reg;
   S('unidades', dados);
   toast('✅ Unidade '+cod+' salva!');
@@ -6358,7 +6365,22 @@ function salvarCondomino(){
     email:($('con-email')?.value||'').trim(),
     dependentes:[..._conDependentes]
   };
-  const dados=getCondominos(); dados[cod]=reg;
+  const dados=getCondominos();
+  const _edCon = ($('con-btn-excluir') && $('con-btn-excluir').style.display !== 'none');
+  if(!_edCon && dados[cod]){
+    if(!confirm('Já existe o condômino '+cod+'.\n\nSalvar vai SUBSTITUIR os dados dele. Continuar?')) return;
+  }
+  // Aviso (nao bloqueia) quando o mesmo CPF/CNPJ ja esta cadastrado em outro codigo
+  const _doc = (reg.cpf||reg.cnpj||'').replace(/\D/g,'');
+  if(_doc){
+    const _dup = Object.keys(dados).find(function(k){
+      if(k===cod) return false;
+      const d=dados[k]||{};
+      return ((d.cpf||d.cnpj||'').replace(/\D/g,'')) === _doc;
+    });
+    if(_dup && !confirm('O documento informado já está cadastrado em '+_dup+' ('+((dados[_dup]||{}).nome||'')+').\n\nCadastrar mesmo assim?')) return;
+  }
+  dados[cod]=reg;
   S('condominos',dados);
   toast('\u2705 Cond\u00f4mino '+cod+' salvo!');
   conFecharForm(); renderCondominos();
@@ -10440,9 +10462,19 @@ function getCfgRes(){ try{ return JSON.parse(localStorage.getItem('apvc_cfg_rese
 function setCfgRes(cfg){
   try{ localStorage.setItem('apvc_cfg_reservas', JSON.stringify(cfg)); }catch(_){}
   if(window.SB){
-    SB.from('modulo_dados').upsert({condominio_id:_condAtual, modulo:'cfg_reservas', valor:cfg},{onConflict:'condominio_id,modulo'})
-      .then(function(r){ if(r.error) console.warn('cfg_reservas', r.error.message); });
+    // Avisa na tela se o servidor recusar. Antes so aparecia no console e o
+    // usuario acreditava que a configuracao tinha sido salva.
+    return SB.from('modulo_dados').upsert({condominio_id:_condAtual, modulo:'cfg_reservas', valor:cfg},{onConflict:'condominio_id,modulo'})
+      .then(function(r){
+        if(r.error){
+          console.warn('cfg_reservas', r.error.message);
+          if(typeof toast==='function') toast('⚠️ Configuração salva neste aparelho, mas o servidor recusou: '+r.error.message);
+          return {ok:false, erro:r.error.message};
+        }
+        return {ok:true};
+      });
   }
+  return Promise.resolve({ok:true, offline:true});
 }
 // duração de uma reserva (horas) a partir de "08:00–12:00"
 function _horasReserva(horario){
