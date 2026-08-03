@@ -189,6 +189,27 @@ bloco('Espaços de cada condomínio', () => {
     vazia.espacosDoCondominio(), ['Quadra de Areia']);
 });
 
+// ── Segurança: escape de HTML ──────────────────────────────────────────
+const seg = carregar(['escHtml']);
+
+bloco('Escape de texto do usuário (XSS)', () => {
+  checa('script vira texto inofensivo',
+    seg.escHtml('<script>alert(1)</script>'),
+    '&lt;script&gt;alert(1)&lt;/script&gt;');
+  checa('imagem com onerror é neutralizada',
+    seg.escHtml('<img src=x onerror=alert(1)>').includes('<'), false);
+  checa('aspas duplas não escapam de atributo',
+    seg.escHtml('a" onmouseover="x').includes('"'), false);
+  checa('aspas simples não escapam de atributo',
+    seg.escHtml("a' onmouseover='x").includes("'"), false);
+  checa('& é escapado primeiro (não gera dupla codificação)',
+    seg.escHtml('&lt;'), '&amp;lt;');
+  checa('nulo vira string vazia', seg.escHtml(null), '');
+  checa('indefinido vira string vazia', seg.escHtml(undefined), '');
+  checa('texto normal não é alterado', seg.escHtml('Salão de Festa'), 'Salão de Festa');
+  checa('número funciona', seg.escHtml(20), '20');
+});
+
 // ── Resultado ──────────────────────────────────────────────────────────
 console.log('\n' + '-'.repeat(50));
 console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
