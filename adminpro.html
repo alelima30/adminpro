@@ -1131,6 +1131,26 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .fg{display:flex;flex-direction:column;gap:6px}
 .fg.full{grid-column:1/-1}
+/* Lista de espacos do condominio (aba "Criar espacos") */
+.esp-item{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:11px 13px;border:1px solid var(--border);border-radius:9px;
+  background:var(--ink-2);margin-bottom:8px;
+}
+.esp-nome{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;font-weight:600}
+.esp-nome i{color:var(--gold)}
+.esp-acoes{display:flex;gap:6px;flex-wrap:wrap}
+.esp-selo{
+  font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:20px;
+  background:rgba(232,119,34,0.14);color:var(--gold);
+}
+.esp-selo-frio{background:rgba(255,255,255,0.07);color:var(--text-3)}
+.esp-excluir:hover{color:var(--red);border-color:var(--red)}
+@media (max-width:520px){
+  .esp-item{align-items:stretch}
+  .esp-acoes{width:100%}
+  .esp-acoes .btn{flex:1;justify-content:center}
+}
 /* Linhas de formulario que viram uma coluna so no celular.
    O min-width:0 e essencial: sem ele, um rotulo longo ("E-mail do
    Administrador do Condominio") impede a coluna de encolher e o
@@ -2847,6 +2867,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         <div class="tabs" data-acesso="admin,gestor" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="tab active" onclick="showPanel('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Reservas</button>
           <button class="tab" onclick="showPanel('relatorios')"><i class="fa-solid fa-file-pdf" style="margin-right:6px"></i>Relatórios</button>
+          <button class="tab" onclick="showPanel('espacos')"><i class="fa-solid fa-building" style="margin-right:6px"></i>Criar espaços</button>
         </div>
         <div class="ph">
           <div><div class="ph-title">Gestão de Reservas</div><div class="ph-sub">Agendamento de espaços e áreas comuns do condomínio</div></div>
@@ -3077,6 +3098,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         <div class="tabs" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="tab" onclick="showPanel('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Reservas</button>
           <button class="tab active" onclick="showPanel('relatorios')"><i class="fa-solid fa-file-pdf" style="margin-right:6px"></i>Relatórios</button>
+          <button class="tab" onclick="showPanel('espacos')"><i class="fa-solid fa-building" style="margin-right:6px"></i>Criar espaços</button>
         </div>
         <div class="ph">
           <div><div class="ph-title"><i class="fa-solid fa-file-pdf" style="color:var(--gold);margin-right:8px"></i>Relatórios de Reservas</div><div class="ph-sub">Gere relatórios e comprovantes em PDF (imprimir ou salvar)</div></div>
@@ -3102,6 +3124,53 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         <div class="card">
           <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(91,156,246,0.14);color:var(--blue)"><i class="fa-solid fa-table-list"></i></div>Resultado</div><span id="rel-resumo" style="font-size:12px;color:var(--text-3)"></span></div>
           <div id="rel-tabela" style="overflow-x:auto"></div>
+        </div>
+      </div>
+
+      <!-- ████ P7c: CRIAR ESPAÇOS (aba de Reservas) ████ -->
+      <div class="panel" id="panel-espacos">
+        <div class="tabs" data-acesso="admin,gestor" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="tab" onclick="showPanel('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Reservas</button>
+          <button class="tab" onclick="showPanel('relatorios')"><i class="fa-solid fa-file-pdf" style="margin-right:6px"></i>Relatórios</button>
+          <button class="tab active" onclick="showPanel('espacos')"><i class="fa-solid fa-building" style="margin-right:6px"></i>Criar espaços</button>
+        </div>
+        <div class="ph">
+          <div><div class="ph-title">Espaços do condomínio</div><div class="ph-sub">Os ambientes que os moradores podem reservar</div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-head">
+            <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)">🏢</div>Espaços do condomínio</div>
+            <span id="esp-contagem" style="font-size:12px;color:var(--text-3);margin-left:auto"></span>
+          </div>
+
+          <div style="font-size:12.5px;color:var(--text-3);margin-bottom:14px;line-height:1.6">
+            Crie aqui cada ambiente que pode ser reservado. Depois de criado, as regras,
+            os horários e o financeiro daquele espaço ficam disponíveis em
+            <b>Configurações → Reservas</b>.
+          </div>
+
+          <div id="esp-aviso-padrao" style="display:none;font-size:12px;line-height:1.6;background:rgba(232,119,34,0.10);border-left:3px solid var(--gold);padding:10px 12px;border-radius:0 8px 8px 0;margin-bottom:14px">
+            Este condomínio ainda não cadastrou os próprios espaços, então está usando a
+            lista sugerida abaixo. Ao criar, renomear ou excluir qualquer um, esta lista
+            passa a ser a do condomínio.
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
+            <div class="fg" style="margin:0;flex:1;min-width:200px">
+              <label>Novo espaço</label>
+              <input type="text" id="esp-novo" placeholder="Ex: Churrasqueira" onkeydown="if(event.key==='Enter'){event.preventDefault();criarEspaco();}">
+            </div>
+            <button class="btn btn-gold" style="height:38px" onclick="criarEspaco()"><i class="fa-solid fa-plus"></i> Criar espaço</button>
+          </div>
+
+          <div id="esp-lista"></div>
+
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:12px;line-height:1.6">
+            <b>Renomear</b> leva junto as regras, o financeiro, os bloqueios e as reservas já feitas —
+            nada é perdido e o histórico continua correto.
+            <b>Excluir</b> só é permitido quando o espaço não tem reserva marcada para o futuro.
+          </div>
         </div>
       </div>
 
@@ -3461,32 +3530,17 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <textarea id="cfg-msg-validacao" rows="3" placeholder="Sua reserva foi registrada e está aguardando validação da administração. Você será avisado assim que for aprovada." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;resize:vertical"></textarea>
         </div>
 
-        <!-- ▸ Espaços do condomínio -->
+        <!-- ▸ Espaços: agora tem tela propria dentro de Reservas -->
         <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:16px">
           <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)">🏢</div>Espaços do condomínio</div></div>
-          <div style="font-size:12.5px;color:var(--text-3);margin-bottom:10px">
-            Um espaço por linha. Estes são os espaços que aparecem para reserva, com as regras e o financeiro de cada um.
-            Deixe em branco para usar a lista padrão.
+          <div style="font-size:12.5px;color:var(--text-3);line-height:1.7">
+            Criar, renomear e excluir espaços passou para uma tela própria:
+            <b>Reservas → Criar espaços</b>. Aqui embaixo ficam as configurações
+            de cada espaço que já existe.
           </div>
-          <textarea id="cfg-espacos" rows="8" placeholder="Quadra de Areia&#10;Salão de Festa&#10;Piscina&#10;Churrasqueira"
-            style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;resize:vertical;font-family:inherit"></textarea>
-          <div style="font-size:11.5px;color:var(--text-3);margin-top:8px;line-height:1.6">
-            Para <b>renomear</b> um espaço já em uso, use a ferramenta abaixo — ela leva junto as regras,
-            o financeiro, os bloqueios e as reservas já feitas.
-          </div>
-
-          <div style="border-top:1px solid var(--border);margin:14px 0 12px"></div>
-          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Renomear um espaço</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-            <div class="fg" style="margin:0;flex:1;min-width:160px"><label>Espaço atual</label>
-              <select id="cfg-ren-de"></select></div>
-            <div class="fg" style="margin:0;flex:1;min-width:160px"><label>Novo nome</label>
-              <input type="text" id="cfg-ren-para" placeholder="Ex: Quadra Principal"></div>
-            <button class="btn btn-sm" style="background:var(--gold);color:#fff;border:none;height:38px" onclick="renomearEspaco()">Renomear</button>
-          </div>
-          <div style="font-size:11.5px;color:var(--text-3);margin-top:8px">
-            Renomear atualiza tudo de uma vez: nada é perdido e o histórico continua correto.
-          </div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="showPanel('espacos')">
+            <i class="fa-solid fa-building"></i> Ir para Criar espaços
+          </button>
         </div>
 
         <!-- ▸ Pix do condomínio (pagamento da taxa de reserva) -->
@@ -4798,7 +4852,7 @@ function paineisPermitidos(nivel){
   if(nivel==='supervisor'){
     var mods=_supervisorMods(), out=['inicio'];
     (ACESSO_PAINEIS.gestor||[]).forEach(function(id){
-      var m=(id==='relatorios')?'reservas':id;
+      var m=(id==='relatorios'||id==='espacos')?'reservas':id;
       if(mods[m]===true) out.push(id);
     });
     return out;
@@ -4809,7 +4863,7 @@ function paineisPermitidos(nivel){
 // Painel → módulo. Cada tela é seu próprio módulo (mesmo id).
 // Relatórios é aba dentro de Reservas -> depende do módulo reservas.
 function painelModulo(id){
-  if(id==='relatorios') return 'reservas';
+  if(id==='relatorios'||id==='espacos') return 'reservas';
   return MODULOS_SAAS[id] ? id : null;
 }
 
@@ -5458,8 +5512,8 @@ function closeSidebar(){
 /* ══ NAVIGATION ══ */
 const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Comunicados',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas'};
 const ACESSO_PAINEIS = {
-  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','comunicados','eventos','regulamento','usuarios','configuracoes','procedimentos'],
-  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','comunicados','eventos','regulamento','procedimentos'],
+  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','regulamento','usuarios','configuracoes','procedimentos'],
+  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','regulamento','procedimentos'],
   morador: ['inicio','reservas','encomendas','comunicados','eventos','regulamento','procedimentos']
 };
 /* ══════════════════════════
@@ -6721,7 +6775,7 @@ function sbMarkActive(id){
   if(id==='inicio'){ const h=$('nav-inicio'); if(h) h.classList.add('active'); return; }
   if(id==='dashboard'){ const d=$('nav-dashboard'); if(d) d.classList.add('active'); return; }
   // Relatórios é aba dentro de Reservas -> mantém o item Reservas destacado
-  if(id==='relatorios'){ var nr=$('nav-reservas'); if(nr) nr.classList.add('active'); return; }
+  if(id==='relatorios'||id==='espacos'){ var nr=$('nav-reservas'); if(nr) nr.classList.add('active'); return; }
   // Itens standalone (fora de grupo): Reservas, Encomendas
   var _stand=$('nav-'+id);
   if(_stand && _stand.closest('.nav-standalone')){ _stand.classList.add('active'); return; }
@@ -6754,7 +6808,7 @@ function showPanel(id,el){
   try{ localStorage.setItem('apvc_last_panel', id); }catch(_){}
   sbFecharFlyout();
   closeSidebar();
-  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},encomendas:renderEncomendas,relatorios:renderRelatorios,regulamento:renderReg,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
+  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
 }
 
 function setTab(t){
@@ -10376,9 +10430,12 @@ function renderCfgReservas(){
 /* Renomeia um espaco levando junto TUDO que depende do nome:
    regras (disp_*), financeiro (fin_*), bloqueios, a lista de espacos
    e as reservas ja feitas (cache local + banco). */
-async function renomearEspaco(){
-  var de   = ($('cfg-ren-de')   ? $('cfg-ren-de').value   : '').trim();
-  var para = ($('cfg-ren-para') ? $('cfg-ren-para').value : '').trim();
+/* Renomeia um espaco levando junto regras, financeiro, bloqueios e reservas.
+   Sem argumentos, le a ferramenta antiga de Configuracoes; com argumentos,
+   atende a tela "Criar espacos". */
+async function renomearEspaco(deArg, paraArg){
+  var de   = String(deArg   != null ? deArg   : ($('cfg-ren-de')   ? $('cfg-ren-de').value   : '')).trim();
+  var para = String(paraArg != null ? paraArg : ($('cfg-ren-para') ? $('cfg-ren-para').value : '')).trim();
   if(!de){ toast('Escolha o espaço que quer renomear.'); return; }
   if(!para){ toast('Informe o novo nome.'); return; }
   if(de===para){ toast('O nome é o mesmo.'); return; }
@@ -10441,8 +10498,152 @@ async function renomearEspaco(){
   });
   if($('cfg-ren-para')) $('cfg-ren-para').value='';
   try{ renderCfgReservas(); }catch(_){}
+  try{ renderEspacos(); }catch(_){}
   try{ renderReservas(); }catch(_){}
   toast('✓ Espaço renomeado para "'+para+'".');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ESPAÇOS DO CONDOMÍNIO — aba "Criar espaços" (dentro de Reservas)
+
+   Criar o espaço e o que faz a configuracao dele existir: as regras,
+   os horarios e o financeiro de cada espaco sao gerados a partir desta
+   lista (cfg.espacos). Por isso a ordem e sempre: primeiro o espaco,
+   depois as configuracoes dele em Configuracoes -> Reservas.
+
+   Condominio que nunca cadastrou os proprios espacos usa a lista padrao;
+   a primeira alteracao aqui grava essa lista como sendo dele.
+══════════════════════════════════════════════════════════════ */
+
+/* Quantas reservas existem para um espaco, separadas por futuras e passadas.
+   Futuras contam para bloquear a exclusao; passadas so viram aviso. */
+function _reservasDoEspaco(nome){
+  var hoje = new Date(Date.now() - 3*3600*1000).toISOString().slice(0,10);
+  var todas = (G('reservas')||[]).filter(function(r){ return r.espaco===nome; });
+  var futuras = todas.filter(function(r){
+    return String(r.data||'') >= hoje && r.status !== 'cancelada';
+  });
+  return { total: todas.length, futuras: futuras.length };
+}
+
+async function criarEspaco(){
+  var inp = $('esp-novo');
+  var nome = inp ? inp.value.trim() : '';
+  if(!nome){ toast('Escreva o nome do espaço.'); return; }
+
+  var lista = espacosDoCondominio();
+  var existe = lista.some(function(e){ return e.toLowerCase() === nome.toLowerCase(); });
+  if(existe){ toast('Já existe um espaço com esse nome.'); return; }
+
+  var cfg = getCfgRes();
+  cfg.espacos = lista.concat([nome]);
+
+  var r = await setCfgRes(cfg);
+  if(r && r.ok === false) return;          // setCfgRes ja avisou o motivo
+
+  if(inp) inp.value = '';
+  _limpaCacheSeletores();
+  try{ renderEspacos(); }catch(_){}
+  try{ renderCfgReservas(); }catch(_){}
+  toast('✓ Espaço "'+nome+'" criado. As configurações dele já estão disponíveis.');
+}
+
+async function excluirEspaco(nome){
+  var lista = espacosDoCondominio();
+  if(lista.length <= 1){
+    toast('É preciso ter pelo menos um espaço.');
+    return;
+  }
+
+  var uso = _reservasDoEspaco(nome);
+
+  // Reserva futura marcada: excluir deixaria o morador com um agendamento
+  // para um espaco que o condominio nao oferece mais.
+  if(uso.futuras > 0){
+    alert('"'+nome+'" tem '+uso.futuras+' reserva(s) ainda por acontecer.\n\n'+
+          'Cancele essas reservas antes de excluir o espaço, ou use Renomear '+
+          'se a intenção é só trocar o nome (renomear preserva tudo).');
+    return;
+  }
+
+  var aviso = 'Excluir o espaço "'+nome+'"?\n\n'+
+    'Ele deixa de aparecer para novas reservas, junto com as regras e o financeiro dele.';
+  if(uso.total > 0){
+    aviso += '\n\nAs '+uso.total+' reserva(s) antigas continuam no histórico, com o nome do espaço.';
+  }
+  if(!confirm(aviso)) return;
+
+  var cfg = getCfgRes();
+  var chv = nome.toLowerCase().replace(/[^a-z0-9]/g,'_');
+
+  // Tira as chaves de configuracao do espaco (disp_* e fin_*)
+  Object.keys(cfg).forEach(function(k){
+    var m = k.match(/^(disp|fin)_(.+?)_([a-z0-9]+)$/);
+    if(m && m[2]===chv) delete cfg[k];
+  });
+  // Tira os bloqueios que apontavam so para ele
+  cfg.bloqueios = (cfg.bloqueios||[]).filter(function(b){ return b.espaco !== nome; });
+  // Tira do filtro de lembrete da equipe
+  if(cfg.lembrete_eq_espacos){
+    cfg.lembrete_eq_espacos = cfg.lembrete_eq_espacos.split(',')
+      .map(function(x){ return x.trim(); })
+      .filter(function(x){ return x && x !== nome; })
+      .join(', ');
+  }
+  cfg.espacos = lista.filter(function(e){ return e !== nome; });
+
+  var r = await setCfgRes(cfg);
+  if(r && r.ok === false) return;
+
+  _limpaCacheSeletores();
+  try{ renderEspacos(); }catch(_){}
+  try{ renderCfgReservas(); }catch(_){}
+  try{ renderReservas(); }catch(_){}
+  toast('✓ Espaço "'+nome+'" excluído.');
+}
+
+function pedirRenomearEspaco(nome){
+  var novo = prompt('Novo nome para "'+nome+'":', nome);
+  if(novo === null) return;                 // cancelou
+  novo = novo.trim();
+  if(!novo || novo === nome) return;
+  renomearEspaco(nome, novo);
+}
+
+/* Os seletores de espaco sao preenchidos uma vez e ficam em cache. */
+function _limpaCacheSeletores(){
+  ['res-cal-espaco','res-f-espaco','rel-espaco'].forEach(function(idSel){
+    var el=$(idSel); if(el) el._filled=false;
+  });
+}
+
+function renderEspacos(){
+  var el = $('esp-lista'); if(!el) return;
+  var lista = espacosDoCondominio();
+  var proprios = Array.isArray(getCfgRes().espacos) && getCfgRes().espacos.length;
+
+  var aviso = $('esp-aviso-padrao');
+  if(aviso) aviso.style.display = proprios ? 'none' : '';
+
+  el.innerHTML = lista.map(function(nome){
+    var uso = _reservasDoEspaco(nome);
+    var selo = uso.futuras > 0
+      ? '<span class="esp-selo">'+uso.futuras+' reserva(s) por vir</span>'
+      : (uso.total > 0 ? '<span class="esp-selo esp-selo-frio">'+uso.total+' no histórico</span>' : '');
+    var n = escHtml(nome);
+    return '<div class="esp-item">'+
+             '<div class="esp-nome"><i class="fa-solid fa-location-dot"></i> '+n+selo+'</div>'+
+             '<div class="esp-acoes">'+
+               '<button class="btn btn-ghost btn-sm" onclick="pedirRenomearEspaco('+JSON.stringify(nome).replace(/"/g,'&quot;')+')">'+
+                 '<i class="fa-solid fa-pen"></i> Renomear</button>'+
+               '<button class="btn btn-ghost btn-sm esp-excluir" onclick="excluirEspaco('+JSON.stringify(nome).replace(/"/g,'&quot;')+')">'+
+                 '<i class="fa-solid fa-trash"></i> Excluir</button>'+
+             '</div>'+
+           '</div>';
+  }).join('');
+
+  var c = $('esp-contagem');
+  if(c) c.textContent = lista.length + (lista.length===1 ? ' espaço' : ' espaços');
 }
 
 /* Preenche o seletor de "espaço atual" da ferramenta de renomear */
