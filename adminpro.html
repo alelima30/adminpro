@@ -10664,15 +10664,29 @@ const _DIAS_SEM = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']; // domingo-first
 function _chvEsp(esp){ return esp.toLowerCase().replace(/[^a-z0-9]/g,'_'); }
 function getCfgRes(){ try{ return JSON.parse(localStorage.getItem('apvc_cfg_reservas')||'{}'); }catch(_){ return {}; } }
 function setCfgRes(cfg){
+  // Guarda o estado anterior para poder desfazer se o servidor recusar.
+  var _antes = null;
+  try{ _antes = localStorage.getItem('apvc_cfg_reservas'); }catch(_){}
   try{ localStorage.setItem('apvc_cfg_reservas', JSON.stringify(cfg)); }catch(_){}
+
   if(window.SB){
-    // Avisa na tela se o servidor recusar. Antes so aparecia no console e o
-    // usuario acreditava que a configuracao tinha sido salva.
     return SB.from('modulo_dados').upsert({condominio_id:_condAtual, modulo:'cfg_reservas', valor:cfg},{onConflict:'condominio_id,modulo'})
       .then(function(r){
         if(r.error){
+          // DESFAZ no aparelho. Configuracao que so existe neste celular e
+          // pior que um erro: a tela mostraria, por exemplo, um espaco que
+          // morador nenhum consegue reservar, e ninguem entenderia por que.
+          try{
+            if(_antes === null) localStorage.removeItem('apvc_cfg_reservas');
+            else localStorage.setItem('apvc_cfg_reservas', _antes);
+          }catch(_){}
+
           console.warn('cfg_reservas', r.error.message);
-          if(typeof toast==='function') toast('⚠️ Configuração salva neste aparelho, mas o servidor recusou: '+r.error.message);
+          if(typeof toast==='function') toast('⚠️ O servidor recusou: '+r.error.message+'. Nada foi salvo.');
+
+          // A tela volta a mostrar o que realmente esta gravado.
+          try{ renderEspacos(); }catch(_){}
+          try{ renderCfgReservas(); }catch(_){}
           return {ok:false, erro:r.error.message};
         }
         return {ok:true};
