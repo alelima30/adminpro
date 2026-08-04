@@ -273,7 +273,6 @@ html.light .sidebar .sb-section                         { color: rgba(174,190,22
 html.light .sidebar .sb-user                            { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); }
 html.light .sidebar .sb-user-name                       { color: #EEF1F8; }
 html.light .sidebar .sb-user-role                       { color: rgba(174,190,220,0.55); }
-html.light .sidebar .sb-avatar                          { color: #0D1629; }
 html.light .sidebar .logout-btn                         { color: rgba(174,190,220,0.65); border-color: rgba(255,255,255,0.10); }
 html.light .sidebar .logout-btn:hover                   { background: rgba(255,255,255,0.06); color: #EEF1F8; border-color: rgba(255,255,255,0.18); }
 
@@ -714,13 +713,6 @@ html.light .sb-flyout{background:#1A2847}
   border:1px solid rgba(255,255,255,0.07);
   margin-bottom:8px;
 }
-.sb-avatar{
-  width:32px;height:32px;border-radius:8px;
-  background:linear-gradient(135deg,#E87722,#B85E0F);
-  display:flex;align-items:center;justify-content:center;
-  font-size:13px;font-weight:700;color:#FFFFFF;
-  flex-shrink:0;
-}
 .sb-user-info{flex:1;min-width:0}
 .sb-user-name{font-size:12px;font-weight:500;color:#EEF1F8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-user-role{font-size:10px;color:rgba(174,190,220,0.50);margin-top:1px}
@@ -1139,6 +1131,18 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .fg{display:flex;flex-direction:column;gap:6px}
 .fg.full{grid-column:1/-1}
+/* Linhas de formulario que viram uma coluna so no celular.
+   O min-width:0 e essencial: sem ele, um rotulo longo ("E-mail do
+   Administrador do Condominio") impede a coluna de encolher e o
+   formulario vaza para fora da tela. */
+.f-linha{display:grid;gap:14px;margin-bottom:14px}
+.f-linha>*{min-width:0}
+.f-linha.cod  {grid-template-columns:140px 1fr}
+.f-linha.stat {grid-template-columns:1fr 160px}
+.f-linha.dupla{grid-template-columns:1fr 1fr}
+@media (max-width:700px){
+  .f-linha.cod,.f-linha.stat,.f-linha.dupla{grid-template-columns:1fr}
+}
 .fg label{
   font-size:11px;font-weight:600;
   letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);
@@ -1888,7 +1892,6 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
     </div>
     <div class="sb-foot">
       <div class="sb-user">
-        <div class="sb-avatar">AL</div>
         <div class="sb-user-info">
           <div class="sb-user-name" id="sb-nome">Alessandro Lima</div>
           <div class="sb-user-role">Administrador</div>
@@ -2798,16 +2801,16 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
             </div>
             <!-- Campos -->
             <div style="flex:1;min-width:280px">
-              <div style="display:grid;grid-template-columns:140px 1fr;gap:14px;margin-bottom:14px">
+              <div class="f-linha cod">
                 <div class="fg" style="margin:0"><label>Código</label><input type="text" id="saas-cod" placeholder="Ex: APVC" style="text-transform:uppercase"></div>
                 <div class="fg" style="margin:0"><label>Nome do Condomínio</label><input type="text" id="saas-nome" placeholder="Ex: Associação Parque Village Castelo"></div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 160px;gap:14px;margin-bottom:14px">
+              <div class="f-linha stat">
                 <div class="fg" style="margin:0"><label>E-mail do Administrador do Condomínio</label><input type="email" id="saas-admin" placeholder="admin@condominio.com"></div>
                 <div class="fg" style="margin:0"><label>Status</label>
                   <select id="saas-status"><option value="ativo">Ativo</option><option value="suspenso">Suspenso</option></select></div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px">
+              <div class="f-linha dupla" style="margin-bottom:6px">
                 <div class="fg" style="margin:0"><label>Senha de acesso do Administrador</label><input type="password" id="saas-admin-senha" placeholder="Mín. 6 caracteres" autocomplete="new-password"></div>
                 <div class="fg" style="margin:0"><label>Confirmar senha</label><input type="password" id="saas-admin-senha2" placeholder="Repita a senha" autocomplete="new-password"></div>
               </div>
