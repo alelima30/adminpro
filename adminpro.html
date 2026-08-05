@@ -8663,8 +8663,6 @@ function _abrirImpressao(titulo, corpoHtml){
     '.rc{max-width:520px;border:1px solid #e2e6ee;border-radius:12px;padding:22px 26px}'+
     '.rc .lin{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed #e2e6ee;font-size:13px}'+
     '.rc .lin b{color:#132040}.rc .tit{font-size:16px;font-weight:800;color:#E87722;margin-bottom:6px}'+
-    '.assin{margin-top:60px;display:flex;justify-content:space-around;text-align:center;font-size:12px;color:#555}'+
-    '.assin .l{border-top:1px solid #333;width:200px;padding-top:6px}'+
     '.aceite{margin-top:16px;border:1px solid #cfe3d4;background:#f3faf5;border-radius:8px;padding:12px 14px;font-size:12px;color:#1a2233}'+
     '.aceite>b{display:block;color:#1f7355;margin-bottom:5px;font-size:12.5px}'+
     '.aceite.aceite-nao{border-color:#f0d2d2;background:#fdf5f5}'+
@@ -8779,7 +8777,10 @@ function imprimirComprovante(id){
     lin('Caução', _relFmtMoeda(r.caucao))+
     lin('Pagamento', r.pgto==='pago'?'Pago':r.pgto==='isento'?'Isento':'Pendente')+
     _blocoAceiteTermo(r)+
-    '<div class="assin"><div class="l">Morador</div><div class="l">Administração</div></div>'+
+    // Sem linhas de assinatura a mao: o aceite deste comprovante e
+    // eletronico e esta provado no bloco acima (quem, quando, qual
+    // documento). Duas linhas em branco no rodape sugeririam que o papel
+    // so vale assinado — justamente o contrario do que ele comprova.
     '</div>';
   _abrirImpressao('Comprovante de Reserva Nº '+r.id, corpo);
 }
