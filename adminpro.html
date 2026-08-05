@@ -557,7 +557,15 @@ body{
 /* ══ SIDEBAR — sempre dark navy ══ */
 .sidebar{
   position:fixed;top:0;left:0;
-  width:var(--sidebar);height:100vh;
+  width:var(--sidebar);
+  /* 100dvh acompanha a barra de endereco do celular, que aparece e some
+     conforme a rolagem. Com 100vh puro a barra lateral fica MAIS ALTA
+     que a area visivel e o rodape — onde esta o botao "Sair do Portal" —
+     cai para fora da tela; ao esconder a barra do navegador ele
+     reaparecia, dai o "as vezes some". O 100vh fica como reserva para
+     navegadores antigos, que ignoram a linha seguinte. */
+  height:100vh;
+  height:100dvh;
   background:#132040;
   border-right:1px solid rgba(255,255,255,0.06);
   display:flex;flex-direction:column;
@@ -621,7 +629,9 @@ body{
 /* ── Coluna flyout (lista do tópico, à direita) ── */
 .sb-flyout{
   position:fixed;top:0;left:var(--sidebar);
-  width:236px;height:100vh;
+  /* Mesmo motivo da barra lateral: 100dvh respeita a barra de endereco
+     do celular; 100vh fica como reserva para navegadores antigos. */
+  width:236px;height:100vh;height:100dvh;
   background:#16223C;
   border-right:1px solid rgba(255,255,255,0.07);
   box-shadow:22px 0 60px rgba(0,0,0,0.40);
@@ -1163,13 +1173,38 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
    cortado e a barra de zoom/pagina empilhava um botao por linha. Abaixo
    de 780px empilha o visualizador em cima da lista, cada um com sua
    propria altura e rolagem — em vez de dividir a largura da tela ao meio. */
+/* Caixa externa da aba Informativos. No desktop tem altura fixa (uma tela)
+   para o visualizador de PDF ocupar todo o espaco. No celular precisa ser
+   automatica: com altura fixa, a lista de anexos ficava presa dentro dela,
+   a pagina nao crescia e os anexos que passavam do limite viravam
+   inalcançaveis — nem rolando. Era estilo em linha, que media query nenhuma
+   alcanca; por isso virou classe. */
+.inf-shell{display:flex;flex-direction:column;height:calc(100vh - 84px)}
 .inf-row{display:flex;gap:12px;align-items:flex-start;flex:1;min-height:0}
 .inf-viewer-col{flex:1;min-width:0;display:flex;flex-direction:column;height:100%}
 .inf-side-col{width:210px;flex-shrink:0;height:100%;display:flex;flex-direction:column;gap:14px;overflow-y:auto;padding-bottom:16px}
+/* O cartao da lista tem overflow:hidden (para arredondar os cantos) e
+   ocupa toda a altura disponivel — entao, passando de uns poucos anexos,
+   ele simplesmente CORTAVA o resto, sem rolagem em lugar nenhum. Aqui o
+   cartao vira coluna e quem rola e a lista por dentro, com o cabecalho
+   "Informativos" fixo no topo. No celular isto nao se aplica: la a lista
+   cresce e quem rola e a pagina (ver o @media abaixo). */
+.inf-side-col > .card{display:flex;flex-direction:column;min-height:0}
+.inf-side-col #informativos-lista{flex:1;min-height:0;overflow-y:auto}
 @media (max-width:780px){
+  .inf-shell{height:auto}
   .inf-row{flex-direction:column}
   .inf-viewer-col{width:100%;height:60vh}
-  .inf-side-col{width:100%;height:auto;max-height:40vh}
+  /* Sem teto de altura: com max-height, o cartao da lista (que tem
+     overflow:hidden) era espremido nesse limite e simplesmente cortava
+     os anexos seguintes — apareciam so uns 3 ou 4, sem rolagem e sem
+     como alcancar o resto. A lista cresce com os anexos e quem rola e a
+     pagina, igual aos Eventos. */
+  .inf-side-col{width:100%;height:auto;max-height:none;overflow-y:visible}
+  /* No celular a lista cresce inteira e quem rola e a pagina — sem
+     rolagem dentro de uma caixinha, que fica ruim de usar no toque. */
+  .inf-side-col > .card{display:block}
+  .inf-side-col #informativos-lista{flex:none;overflow-y:visible}
 }
 /* Area do PDF: toque abre em tela cheia (util no celular, onde o espaco
    normal e pequeno demais para ler o texto). Reaproveita o mesmo canvas
@@ -2667,7 +2702,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
       <!-- ████ P5: COMUNICADOS ████ -->
       <div class="panel" id="panel-comunicados" style="padding-top:0;padding-bottom:0">
-        <div style="display:flex;flex-direction:column;height:calc(100vh - 84px)">
+        <div class="inf-shell">
         <div class="tabs" data-acesso="admin,gestor,morador" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
           <button class="tab" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
           <button class="tab active" onclick="showPanel('comunicados')"><i class="fa-solid fa-newspaper" style="margin-right:6px"></i>Informativos</button>
