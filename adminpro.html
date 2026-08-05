@@ -1173,8 +1173,16 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   border-radius:0 0 var(--radius) var(--radius);
   padding:16px;text-align:center;cursor:zoom-in;position:relative;
 }
-.inf-canvas-wrap.inf-tela-cheia{
-  position:fixed;inset:0;z-index:10050;border:none;border-radius:0;
+/* #id + .classe (nao so ".classe.classe") de proposito: existem regras
+   antigas "#inf-canvas-wrap { height:NNvh !important }" em breakpoints
+   menores (768px e 400px) que travavam a altura mesmo com a tela cheia
+   ligada, porque um seletor por ID sempre vence dois seletores de classe,
+   non importa a ordem no arquivo. Sem o #id aqui, a tela cheia parecia
+   nao abrir — na verdade abria, so ficava presa em 45-55% da altura. */
+#inf-canvas-wrap.inf-tela-cheia{
+  position:fixed!important;inset:0!important;height:100vh!important;
+  width:100vw!important;max-width:none!important;
+  z-index:10050;border:none;border-radius:0;
   padding:16px 16px 64px;cursor:default;
 }
 #inf-tela-cheia-barra{
