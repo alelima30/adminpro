@@ -1868,6 +1868,12 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       </div>
 
       <div class="nav-standalone" data-acesso="admin,gestor,morador">
+        <div class="nav-item" id="nav-comunicados" onclick="showPanel('comunicados',this)">
+          <div class="nav-icon"><i class="fa-solid fa-bullhorn"></i></div>Comunicados
+        </div>
+      </div>
+
+      <div class="nav-standalone" data-acesso="admin,gestor,morador">
         <div class="nav-item" id="nav-encomendas" onclick="showPanel('encomendas',this)">
           <div class="nav-icon"><i class="fa-solid fa-box-open"></i></div>Encomendas
         </div>
@@ -2608,8 +2614,13 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
       <!-- ████ P5: COMUNICADOS ████ -->
       <div class="panel" id="panel-comunicados" style="padding-top:0;padding-bottom:0">
+        <div style="display:flex;flex-direction:column;height:calc(100vh - 84px)">
+        <div class="tabs" data-acesso="admin,gestor,morador" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
+          <button class="tab" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
+          <button class="tab active" onclick="showPanel('comunicados')"><i class="fa-solid fa-newspaper" style="margin-right:6px"></i>Informativos</button>
+        </div>
         <!-- LAYOUT: viewer PDF ocupa tudo + coluna lateral direita -->
-        <div style="display:flex;gap:12px;align-items:flex-start;height:calc(100vh - 84px)">
+        <div style="display:flex;gap:12px;align-items:flex-start;flex:1;min-height:0">
 
           <!-- ── VIEWER PDF (esquerda, flex:1, altura total) ── -->
           <div style="flex:1;min-width:0;display:flex;flex-direction:column;height:100%">
@@ -2676,10 +2687,15 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
             </div>
           </div>
         </div>
+        </div>
       </div>
 
       <!-- ████ P: EVENTOS ████ -->
       <div class="panel" id="panel-eventos">
+        <div class="tabs" data-acesso="admin,gestor,morador" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="tab active" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
+          <button class="tab" onclick="showPanel('comunicados')"><i class="fa-solid fa-newspaper" style="margin-right:6px"></i>Informativos</button>
+        </div>
         <div class="ph">
           <div><div class="ph-title">Eventos</div><div class="ph-sub">Calendário de eventos e comunicados do condomínio</div></div>
           <div class="ph-actions">
@@ -4768,8 +4784,8 @@ const MODULOS_SAAS = {
   encomendas:     { label:'Encomendas',                grupo:null,            secao:'Operações' },
   manutencao:     { label:'Manutenção',                grupo:'operacoes',     secao:'Operações' },
   preventivas:    { label:'Preventivas & Corretivas',  grupo:'operacoes',     secao:'Operações' },
-  comunicados:    { label:'Comunicados',               grupo:'operacoes',     secao:'Operações' },
-  eventos:        { label:'Eventos',                   grupo:'operacoes',     secao:'Operações' },
+  comunicados:    { label:'Comunicados (Informativos)', grupo:null,           secao:'Operações' },
+  eventos:        { label:'Eventos',                   grupo:null,           secao:'Operações' },
   regulamento:    { label:'Regulamentos',              grupo:'operacoes',     secao:'Operações' },
   procedimentos:  { label:'Procedimentos',             grupo:'operacoes',     secao:'Operações' },
   usuarios:       { label:'Usuários',                  grupo:'sistema',       secao:'Sistema' },
@@ -4892,12 +4908,16 @@ function painelInicial(){
   const nivel = window._userNivel || 'morador';
   const permitidos = paineisPermitidos(nivel);
   const ativos = modulosVisiveis();
-  const ordem = ['dashboard'];
+  // 'comunicados' e 'eventos' viraram abas dentro do item standalone
+  // Comunicados (fora de SB_GRUPOS) -> sem isto, sumiriam desta lista e um
+  // morador cujo unico modulo liberado fosse um dos dois ficaria sem tela.
+  const ordem = ['dashboard','comunicados','eventos'];
   ['paineis','administrativo','cadastro','operacoes','sistema'].forEach(function(g){
     ((SB_GRUPOS[g]||{}).itens||[]).forEach(function(it){
       if(String(it.id).indexOf('__nav')!==0) ordem.push(it.id);
     });
   });
+  ordem.push('inicio'); // ultimo recurso: sempre permitido, sem modulo
   for(var i=0;i<ordem.length;i++){
     var id=ordem[i];
     if(permitidos.indexOf(id)<0) continue;
@@ -4914,11 +4934,14 @@ function aplicarSaas(){
   const nivel = nivelMenu();
   // Só mostra se o NÍVEL permite (data-acesso) E o módulo está liberado.
   const _nivelPermite = el => { const a=el&&el.getAttribute('data-acesso'); return !a || a.split(',').includes(nivel); };
-  // Itens standalone (Dashboard, Reservas, Encomendas): gate por tela
-  ['dashboard','reservas','encomendas'].forEach(function(id){
+  // Itens standalone (Dashboard, Reservas, Comunicados, Encomendas): gate por tela.
+  // Comunicados hospeda duas abas com modulo proprio cada (comunicados = Informativos,
+  // eventos = Eventos) -> o item so some se NENHUMA das duas estiver liberada.
+  ['dashboard','reservas','comunicados','encomendas'].forEach(function(id){
     var nav=$('nav-'+id); if(!nav) return;
     var st=nav.closest('.nav-standalone'); if(!st) return;
-    st.style.display = (ativos.includes(id) && _nivelPermite(st)) ? '' : 'none';
+    var liberado = id==='comunicados' ? (ativos.includes('comunicados')||ativos.includes('eventos')) : ativos.includes(id);
+    st.style.display = (liberado && _nivelPermite(st)) ? '' : 'none';
   });
   // Grupos: esconde se nenhuma tela liberada OU o nível não permite
   document.querySelectorAll('.sb-group').forEach(g=>{
@@ -5510,7 +5533,7 @@ function closeSidebar(){
 }
 
 /* ══ NAVIGATION ══ */
-const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Comunicados',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas'};
+const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas'};
 const ACESSO_PAINEIS = {
   admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','regulamento','usuarios','configuracoes','procedimentos'],
   gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','regulamento','procedimentos'],
@@ -6662,8 +6685,6 @@ const SB_GRUPOS = {
   operacoes:{ titulo:'Opera\u00e7\u00f5es', itens:[
     {id:'manutencao',    label:'Manuten\u00e7\u00e3o',               icon:'fa-wrench',               acesso:['admin','gestor']},
     {id:'preventivas',   label:'Preventivas & Corretivas', icon:'fa-screwdriver-wrench',   acesso:['admin','gestor']},
-    {id:'comunicados',   label:'Comunicados',              icon:'fa-bullhorn',             acesso:['admin','gestor','morador']},
-    {id:'eventos',       label:'Eventos',                  icon:'fa-calendar-day',         acesso:['admin','gestor','morador']},
     {id:'regulamento',   label:'Regulamentos',             icon:'fa-scroll',               acesso:['admin','gestor','morador']},
     {id:'procedimentos', label:'Procedimentos',            icon:'fa-clipboard-list',       acesso:['admin','gestor','morador']},
   ]},
@@ -6776,7 +6797,9 @@ function sbMarkActive(id){
   if(id==='dashboard'){ const d=$('nav-dashboard'); if(d) d.classList.add('active'); return; }
   // Relatórios é aba dentro de Reservas -> mantém o item Reservas destacado
   if(id==='relatorios'||id==='espacos'){ var nr=$('nav-reservas'); if(nr) nr.classList.add('active'); return; }
-  // Itens standalone (fora de grupo): Reservas, Encomendas
+  // Eventos é aba dentro de Comunicados -> mantém o item Comunicados destacado
+  if(id==='eventos'){ var nc=$('nav-comunicados'); if(nc) nc.classList.add('active'); return; }
+  // Itens standalone (fora de grupo): Reservas, Comunicados, Encomendas
   var _stand=$('nav-'+id);
   if(_stand && _stand.closest('.nav-standalone')){ _stand.classList.add('active'); return; }
   for(const key in SB_GRUPOS){
