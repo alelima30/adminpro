@@ -773,7 +773,14 @@ html.light .sb-flyout{background:#1A2847}
 .content{padding:28px}
 
 /* ══ PANELS ══ */
-.panel{display:none;animation:panelIn 0.3s ease both}
+/* Sem "both" de proposito: o fill-mode fazia o painel guardar para sempre
+   o transform:translateY(0) do ultimo quadro. Um transform (mesmo zerado)
+   faz o elemento virar referencia de posicionamento para filhos
+   position:fixed — era por isso que a tela cheia do PDF nascia deslocada,
+   presa dentro da area de conteudo em vez de cobrir a tela. Sem o fill,
+   ao terminar a animacao o transform volta a "none" e o estado final e
+   visualmente identico (opacity 1, sem deslocamento). */
+.panel{display:none;animation:panelIn 0.3s ease}
 .panel.active{display:block}
 @keyframes panelIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
