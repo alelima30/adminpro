@@ -1164,6 +1164,32 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   .inf-viewer-col{width:100%;height:60vh}
   .inf-side-col{width:100%;height:auto;max-height:40vh}
 }
+/* Area do PDF: toque abre em tela cheia (util no celular, onde o espaco
+   normal e pequeno demais para ler o texto). Reaproveita o mesmo canvas
+   e as mesmas funcoes de zoom/pagina — so troca o tamanho da caixa. */
+.inf-canvas-wrap{
+  flex:1;min-width:0;overflow:auto;background:#525659;
+  border:1px solid var(--border);border-top:none;
+  border-radius:0 0 var(--radius) var(--radius);
+  padding:16px;text-align:center;cursor:zoom-in;position:relative;
+}
+.inf-canvas-wrap.inf-tela-cheia{
+  position:fixed;inset:0;z-index:10050;border:none;border-radius:0;
+  padding:16px 16px 64px;cursor:default;
+}
+#inf-tela-cheia-barra{
+  display:none;position:fixed;left:0;right:0;bottom:0;z-index:10051;
+  align-items:center;justify-content:center;gap:14px;
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);
+}
+.inf-canvas-wrap.inf-tela-cheia #inf-tela-cheia-barra{display:flex}
+#inf-tela-cheia-barra button{
+  background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.25);
+  border-radius:8px;width:38px;height:38px;font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;line-height:1;
+}
+#inf-tela-cheia-pag{color:#fff;font-size:13px;font-weight:600;min-width:54px;text-align:center}
 /* Linhas de formulario que viram uma coluna so no celular.
    O min-width:0 e essencial: sem ele, um rotulo longo ("E-mail do
    Administrador do Condominio") impede a coluna de encolher e o
@@ -2677,13 +2703,20 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
             </div>
 
             <!-- Área do canvas — ocupa o resto da altura -->
-            <div id="inf-canvas-wrap" style="flex:1;min-width:0;overflow:auto;background:#525659;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:16px;text-align:center">
+            <div id="inf-canvas-wrap" class="inf-canvas-wrap" onclick="infToggleTelaCheia(event)" title="Toque para ver em tela cheia">
               <!-- Placeholder -->
               <div id="inf-viewer-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;height:100%;width:100%;color:rgba(255,255,255,0.2)">
                 <div style="font-size:72px;opacity:0.25">📰</div>
                 <div style="font-size:16px;font-weight:600">Carregando informativo…</div>
               </div>
               <canvas id="inf-pdf-canvas" style="display:none;box-shadow:0 12px 60px rgba(0,0,0,0.8);border-radius:2px"></canvas>
+              <!-- Barra da tela cheia: so aparece com .inf-tela-cheia ativo -->
+              <div id="inf-tela-cheia-barra">
+                <button onclick="event.stopPropagation();infToggleTelaCheia(event)" title="Fechar tela cheia (Esc)">✕</button>
+                <button onclick="event.stopPropagation();infPdfAnterior()" title="Página anterior">‹</button>
+                <span id="inf-tela-cheia-pag">— / —</span>
+                <button onclick="event.stopPropagation();infPdfProxima()" title="Próxima página">›</button>
+              </div>
             </div>
           </div>
 
@@ -11650,8 +11683,28 @@ function _infRenderPage(num){
       _infViewerPage = num;
       document.getElementById('inf-viewer-pag').textContent  = num + ' / ' + _infViewerTotal;
       document.getElementById('inf-viewer-zoom').textContent = _infViewerZoomMult===1.0 ? 'Ajuste' : Math.round(_infViewerZoomMult * 100) + '%';
+      var pagCheia = document.getElementById('inf-tela-cheia-pag');
+      if(pagCheia) pagCheia.textContent = num + ' / ' + _infViewerTotal;
     });
   });
+}
+
+/* Toque no PDF aberto -> tela cheia. Reaproveita o mesmo canvas e as
+   mesmas funcoes de pagina/zoom: so troca o tamanho da caixa e manda
+   renderizar de novo, que ja se ajusta ao novo espaco sozinho. */
+function _infTelaCheiaEsc(e){ if(e.key==='Escape') infToggleTelaCheia(e); }
+
+function infToggleTelaCheia(event){
+  var wrap = document.getElementById('inf-canvas-wrap');
+  if(!wrap) return;
+  var abrindo = !wrap.classList.contains('inf-tela-cheia');
+  if(abrindo && !_infViewerDoc) return; // nada carregado ainda: nao abre vazio
+  wrap.classList.toggle('inf-tela-cheia');
+  if(abrindo) document.addEventListener('keydown', _infTelaCheiaEsc);
+  else document.removeEventListener('keydown', _infTelaCheiaEsc);
+  // O tamanho do canvas foi calculado para a caixa antiga; renderiza de
+  // novo agora que _infCalcWidth() vai medir o novo tamanho da caixa.
+  if(_infViewerDoc) _infRenderPage(_infViewerPage);
 }
 
 function infPdfProxima(){ if(_infViewerPage<_infViewerTotal) _infRenderPage(_infViewerPage+1); }
@@ -11719,6 +11772,13 @@ function fecharPdfViewer(){
 function renderInformativos(autoLoad){
   var el=document.getElementById('informativos-lista');
   if(!el) return;
+  // Se a aba foi trocada com a tela cheia aberta, garante que volta
+  // normal ao reentrar aqui — senao ficaria "grudada" cobrindo a tela.
+  var wrapTC=document.getElementById('inf-canvas-wrap');
+  if(wrapTC && wrapTC.classList.contains('inf-tela-cheia')){
+    wrapTC.classList.remove('inf-tela-cheia');
+    document.removeEventListener('keydown', _infTelaCheiaEsc);
+  }
   var nivel=window._userNivel||'morador';
   var isAdmin=(nivel==='admin');
   var btnAdd=document.getElementById('btn-add-inf');
