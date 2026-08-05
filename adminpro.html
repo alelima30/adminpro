@@ -1608,33 +1608,21 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   #res-trend-grid{ grid-template-columns:1fr !important; }
 
   /* ══ COMUNICADOS / VIEWER PDF ══ */
-  /* Layout desktop: flex row (pdf + coluna direita) → mobile: flex column */
-  #panel-comunicados > div {
-    flex-direction: column !important;
-    height: auto !important;
-    min-height: 0 !important;
-  }
-
-  /* Viewer PDF ocupa 100% da largura em mobile */
-  #panel-comunicados > div > div:first-child {
-    height: auto !important;
-    min-height: 360px;
-  }
+  /* Empilhar (visualizador em cima, lista embaixo) e o tamanho de cada
+     coluna ja vem de .inf-row/.inf-viewer-col/.inf-side-col (ver o outro
+     @media perto do topo do arquivo). Estas regras aqui usavam seletor
+     de posicao (":first-child"/"last-child") a partir do panel-comunicados,
+     e apontavam certo ANTES da barra de abas (Eventos/Informativos) virar
+     o primeiro filho ali dentro — depois disso passaram a mirar a barra
+     de abas em vez do visualizador, esticando os botoes da aba para
+     ocupar a altura toda. Substituidas por regras com nome de classe,
+     que nao quebram de novo se a estrutura mudar. */
 
   /* Área do canvas com altura fixa mas scrollável */
   #inf-canvas-wrap {
     height: 55vh !important;
     min-height: 300px;
     flex: none !important;
-  }
-
-  /* Coluna direita (lista de informativos) fica abaixo */
-  #panel-comunicados > div > div:last-child {
-    width: 100% !important;
-    height: auto !important;
-    flex-direction: column !important;
-    overflow-y: visible !important;
-    padding-bottom: 16px;
   }
 
   /* Eventos: altura auto em mobile */
