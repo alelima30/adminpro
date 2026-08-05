@@ -3373,7 +3373,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
       <div class="panel" id="panel-configuracoes">
         <div class="ph">
-          <div><div class="ph-title">⚙️ Configurações</div><div class="ph-sub">Reservas, WhatsApp (Z-API) e E-mail (Supabase + Resend)</div></div>
+          <div><div class="ph-title">⚙️ Configurações</div><div class="ph-sub">Reservas, avisos por WhatsApp e por e-mail</div></div>
           <div class="ph-actions">
             <button class="btn btn-gold" onclick="salvarConfigs()">💾 Salvar Configurações</button>
             <button id="btn-enviar-manual" class="btn btn-ghost" onclick="enviarAlertaManual()">📤 Enviar alertas pendentes agora</button>
@@ -9174,11 +9174,26 @@ async function salvarRes(){
   try{ closeModal('m-res'); renderReservas(); verificarAlertas(); }catch(_e){ console.error('pós-reserva (ignorado):', _e); }
 
   // aviso visual pro morador
-  if(_isMoradorMsg && statusVal==='pendente'){
-    const _msg = (_cfgN.msg_validacao||'').trim() ||
-      'Sua reserva foi registrada e está aguardando validação da administração. Você será avisado assim que for aprovada.';
-    if(typeof mostrarAvisoReserva==='function') mostrarAvisoReserva(_msg);
-    else { toast('✓ Reserva registrada — aguardando validação.'); alert(_msg); }
+  if(_isMoradorMsg){
+    const _partes = [];
+    if(statusVal==='pendente'){
+      _partes.push((_cfgN.msg_validacao||'').trim() ||
+        'Sua reserva foi registrada e está aguardando validação da administração. Você será avisado assim que for aprovada.');
+    }
+    // Falta pagar? Avisa aqui — antes disso, quem não reparasse no botão
+    // "Pagar com Pix" do card só descobria a taxa por acaso.
+    const _faltaPagar = obj.taxa>0 && obj.pgto!=='pago' && obj.pgto!=='isento' && (_cfgN.pix_chave||'').trim();
+    if(_faltaPagar){
+      _partes.push('Falta pagar a taxa de '+fmt(obj.taxa)+' via Pix. Toque em "Pagar com Pix" na sua reserva — '+
+        'a administração confirma o recebimento manualmente antes de liberar.');
+    }
+    if(_partes.length){
+      const _msg = _partes.join('\n\n');
+      if(typeof mostrarAvisoReserva==='function') mostrarAvisoReserva(_msg);
+      else { toast('✓ Reserva registrada.'); alert(_msg); }
+    } else {
+      toast('✓ Reserva salva com sucesso.');
+    }
   } else {
     toast('✓ Reserva salva com sucesso.');
   }
