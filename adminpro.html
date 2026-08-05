@@ -1151,6 +1151,19 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   .esp-acoes{width:100%}
   .esp-acoes .btn{flex:1;justify-content:center}
 }
+/* Informativos: visualizador de PDF + lista lado a lado.
+   No celular as duas colunas ficavam espremidas (~150px cada), titulo
+   cortado e a barra de zoom/pagina empilhava um botao por linha. Abaixo
+   de 780px empilha o visualizador em cima da lista, cada um com sua
+   propria altura e rolagem — em vez de dividir a largura da tela ao meio. */
+.inf-row{display:flex;gap:12px;align-items:flex-start;flex:1;min-height:0}
+.inf-viewer-col{flex:1;min-width:0;display:flex;flex-direction:column;height:100%}
+.inf-side-col{width:210px;flex-shrink:0;height:100%;display:flex;flex-direction:column;gap:14px;overflow-y:auto;padding-bottom:16px}
+@media (max-width:780px){
+  .inf-row{flex-direction:column}
+  .inf-viewer-col{width:100%;height:60vh}
+  .inf-side-col{width:100%;height:auto;max-height:40vh}
+}
 /* Linhas de formulario que viram uma coluna so no celular.
    O min-width:0 e essencial: sem ele, um rotulo longo ("E-mail do
    Administrador do Condominio") impede a coluna de encolher e o
@@ -2619,11 +2632,11 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           <button class="tab" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
           <button class="tab active" onclick="showPanel('comunicados')"><i class="fa-solid fa-newspaper" style="margin-right:6px"></i>Informativos</button>
         </div>
-        <!-- LAYOUT: viewer PDF ocupa tudo + coluna lateral direita -->
-        <div style="display:flex;gap:12px;align-items:flex-start;flex:1;min-height:0">
+        <!-- LAYOUT: viewer PDF ocupa tudo + coluna lateral direita (empilha no celular, ver .inf-row) -->
+        <div class="inf-row">
 
           <!-- ── VIEWER PDF (esquerda, flex:1, altura total) ── -->
-          <div style="flex:1;min-width:0;display:flex;flex-direction:column;height:100%">
+          <div class="inf-viewer-col">
 
             <!-- Cabeçalho do viewer -->
             <div id="inf-viewer-topbar" style="display:flex;flex-direction:column;gap:0;background:var(--card);border:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;flex-shrink:0">
@@ -2675,7 +2688,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           </div>
 
           <!-- ── COLUNA DIREITA: apenas Informativos ── -->
-          <div style="width:210px;flex-shrink:0;height:100%;display:flex;flex-direction:column;gap:14px;overflow-y:auto;padding-bottom:16px">
+          <div class="inf-side-col">
 
             <!-- Card Informativos -->
             <div class="card" style="padding:0;overflow:hidden;flex:1">
