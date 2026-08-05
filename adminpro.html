@@ -2631,7 +2631,10 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
               <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)">
                 <span style="font-size:18px;flex-shrink:0">📰</span>
                 <div style="min-width:0;flex:1">
-                  <div style="font-size:13px;font-weight:700;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="inf-viewer-ed">Informativos Village Castelo</div>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <div style="font-size:13px;font-weight:700;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="inf-viewer-ed">Informativos</div>
+                    <button id="btn-editar-titulo-inf" onclick="editarTituloInformativos()" title="Renomear este título (fica salvo para este condomínio)" style="display:none;background:transparent;color:var(--text-3);border:none;cursor:pointer;font-size:12px;padding:2px 4px;flex-shrink:0">✏️</button>
+                  </div>
                   <div style="font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="inf-viewer-titulo">Selecione uma edição na lista ao lado</div>
                 </div>
                 <!-- Botão Editar — visível apenas para admin após abrir um informativo -->
@@ -11426,6 +11429,51 @@ var _infPdfBase64=null, _infPdfBuffer=null, _infPdfFile=null;
 
 /* ── Supabase Storage + modulo_dados para informativos ── */
 
+/* ── Título dos Informativos: editável por condomínio ──
+   Antes vinha escrito na mão no HTML ("Informativos Village Castelo") e
+   aparecia igual para qualquer condomínio. Agora fica salvo em
+   modulo_dados (modulo='cfg_informativos'), como as outras configurações
+   por condomínio, com um padrão sensato quando ninguém personalizou. */
+var _infTituloAtual = null;
+
+function _infTituloPadrao(){
+  var nome = (typeof nomeCondominioAtual==='function') ? nomeCondominioAtual() : '';
+  return nome ? ('Informativos ' + nome) : 'Informativos';
+}
+
+async function _infTituloCarregar(){
+  var padrao = _infTituloPadrao();
+  var el = document.getElementById('inf-viewer-ed');
+  if(!SB){ _infTituloAtual = padrao; if(el) el.textContent = padrao; return padrao; }
+  try{
+    var r = await SB.from('modulo_dados').select('valor').eq('condominio_id',_condAtual).eq('modulo','cfg_informativos').maybeSingle();
+    _infTituloAtual = (r.data && r.data.valor && r.data.valor.titulo) ? r.data.valor.titulo : padrao;
+  }catch(e){ _infTituloAtual = padrao; }
+  if(el) el.textContent = _infTituloAtual;
+  return _infTituloAtual;
+}
+
+async function editarTituloInformativos(){
+  var atual = _infTituloAtual || _infTituloPadrao();
+  var novo = prompt('Título exibido no topo dos Informativos deste condomínio:', atual);
+  if(novo===null) return; // cancelou
+  novo = novo.trim();
+  if(!novo){ toast('⚠️ O título não pode ficar vazio.'); return; }
+  if(!SB){ toast('⚠️ Servidor indisponível — nada foi salvo.'); return; }
+  try{
+    var r = await SB.from('modulo_dados').upsert(
+      {condominio_id:_condAtual, modulo:'cfg_informativos', valor:{titulo:novo}},
+      {onConflict:'condominio_id,modulo'}
+    );
+    if(r.error) throw r.error;
+    _infTituloAtual = novo;
+    var el = document.getElementById('inf-viewer-ed'); if(el) el.textContent = novo;
+    toast('✓ Título atualizado.');
+  }catch(e){
+    toast('⚠️ Não consegui salvar o título: '+(e&&e.message?e.message:'tente novamente.'));
+  }
+}
+
 async function _infMeta(){
   if(!SB) return {};
   var r=await SB.from('modulo_dados').select('valor').eq('condominio_id',_condAtual).eq('modulo','informativos').maybeSingle();
@@ -11645,7 +11693,7 @@ function fecharPdfViewer(){
   var placeholder=document.getElementById('inf-viewer-placeholder');
   if(canvas){ canvas.style.display='none'; }
   if(placeholder){ placeholder.style.display='flex'; }
-  document.getElementById('inf-viewer-ed').textContent='Informativos Village Castelo';
+  document.getElementById('inf-viewer-ed').textContent=_infTituloAtual||_infTituloPadrao();
   document.getElementById('inf-viewer-titulo').textContent='Selecione uma edição na lista ao lado';
   document.getElementById('inf-viewer-pag').textContent='— / —';
   document.getElementById('inf-viewer-zoom').textContent='Ajuste';
@@ -11662,6 +11710,9 @@ function renderInformativos(autoLoad){
   var isAdmin=(nivel==='admin');
   var btnAdd=document.getElementById('btn-add-inf');
   if(btnAdd) btnAdd.style.display=isAdmin?'block':'none';
+  var btnTit=document.getElementById('btn-editar-titulo-inf');
+  if(btnTit) btnTit.style.display=isAdmin?'inline-flex':'none';
+  _infTituloCarregar();
 
   // Mostra cache imediatamente enquanto carrega do servidor
   var cacheList = _cacheListaCarregar();
