@@ -4781,7 +4781,12 @@ function _resRowToApp(r){
     chkCaucaoAceite:!!c.chkCaucaoAceite, chkVPre:!!c.chkVPre, chkVPos:!!c.chkVPos,
     chkCaucaoDev:!!c.chkCaucaoDev, chkRegras:!!c.chkRegras, chkDevolucao:!!c.chkDevolucao,
     obs:r.obs||'', alertaWhatsapp:r.alerta_whatsapp||'', alertaEmail:r.alerta_email||'',
-    alertas:r.alertas||[], criadoPor:r.criado_por||'', loteResponsavel:r.unidade||'' };
+    alertas:r.alertas||[], criadoPor:r.criado_por||'',
+    // criado_em e carimbado pelo SERVIDOR (default now()) e nunca enviado
+    // pelo app — por isso serve como data/hora do aceite que o navegador
+    // do morador nao consegue forjar.
+    criadoEm:r.criado_em||'', termoDoc:c.termoDoc||'',
+    loteResponsavel:r.unidade||'' };
 }
 function _resAppToRow(o){
   return { condominio_id:_condAtual, id:o.id, nome:o.nome||null, unidade:o.lote||null, tel:o.tel||null,
@@ -4791,7 +4796,8 @@ function _resAppToRow(o){
     pgto:o.pgto||null, data_pgto:o.dataPgto||null, forma_pgto:o.formaPgto||null, comprovante:o.comprovante||null,
     checklist:{ chkTermo:!!o.chkTermo, chkTaxaCampo:!!o.chkTaxaCampo, chkTaxaSalao:!!o.chkTaxaSalao,
       chkCaucaoAceite:!!o.chkCaucaoAceite, chkVPre:!!o.chkVPre, chkVPos:!!o.chkVPos,
-      chkCaucaoDev:!!o.chkCaucaoDev, chkRegras:!!o.chkRegras, chkDevolucao:!!o.chkDevolucao },
+      chkCaucaoDev:!!o.chkCaucaoDev, chkRegras:!!o.chkRegras, chkDevolucao:!!o.chkDevolucao,
+      termoDoc:o.termoDoc||'' },
     obs:o.obs||null, alerta_whatsapp:o.alertaWhatsapp||null, alerta_email:o.alertaEmail||null,
     alertas:o.alertas||[], criado_por:o.criadoPor||null };
 }
@@ -8659,6 +8665,15 @@ function _abrirImpressao(titulo, corpoHtml){
     '.rc .lin b{color:#132040}.rc .tit{font-size:16px;font-weight:800;color:#E87722;margin-bottom:6px}'+
     '.assin{margin-top:60px;display:flex;justify-content:space-around;text-align:center;font-size:12px;color:#555}'+
     '.assin .l{border-top:1px solid #333;width:200px;padding-top:6px}'+
+    '.aceite{margin-top:16px;border:1px solid #cfe3d4;background:#f3faf5;border-radius:8px;padding:12px 14px;font-size:12px;color:#1a2233}'+
+    '.aceite>b{display:block;color:#1f7355;margin-bottom:5px;font-size:12.5px}'+
+    '.aceite.aceite-nao{border-color:#f0d2d2;background:#fdf5f5}'+
+    '.aceite.aceite-nao>b{color:#9b2f2f}'+
+    '.aceite .ev{margin-top:9px;border-top:1px dashed #cfe3d4;padding-top:8px}'+
+    '.aceite .ev>div{display:flex;justify-content:space-between;gap:12px;padding:3px 0}'+
+    '.aceite .ev span{color:#666}'+
+    '.aceite .ev b{color:#132040;text-align:right;word-break:break-all;max-width:62%}'+
+    '.aceite .obsv{margin-top:8px;font-size:11px;color:#8a6d3b;font-style:italic}'+
     '@media print{body{margin:14mm}button{display:none}}';
   var cab='<div class="cab">'+(logo?'<img src="'+logo+'">':'')+'<div><h1>'+nomeCond+'</h1><div class="sub">'+titulo+'</div></div></div>';
   var rod='<div class="rod">Gerado em '+new Date().toLocaleString('pt-BR')+' · AdminPro — Gestão de Reservas</div>';
@@ -8696,11 +8711,53 @@ function imprimirRelatorioReservas(){
   var totalTaxa=lista.reduce(function(s,r){return s+(parseFloat(r.taxa)||0);},0);
   var totalPago=lista.reduce(function(s,r){return s+(r.pgto==='pago'?(parseFloat(r.taxa)||0):0);},0);
   var linhas=lista.map(function(r){
-    return '<tr><td>'+_relFmtData(r.data)+'</td><td>'+escHtml(r.horario||'—')+'</td><td>'+escHtml(r.espaco||'—')+'</td><td>'+escHtml(r.nome||'—')+'</td><td>'+escHtml(r.lote||'—')+'</td><td>'+(_REL_STATUS_LABEL[r.status]||r.status||'—')+'</td><td>'+_relFmtMoeda(r.taxa)+'</td><td>'+(r.pgto==='pago'?'Pago':r.pgto==='isento'?'Isento':'Pendente')+'</td></tr>';
+    return '<tr><td>'+_relFmtData(r.data)+'</td><td>'+escHtml(r.horario||'—')+'</td><td>'+escHtml(r.espaco||'—')+'</td><td>'+escHtml(r.nome||'—')+'</td><td>'+escHtml(r.lote||'—')+'</td><td>'+(_REL_STATUS_LABEL[r.status]||r.status||'—')+'</td><td>'+_relFmtMoeda(r.taxa)+'</td><td>'+(r.pgto==='pago'?'Pago':r.pgto==='isento'?'Isento':'Pendente')+
+      // Data/hora do aceite (carimbo do servidor). Na lista vai so a data,
+      // para caber; o comprovante individual traz a prova completa.
+      '</td><td>'+(r.chkTermo ? ('Aceito'+(r.criadoEm?(' '+(_fmtDataHoraBR(r.criadoEm)||'')):'')) : '—')+'</td></tr>';
   }).join('');
-  var corpo='<table><thead><tr><th>Data</th><th>Horário</th><th>Espaço</th><th>Morador</th><th>Unid.</th><th>Status</th><th>Taxa</th><th>Pgto</th></tr></thead><tbody>'+linhas+'</tbody></table>'+
+  var corpo='<table><thead><tr><th>Data</th><th>Horário</th><th>Espaço</th><th>Morador</th><th>Unid.</th><th>Status</th><th>Taxa</th><th>Pgto</th><th>Termo</th></tr></thead><tbody>'+linhas+'</tbody></table>'+
     '<div class="tot">Total de reservas: '+lista.length+' &nbsp;·&nbsp; Taxas: '+_relFmtMoeda(totalTaxa)+' &nbsp;·&nbsp; Pagas: '+_relFmtMoeda(totalPago)+'</div>';
   _abrirImpressao('Relatório de Reservas', corpo);
+}
+
+/* Data e hora do aceite, formatada. Vem de criado_em — carimbo do
+   SERVIDOR, que o navegador do morador nao envia nem consegue alterar. */
+function _fmtDataHoraBR(iso){
+  if(!iso) return '';
+  var d=new Date(iso);
+  if(isNaN(d.getTime())) return '';
+  return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+/* Bloco de prova do aceite do Termo de Responsabilidade, para o
+   comprovante impresso. Declara exatamente o que o sistema registrou —
+   e, quando algum dado nao existe (reservas antigas), diz isso em vez de
+   dar a entender que a prova esta completa. */
+function _blocoAceiteTermo(r){
+  if(!r || !r.chkTermo){
+    return '<div class="aceite aceite-nao"><b>Termo de Responsabilidade</b>'+
+           '<div>Não consta aceite registrado para esta reserva.</div></div>';
+  }
+  var quando = _fmtDataHoraBR(r.criadoEm);
+  var quem   = (r.criadoPor||'').trim();
+  var doc    = (r.termoDoc||'').trim();
+
+  var html='<div class="aceite"><b>✓ Termo de Responsabilidade — aceito</b>'+
+    '<div>O responsável declarou, no ato da reserva, ter lido e concordado '+
+    'com o Termo de Responsabilidade do espaço.</div>'+
+    '<div class="ev">';
+  html += '<div><span>Aceito por</span><b>'+escHtml(quem||'não registrado')+'</b></div>';
+  html += '<div><span>Data e hora</span><b>'+escHtml(quando||'não registrada')+'</b></div>';
+  html += '<div><span>Unidade</span><b>'+escHtml(r.lote||'—')+'</b></div>';
+  html += '<div><span>Documento aceito</span><b>'+(doc?escHtml(doc):'não registrado (reserva anterior a este controle)')+'</b></div>';
+  html += '</div>';
+  if(!doc || !quando){
+    html += '<div class="obsv">Esta reserva foi criada antes do registro completo de evidências; '+
+            'os campos marcados como não registrados não constam do sistema.</div>';
+  }
+  html += '</div>';
+  return html;
 }
 
 function imprimirComprovante(id){
@@ -8721,6 +8778,7 @@ function imprimirComprovante(id){
     lin('Taxa', _relFmtMoeda(r.taxa))+
     lin('Caução', _relFmtMoeda(r.caucao))+
     lin('Pagamento', r.pgto==='pago'?'Pago':r.pgto==='isento'?'Isento':'Pendente')+
+    _blocoAceiteTermo(r)+
     '<div class="assin"><div class="l">Morador</div><div class="l">Administração</div></div>'+
     '</div>';
   _abrirImpressao('Comprovante de Reserva Nº '+r.id, corpo);
@@ -9216,7 +9274,19 @@ async function salvarRes(){
     chkDevolucao:$('mres-chk-devolucao').checked,
     obs:$('mres-obs').value.trim(),
     alertaWhatsapp:'', alertaEmail:'', alertas:[],  // seção removida do formulário
-    criadoPor: (JSON.parse(localStorage.getItem('apvc_user')||'{}')).email||'',
+    // PROVA DO ACEITE — nao pode ser reescrita ao editar a reserva depois.
+    // criadoPor era sobrescrito a cada salvamento: se a administracao
+    // editasse a reserva, o registro de quem aceitou o termo virava o
+    // e-mail de quem editou, destruindo a evidencia.
+    criadoPor: (_resExistente && _resExistente.criadoPor)
+                 ? _resExistente.criadoPor
+                 : ((JSON.parse(localStorage.getItem('apvc_user')||'{}')).email||''),
+    // Qual documento estava valendo no instante do aceite. Sem isto,
+    // trocar depois o PDF do termo do espaco apagaria a referencia do
+    // que foi efetivamente aceito.
+    termoDoc: (_resExistente && _resExistente.termoDoc)
+                 ? _resExistente.termoDoc
+                 : ((getCfgRes()['termo_'+_chvEsp(espacoRes)]||'').trim()),
     loteResponsavel: $('mres-lote').value.trim(), // ← identificador robusto por lote
   };
   // Guarda o estado anterior para poder desfazer se o servidor recusar.
