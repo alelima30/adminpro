@@ -3145,9 +3145,9 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
           </div>
 
           <div style="font-size:12.5px;color:var(--text-3);margin-bottom:14px;line-height:1.6">
-            Crie aqui cada ambiente que pode ser reservado. Depois de criado, as regras,
-            os horários e o financeiro daquele espaço ficam disponíveis em
-            <b>Configurações → Reservas</b>.
+            Crie aqui cada ambiente que pode ser reservado. Depois de criado, use o botão
+            <b>Configurar</b> em cada espaço para definir dias, horários, se precisa de
+            aprovação e o financeiro — sem precisar procurar em <b>Configurações → Reservas</b>.
           </div>
 
           <div id="esp-aviso-padrao" style="display:none;font-size:12px;line-height:1.6;background:rgba(232,119,34,0.10);border-left:3px solid var(--gold);padding:10px 12px;border-radius:0 8px 8px 0;margin-bottom:14px">
@@ -3373,7 +3373,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
       <div class="panel" id="panel-configuracoes">
         <div class="ph">
-          <div><div class="ph-title">⚙️ Configurações</div><div class="ph-sub">Reservas, WhatsApp (Z-API) e E-mail (Supabase + Resend)</div></div>
+          <div><div class="ph-title">⚙️ Configurações</div><div class="ph-sub">Reservas, avisos por WhatsApp e por e-mail</div></div>
           <div class="ph-actions">
             <button class="btn btn-gold" onclick="salvarConfigs()">💾 Salvar Configurações</button>
             <button id="btn-enviar-manual" class="btn btn-ghost" onclick="enviarAlertaManual()">📤 Enviar alertas pendentes agora</button>
@@ -9174,11 +9174,26 @@ async function salvarRes(){
   try{ closeModal('m-res'); renderReservas(); verificarAlertas(); }catch(_e){ console.error('pós-reserva (ignorado):', _e); }
 
   // aviso visual pro morador
-  if(_isMoradorMsg && statusVal==='pendente'){
-    const _msg = (_cfgN.msg_validacao||'').trim() ||
-      'Sua reserva foi registrada e está aguardando validação da administração. Você será avisado assim que for aprovada.';
-    if(typeof mostrarAvisoReserva==='function') mostrarAvisoReserva(_msg);
-    else { toast('✓ Reserva registrada — aguardando validação.'); alert(_msg); }
+  if(_isMoradorMsg){
+    const _partes = [];
+    if(statusVal==='pendente'){
+      _partes.push((_cfgN.msg_validacao||'').trim() ||
+        'Sua reserva foi registrada e está aguardando validação da administração. Você será avisado assim que for aprovada.');
+    }
+    // Falta pagar? Avisa aqui — antes disso, quem não reparasse no botão
+    // "Pagar com Pix" do card só descobria a taxa por acaso.
+    const _faltaPagar = obj.taxa>0 && obj.pgto!=='pago' && obj.pgto!=='isento' && (_cfgN.pix_chave||'').trim();
+    if(_faltaPagar){
+      _partes.push('Falta pagar a taxa de '+fmt(obj.taxa)+' via Pix. Toque em "Pagar com Pix" na sua reserva — '+
+        'a administração confirma o recebimento manualmente antes de liberar.');
+    }
+    if(_partes.length){
+      const _msg = _partes.join('\n\n');
+      if(typeof mostrarAvisoReserva==='function') mostrarAvisoReserva(_msg);
+      else { toast('✓ Reserva registrada.'); alert(_msg); }
+    } else {
+      toast('✓ Reserva salva com sucesso.');
+    }
   } else {
     toast('✓ Reserva salva com sucesso.');
   }
@@ -10602,6 +10617,27 @@ async function excluirEspaco(nome){
   toast('✓ Espaço "'+nome+'" excluído.');
 }
 
+/* Leva para o bloco de regras (dias, horarios, confirmacao) daquele
+   espaco especifico dentro de Configuracoes -> Reservas, em vez de
+   deixar o sindico procurar entre todos os espacos. */
+function abrirConfigEspaco(nome){
+  var chv = _chvEsp(nome);
+  showPanel('configuracoes');
+  // O painel troca de conteudo (renderCfgReservas roda no showPanel);
+  // espera o proximo quadro para o bloco do espaco existir no DOM.
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      var alvo = document.querySelector('[data-disp-card="'+chv+'"]');
+      if(!alvo){ toast('Não encontrei a configuração de "'+nome+'".'); return; }
+      alvo.scrollIntoView({behavior:'smooth', block:'center'});
+      var corOrig = alvo.style.boxShadow;
+      alvo.style.transition = 'box-shadow .3s ease';
+      alvo.style.boxShadow = '0 0 0 3px var(--gold)';
+      setTimeout(function(){ alvo.style.boxShadow = corOrig; }, 1800);
+    });
+  });
+}
+
 function pedirRenomearEspaco(nome){
   var novo = prompt('Novo nome para "'+nome+'":', nome);
   if(novo === null) return;                 // cancelou
@@ -10631,12 +10667,15 @@ function renderEspacos(){
       ? '<span class="esp-selo">'+uso.futuras+' reserva(s) por vir</span>'
       : (uso.total > 0 ? '<span class="esp-selo esp-selo-frio">'+uso.total+' no histórico</span>' : '');
     var n = escHtml(nome);
+    var nomeAttr = JSON.stringify(nome).replace(/"/g,'&quot;');
     return '<div class="esp-item">'+
              '<div class="esp-nome"><i class="fa-solid fa-location-dot"></i> '+n+selo+'</div>'+
              '<div class="esp-acoes">'+
-               '<button class="btn btn-ghost btn-sm" onclick="pedirRenomearEspaco('+JSON.stringify(nome).replace(/"/g,'&quot;')+')">'+
+               '<button class="btn btn-gold btn-sm" onclick="abrirConfigEspaco('+nomeAttr+')">'+
+                 '<i class="fa-solid fa-sliders"></i> Configurar</button>'+
+               '<button class="btn btn-ghost btn-sm" onclick="pedirRenomearEspaco('+nomeAttr+')">'+
                  '<i class="fa-solid fa-pen"></i> Renomear</button>'+
-               '<button class="btn btn-ghost btn-sm esp-excluir" onclick="excluirEspaco('+JSON.stringify(nome).replace(/"/g,'&quot;')+')">'+
+               '<button class="btn btn-ghost btn-sm esp-excluir" onclick="excluirEspaco('+nomeAttr+')">'+
                  '<i class="fa-solid fa-trash"></i> Excluir</button>'+
              '</div>'+
            '</div>';
