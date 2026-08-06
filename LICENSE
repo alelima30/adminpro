@@ -1,0 +1,67 @@
+AdminPro — Sistema de Gestão Condominial
+Copyright (c) 2026. Todos os direitos reservados.
+
+TITULAR DOS DIREITOS
+--------------------
+    Titular: Alessandro Lima
+    Contato: contato@adminprogestao.com.br
+
+Se o AdminPro passar a ser explorado por uma empresa sua, troque o
+titular pela razao social e CNPJ: e a titular que tem legitimidade para
+agir contra uso nao autorizado.
+
+
+AVISO LEGAL
+-----------
+Este software e todo o seu código-fonte, interface, estrutura de banco de
+dados, documentação e materiais relacionados são obra autoral protegida
+pela legislação brasileira, em especial:
+
+  - Lei nº 9.610/1998 (Direitos Autorais)
+  - Lei nº 9.609/1998 (Proteção da Propriedade Intelectual de Programa
+    de Computador)
+
+A proteção existe desde a criação da obra, independentemente de registro.
+O histórico de versionamento deste repositório (Git) constitui prova de
+autoria e de data de criação.
+
+
+O QUE NÃO É PERMITIDO
+---------------------
+Sem autorização prévia e por escrito do titular, é proibido:
+
+  1. copiar, no todo ou em parte, o código-fonte ou a interface;
+  2. distribuir, revender, sublicenciar ou ceder o software;
+  3. modificar, adaptar ou criar obra derivada;
+  4. operar o software para prestar serviço a terceiros;
+  5. remover ou alterar avisos de autoria.
+
+O fato de parte do código ser transmitida ao navegador do usuário — o que
+é tecnicamente inevitável em qualquer aplicação web — NÃO autoriza nenhum
+dos usos acima. Acesso não é licença.
+
+
+O QUE É PERMITIDO
+-----------------
+O uso do sistema pelos condomínios contratantes e por seus moradores,
+dentro do serviço contratado, conforme os termos comerciais acordados.
+
+
+CÓDIGO DE TERCEIROS
+-------------------
+Este sistema utiliza bibliotecas de terceiros, cada uma sob a sua própria
+licença, que permanecem válidas e não são alteradas por este documento:
+
+  - PDF.js (Mozilla) — Apache License 2.0
+  - mammoth.js — BSD 2-Clause
+  - Chart.js — MIT
+  - Font Awesome — CC BY 4.0 / SIL OFL 1.1 / MIT
+  - Supabase JS — MIT
+
+
+VIOLAÇÃO
+--------
+O uso não autorizado sujeita o infrator às sanções civis e penais
+previstas em lei, incluindo indenização por perdas e danos.
+
+Para solicitar autorização de uso, entre em contato com o titular.
