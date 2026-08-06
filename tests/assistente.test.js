@@ -139,6 +139,50 @@ bloco('Reserva de emergência (rodízio)', () => {
   checa('limite pequeno corta sem quebrar', _iaPrimeirosPedacos(base, 3).length, 1);
 });
 
+// ── Formatação do resultado da busca em Regulamentos ───────────────────
+const fmt = carregar(
+  ['_regLimpaTexto', '_regFormataTrecho', '_regNegritoRotulo', '_regRealca'],
+  { escHtml: (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') },
+);
+
+bloco('Texto do PDF: limpeza', () => {
+  checa('cola o "s" que a extração solta',
+    fmt._regLimpaTexto('casa s de máquinas'), 'casas de máquinas');
+  checa('cola também antes de vírgula',
+    fmt._regLimpaTexto('construída s, nos recuos'), 'construídas, nos recuos');
+  checa('não cola "a", que é palavra de verdade',
+    fmt._regLimpaTexto('lotes a montante'), 'lotes a montante');
+  checa('não cola "e"', fmt._regLimpaTexto('muro e, preservando'), 'muro e, preservando');
+  checa('palavra partida no fim da linha é remontada',
+    fmt._regLimpaTexto('constru-\nção'), 'construção');
+});
+
+bloco('Texto do PDF: uma linha por artigo', () => {
+  const t = fmt._regFormataTrecho(
+    'decorativos; Parágrafo segundo - Somente casas poderão ser construídas, '
+    + 'conforme previsto no Artigo 29º deste Código; Parágrafo terceiro – Casas de máquina. '
+    + 'Art. 30º Os lotes não poderão ser desmembrados.');
+  const linhas = t.split('\n');
+  checa('cada dispositivo em sua linha', linhas.length, 4);
+  checa('a 2ª linha abre no Parágrafo segundo', linhas[1].slice(0, 18), 'Parágrafo segundo ');
+  checa('a 4ª linha abre no Art. 30º', linhas[3].slice(0, 8), 'Art. 30º');
+  checa('citação "no Artigo 29º" NÃO quebra linha',
+    linhas[1].indexOf('no Artigo 29º') > 0, true);
+  checa('inciso romano ganha linha',
+    fmt._regFormataTrecho('regras: I - primeira; II - segunda.').split('\n').length, 3);
+  checa('alínea ganha linha',
+    fmt._regFormataTrecho('obedecer: a) recuo; b) altura.').split('\n').length, 3);
+});
+
+bloco('Rótulo em negrito e realce juntos', () => {
+  const html = fmt._regNegritoRotulo(fmt._regRealca('Art. 5º Casas de máquina.', 'casa'));
+  checa('o rótulo fica em negrito', html.indexOf('<strong class="reg-rotulo">Art. 5º</strong>'), 0);
+  checa('o termo procurado fica realçado', html.indexOf('<mark>Casa</mark>') > 0, true);
+  checa('o texto do PDF continua escapado (sem XSS)',
+    fmt._regNegritoRotulo(fmt._regRealca('Art. 1º <script>x</script>', 'zzz'))
+      .indexOf('<script>'), -1);
+});
+
 // ── A chave da IA nunca pode estar no arquivo público ──────────────────
 bloco('Segurança', () => {
   const src = lerFonte();

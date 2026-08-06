@@ -1166,14 +1166,21 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   padding:13px 16px;
   overflow-wrap:break-word;
   text-align:left;
+  /* pre-wrap para as quebras por artigo aparecerem; o recuo negativo faz
+     a continuacao de um artigo longo alinhar debaixo do texto, e nao
+     debaixo do rotulo — igual a um PDF. */
+  white-space:pre-wrap;
+  padding-left:32px;
+  text-indent:-18px;
 }
+.reg-rotulo{color:var(--gold-l);font-weight:800}
 .reg-trecho + .reg-trecho{margin-top:10px}
 .reg-trecho mark{
   background:rgba(232,119,34,0.30);color:var(--gold-l);
   border-radius:3px;padding:1px 4px;font-weight:700;
 }
 @media (max-width:520px){
-  .reg-trecho{font-size:13px;line-height:1.7;padding:11px 13px}
+  .reg-trecho{font-size:13px;line-height:1.7;padding:11px 13px 11px 26px}
 }
 /* ══ ASSISTENTE CONDOMINIO ══ */
 #ia-conversa{
@@ -11359,12 +11366,38 @@ function salvarCfgReservas(){
 function _regLimpaTexto(t){
   return String(t||'')
     .replace(/­/g, '')                 // hifen invisivel de separacao
-    .replace(/(\w)[-‐‑]\s+(\w)/g, '$1$2') // palavra partida no fim da linha
+    // \w nao pega letra acentuada: "constru-\ncao" com cedilha ficava partido.
+    .replace(/(\p{L})[-‐‑]\s+(\p{L})/gu, '$1$2') // palavra partida no fim da linha
     .replace(/\s*[\r\n]+\s*/g, ' ')         // quebra de linha vira espaco
     .replace(/[ \t ]{2,}/g, ' ')       // espacos repetidos
     .replace(/\s+([,.;:!?%)\]])/g, '$1')    // espaco antes de pontuacao
     .replace(/([(\[])\s+/g, '$1')           // espaco depois de abre-parenteses
+    // A extracao do PDF as vezes solta o "s" do plural da palavra:
+    // "casa s de maquinas", "construida s nos recuos". So o "s" e tratado
+    // aqui porque e o unico caso em que juntar e sempre certo — "a", "e",
+    // "o" sao palavras de verdade e nao podem ser coladas.
+    .replace(/(\p{L}{2,})\s+s(?=[\s,.;:)])/gu, '$1s')
     .trim();
+}
+
+/* Deixa o trecho parecido com o PDF: cada artigo, paragrafo, inciso ou
+   alinea comeca em uma linha propria. Sem isso vira um paredao de texto
+   e nao da para achar onde a regra esta.
+
+   So quebra depois de ponto, ponto-e-virgula ou dois-pontos: assim
+   "conforme previsto no Artigo 29o deste Codigo" continua na mesma linha,
+   porque ali "Artigo 29o" e uma citacao, nao o inicio de um artigo. */
+function _regFormataTrecho(t){
+  var MARCA = '(?:Art(?:igo)?\\.?\\s*\\d+\\s*[\u00ba\u00b0o]?'
+            + '|Par[\u00e1a]grafo\\s+[\\wÀ-ÿ]+'
+            + '|\u00a7\\s*\\d+[\u00ba\u00b0o]?'
+            + '|Cap[\u00edi]tulo\\s+[\\wÀ-ÿ]+'
+            + '|Se[\u00e7c][\u00e3a]o\\s+[\\wÀ-ÿ]+'
+            + '|[IVXLC]{1,5}\\s*[-\u2013\u2014]'
+            + '|[a-z]\\))';
+  return String(t||'')
+    .replace(new RegExp('([;:.])\\s+(?=' + MARCA + ')', 'g'), '$1\n')
+    .replace(/\n{2,}/g, '\n');
 }
 
 /* Realca o termo procurado. Trabalha por posicao, e nao por substituicao
@@ -11381,6 +11414,19 @@ function _regRealca(texto, termo){
     pos = idx + alvo.length;
   }
   return out + escHtml(texto.slice(pos));
+}
+
+/* Deixa em negrito o rotulo que abre cada linha ("Art. 5o", "Paragrafo
+   segundo"). Recebe HTML ja escapado e com <mark> do realce — por isso so
+   marca o rotulo quando ele nao contem tag nenhuma dentro. */
+function _regNegritoRotulo(html){
+  return String(html||'').replace(
+    /(^|\n)((?:Art(?:igo)?\.?\s*\d+\s*[\u00ba\u00b0o]?|Par[\u00e1a]grafo\s+[\wÀ-ÿ]+|\u00a7\s*\d+[\u00ba\u00b0o]?|Cap[\u00edi]tulo\s+[\wÀ-ÿ]+|Se[\u00e7c][\u00e3a]o\s+[\wÀ-ÿ]+))/g,
+    function(_, ini, rotulo){
+      if(rotulo.indexOf('<') >= 0) return ini + rotulo;
+      return ini + '<strong class="reg-rotulo">' + rotulo + '</strong>';
+    }
+  );
 }
 
 function pesquisarReg(){
@@ -11414,7 +11460,7 @@ function pesquisarReg(){
           // Nao comecar nem terminar no meio de uma palavra.
           if(ini > 0){ const p = texto.indexOf(' ', ini); if(p >= 0 && p < idx) ini = p + 1; }
           if(fim < texto.length){ const p = texto.lastIndexOf(' ', fim); if(p > idx + q.length) fim = p; }
-          trechos.push((ini>0?'… ':'') + texto.slice(ini,fim).trim() + (fim<texto.length?' …':''));
+          trechos.push(_regFormataTrecho((ini>0?'… ':'') + texto.slice(ini,fim).trim() + (fim<texto.length?' …':'')));
         }
         pos = idx + q.length;
       }
@@ -11442,7 +11488,7 @@ function pesquisarReg(){
         + (totalOcorrencias > trechos.length ? ` · mostrando ${trechos.length}` : '');
 
     const tretchosHTML = trechos.length
-      ? trechos.map(t=>`<div class="reg-trecho">${_regRealca(t, q)}</div>`).join('')
+      ? trechos.map(t=>`<div class="reg-trecho">${_regNegritoRotulo(_regRealca(t, q))}</div>`).join('')
       : `<div style="font-size:12px;color:var(--text-3);padding:8px 0">Termo encontrado no título ou descrição do documento.</div>`;
 
     div.innerHTML=`
