@@ -11377,6 +11377,12 @@ function _regLimpaTexto(t){
     // aqui porque e o unico caso em que juntar e sempre certo — "a", "e",
     // "o" sao palavras de verdade e nao podem ser coladas.
     .replace(/(\p{L}{2,})\s+s(?=[\s,.;:)])/gu, '$1s')
+    // Numero do artigo partido: "Artigo 3 7" e o artigo 37, nao o 3.
+    // So dentro do rotulo do artigo — em texto comum, "sala 3 7" pode ser
+    // duas coisas diferentes e nao se mexe.
+    .replace(/(Art(?:igo)?\.?\s*)(\d(?:\s\d)+)/gi, function(_, rot, num){
+      return rot + num.replace(/\s/g, '');
+    })
     .trim();
 }
 
@@ -11397,6 +11403,11 @@ function _regFormataTrecho(t){
             + '|[a-z]\\))';
   return String(t||'')
     .replace(new RegExp('([;:.])\\s+(?=' + MARCA + ')', 'g'), '$1\n')
+    // O rodape do PDF ("... CNPJ 02.861.216/0001-77  12  Artigo 37 - ...")
+    // gruda o numero da pagina no artigo seguinte. Numero solto antes de
+    // "Artigo N" e rodape, nao citacao — citacao vem depois de palavra
+    // ("no Artigo 29"), e essa continua sem quebrar.
+    .replace(/(\d)\s+(?=Art(?:igo)?\.?\s*\d)/g, '$1\n')
     .replace(/\n{2,}/g, '\n');
 }
 
@@ -11448,13 +11459,14 @@ function pesquisarReg(){
     if(d.texto){
       const texto = _regLimpaTexto(d.texto);
       const lower = texto.toLowerCase();
-      const CTX = 320;                    // contexto de cada lado
+      const CTX = 900;                    // contexto de cada lado (para dar
+                                          // para situar o trecho no documento)
       let pos = 0;
       while(true){
         const idx = lower.indexOf(q, pos);
         if(idx < 0) break;
         totalOcorrencias++;
-        if(trechos.length < 3){           // mostra no maximo 3, mas conta todas
+        if(trechos.length < 5){           // mostra no maximo 5, mas conta todas
           let ini = Math.max(0, idx - CTX);
           let fim = Math.min(texto.length, idx + q.length + CTX);
           // Nao comecar nem terminar no meio de uma palavra.
