@@ -1182,6 +1182,75 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 @media (max-width:520px){
   .reg-trecho{font-size:13px;line-height:1.7;padding:11px 13px 11px 26px}
 }
+/* ══ INFORMACOES GERAIS ══ */
+.ig-card{margin-bottom:16px}
+.ig-texto{font-size:14px;line-height:1.85;color:var(--text-2);white-space:pre-wrap;overflow-wrap:break-word}
+.ig-vazio{font-size:13px;color:var(--text-3);padding:6px 0;font-style:italic}
+.ig-dica{font-size:11.5px;color:var(--text-3);margin-top:6px}
+.ig-input{
+  width:100%;box-sizing:border-box;
+  padding:11px 14px;border-radius:9px;border:1px solid var(--border);
+  background:var(--ink-2);color:var(--text);font-size:14px;font-family:inherit;
+  line-height:1.7;outline:none;resize:vertical;
+}
+.ig-input:focus{border-color:var(--border-h)}
+.ig-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+/* Telefone — leitura */
+.ig-tel{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:11px 0;border-bottom:1px solid var(--border);
+}
+.ig-tel:last-child{border-bottom:none}
+.ig-tel-nome{font-size:14px;color:var(--text);font-weight:600;flex:1;min-width:140px}
+.ig-tel-dir{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.ig-tel-num{font-size:14px;color:var(--text-2);text-decoration:none;font-variant-numeric:tabular-nums}
+a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
+.ig-wa{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border-radius:9px;flex-shrink:0;
+  background:rgba(37,211,102,0.14);border:1px solid rgba(37,211,102,0.42);
+  color:#25d366;font-size:19px;text-decoration:none;
+  transition:background .2s,transform .1s;
+}
+.ig-wa:hover{background:rgba(37,211,102,0.26)}
+.ig-wa:active{transform:scale(0.94)}
+
+/* Telefone — edicao */
+.ig-tel-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:9px}
+.ig-tel-form .ig-f-nome{flex:2;min-width:150px;width:auto}
+.ig-tel-form .ig-f-num{flex:1;min-width:130px;width:auto}
+.ig-f-wa{
+  display:inline-flex;align-items:center;gap:6px;flex-shrink:0;cursor:pointer;
+  font-size:12.5px;color:var(--text-2);white-space:nowrap;
+}
+.ig-f-wa input{accent-color:#25d366;width:16px;height:16px;cursor:pointer}
+.ig-f-wa i{color:#25d366;font-size:15px}
+.ig-f-del{flex-shrink:0}
+
+/* Mapa anexado */
+.ig-arquivo{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:14px 16px;border-radius:11px;
+  background:var(--ink-2);border:1px solid var(--border);
+}
+.ig-arquivo-nome{font-size:14px;font-weight:600;color:var(--text);overflow-wrap:break-word}
+
+@media (max-width:640px){
+  .ig-texto{font-size:13.5px;line-height:1.8}
+  .ig-tel{align-items:flex-start}
+  .ig-tel-nome{min-width:100%}
+  .ig-tel-dir{width:100%;justify-content:space-between}
+  /* Na edicao, cada campo em sua linha: lado a lado no celular fica
+     estreito demais para digitar um telefone. */
+  .ig-tel-form{
+    flex-direction:column;align-items:stretch;gap:7px;
+    padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:12px;
+  }
+  .ig-tel-form .ig-f-nome,.ig-tel-form .ig-f-num{width:100%;flex:none}
+  .ig-f-del{align-self:flex-end}
+  .ig-arquivo .btn{width:100%}
+}
 /* ══ ASSISTENTE CONDOMINIO ══ */
 #ia-conversa{
   display:flex;flex-direction:column;gap:14px;
@@ -2018,7 +2087,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
       <div class="nav-standalone" data-acesso="admin,gestor,morador">
         <div class="nav-item" id="nav-comunicados" onclick="showPanel('comunicados',this)">
-          <div class="nav-icon"><i class="fa-solid fa-bullhorn"></i></div>Comunicados
+          <div class="nav-icon"><i class="fa-solid fa-bullhorn"></i></div>Comunicação
         </div>
       </div>
 
@@ -2779,6 +2848,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         <div class="tabs" data-acesso="admin,gestor,morador" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
           <button class="tab" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
           <button class="tab active" onclick="showPanel('comunicados')"><i class="fa-solid fa-newspaper" style="margin-right:6px"></i>Informativos</button>
+          <button class="tab" onclick="showPanel('infogerais')"><i class="fa-solid fa-circle-info" style="margin-right:6px"></i>Informações Gerais</button>
         </div>
         <!-- LAYOUT: viewer PDF ocupa tudo + coluna lateral direita (empilha no celular, ver .inf-row) -->
         <div class="inf-row">
@@ -2866,6 +2936,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         <div class="tabs" data-acesso="admin,gestor,morador" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="tab active" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
           <button class="tab" onclick="showPanel('comunicados')"><i class="fa-solid fa-newspaper" style="margin-right:6px"></i>Informativos</button>
+          <button class="tab" onclick="showPanel('infogerais')"><i class="fa-solid fa-circle-info" style="margin-right:6px"></i>Informações Gerais</button>
         </div>
         <div class="ph">
           <div><div class="ph-title">Eventos</div><div class="ph-sub">Calendário de eventos e comunicados do condomínio</div></div>
@@ -2876,6 +2947,22 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         <div class="card">
           <div id="clista" style="padding:6px 0"><!-- preenchido pelo JS --></div>
         </div>
+      </div>
+
+      <!-- ████ P: INFORMAÇÕES GERAIS ████ -->
+      <div class="panel" id="panel-infogerais">
+        <div class="tabs" data-acesso="admin,gestor,morador" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="tab" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
+          <button class="tab" onclick="showPanel('comunicados')"><i class="fa-solid fa-newspaper" style="margin-right:6px"></i>Informativos</button>
+          <button class="tab active" onclick="showPanel('infogerais')"><i class="fa-solid fa-circle-info" style="margin-right:6px"></i>Informações Gerais</button>
+        </div>
+        <div class="ph">
+          <div>
+            <div class="ph-title">Informações Gerais</div>
+            <div class="ph-sub" id="ig-sub">Dados do condomínio, telefones e horários</div>
+          </div>
+        </div>
+        <div id="ig-conteudo"></div>
       </div>
 
       <!-- ████ INADIMPLÊNCIA ████ -->
@@ -4842,7 +4929,7 @@ async function _linkTemporario(caminho){
 
 // Cache local (mantem toda a logica sync original)
 const DB_CACHE = {};
-const DB_KEYS = ['saas_condominios','lotes','funcs','fin','manut','comun','prev','reservas','reg','inadimplencia','unidades','localizacoes','condominos','condseq','classificacoes','encomendas'];
+const DB_KEYS = ['saas_condominios','lotes','funcs','fin','manut','comun','prev','reservas','reg','inadimplencia','unidades','localizacoes','condominos','condseq','classificacoes','encomendas','infogerais'];
 
 const G = k => (DB_CACHE[k] !== undefined) ? DB_CACHE[k] : null;
 
@@ -5020,7 +5107,7 @@ const MODULOS_SAAS = {
   encomendas:     { label:'Encomendas',                grupo:null,            secao:'Operações' },
   manutencao:     { label:'Manutenção',                grupo:'operacoes',     secao:'Operações' },
   preventivas:    { label:'Preventivas & Corretivas',  grupo:'operacoes',     secao:'Operações' },
-  comunicados:    { label:'Comunicados (Informativos)', grupo:null,           secao:'Operações' },
+  comunicados:    { label:'Comunicação (Informativos)', grupo:null,           secao:'Operações' },
   eventos:        { label:'Eventos',                   grupo:null,           secao:'Operações' },
   regulamento:    { label:'Regulamentos',              grupo:null,            secao:'Operações' },
   assistente:     { label:'Assistente Condomínio',     grupo:null,            secao:'Operações' },
@@ -5148,7 +5235,7 @@ function painelInicial(){
   // 'comunicados' e 'eventos' viraram abas dentro do item standalone
   // Comunicados (fora de SB_GRUPOS) -> sem isto, sumiriam desta lista e um
   // morador cujo unico modulo liberado fosse um dos dois ficaria sem tela.
-  const ordem = ['dashboard','comunicados','eventos','regulamento','assistente'];
+  const ordem = ['dashboard','comunicados','eventos','infogerais','regulamento','assistente'];
   ['paineis','administrativo','cadastro','operacoes','sistema'].forEach(function(g){
     ((SB_GRUPOS[g]||{}).itens||[]).forEach(function(it){
       if(String(it.id).indexOf('__nav')!==0) ordem.push(it.id);
@@ -5770,11 +5857,11 @@ function closeSidebar(){
 }
 
 /* ══ NAVIGATION ══ */
-const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas'};
+const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',infogerais:'Informações Gerais',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas'};
 const ACESSO_PAINEIS = {
-  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','regulamento','assistente','usuarios','configuracoes','procedimentos'],
-  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','regulamento','assistente','procedimentos'],
-  morador: ['inicio','reservas','encomendas','comunicados','eventos','regulamento','procedimentos']
+  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','usuarios','configuracoes','procedimentos'],
+  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','procedimentos'],
+  morador: ['inicio','reservas','encomendas','comunicados','eventos','infogerais','regulamento','procedimentos']
 };
 /* ══════════════════════════
    CADASTRO DE UNIDADES
@@ -7067,7 +7154,7 @@ function showPanel(id,el){
   try{ localStorage.setItem('apvc_last_panel', id); }catch(_){}
   sbFecharFlyout();
   closeSidebar();
-  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
+  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
 }
 
 function setTab(t){
@@ -11804,6 +11891,369 @@ async function perguntarAssistente(){
     if(btn){ btn.disabled = false; btn.textContent = 'Perguntar'; }
     _iaPintar();
   }
+}
+
+/* ══════════════════════════
+   INFORMAÇÕES GERAIS  (aba de Comunicação)
+
+   Tudo fica em um registro só, "infogerais", no modulo_dados do
+   condomínio — cada condomínio tem o seu.
+══════════════════════════ */
+
+var _igEditando = '';   // qual seção está aberta para edição ('' = nenhuma)
+
+function _igPodeEditar(){
+  try{ if(isSuperAdmin()) return true; }catch(_){}
+  var n = window._userNivel || '';
+  return n === 'admin' || n === 'gestor';
+}
+
+// Só o Village Castelo (APVC) tem esta história; os demais começam vazio
+// e a administração escreve a sua.
+var _IG_HISTORIA_APVC =
+  'A Associação Parque Village Castelo foi criada em 1996, antiga Fazenda São José, '
++ 'e está localizada na Estância Turística de Itu, às margens da Rodovia Castello Branco, km 80.\n\n'
++ 'Possui uma área total de 941.443,20 m², sendo 241.642,31 m² de área de mata preservada, '
++ 'com muita natureza, lazer e segurança. São 327 lotes de 1.500 m² cada, que desfrutam de toda '
++ 'a infraestrutura necessária para o conforto de toda a família.';
+
+// Valores iniciais. Servem de ponto de partida — a administração edita
+// tudo pela tela; nada aqui é fixo no código.
+function _igPadrao(){
+  return {
+    historia: (_condAtual === 'APVC') ? _IG_HISTORIA_APVC : '',
+    mapa: null,                       // {storagePath, nome}
+    telefones: [],
+    horarioAdm: 'Segunda a sexta, das 8h às 17h\nSábado, das 8h às 12h\nDomingos e feriados: fechado',
+    horarioPortaria: 'Portaria 24 horas, todos os dias, inclusive feriados',
+    emergencia: [
+      { nome:'Polícia Militar',        numero:'190' },
+      { nome:'Bombeiros',              numero:'193' },
+      { nome:'SAMU · Ambulância',      numero:'192' },
+      { nome:'Defesa Civil',           numero:'199' },
+      { nome:'Polícia Civil',          numero:'197' },
+      { nome:'Polícia Rodoviária Federal', numero:'191' },
+    ],
+  };
+}
+
+function getInfoGerais(){
+  var d = G('infogerais');
+  if(!d || typeof d !== 'object' || Array.isArray(d)) return null;
+  return d;
+}
+
+function _igSalvar(d){
+  try{ S('infogerais', d); }
+  catch(e){ toast('⚠️ Erro ao salvar: ' + (e && e.message ? e.message : 'tente novamente.')); return false; }
+  return true;
+}
+
+/* ── Telefone ── */
+function _igDigitos(v){ return String(v||'').replace(/\D/g,''); }
+
+// Link do WhatsApp. Número curto (190, 193...) não tem WhatsApp, e número
+// sem DDD também não dá para montar — nesses casos devolve vazio e o
+// ícone verde nem aparece, em vez de gerar um link que abre em branco.
+function _igWhatsLink(numero){
+  var d = _igDigitos(numero);
+  if(d.length < 10) return '';
+  if(d.length > 13) return '';
+  if(d.indexOf('55') !== 0) d = '55' + d;
+  return 'https://wa.me/' + d;
+}
+
+function _igTelLink(numero){
+  var d = _igDigitos(numero);
+  return d ? ('tel:' + d) : '';
+}
+
+// Deixa bonito na tela sem mexer no que foi digitado.
+function _igFormataTel(numero){
+  var d = _igDigitos(numero);
+  if(d.length === 3) return d;                                     // 190
+  if(d.indexOf('55') === 0 && d.length > 11) d = d.slice(2);
+  if(d.length === 11) return '(' + d.slice(0,2) + ') ' + d.slice(2,7) + '-' + d.slice(7);
+  if(d.length === 10) return '(' + d.slice(0,2) + ') ' + d.slice(2,6) + '-' + d.slice(6);
+  if(d.length === 9)  return d.slice(0,5) + '-' + d.slice(5);
+  if(d.length === 8)  return d.slice(0,4) + '-' + d.slice(4);
+  return String(numero||'');
+}
+
+/* ── Blocos de tela ── */
+
+function _igCard(id, icone, titulo, corpoHTML, editavel){
+  var botao = (editavel && _igPodeEditar() && _igEditando !== id)
+    ? '<button class="btn btn-ghost btn-sm" onclick="igEditar(\'' + id + '\')">✏️ Editar</button>'
+    : '';
+  return '<div class="card ig-card">'
+    + '<div class="card-head">'
+    +   '<div class="card-title"><div class="card-icon">' + icone + '</div>' + escHtml(titulo) + '</div>'
+    +   botao
+    + '</div>'
+    + corpoHTML
+    + '</div>';
+}
+
+function _igBotoesEdicao(salvar){
+  return '<div class="ig-acoes">'
+    + '<button class="btn btn-gold btn-sm" onclick="' + salvar + '">💾 Salvar</button>'
+    + '<button class="btn btn-ghost btn-sm" onclick="igCancelar()">Cancelar</button>'
+    + '</div>';
+}
+
+function _igVazio(texto){
+  return '<div class="ig-vazio">' + escHtml(texto) + '</div>';
+}
+
+// Texto livre: mantém as quebras de linha que a pessoa digitou.
+function _igTexto(valor, vazio){
+  var t = String(valor||'').trim();
+  return t ? '<div class="ig-texto">' + escHtml(t) + '</div>' : _igVazio(vazio);
+}
+
+function _igLinhaTelefone(t, i, comWhats){
+  var num = String(t.numero||'');
+  var wa = comWhats && t.whats ? _igWhatsLink(num) : '';
+  var tel = _igTelLink(num);
+  return '<div class="ig-tel">'
+    + '<div class="ig-tel-nome">' + escHtml(t.nome||'—') + '</div>'
+    + '<div class="ig-tel-dir">'
+    +   (tel ? '<a class="ig-tel-num" href="' + escHtml(tel) + '">' + escHtml(_igFormataTel(num)) + '</a>'
+            : '<span class="ig-tel-num">' + escHtml(_igFormataTel(num)) + '</span>')
+    +   (wa ? '<a class="ig-wa" href="' + escHtml(wa) + '" target="_blank" rel="noopener" title="Conversar no WhatsApp">'
+             + '<i class="fa-brands fa-whatsapp"></i></a>' : '')
+    + '</div>'
+    + '</div>';
+}
+
+function renderInfoGerais(){
+  var alvo = $('ig-conteudo');
+  if(!alvo) return;
+
+  var d = getInfoGerais();
+  if(!d){
+    // Primeira vez neste condomínio: grava o ponto de partida para a
+    // administração já encontrar os horários e os telefones de emergência
+    // prontos. Morador não grava (o banco recusaria) — só vê.
+    d = _igPadrao();
+    if(_igPodeEditar()) _igSalvar(d);
+  }
+
+  var sub = $('ig-sub');
+  if(sub){
+    sub.textContent = _igPodeEditar()
+      ? 'Dados do condomínio, telefones e horários — clique em Editar para alterar'
+      : 'Dados do condomínio, telefones e horários';
+  }
+
+  var html = '';
+
+  // 1) História do condomínio
+  html += _igCard('historia', '🏛️', 'História do condomínio',
+    _igEditando === 'historia'
+      ? '<textarea id="ig-in-historia" class="ig-input" rows="10" placeholder="Conte a história do condomínio…">'
+        + escHtml(d.historia||'') + '</textarea>' + _igBotoesEdicao('igSalvarHistoria()')
+      : _igTexto(d.historia, 'Ainda não foi escrita a história do condomínio.'),
+    true);
+
+  // 2) Mapa do loteamento
+  var mapaHTML;
+  if(_igEditando === 'mapa'){
+    mapaHTML = '<input type="file" id="ig-in-mapa" accept="application/pdf,.pdf" class="ig-input">'
+      + '<div class="ig-dica">Arquivo PDF. Substitui o mapa atual, se houver.</div>'
+      + _igBotoesEdicao('igSalvarMapa()')
+      + (d.mapa ? '<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="igRemoverMapa()">🗑 Remover o mapa atual</button>' : '');
+  } else if(d.mapa && d.mapa.storagePath){
+    mapaHTML = '<div class="ig-arquivo">'
+      + '<span style="font-size:22px">🗺️</span>'
+      + '<div style="min-width:0;flex:1"><div class="ig-arquivo-nome">' + escHtml(d.mapa.nome||'mapa.pdf') + '</div>'
+      + '<div class="ig-dica">Mapa do loteamento em PDF</div></div>'
+      + '<button class="btn btn-gold btn-sm" onclick="igAbrirMapa()">Abrir</button>'
+      + '</div>';
+  } else {
+    mapaHTML = _igVazio('Nenhum mapa anexado.');
+  }
+  html += _igCard('mapa', '🗺️', 'Mapa do loteamento', mapaHTML, true);
+
+  // 3) Telefones úteis
+  var telHTML;
+  if(_igEditando === 'telefones'){
+    telHTML = '<div id="ig-lista-tel">'
+      + (d.telefones||[]).map(function(t,i){ return _igFormTelefone(t,i,true); }).join('')
+      + '</div>'
+      + '<button class="btn btn-ghost btn-sm" onclick="igAddTelefone()">+ Adicionar telefone</button>'
+      + _igBotoesEdicao('igSalvarTelefones()');
+  } else {
+    telHTML = (d.telefones && d.telefones.length)
+      ? (d.telefones||[]).map(function(t,i){ return _igLinhaTelefone(t,i,true); }).join('')
+      : _igVazio('Nenhum telefone cadastrado.');
+  }
+  html += _igCard('telefones', '📞', 'Telefones úteis', telHTML, true);
+
+  // 4) Horário da administração
+  html += _igCard('horarioAdm', '🕗', 'Horário de funcionamento da administração',
+    _igEditando === 'horarioAdm'
+      ? '<textarea id="ig-in-horarioAdm" class="ig-input" rows="4">' + escHtml(d.horarioAdm||'') + '</textarea>'
+        + _igBotoesEdicao('igSalvarCampo(\'horarioAdm\')')
+      : _igTexto(d.horarioAdm, 'Horário não informado.'),
+    true);
+
+  // 5) Horário da portaria
+  html += _igCard('horarioPortaria', '🛡️', 'Horário da portaria',
+    _igEditando === 'horarioPortaria'
+      ? '<textarea id="ig-in-horarioPortaria" class="ig-input" rows="3">' + escHtml(d.horarioPortaria||'') + '</textarea>'
+        + _igBotoesEdicao('igSalvarCampo(\'horarioPortaria\')')
+      : _igTexto(d.horarioPortaria, 'Horário não informado.'),
+    true);
+
+  // 6) Contatos de emergência (sem WhatsApp: 190/193 não têm)
+  var emgHTML;
+  if(_igEditando === 'emergencia'){
+    emgHTML = '<div id="ig-lista-emg">'
+      + (d.emergencia||[]).map(function(t,i){ return _igFormTelefone(t,i,false); }).join('')
+      + '</div>'
+      + '<button class="btn btn-ghost btn-sm" onclick="igAddEmergencia()">+ Adicionar contato</button>'
+      + _igBotoesEdicao('igSalvarEmergencia()');
+  } else {
+    emgHTML = (d.emergencia && d.emergencia.length)
+      ? (d.emergencia||[]).map(function(t,i){ return _igLinhaTelefone(t,i,false); }).join('')
+      : _igVazio('Nenhum contato cadastrado.');
+  }
+  html += _igCard('emergencia', '🚨', 'Contatos de emergência', emgHTML, true);
+
+  alvo.innerHTML = html;
+}
+
+/* ── Edição ── */
+
+function igEditar(secao){ _igEditando = secao; renderInfoGerais(); }
+function igCancelar(){ _igEditando = ''; renderInfoGerais(); }
+
+function igSalvarCampo(campo){
+  var el = $('ig-in-' + campo);
+  if(!el) return;
+  var d = getInfoGerais() || _igPadrao();
+  d[campo] = el.value.trim();
+  if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Salvo.'); }
+}
+
+function igSalvarHistoria(){ igSalvarCampo('historia'); }
+
+/* ── Telefones ── */
+
+function _igFormTelefone(t, i, comWhats){
+  t = t || {};
+  return '<div class="ig-tel-form" data-i="' + i + '">'
+    + '<input class="ig-input ig-f-nome" placeholder="Nome (ex.: Portaria)" value="' + escHtml(t.nome||'') + '">'
+    + '<input class="ig-input ig-f-num" placeholder="Telefone com DDD" inputmode="tel" value="' + escHtml(t.numero||'') + '">'
+    + (comWhats
+        ? '<label class="ig-f-wa" title="Marque se este número tem WhatsApp">'
+          + '<input type="checkbox" class="ig-f-whats"' + (t.whats ? ' checked' : '') + '> '
+          + '<i class="fa-brands fa-whatsapp"></i> WhatsApp</label>'
+        : '')
+    + '<button class="btn btn-ghost btn-sm ig-f-del" onclick="igRemoverLinha(this)" title="Remover">🗑</button>'
+    + '</div>';
+}
+
+function igRemoverLinha(btn){
+  var linha = btn.closest('.ig-tel-form');
+  if(linha) linha.remove();
+}
+
+function igAddTelefone(){
+  var box = $('ig-lista-tel'); if(!box) return;
+  box.insertAdjacentHTML('beforeend', _igFormTelefone({}, box.children.length, true));
+}
+function igAddEmergencia(){
+  var box = $('ig-lista-emg'); if(!box) return;
+  box.insertAdjacentHTML('beforeend', _igFormTelefone({}, box.children.length, false));
+}
+
+// Lê os campos da tela. Linha sem nome E sem número é descartada em
+// silêncio — é a linha em branco que a pessoa adicionou e não preencheu.
+function _igLerLista(boxId, comWhats){
+  var box = $(boxId);
+  if(!box) return [];
+  var out = [];
+  Array.prototype.forEach.call(box.querySelectorAll('.ig-tel-form'), function(l){
+    var nome = (l.querySelector('.ig-f-nome')||{}).value || '';
+    var num  = (l.querySelector('.ig-f-num')||{}).value || '';
+    nome = nome.trim(); num = num.trim();
+    if(!nome && !num) return;
+    var item = { nome: nome, numero: num };
+    if(comWhats){
+      var c = l.querySelector('.ig-f-whats');
+      item.whats = !!(c && c.checked);
+    }
+    out.push(item);
+  });
+  return out;
+}
+
+function igSalvarTelefones(){
+  var lista = _igLerLista('ig-lista-tel', true);
+  var semNumero = lista.filter(function(t){ return !_igDigitos(t.numero); });
+  if(semNumero.length){ toast('⚠️ Falta o telefone de "' + semNumero[0].nome + '".'); return; }
+  var semWa = lista.filter(function(t){ return t.whats && !_igWhatsLink(t.numero); });
+  if(semWa.length){
+    toast('⚠️ "' + semWa[0].nome + '" está marcado como WhatsApp, mas o número está incompleto — informe com DDD.');
+    return;
+  }
+  var d = getInfoGerais() || _igPadrao();
+  d.telefones = lista;
+  if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Telefones salvos.'); }
+}
+
+function igSalvarEmergencia(){
+  var lista = _igLerLista('ig-lista-emg', false);
+  var semNumero = lista.filter(function(t){ return !_igDigitos(t.numero); });
+  if(semNumero.length){ toast('⚠️ Falta o telefone de "' + semNumero[0].nome + '".'); return; }
+  var d = getInfoGerais() || _igPadrao();
+  d.emergencia = lista;
+  if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Contatos salvos.'); }
+}
+
+/* ── Mapa do loteamento ── */
+
+async function igSalvarMapa(){
+  var inp = $('ig-in-mapa');
+  var f = inp && inp.files && inp.files[0];
+  if(!f){ toast('⚠️ Escolha um arquivo PDF.'); return; }
+  if(!/\.pdf$/i.test(f.name)){ toast('⚠️ O mapa precisa ser um PDF.'); return; }
+
+  var btn = document.querySelector('#ig-conteudo .btn-gold');
+  if(btn){ btn.disabled = true; btn.textContent = 'Enviando…'; }
+  try{
+    var caminho = await uploadPDF(f, 'infogerais');
+    var d = getInfoGerais() || _igPadrao();
+    d.mapa = { storagePath: caminho, nome: f.name };
+    if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Mapa anexado.'); }
+  }catch(e){
+    toast('⚠️ Não consegui enviar o mapa: ' + (e && e.message ? e.message : 'tente novamente.'));
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '💾 Salvar'; }
+  }
+}
+
+async function igAbrirMapa(){
+  var d = getInfoGerais();
+  var caminho = d && d.mapa && _storagePathDe(d.mapa);
+  if(!caminho){ toast('⚠️ Nenhum mapa anexado.'); return; }
+  try{
+    var url = await _linkTemporario(caminho);
+    if(!url) throw new Error('link vazio');
+    window.open(url, '_blank', 'noopener');
+  }catch(e){
+    toast('⚠️ Não consegui abrir o mapa: ' + (e && e.message ? e.message : 'tente novamente.'));
+  }
+}
+
+function igRemoverMapa(){
+  if(!confirm('Remover o mapa do loteamento?')) return;
+  var d = getInfoGerais() || _igPadrao();
+  d.mapa = null;
+  if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Mapa removido.'); }
 }
 
 /* ══════════════════════════
