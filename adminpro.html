@@ -337,7 +337,13 @@ html.light #portal-theme-toggle .icon-sun  { display: block; }
 html.light #portal-theme-toggle .icon-moon { display: none; }
 
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
+/* scrollbar-gutter reserva o espaco da barra de rolagem SEMPRE, mesmo
+   quando ela nao esta visivel. Sem isso, toda vez que a pagina deixava
+   de rolar (tela curta, ou um modal travando a rolagem) a barra sumia,
+   o conteudo alargava uns 12px e voltava depois — parecia que a barra
+   "desaparecia" sozinha. Navegador antigo ignora a linha e fica como
+   antes. */
+html{scroll-behavior:smooth;scrollbar-gutter:stable}
 
 body{
   font-family:'Inter','Segoe UI','Segoe UI Variable',system-ui,-apple-system,sans-serif;
@@ -7020,7 +7026,16 @@ function toast(msg){
   t._to=setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-function closeModal(id){$(id).classList.remove('open')}
+/* Trava a rolagem da pagina apenas enquanto houver algum modal aberto.
+   Antes cada modal ligava e desligava a trava por conta propria, entao
+   qualquer caminho de fechamento nao previsto (tecla Esc, clique fora,
+   fechar por codigo) deixava a pagina travada ou destravada por engano.
+   Aqui a trava e sempre deduzida do estado real da tela. */
+function _sincronizarTravaRolagem(){
+  var algumAberto = !!document.querySelector('.modal-ov.open');
+  document.body.style.overflow = algumAberto ? 'hidden' : '';
+}
+function closeModal(id){ var e=$(id); if(e) e.classList.remove('open'); _sincronizarTravaRolagem(); }
 document.querySelectorAll('.modal-ov').forEach(o=>{
   // Nenhum modal fecha ao clicar fora — só pelo X ou Salvar
   o.addEventListener('click',e=>e.stopPropagation());
@@ -12846,7 +12861,7 @@ async function excluirUsuario(docId){
     }
 
     var modal = document.getElementById('m-proc');
-    if(modal){ modal.classList.add('open'); document.body.style.overflow='hidden'; }
+    if(modal){ modal.classList.add('open'); _sincronizarTravaRolagem(); }
     var inner = modal && modal.querySelector('.modal');
     if(inner) inner.scrollTop = 0;
 
@@ -12865,7 +12880,7 @@ async function excluirUsuario(docId){
   window.fecharModalProc = function(){
     var modal = document.getElementById('m-proc');
     if(modal) modal.classList.remove('open');
-    document.body.style.overflow = '';
+    _sincronizarTravaRolagem();
   };
 
   /* ── FORMULÁRIO: abrir ── */
@@ -12898,7 +12913,7 @@ async function excluirUsuario(docId){
     _preencherLinhas('mf-obs-wrap',    'obs',   p ? p.obs         : []);
 
     var modal = document.getElementById('m-proc-form');
-    if(modal){ modal.classList.add('open'); document.body.style.overflow = 'hidden'; }
+    if(modal){ modal.classList.add('open'); _sincronizarTravaRolagem(); }
   };
 
   function _setVal(id, val){
@@ -12918,7 +12933,7 @@ async function excluirUsuario(docId){
   window.fecharFormProc = function(){
     var modal = document.getElementById('m-proc-form');
     if(modal) modal.classList.remove('open');
-    document.body.style.overflow = '';
+    _sincronizarTravaRolagem();
   };
 
   window.addLinhaProc = function(wrapId, tipo){
@@ -13030,7 +13045,14 @@ async function excluirUsuario(docId){
   };
 
   document.addEventListener('keydown', function(e){
-    if(e.key==='Escape') fecharModalProc();
+    if(e.key!=='Escape') return;
+    // Fecha o que estiver realmente aberto — o formulario tem prioridade
+    // por ficar por cima. Antes fechava sempre o de detalhe, deixando o
+    // formulario visivel com a pagina rolando atras dele.
+    var form = document.getElementById('m-proc-form');
+    if(form && form.classList.contains('open')){ fecharFormProc(); return; }
+    var det = document.getElementById('m-proc');
+    if(det && det.classList.contains('open')) fecharModalProc();
   });
 
   // Inicializa na primeira vez que o painel é aberto
