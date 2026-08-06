@@ -11746,7 +11746,13 @@ function _cacheListaCarregar(){
 var _infViewerDoc=null, _infViewerPage=1, _infViewerTotal=0;
 var _infViewerZoomMult=1.0;
 
+/* Numero do pedido de abertura. Trocar de edicao antes da anterior
+   terminar de carregar fazia o PDF que chegasse por ultimo aparecer na
+   tela — com o titulo da edicao errada no cabecalho. */
+var _infAberturaSeq = 0;
+
 function abrirPdfViewer(inf){
+  var meuPedido = ++_infAberturaSeq;
   window._infViewerAtual = inf;
   document.querySelectorAll('.inf-card-row').forEach(function(c){
     c.style.background=''; c.style.borderLeft='3px solid transparent';
@@ -11773,14 +11779,16 @@ function abrirPdfViewer(inf){
 
   pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  // Carrega do Cloudinary via fetch → ArrayBuffer → PDF.js
+  // Carrega do Storage do Supabase via fetch -> ArrayBuffer -> PDF.js
   toast('⏳ Carregando PDF…');
   fsInfCarregarPdf(inf.edicao).then(function(pdfUrl){
+    if(meuPedido !== _infAberturaSeq) return;   // ja escolheram outra edicao
     if(!pdfUrl){
       // Fallback: tenta arquivo local (informativo.pdf padrão)
       if(inf.arquivo && !inf.arquivo.startsWith('ed_')){
         var loadTask = pdfjsLib.getDocument(inf.arquivo);
         loadTask.promise.then(function(doc){
+          if(meuPedido !== _infAberturaSeq) return;
           _infViewerDoc=doc; _infViewerPage=1; _infViewerTotal=doc.numPages;
           _infRenderPage(1);
         }).catch(function(){
@@ -11793,16 +11801,18 @@ function abrirPdfViewer(inf){
       document.getElementById('inf-viewer-pag').textContent='—';
       return;
     }
-    // Busca o binário via fetch e passa para o PDF.js (contorna CORS do Cloudinary)
+    // Busca o binario via fetch e entrega ao PDF.js (evita problema de CORS)
     fetch(pdfUrl)
       .then(function(res){
         if(!res.ok) throw new Error('HTTP ' + res.status);
         return res.arrayBuffer();
       })
       .then(function(buf){
+        if(meuPedido !== _infAberturaSeq) return null;
         return pdfjsLib.getDocument({data: new Uint8Array(buf)}).promise;
       })
       .then(function(doc){
+        if(!doc || meuPedido !== _infAberturaSeq) return;
         _infViewerDoc=doc; _infViewerPage=1; _infViewerTotal=doc.numPages;
         _infRenderPage(1);
       })
@@ -11824,9 +11834,33 @@ function _infCalcWidth(){
   return Math.max(400, w);
 }
 
+/* Numero do pedido de desenho em andamento e a tarefa do PDF.js.
+   Servem para descartar pedidos velhos quando o usuario passa paginas
+   depressa ou troca de edicao no meio do carregamento. */
+var _infRenderSeq = 0, _infRenderTask = null;
+
 function _infRenderPage(num){
   if(!_infViewerDoc) return;
-  _infViewerDoc.getPage(num).then(function(page){
+  var meu      = ++_infRenderSeq;
+  var docDaVez = _infViewerDoc;
+
+  // Atualiza o contador NA HORA. Antes o numero da pagina so subia
+  // quando o desenho terminava — dois toques rapidos no ">" pediam duas
+  // vezes a mesma pagina, porque o segundo toque lia o numero antigo.
+  _infViewerPage = num;
+  var elPag = document.getElementById('inf-viewer-pag');
+  if(elPag) elPag.textContent = num + ' / ' + _infViewerTotal;
+  var pagCheia = document.getElementById('inf-tela-cheia-pag');
+  if(pagCheia) pagCheia.textContent = num + ' / ' + _infViewerTotal;
+
+  // Cancela o desenho anterior: dois desenhos ao mesmo tempo no mesmo
+  // canvas fazem o PDF.js falhar e a pagina sair em branco.
+  if(_infRenderTask){ try{ _infRenderTask.cancel(); }catch(_){} _infRenderTask = null; }
+
+  docDaVez.getPage(num).then(function(page){
+    // Pedido ficou velho (outra pagina ou outra edicao): descarta.
+    if(meu !== _infRenderSeq || docDaVez !== _infViewerDoc) return;
+
     var vp0      = page.getViewport({scale: 1});
     var fitScale = _infCalcWidth() / vp0.width;
     var scale    = fitScale * _infViewerZoomMult;
@@ -11840,13 +11874,17 @@ function _infRenderPage(num){
     canvas.style.height  = Math.floor(vp.height / dpr) + 'px';
     canvas.style.display = 'inline-block';
     canvas.style.boxShadow = '0 4px 32px rgba(0,0,0,0.6)';
-    page.render({canvasContext: ctx, viewport: vp}).promise.then(function(){
-      _infViewerPage = num;
-      document.getElementById('inf-viewer-pag').textContent  = num + ' / ' + _infViewerTotal;
-      document.getElementById('inf-viewer-zoom').textContent = _infViewerZoomMult===1.0 ? 'Ajuste' : Math.round(_infViewerZoomMult * 100) + '%';
-      var pagCheia = document.getElementById('inf-tela-cheia-pag');
-      if(pagCheia) pagCheia.textContent = num + ' / ' + _infViewerTotal;
+
+    var tarefa = page.render({canvasContext: ctx, viewport: vp});
+    _infRenderTask = tarefa;
+    return tarefa.promise.then(function(){
+      if(meu !== _infRenderSeq) return;
+      _infRenderTask = null;
+      var elZoom = document.getElementById('inf-viewer-zoom');
+      if(elZoom) elZoom.textContent = _infViewerZoomMult===1.0 ? 'Ajuste' : Math.round(_infViewerZoomMult * 100) + '%';
     });
+  }).catch(function(){
+    // Cancelamento e o caminho normal quando se passa pagina depressa.
   });
 }
 
