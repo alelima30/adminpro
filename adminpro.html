@@ -1166,7 +1166,10 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   padding:13px 16px;
   overflow-wrap:break-word;
   text-align:left;
+  /* pre-wrap e o que faz as quebras por artigo aparecerem na tela */
+  white-space:pre-wrap;
 }
+.reg-rotulo{color:var(--gold-l);font-weight:800}
 .reg-trecho + .reg-trecho{margin-top:10px}
 .reg-trecho mark{
   background:rgba(232,119,34,0.30);color:var(--gold-l);
@@ -1174,6 +1177,108 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 }
 @media (max-width:520px){
   .reg-trecho{font-size:13px;line-height:1.7;padding:11px 13px}
+}
+/* ══ INFORMACOES GERAIS ══ */
+.ig-card{margin-bottom:16px}
+.ig-texto{font-size:14px;line-height:1.85;color:var(--text-2);white-space:pre-wrap;overflow-wrap:break-word}
+.ig-vazio{font-size:13px;color:var(--text-3);padding:6px 0;font-style:italic}
+.ig-dica{font-size:11.5px;color:var(--text-3);margin-top:6px}
+.ig-input{
+  width:100%;box-sizing:border-box;
+  padding:11px 14px;border-radius:9px;border:1px solid var(--border);
+  background:var(--ink-2);color:var(--text);font-size:14px;font-family:inherit;
+  line-height:1.7;outline:none;resize:vertical;
+}
+.ig-input:focus{border-color:var(--border-h)}
+.ig-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+/* Telefone — leitura */
+.ig-tel{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:11px 0;border-bottom:1px solid var(--border);
+}
+.ig-tel:last-child{border-bottom:none}
+.ig-tel-nome{font-size:14px;color:var(--text);font-weight:600;flex:1;min-width:140px}
+.ig-tel-dir{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.ig-tel-num{font-size:14px;color:var(--text-2);text-decoration:none;font-variant-numeric:tabular-nums}
+a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
+.ig-wa{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border-radius:9px;flex-shrink:0;
+  background:rgba(37,211,102,0.14);border:1px solid rgba(37,211,102,0.42);
+  color:#25d366;font-size:19px;text-decoration:none;
+  transition:background .2s,transform .1s;
+}
+.ig-wa:hover{background:rgba(37,211,102,0.26)}
+.ig-wa:active{transform:scale(0.94)}
+
+/* Telefone — edicao */
+.ig-tel-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:9px}
+.ig-tel-form .ig-f-nome{flex:2;min-width:150px;width:auto}
+.ig-tel-form .ig-f-num{flex:1;min-width:130px;width:auto}
+.ig-f-wa{
+  display:inline-flex;align-items:center;gap:6px;flex-shrink:0;cursor:pointer;
+  font-size:12.5px;color:var(--text-2);white-space:nowrap;
+}
+.ig-f-wa input{accent-color:#25d366;width:16px;height:16px;cursor:pointer}
+.ig-f-wa i{color:#25d366;font-size:15px}
+.ig-f-del{flex-shrink:0}
+
+/* Mapa anexado */
+.ig-arquivo{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:14px 16px;border-radius:11px;
+  background:var(--ink-2);border:1px solid var(--border);
+}
+.ig-arquivo-nome{font-size:14px;font-weight:600;color:var(--text);overflow-wrap:break-word}
+
+@media (max-width:640px){
+  .ig-texto{font-size:13.5px;line-height:1.8}
+  .ig-tel{align-items:flex-start}
+  .ig-tel-nome{min-width:100%}
+  .ig-tel-dir{width:100%;justify-content:space-between}
+  /* Na edicao, cada campo em sua linha: lado a lado no celular fica
+     estreito demais para digitar um telefone. */
+  .ig-tel-form{
+    flex-direction:column;align-items:stretch;gap:7px;
+    padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:12px;
+  }
+  .ig-tel-form .ig-f-nome,.ig-tel-form .ig-f-num{width:100%;flex:none}
+  .ig-f-del{align-self:flex-end}
+  .ig-arquivo .btn{width:100%}
+}
+/* ══ ASSISTENTE CONDOMINIO ══ */
+#ia-conversa{
+  display:flex;flex-direction:column;gap:14px;
+  min-height:180px;max-height:52vh;overflow-y:auto;
+  padding:4px 2px 2px;
+}
+.ia-msg{max-width:88%;padding:13px 16px;border-radius:14px;font-size:14px;line-height:1.75;overflow-wrap:break-word;white-space:pre-wrap}
+.ia-msg.eu{align-self:flex-end;background:rgba(232,119,34,0.14);border:1px solid rgba(232,119,34,0.35);color:var(--text);border-bottom-right-radius:5px}
+.ia-msg.bot{align-self:flex-start;background:var(--ink-2);border:1px solid var(--border);color:var(--text-2);border-bottom-left-radius:5px}
+.ia-msg.erro{align-self:flex-start;background:rgba(224,82,82,0.10);border:1px solid rgba(224,82,82,0.35);color:var(--text-2)}
+.ia-fonte{margin-top:10px;font-size:11.5px;color:var(--text-3);letter-spacing:.2px}
+.ia-vazio{color:var(--text-3);font-size:13px;text-align:center;padding:34px 10px;line-height:1.8}
+.ia-barra{display:flex;gap:10px;align-items:flex-end;margin-top:14px}
+.ia-barra textarea{
+  flex:1;min-width:0;resize:none;max-height:150px;min-height:46px;
+  padding:12px 16px;border-radius:11px;border:1px solid var(--border);
+  background:var(--ink-2);color:var(--text);font-size:14px;font-family:inherit;
+  line-height:1.6;outline:none;
+}
+.ia-barra textarea:focus{border-color:var(--border-h)}
+.ia-barra .btn{white-space:nowrap}
+.ia-sug{
+  background:var(--ink-2);border:1px solid var(--border);color:var(--text-3);
+  border-radius:99px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:inherit;
+  transition:border-color .2s,color .2s;
+}
+.ia-sug:hover{border-color:var(--border-h);color:var(--text-2)}
+@media (max-width:640px){
+  .ia-msg{max-width:100%;font-size:13.5px;padding:12px 14px}
+  #ia-conversa{max-height:none}
+  .ia-barra{flex-direction:column;align-items:stretch}
+  .ia-barra .btn{width:100%}
 }
 /* Lista de espacos do condominio (aba "Criar espacos") */
 .esp-item{
@@ -1978,13 +2083,25 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 
       <div class="nav-standalone" data-acesso="admin,gestor,morador">
         <div class="nav-item" id="nav-comunicados" onclick="showPanel('comunicados',this)">
-          <div class="nav-icon"><i class="fa-solid fa-bullhorn"></i></div>Comunicados
+          <div class="nav-icon"><i class="fa-solid fa-bullhorn"></i></div>Comunicação
+        </div>
+      </div>
+
+      <div class="nav-standalone" data-acesso="admin,gestor,morador">
+        <div class="nav-item" id="nav-infogerais" onclick="showPanel('infogerais',this)">
+          <div class="nav-icon"><i class="fa-solid fa-circle-info"></i></div>Informações Gerais
         </div>
       </div>
 
       <div class="nav-standalone" data-acesso="admin,gestor,morador">
         <div class="nav-item" id="nav-regulamento" onclick="showPanel('regulamento',this)">
           <div class="nav-icon"><i class="fa-solid fa-scroll"></i></div>Regulamentos
+        </div>
+      </div>
+
+      <div class="nav-standalone" data-acesso="admin,gestor">
+        <div class="nav-item" id="nav-assistente" onclick="showPanel('assistente',this)">
+          <div class="nav-icon"><i class="fa-solid fa-robot"></i></div>Assistente
         </div>
       </div>
 
@@ -2832,6 +2949,17 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
         </div>
       </div>
 
+      <!-- ████ P: INFORMAÇÕES GERAIS ████ -->
+      <div class="panel" id="panel-infogerais">
+        <div class="ph">
+          <div>
+            <div class="ph-title">Informações Gerais</div>
+            <div class="ph-sub" id="ig-sub">Dados do condomínio, telefones e horários</div>
+          </div>
+        </div>
+        <div id="ig-conteudo"></div>
+      </div>
+
       <!-- ████ INADIMPLÊNCIA ████ -->
       <div class="panel" id="panel-inadimplencia">
         <div class="ph">
@@ -3348,6 +3476,40 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
             <span id="reg-count" style="font-size:12px;color:var(--text-3)"></span>
           </div>
           <div id="reg-lista"></div>
+        </div>
+      </div>
+
+      <!-- ████ ASSISTENTE CONDOMÍNIO ████ -->
+      <div class="panel" id="panel-assistente">
+        <div class="ph">
+          <div>
+            <div class="ph-title">🤖 Assistente Condomínio</div>
+            <div class="ph-sub">Pergunte em português e o assistente procura a resposta nos regulamentos anexados, citando o artigo.</div>
+          </div>
+          <div class="ph-actions">
+            <button class="btn btn-ghost btn-sm" onclick="limparAssistente()">🗑 Limpar conversa</button>
+          </div>
+        </div>
+
+        <div class="card" id="ia-card">
+          <div class="card-head">
+            <div class="card-title"><div class="card-icon">💬</div>Conversa</div>
+            <span id="ia-base" style="font-size:12px;color:var(--text-3)"></span>
+          </div>
+
+          <div id="ia-conversa"></div>
+
+          <div id="ia-sugestoes" style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px"></div>
+
+          <div class="ia-barra">
+            <textarea id="ia-pergunta" rows="1" placeholder="Escreva sua pergunta…"
+              oninput="_iaAutoAltura(this)" onkeydown="_iaTecla(event)"></textarea>
+            <button class="btn btn-gold" id="ia-enviar" onclick="perguntarAssistente()">Perguntar</button>
+          </div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:10px;line-height:1.6">
+            O assistente responde <strong>somente</strong> com o que está escrito nos documentos cadastrados em Regulamentos.
+            Ele não interpreta a lei e não substitui a administração — em caso de dúvida, a palavra final é da administração do condomínio.
+          </div>
         </div>
       </div>
 
@@ -4762,7 +4924,7 @@ async function _linkTemporario(caminho){
 
 // Cache local (mantem toda a logica sync original)
 const DB_CACHE = {};
-const DB_KEYS = ['saas_condominios','lotes','funcs','fin','manut','comun','prev','reservas','reg','inadimplencia','unidades','localizacoes','condominos','condseq','classificacoes','encomendas'];
+const DB_KEYS = ['saas_condominios','lotes','funcs','fin','manut','comun','prev','reservas','reg','inadimplencia','unidades','localizacoes','condominos','condseq','classificacoes','encomendas','infogerais'];
 
 const G = k => (DB_CACHE[k] !== undefined) ? DB_CACHE[k] : null;
 
@@ -4784,7 +4946,7 @@ const _NORM = {
 };
 
 // Modulos que so admin/gestor pode gravar (RLS bloqueia morador).
-const _MOD_ADMIN = ['lotes','unidades','condominos','localizacoes','saas_condominios','usuarios'];
+const _MOD_ADMIN = ['lotes','unidades','condominos','localizacoes','saas_condominios','usuarios','infogerais'];
 function _podeGravarModulo(k){
   if(_MOD_ADMIN.indexOf(k) === -1) return true;          // modulo livre
   try{
@@ -4940,9 +5102,11 @@ const MODULOS_SAAS = {
   encomendas:     { label:'Encomendas',                grupo:null,            secao:'Operações' },
   manutencao:     { label:'Manutenção',                grupo:'operacoes',     secao:'Operações' },
   preventivas:    { label:'Preventivas & Corretivas',  grupo:'operacoes',     secao:'Operações' },
-  comunicados:    { label:'Comunicados (Informativos)', grupo:null,           secao:'Operações' },
+  comunicados:    { label:'Comunicação (Informativos)', grupo:null,           secao:'Operações' },
   eventos:        { label:'Eventos',                   grupo:null,           secao:'Operações' },
   regulamento:    { label:'Regulamentos',              grupo:null,            secao:'Operações' },
+  infogerais:     { label:'Informações Gerais',         grupo:null,            secao:'Operações' },
+  assistente:     { label:'Assistente Condomínio',     grupo:null,            secao:'Operações' },
   procedimentos:  { label:'Procedimentos',             grupo:'operacoes',     secao:'Operações' },
   usuarios:       { label:'Usuários',                  grupo:'sistema',       secao:'Sistema' },
   configuracoes:  { label:'Configurações',             grupo:'sistema',       secao:'Sistema' },
@@ -5067,7 +5231,7 @@ function painelInicial(){
   // 'comunicados' e 'eventos' viraram abas dentro do item standalone
   // Comunicados (fora de SB_GRUPOS) -> sem isto, sumiriam desta lista e um
   // morador cujo unico modulo liberado fosse um dos dois ficaria sem tela.
-  const ordem = ['dashboard','comunicados','eventos','regulamento'];
+  const ordem = ['dashboard','comunicados','eventos','infogerais','regulamento','assistente'];
   ['paineis','administrativo','cadastro','operacoes','sistema'].forEach(function(g){
     ((SB_GRUPOS[g]||{}).itens||[]).forEach(function(it){
       if(String(it.id).indexOf('__nav')!==0) ordem.push(it.id);
@@ -5093,7 +5257,7 @@ function aplicarSaas(){
   // Itens standalone (Dashboard, Reservas, Comunicados, Encomendas): gate por tela.
   // Comunicados hospeda duas abas com modulo proprio cada (comunicados = Informativos,
   // eventos = Eventos) -> o item so some se NENHUMA das duas estiver liberada.
-  ['dashboard','reservas','comunicados','regulamento','encomendas'].forEach(function(id){
+  ['dashboard','reservas','comunicados','infogerais','regulamento','assistente','encomendas'].forEach(function(id){
     var nav=$('nav-'+id); if(!nav) return;
     var st=nav.closest('.nav-standalone'); if(!st) return;
     var liberado = id==='comunicados' ? (ativos.includes('comunicados')||ativos.includes('eventos')) : ativos.includes(id);
@@ -5689,11 +5853,11 @@ function closeSidebar(){
 }
 
 /* ══ NAVIGATION ══ */
-const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas'};
+const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',infogerais:'Informações Gerais',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas',espacos:'Criar Espaços',admfotos:'Fotos dos Condôminos'};
 const ACESSO_PAINEIS = {
-  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','regulamento','usuarios','configuracoes','procedimentos'],
-  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','regulamento','procedimentos'],
-  morador: ['inicio','reservas','encomendas','comunicados','eventos','regulamento','procedimentos']
+  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','usuarios','configuracoes','procedimentos'],
+  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','procedimentos'],
+  morador: ['inicio','reservas','encomendas','comunicados','eventos','infogerais','regulamento','procedimentos']
 };
 /* ══════════════════════════
    CADASTRO DE UNIDADES
@@ -6986,7 +7150,7 @@ function showPanel(id,el){
   try{ localStorage.setItem('apvc_last_panel', id); }catch(_){}
   sbFecharFlyout();
   closeSidebar();
-  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
+  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
 }
 
 function setTab(t){
@@ -11285,12 +11449,53 @@ function salvarCfgReservas(){
 function _regLimpaTexto(t){
   return String(t||'')
     .replace(/­/g, '')                 // hifen invisivel de separacao
-    .replace(/(\w)[-‐‑]\s+(\w)/g, '$1$2') // palavra partida no fim da linha
+    // \w nao pega letra acentuada: "constru-\ncao" com cedilha ficava partido.
+    .replace(/(\p{L})[-‐‑]\s+(\p{L})/gu, '$1$2') // palavra partida no fim da linha
     .replace(/\s*[\r\n]+\s*/g, ' ')         // quebra de linha vira espaco
     .replace(/[ \t ]{2,}/g, ' ')       // espacos repetidos
     .replace(/\s+([,.;:!?%)\]])/g, '$1')    // espaco antes de pontuacao
     .replace(/([(\[])\s+/g, '$1')           // espaco depois de abre-parenteses
+    // A extracao do PDF as vezes solta o "s" do plural da palavra:
+    // "casa s de maquinas", "construida s nos recuos".
+    // So cola quando o que vem DEPOIS confirma que aquele "s" era o fim de
+    // um plural — pontuacao ou uma palavra de ligacao. Colar sempre que
+    // aparece um "s" solto estragaria texto: "vaga s ao" viraria
+    // "vagass ao". Aqui, deixar de corrigir e melhor do que corromper.
+    .replace(
+      /(\p{L}{2,})\s+s(?=[,.;:)]|\s+(?:de|da|do|das|dos|e|ou|que|para|por|com|em|no|na|nos|nas|ao|aos|à|às|n[ãa]o|ser[ãa]o|dever[ãa]o|poder[ãa]o)\b)/gu,
+      '$1s')
+    // Numero do artigo partido: "Artigo 3 7" e o artigo 37, nao o 3.
+    // So dentro do rotulo do artigo — em texto comum, "sala 3 7" pode ser
+    // duas coisas diferentes e nao se mexe.
+    .replace(/(Art(?:igo)?\.?\s*)(\d(?:\s\d)+)/gi, function(_, rot, num){
+      return rot + num.replace(/\s/g, '');
+    })
     .trim();
+}
+
+/* Deixa o trecho parecido com o PDF: cada artigo, paragrafo, inciso ou
+   alinea comeca em uma linha propria. Sem isso vira um paredao de texto
+   e nao da para achar onde a regra esta.
+
+   So quebra depois de ponto, ponto-e-virgula ou dois-pontos: assim
+   "conforme previsto no Artigo 29o deste Codigo" continua na mesma linha,
+   porque ali "Artigo 29o" e uma citacao, nao o inicio de um artigo. */
+function _regFormataTrecho(t){
+  var MARCA = '(?:Art(?:igo)?\\.?\\s*\\d+\\s*[\u00ba\u00b0o]?'
+            + '|Par[\u00e1a]grafo\\s+[\\wÀ-ÿ]+'
+            + '|\u00a7\\s*\\d+[\u00ba\u00b0o]?'
+            + '|Cap[\u00edi]tulo\\s+[\\wÀ-ÿ]+'
+            + '|Se[\u00e7c][\u00e3a]o\\s+[\\wÀ-ÿ]+'
+            + '|[IVXLC]{1,5}\\s*[-\u2013\u2014]'
+            + '|[a-z]\\))';
+  return String(t||'')
+    .replace(new RegExp('([;:.])\\s+(?=' + MARCA + ')', 'g'), '$1\n')
+    // O rodape do PDF ("... CNPJ 02.861.216/0001-77  12  Artigo 37 - ...")
+    // gruda o numero da pagina no artigo seguinte. Numero solto antes de
+    // "Artigo N" e rodape, nao citacao — citacao vem depois de palavra
+    // ("no Artigo 29"), e essa continua sem quebrar.
+    .replace(/(\d)\s+(?=Art(?:igo)?\.?\s*\d)/g, '$1\n')
+    .replace(/\n{2,}/g, '\n');
 }
 
 /* Realca o termo procurado. Trabalha por posicao, e nao por substituicao
@@ -11307,6 +11512,19 @@ function _regRealca(texto, termo){
     pos = idx + alvo.length;
   }
   return out + escHtml(texto.slice(pos));
+}
+
+/* Deixa em negrito o rotulo que abre cada linha ("Art. 5o", "Paragrafo
+   segundo"). Recebe HTML ja escapado e com <mark> do realce — por isso so
+   marca o rotulo quando ele nao contem tag nenhuma dentro. */
+function _regNegritoRotulo(html){
+  return String(html||'').replace(
+    /(^|\n)((?:Art(?:igo)?\.?\s*\d+\s*[\u00ba\u00b0o]?|Par[\u00e1a]grafo\s+[\wÀ-ÿ]+|\u00a7\s*\d+[\u00ba\u00b0o]?|Cap[\u00edi]tulo\s+[\wÀ-ÿ]+|Se[\u00e7c][\u00e3a]o\s+[\wÀ-ÿ]+))/g,
+    function(_, ini, rotulo){
+      if(rotulo.indexOf('<') >= 0) return ini + rotulo;
+      return ini + '<strong class="reg-rotulo">' + rotulo + '</strong>';
+    }
+  );
 }
 
 function pesquisarReg(){
@@ -11328,19 +11546,20 @@ function pesquisarReg(){
     if(d.texto){
       const texto = _regLimpaTexto(d.texto);
       const lower = texto.toLowerCase();
-      const CTX = 320;                    // contexto de cada lado
+      const CTX = 900;                    // contexto de cada lado (para dar
+                                          // para situar o trecho no documento)
       let pos = 0;
       while(true){
         const idx = lower.indexOf(q, pos);
         if(idx < 0) break;
         totalOcorrencias++;
-        if(trechos.length < 3){           // mostra no maximo 3, mas conta todas
+        if(trechos.length < 5){           // mostra no maximo 5, mas conta todas
           let ini = Math.max(0, idx - CTX);
           let fim = Math.min(texto.length, idx + q.length + CTX);
           // Nao comecar nem terminar no meio de uma palavra.
           if(ini > 0){ const p = texto.indexOf(' ', ini); if(p >= 0 && p < idx) ini = p + 1; }
           if(fim < texto.length){ const p = texto.lastIndexOf(' ', fim); if(p > idx + q.length) fim = p; }
-          trechos.push((ini>0?'… ':'') + texto.slice(ini,fim).trim() + (fim<texto.length?' …':''));
+          trechos.push(_regFormataTrecho((ini>0?'… ':'') + texto.slice(ini,fim).trim() + (fim<texto.length?' …':'')));
         }
         pos = idx + q.length;
       }
@@ -11368,7 +11587,7 @@ function pesquisarReg(){
         + (totalOcorrencias > trechos.length ? ` · mostrando ${trechos.length}` : '');
 
     const tretchosHTML = trechos.length
-      ? trechos.map(t=>`<div class="reg-trecho">${_regRealca(t, q)}</div>`).join('')
+      ? trechos.map(t=>`<div class="reg-trecho">${_regNegritoRotulo(_regRealca(t, q))}</div>`).join('')
       : `<div style="font-size:12px;color:var(--text-3);padding:8px 0">Termo encontrado no título ou descrição do documento.</div>`;
 
     div.innerHTML=`
@@ -11384,6 +11603,668 @@ function pesquisarReg(){
     lista.appendChild(div);
   });
 }
+/* ══════════════════════════
+   ASSISTENTE CONDOMÍNIO
+
+   Como funciona, em ordem:
+     1. O texto de cada documento (já extraído do PDF/Word na hora do upload
+        e guardado no banco em "reg") é quebrado em pedaços por ARTIGO.
+     2. A pergunta do usuário vira uma lista de palavras-chave e os pedaços
+        são pontuados por quantas dessas palavras contêm.
+     3. Só os melhores pedaços vão para a Edge Function "assistente", que
+        chama a IA com uma instrução dura: responder SÓ com base neles.
+
+   O passo 2 é o que segura o custo: uma pergunta manda alguns milhares de
+   caracteres, não o regulamento inteiro. E o passo 3 é o que segura o risco:
+   a IA não pode inventar regra, porque não recebe nada além do documento.
+══════════════════════════ */
+
+var _iaHist = [];        // [{quem:'eu'|'bot'|'erro', texto, fontes}]
+var _iaOcupado = false;
+
+// Palavras que não ajudam a achar nada — tirar melhora muito a pontuação.
+var _IA_STOP = ('a as o os um uma uns umas de do da dos das em no na nos nas por para com sem sob sobre '
+  + 'e ou mas que se ao aos à às pelo pela é são ser está estão eu meu minha meus minhas '
+  + 'posso pode podem poderia devo deve tem tenho há qual quais quando onde como porque por que '
+  + 'isso isto aquilo lá aqui já não sim muito mais menos meu no meu do meu').split(/\s+/);
+
+function _iaPalavras(q){
+  return semAcento(q).replace(/[^a-z0-9 ]+/g,' ').split(/\s+/)
+    .filter(function(w){ return w.length>2 && _IA_STOP.indexOf(w)<0; })
+    .filter(function(w,i,arr){ return arr.indexOf(w)===i; });
+}
+
+// Quebra o texto do documento em pedaços. Se o documento tem artigos
+// numerados, corta NELES — assim cada pedaço já chega com "Art. 42" na
+// frente e a IA consegue citar o artigo certo.
+function _iaPedacos(texto){
+  var t = _regLimpaTexto(texto);
+  if(!t) return [];
+  var out = [];
+  var re = /(?:^|\s)(Art(?:igo)?\.?\s*\d+[ºo°]?)/gi;
+  var marcas = [], m;
+  while((m = re.exec(t)) !== null){ marcas.push(m.index + m[0].length - m[1].length); }
+
+  if(marcas.length >= 3){
+    for(var i=0;i<marcas.length;i++){
+      var ini = marcas[i];
+      var fim = (i+1<marcas.length) ? marcas[i+1] : t.length;
+      var p = t.slice(ini, fim).trim();
+      // Artigo gigante: quebra em pedaços menores mantendo o cabeçalho.
+      if(p.length > 2600){
+        var cab = p.slice(0, 60);
+        for(var k=0;k<p.length;k+=2200){
+          out.push(k===0 ? p.slice(0,2200) : ('[continuação de ' + cab + '…] ' + p.slice(k, k+2200)));
+        }
+      } else if(p) out.push(p);
+    }
+    // O que vem ANTES do primeiro artigo (preâmbulo) também pode responder.
+    var pre = t.slice(0, marcas[0]).trim();
+    if(pre) out.unshift(pre.slice(-2200));
+  } else {
+    var TAM = 1600, PASSO = 1300;   // com sobreposição, para não cortar regra ao meio
+    for(var j=0;j<t.length;j+=PASSO) out.push(t.slice(j, j+TAM));
+  }
+  // Corte baixo de proposito: artigo curto ("Art. 5o E proibido fumar.")
+  // e regra valida e nao pode sumir da base.
+  return out.filter(function(x){ return x && x.trim().length > 12; });
+}
+
+// Cache dos pedaços: quebrar o texto todo a cada pergunta é desperdício.
+var _iaCache = { chave:'', docs:null };
+function _iaBaseDocs(){
+  var docs = (G('reg')||[]).filter(function(d){ return d && d.texto && String(d.texto).trim(); });
+  var chave = _condAtual + '|' + docs.map(function(d){ return d.id+':'+String(d.texto).length; }).join(',');
+  if(_iaCache.chave === chave && _iaCache.docs) return _iaCache.docs;
+  var prep = docs.map(function(d){
+    return { titulo: d.titulo || d.nome || 'Documento', pedacos: _iaPedacos(d.texto) };
+  });
+  _iaCache = { chave: chave, docs: prep };
+  return prep;
+}
+
+// Seleciona o que mandar para a IA. A base é SEMPRE o conjunto completo
+// de documentos cadastrados em Regulamentos — o que muda é quanto dele cabe:
+//   • Se tudo couber no limite, manda TUDO (nada é deixado de fora).
+//   • Se não couber, manda os pedaços mais relevantes de TODOS os documentos.
+// Documento novo anexado em Regulamentos entra na base sozinho, sem
+// nenhuma configuração: a base é lida do banco a cada pergunta.
+function _iaSelecionar(pergunta, limiteChars){
+  var base = _iaBaseDocs();
+  if(!base.length) return [];
+
+  // Cabe inteiro? Então não escolhe nada: manda o regulamento completo.
+  var total = 0;
+  base.forEach(function(d){ d.pedacos.forEach(function(p){ total += p.length; }); });
+  if(total <= limiteChars){
+    var tudo = [];
+    base.forEach(function(d){
+      d.pedacos.forEach(function(p, idx){ tudo.push({ titulo:d.titulo, idx:idx, texto:p }); });
+    });
+    return tudo;
+  }
+
+  var palavras = _iaPalavras(pergunta);
+  if(!palavras.length) return _iaPrimeirosPedacos(base, limiteChars);
+  var cands = [];
+  base.forEach(function(d){
+    d.pedacos.forEach(function(p, idx){
+      var alvo = semAcento(p);
+      var pontos = 0, distintas = 0;
+      palavras.forEach(function(w){
+        var n = 0, pos = 0;
+        while(true){ var i = alvo.indexOf(w, pos); if(i<0) break; n++; pos = i + w.length; }
+        if(n){ distintas++; pontos += 1 + Math.min(n-1, 3) * 0.35; }
+      });
+      if(!distintas) return;
+      // Pedaço que bate VÁRIAS palavras diferentes vale muito mais do que
+      // um que repete a mesma palavra — evita trazer trecho fora de contexto.
+      pontos *= (1 + distintas * 0.6);
+      cands.push({ titulo: d.titulo, idx: idx, texto: p, pontos: pontos });
+    });
+  });
+  cands.sort(function(a,b){ return b.pontos - a.pontos; });
+
+  var usado = 0, escolhidos = [];
+  for(var i=0;i<cands.length && escolhidos.length<16;i++){
+    if(usado + cands[i].texto.length > limiteChars) continue;
+    escolhidos.push(cands[i]);
+    usado += cands[i].texto.length;
+  }
+  // Nenhuma palavra bateu: em vez de dizer "não encontrei" sem nem olhar,
+  // manda o começo de cada documento e deixa a IA julgar.
+  if(!escolhidos.length) return _iaPrimeirosPedacos(base, limiteChars);
+  // Devolve na ordem do documento, não na ordem da pontuação: lido em
+  // sequência, o texto faz sentido.
+  escolhidos.sort(function(a,b){
+    return a.titulo === b.titulo ? a.idx - b.idx : a.titulo.localeCompare(b.titulo);
+  });
+  return escolhidos;
+}
+
+// Reserva de emergência: um pouco de cada documento, em rodízio, até encher.
+// Rodízio (e não "o primeiro documento inteiro") para que nenhum documento
+// fique de fora da base.
+function _iaPrimeirosPedacos(base, limiteChars){
+  var out = [], usado = 0, rodada = 0, seguiu = true;
+  while(seguiu && usado < limiteChars){
+    seguiu = false;
+    for(var i=0;i<base.length;i++){
+      var p = base[i].pedacos[rodada];
+      if(!p) continue;
+      seguiu = true;
+      if(usado + p.length > limiteChars) continue;
+      out.push({ titulo: base[i].titulo, idx: rodada, texto: p });
+      usado += p.length;
+    }
+    rodada++;
+  }
+  out.sort(function(a,b){
+    return a.titulo === b.titulo ? a.idx - b.idx : a.titulo.localeCompare(b.titulo);
+  });
+  return out;
+}
+
+function _iaAutoAltura(el){
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+}
+function _iaTecla(ev){
+  // Enter envia; Shift+Enter quebra linha. No celular o teclado manda
+  // Enter como nova linha e o botão fica sendo o caminho normal.
+  if(ev.key === 'Enter' && !ev.shiftKey && window.innerWidth > 640){
+    ev.preventDefault();
+    perguntarAssistente();
+  }
+}
+
+function renderAssistente(){
+  var base = _iaBaseDocs();
+  var n = base.length;
+  var el = $('ia-base');
+  if(el){
+    el.textContent = n
+      ? (n===1 ? '1 documento consultável' : n + ' documentos consultáveis')
+      : 'nenhum documento com texto';
+  }
+
+  var sug = $('ia-sugestoes');
+  if(sug){
+    var exemplos = ['Posso construir uma piscina?','Qual o horário de silêncio?','Posso ter cachorro?','Como funciona a multa por barulho?'];
+    sug.innerHTML = n
+      ? exemplos.map(function(t){
+          return '<button class="ia-sug" onclick="_iaUsarSugestao(this)">'+escHtml(t)+'</button>';
+        }).join('')
+      : '';
+  }
+  _iaPintar();
+}
+
+function _iaUsarSugestao(btn){
+  var inp = $('ia-pergunta');
+  if(!inp) return;
+  inp.value = btn.textContent;
+  _iaAutoAltura(inp);
+  perguntarAssistente();
+}
+
+function _iaPintar(){
+  var box = $('ia-conversa');
+  if(!box) return;
+  if(!_iaHist.length){
+    var temDoc = _iaBaseDocs().length > 0;
+    box.innerHTML = '<div class="ia-vazio">'
+      + (temDoc
+          ? '🤖 Faça uma pergunta sobre as regras do condomínio.<br>Eu procuro nos regulamentos anexados e respondo citando o artigo.'
+          : '📄 Ainda não há documento com texto cadastrado em <strong>Regulamentos</strong>.<br>Anexe o regulamento em PDF ou Word para eu poder consultar.<br><span style="font-size:12px">PDF escaneado (foto do papel) não tem texto para ler — precisa ser um PDF de texto.</span>')
+      + '</div>';
+    return;
+  }
+  box.innerHTML = _iaHist.map(function(m){
+    var cls = m.quem==='eu' ? 'eu' : (m.quem==='erro' ? 'bot erro' : 'bot');
+    var fontes = (m.fontes && m.fontes.length)
+      ? '<div class="ia-fonte">📄 Consultei: ' + escHtml(m.fontes.join(' · ')) + '</div>'
+      : '';
+    return '<div class="ia-msg '+cls+'">' + escHtml(m.texto) + fontes + '</div>';
+  }).join('');
+  box.scrollTop = box.scrollHeight;
+}
+
+function limparAssistente(){
+  _iaHist = [];
+  _iaPintar();
+}
+
+async function perguntarAssistente(){
+  if(_iaOcupado) return;
+  var inp = $('ia-pergunta');
+  var pergunta = (inp && inp.value || '').trim();
+  if(!pergunta){ toast('⚠️ Escreva a sua pergunta.'); return; }
+
+  var btn = $('ia-enviar');
+  _iaOcupado = true;
+  if(btn){ btn.disabled = true; btn.textContent = 'Consultando…'; }
+  if(inp){ inp.value=''; _iaAutoAltura(inp); }
+
+  _iaHist.push({ quem:'eu', texto: pergunta });
+  var _msg = { quem:'bot', texto:'Procurando nos documentos…' };
+  _iaHist.push(_msg);
+  _iaPintar();
+
+  // Troca o "Procurando…" pela resposta. Se a conversa foi limpa nesse
+  // meio-tempo, a mensagem nao esta mais na lista e a resposta e
+  // descartada — em vez de reaparecer sozinha numa conversa vazia.
+  function _responder(novo){
+    var i = _iaHist.indexOf(_msg);
+    if(i >= 0) _iaHist[i] = novo;
+  }
+
+  try{
+    var trechos = _iaSelecionar(pergunta, 45000);
+
+    if(!trechos.length){
+      _responder({
+        quem:'bot',
+        texto:'Não encontrei nada nos documentos do condomínio sobre isso. Consulte a administração.'
+      });
+      _iaPintar();
+      return;
+    }
+
+    if(!SB || !SB.functions) throw new Error('Sem conexão com o servidor.');
+
+    var r = await SB.functions.invoke('assistente', {
+      body:{
+        pergunta: pergunta,
+        condominio: _condAtual,
+        trechos: trechos.map(function(t){ return { titulo:t.titulo, texto:t.texto }; })
+      }
+    });
+
+    if(r.error) throw new Error(r.error.message || 'Falha ao consultar o assistente.');
+    if(r.data && r.data.error) throw new Error(r.data.error);
+    var resposta = (r.data && r.data.resposta || '').trim();
+    if(!resposta) throw new Error('O assistente não devolveu resposta.');
+
+    var fontes = trechos.map(function(t){ return t.titulo; })
+      .filter(function(v,i,a){ return a.indexOf(v)===i; });
+
+    _responder({ quem:'bot', texto: resposta, fontes: fontes });
+  }catch(e){
+    _responder({
+      quem:'erro',
+      texto:'⚠️ Não consegui responder agora: ' + (e && e.message ? e.message : 'erro desconhecido') + '\n\nNenhuma regra foi inventada — quando falho, eu não respondo.'
+    });
+  }finally{
+    _iaOcupado = false;
+    if(btn){ btn.disabled = false; btn.textContent = 'Perguntar'; }
+    _iaPintar();
+  }
+}
+
+/* ══════════════════════════
+   INFORMAÇÕES GERAIS  (aba de Comunicação)
+
+   Tudo fica em um registro só, "infogerais", no modulo_dados do
+   condomínio — cada condomínio tem o seu.
+══════════════════════════ */
+
+var _igEditando = '';   // qual seção está aberta para edição ('' = nenhuma)
+
+function _igPodeEditar(){
+  try{ if(isSuperAdmin()) return true; }catch(_){}
+  var n = window._userNivel || '';
+  return n === 'admin' || n === 'gestor';
+}
+
+// Só o Village Castelo (APVC) tem esta história; os demais começam vazio
+// e a administração escreve a sua.
+var _IG_HISTORIA_APVC =
+  'A Associação Parque Village Castelo foi criada em 1996, antiga Fazenda São José, '
++ 'e está localizada na Estância Turística de Itu, às margens da Rodovia Castello Branco, km 80.\n\n'
++ 'Possui uma área total de 941.443,20 m², sendo 241.642,31 m² de área de mata preservada, '
++ 'com muita natureza, lazer e segurança. São 327 lotes de 1.500 m² cada, que desfrutam de toda '
++ 'a infraestrutura necessária para o conforto de toda a família.';
+
+// Valores iniciais. Servem de ponto de partida — a administração edita
+// tudo pela tela; nada aqui é fixo no código.
+function _igPadrao(){
+  return {
+    historia: (_condAtual === 'APVC') ? _IG_HISTORIA_APVC : '',
+    mapa: null,                       // {storagePath, nome}
+    telefones: [],
+    horarioAdm: 'Segunda a sexta, das 8h às 17h\nSábado, das 8h às 12h\nDomingos e feriados: fechado',
+    horarioPortaria: 'Portaria 24 horas, todos os dias, inclusive feriados',
+    emergencia: [
+      { nome:'Polícia Militar',        numero:'190' },
+      { nome:'Bombeiros',              numero:'193' },
+      { nome:'SAMU · Ambulância',      numero:'192' },
+      { nome:'Defesa Civil',           numero:'199' },
+      { nome:'Polícia Civil',          numero:'197' },
+      { nome:'Polícia Rodoviária Federal', numero:'191' },
+    ],
+  };
+}
+
+function getInfoGerais(){
+  var d = G('infogerais');
+  if(!d || typeof d !== 'object' || Array.isArray(d)) return null;
+  return d;
+}
+
+function _igSalvar(d){
+  try{ S('infogerais', d); }
+  catch(e){ toast('⚠️ Erro ao salvar: ' + (e && e.message ? e.message : 'tente novamente.')); return false; }
+  return true;
+}
+
+/* ── Telefone ── */
+function _igDigitos(v){ return String(v||'').replace(/\D/g,''); }
+
+// Link do WhatsApp. Número curto (190, 193...) não tem WhatsApp, e número
+// sem DDD também não dá para montar — nesses casos devolve vazio e o
+// ícone verde nem aparece, em vez de gerar um link que abre em branco.
+function _igWhatsLink(numero){
+  var d = _igDigitos(numero);
+  if(d.length < 10) return '';
+  if(d.length > 13) return '';
+  if(d.indexOf('55') !== 0) d = '55' + d;
+  return 'https://wa.me/' + d;
+}
+
+function _igTelLink(numero){
+  var d = _igDigitos(numero);
+  return d ? ('tel:' + d) : '';
+}
+
+// Deixa bonito na tela sem mexer no que foi digitado.
+function _igFormataTel(numero){
+  var d = _igDigitos(numero);
+  if(d.length === 3) return d;                                     // 190
+  if(d.indexOf('55') === 0 && d.length > 11) d = d.slice(2);
+  if(d.length === 11) return '(' + d.slice(0,2) + ') ' + d.slice(2,7) + '-' + d.slice(7);
+  if(d.length === 10) return '(' + d.slice(0,2) + ') ' + d.slice(2,6) + '-' + d.slice(6);
+  if(d.length === 9)  return d.slice(0,5) + '-' + d.slice(5);
+  if(d.length === 8)  return d.slice(0,4) + '-' + d.slice(4);
+  return String(numero||'');
+}
+
+/* ── Blocos de tela ── */
+
+function _igCard(id, icone, titulo, corpoHTML, editavel){
+  var botao = (editavel && _igPodeEditar() && !_igEditando)
+    ? '<button class="btn btn-ghost btn-sm" onclick="igEditar(\'' + id + '\')">✏️ Editar</button>'
+    : '';
+  return '<div class="card ig-card">'
+    + '<div class="card-head">'
+    +   '<div class="card-title"><div class="card-icon">' + icone + '</div>' + escHtml(titulo) + '</div>'
+    +   botao
+    + '</div>'
+    + corpoHTML
+    + '</div>';
+}
+
+function _igBotoesEdicao(salvar){
+  return '<div class="ig-acoes">'
+    + '<button class="btn btn-gold btn-sm" onclick="' + salvar + '">💾 Salvar</button>'
+    + '<button class="btn btn-ghost btn-sm" onclick="igCancelar()">Cancelar</button>'
+    + '</div>';
+}
+
+function _igVazio(texto){
+  return '<div class="ig-vazio">' + escHtml(texto) + '</div>';
+}
+
+// Texto livre: mantém as quebras de linha que a pessoa digitou.
+function _igTexto(valor, vazio){
+  var t = String(valor||'').trim();
+  return t ? '<div class="ig-texto">' + escHtml(t) + '</div>' : _igVazio(vazio);
+}
+
+function _igLinhaTelefone(t, i, comWhats){
+  var num = String(t.numero||'');
+  var wa = comWhats && t.whats ? _igWhatsLink(num) : '';
+  var tel = _igTelLink(num);
+  return '<div class="ig-tel">'
+    + '<div class="ig-tel-nome">' + escHtml(t.nome||'—') + '</div>'
+    + '<div class="ig-tel-dir">'
+    +   (tel ? '<a class="ig-tel-num" href="' + escHtml(tel) + '">' + escHtml(_igFormataTel(num)) + '</a>'
+            : '<span class="ig-tel-num">' + escHtml(_igFormataTel(num)) + '</span>')
+    +   (wa ? '<a class="ig-wa" href="' + escHtml(wa) + '" target="_blank" rel="noopener" title="Conversar no WhatsApp">'
+             + '<i class="fa-brands fa-whatsapp"></i></a>' : '')
+    + '</div>'
+    + '</div>';
+}
+
+function renderInfoGerais(){
+  var alvo = $('ig-conteudo');
+  if(!alvo) return;
+
+  var d = getInfoGerais();
+  if(!d){
+    // Primeira vez neste condomínio: grava o ponto de partida para a
+    // administração já encontrar os horários e os telefones de emergência
+    // prontos. Morador não grava (o banco recusaria) — só vê.
+    d = _igPadrao();
+    if(_igPodeEditar()) _igSalvar(d);
+  }
+
+  var sub = $('ig-sub');
+  if(sub){
+    sub.textContent = _igPodeEditar()
+      ? 'Dados do condomínio, telefones e horários — clique em Editar para alterar'
+      : 'Dados do condomínio, telefones e horários';
+  }
+
+  var html = '';
+
+  // 1) História do condomínio
+  html += _igCard('historia', '🏛️', 'História do condomínio',
+    _igEditando === 'historia'
+      ? '<textarea id="ig-in-historia" class="ig-input" rows="10" placeholder="Conte a história do condomínio…">'
+        + escHtml(d.historia||'') + '</textarea>' + _igBotoesEdicao('igSalvarHistoria()')
+      : _igTexto(d.historia, 'Ainda não foi escrita a história do condomínio.'),
+    true);
+
+  // 2) Mapa do loteamento
+  var mapaHTML;
+  if(_igEditando === 'mapa'){
+    mapaHTML = '<input type="file" id="ig-in-mapa" accept="application/pdf,.pdf" class="ig-input">'
+      + '<div class="ig-dica">Arquivo PDF. Substitui o mapa atual, se houver.</div>'
+      + _igBotoesEdicao('igSalvarMapa()')
+      + (d.mapa ? '<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="igRemoverMapa()">🗑 Remover o mapa atual</button>' : '');
+  } else if(d.mapa && d.mapa.storagePath){
+    mapaHTML = '<div class="ig-arquivo">'
+      + '<span style="font-size:22px">🗺️</span>'
+      + '<div style="min-width:0;flex:1"><div class="ig-arquivo-nome">' + escHtml(d.mapa.nome||'mapa.pdf') + '</div>'
+      + '<div class="ig-dica">Mapa do loteamento em PDF</div></div>'
+      + '<button class="btn btn-gold btn-sm" onclick="igAbrirMapa()">Abrir</button>'
+      + '</div>';
+  } else {
+    mapaHTML = _igVazio('Nenhum mapa anexado.');
+  }
+  html += _igCard('mapa', '🗺️', 'Mapa do loteamento', mapaHTML, true);
+
+  // 3) Telefones úteis
+  var telHTML;
+  if(_igEditando === 'telefones'){
+    telHTML = '<div id="ig-lista-tel">'
+      + (d.telefones||[]).map(function(t,i){ return _igFormTelefone(t,i,true); }).join('')
+      + '</div>'
+      + '<button class="btn btn-ghost btn-sm" onclick="igAddTelefone()">+ Adicionar telefone</button>'
+      + _igBotoesEdicao('igSalvarTelefones()');
+  } else {
+    telHTML = (d.telefones && d.telefones.length)
+      ? (d.telefones||[]).map(function(t,i){ return _igLinhaTelefone(t,i,true); }).join('')
+      : _igVazio('Nenhum telefone cadastrado.');
+  }
+  html += _igCard('telefones', '📞', 'Telefones úteis', telHTML, true);
+
+  // 4) Horário da administração
+  html += _igCard('horarioAdm', '🕗', 'Horário de funcionamento da administração',
+    _igEditando === 'horarioAdm'
+      ? '<textarea id="ig-in-horarioAdm" class="ig-input" rows="4">' + escHtml(d.horarioAdm||'') + '</textarea>'
+        + _igBotoesEdicao('igSalvarCampo(\'horarioAdm\')')
+      : _igTexto(d.horarioAdm, 'Horário não informado.'),
+    true);
+
+  // 5) Horário da portaria
+  html += _igCard('horarioPortaria', '🛡️', 'Horário da portaria',
+    _igEditando === 'horarioPortaria'
+      ? '<textarea id="ig-in-horarioPortaria" class="ig-input" rows="3">' + escHtml(d.horarioPortaria||'') + '</textarea>'
+        + _igBotoesEdicao('igSalvarCampo(\'horarioPortaria\')')
+      : _igTexto(d.horarioPortaria, 'Horário não informado.'),
+    true);
+
+  // 6) Contatos de emergência (sem WhatsApp: 190/193 não têm)
+  var emgHTML;
+  if(_igEditando === 'emergencia'){
+    emgHTML = '<div id="ig-lista-emg">'
+      + (d.emergencia||[]).map(function(t,i){ return _igFormTelefone(t,i,false); }).join('')
+      + '</div>'
+      + '<button class="btn btn-ghost btn-sm" onclick="igAddEmergencia()">+ Adicionar contato</button>'
+      + _igBotoesEdicao('igSalvarEmergencia()');
+  } else {
+    emgHTML = (d.emergencia && d.emergencia.length)
+      ? (d.emergencia||[]).map(function(t,i){ return _igLinhaTelefone(t,i,false); }).join('')
+      : _igVazio('Nenhum contato cadastrado.');
+  }
+  html += _igCard('emergencia', '🚨', 'Contatos de emergência', emgHTML, true);
+
+  alvo.innerHTML = html;
+}
+
+/* ── Edição ── */
+
+function igEditar(secao){ _igEditando = secao; renderInfoGerais(); }
+function igCancelar(){ _igEditando = ''; renderInfoGerais(); }
+
+function igSalvarCampo(campo){
+  var el = $('ig-in-' + campo);
+  if(!el) return;
+  var d = getInfoGerais() || _igPadrao();
+  d[campo] = el.value.trim();
+  if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Salvo.'); }
+}
+
+function igSalvarHistoria(){ igSalvarCampo('historia'); }
+
+/* ── Telefones ── */
+
+function _igFormTelefone(t, i, comWhats){
+  t = t || {};
+  return '<div class="ig-tel-form" data-i="' + i + '">'
+    + '<input class="ig-input ig-f-nome" placeholder="Nome (ex.: Portaria)" value="' + escHtml(t.nome||'') + '">'
+    + '<input class="ig-input ig-f-num" placeholder="Telefone com DDD" inputmode="tel" value="' + escHtml(t.numero||'') + '">'
+    + (comWhats
+        ? '<label class="ig-f-wa" title="Marque se este número tem WhatsApp">'
+          + '<input type="checkbox" class="ig-f-whats"' + (t.whats ? ' checked' : '') + '> '
+          + '<i class="fa-brands fa-whatsapp"></i> WhatsApp</label>'
+        : '')
+    + '<button class="btn btn-ghost btn-sm ig-f-del" onclick="igRemoverLinha(this)" title="Remover">🗑</button>'
+    + '</div>';
+}
+
+function igRemoverLinha(btn){
+  var linha = btn.closest('.ig-tel-form');
+  if(linha) linha.remove();
+}
+
+function igAddTelefone(){
+  var box = $('ig-lista-tel'); if(!box) return;
+  box.insertAdjacentHTML('beforeend', _igFormTelefone({}, box.children.length, true));
+}
+function igAddEmergencia(){
+  var box = $('ig-lista-emg'); if(!box) return;
+  box.insertAdjacentHTML('beforeend', _igFormTelefone({}, box.children.length, false));
+}
+
+// Lê os campos da tela. Linha sem nome E sem número é descartada em
+// silêncio — é a linha em branco que a pessoa adicionou e não preencheu.
+function _igLerLista(boxId, comWhats){
+  var box = $(boxId);
+  if(!box) return [];
+  var out = [];
+  Array.prototype.forEach.call(box.querySelectorAll('.ig-tel-form'), function(l){
+    var nome = (l.querySelector('.ig-f-nome')||{}).value || '';
+    var num  = (l.querySelector('.ig-f-num')||{}).value || '';
+    nome = nome.trim(); num = num.trim();
+    if(!nome && !num) return;
+    var item = { nome: nome, numero: num };
+    if(comWhats){
+      var c = l.querySelector('.ig-f-whats');
+      item.whats = !!(c && c.checked);
+    }
+    out.push(item);
+  });
+  return out;
+}
+
+function igSalvarTelefones(){
+  var lista = _igLerLista('ig-lista-tel', true);
+  var semNumero = lista.filter(function(t){ return !_igDigitos(t.numero); });
+  if(semNumero.length){ toast('⚠️ Falta o telefone de "' + semNumero[0].nome + '".'); return; }
+  var semWa = lista.filter(function(t){ return t.whats && !_igWhatsLink(t.numero); });
+  if(semWa.length){
+    toast('⚠️ "' + semWa[0].nome + '" está marcado como WhatsApp, mas o número está incompleto — informe com DDD.');
+    return;
+  }
+  var d = getInfoGerais() || _igPadrao();
+  d.telefones = lista;
+  if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Telefones salvos.'); }
+}
+
+function igSalvarEmergencia(){
+  var lista = _igLerLista('ig-lista-emg', false);
+  var semNumero = lista.filter(function(t){ return !_igDigitos(t.numero); });
+  if(semNumero.length){ toast('⚠️ Falta o telefone de "' + semNumero[0].nome + '".'); return; }
+  var d = getInfoGerais() || _igPadrao();
+  d.emergencia = lista;
+  if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Contatos salvos.'); }
+}
+
+/* ── Mapa do loteamento ── */
+
+async function igSalvarMapa(){
+  var inp = $('ig-in-mapa');
+  var f = inp && inp.files && inp.files[0];
+  if(!f){ toast('⚠️ Escolha um arquivo PDF.'); return; }
+  if(!/\.pdf$/i.test(f.name)){ toast('⚠️ O mapa precisa ser um PDF.'); return; }
+
+  var btn = document.querySelector('#ig-conteudo .btn-gold');
+  if(btn){ btn.disabled = true; btn.textContent = 'Enviando…'; }
+  try{
+    var caminho = await uploadPDF(f, 'infogerais');
+    var d = getInfoGerais() || _igPadrao();
+    d.mapa = { storagePath: caminho, nome: f.name };
+    if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Mapa anexado.'); }
+  }catch(e){
+    toast('⚠️ Não consegui enviar o mapa: ' + (e && e.message ? e.message : 'tente novamente.'));
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '💾 Salvar'; }
+  }
+}
+
+async function igAbrirMapa(){
+  var d = getInfoGerais();
+  var caminho = d && d.mapa && _storagePathDe(d.mapa);
+  if(!caminho){ toast('⚠️ Nenhum mapa anexado.'); return; }
+  try{
+    var url = await _linkTemporario(caminho);
+    if(!url) throw new Error('link vazio');
+    window.open(url, '_blank', 'noopener');
+  }catch(e){
+    toast('⚠️ Não consegui abrir o mapa: ' + (e && e.message ? e.message : 'tente novamente.'));
+  }
+}
+
+function igRemoverMapa(){
+  if(!confirm('Remover o mapa do loteamento?')) return;
+  var d = getInfoGerais() || _igPadrao();
+  d.mapa = null;
+  if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Mapa removido.'); }
+}
+
 /* ══════════════════════════
    DASHBOARD
 ══════════════════════════ */
