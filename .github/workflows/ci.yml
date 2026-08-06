@@ -30,6 +30,9 @@ jobs:
       - name: Assistente Condominio (busca nos regulamentos)
         run: node tests/assistente.test.js
 
+      - name: Informacoes Gerais (telefones e WhatsApp)
+        run: node tests/infogerais.test.js
+
   # ────────────────────────────────────────────────────────────────
   # 2) DEPLOY das Edge Functions do Supabase
   #    So roda na branch main e so se os testes passarem.
