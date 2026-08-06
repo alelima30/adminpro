@@ -155,6 +155,12 @@ bloco('Texto do PDF: limpeza', () => {
   checa('não cola "e"', fmt._regLimpaTexto('muro e, preservando'), 'muro e, preservando');
   checa('palavra partida no fim da linha é remontada',
     fmt._regLimpaTexto('constru-\nção'), 'construção');
+  checa('número do artigo partido é remontado',
+    fmt._regLimpaTexto('Artigo 3 7 – O associado'), 'Artigo 37 – O associado');
+  checa('vale também para "Art."',
+    fmt._regLimpaTexto('Art. 1 0 8 diz'), 'Art. 108 diz');
+  checa('número solto em texto comum NÃO é mexido',
+    fmt._regLimpaTexto('a sala 3 7 do bloco'), 'a sala 3 7 do bloco');
 });
 
 bloco('Texto do PDF: uma linha por artigo', () => {
@@ -172,6 +178,11 @@ bloco('Texto do PDF: uma linha por artigo', () => {
     fmt._regFormataTrecho('regras: I - primeira; II - segunda.').split('\n').length, 3);
   checa('alínea ganha linha',
     fmt._regFormataTrecho('obedecer: a) recuo; b) altura.').split('\n').length, 3);
+  checa('número de página do rodapé não gruda no artigo seguinte',
+    fmt._regFormataTrecho('CNPJ 02.861.216/0001-77 12 Artigo 37 – O associado')
+      .split('\n')[1].slice(0, 9), 'Artigo 37');
+  checa('citação depois de palavra continua sem quebrar',
+    fmt._regFormataTrecho('previsto no Artigo 29º deste Código').split('\n').length, 1);
 });
 
 bloco('Rótulo em negrito e realce juntos', () => {
