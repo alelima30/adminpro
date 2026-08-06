@@ -27,6 +27,9 @@ jobs:
       - name: Regras de reserva
         run: node tests/reservas.test.js
 
+      - name: Assistente Condominio (busca nos regulamentos)
+        run: node tests/assistente.test.js
+
   # ────────────────────────────────────────────────────────────────
   # 2) DEPLOY das Edge Functions do Supabase
   #    So roda na branch main e so se os testes passarem.
@@ -81,6 +84,12 @@ jobs:
           mkdir -p supabase/functions/lembrete
           cp supabase/functions/lembretes/index.ts supabase/functions/lembrete/index.ts
           supabase functions deploy lembrete --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      # Assistente Condominio: pasta e slug tem o mesmo nome.
+      - name: Publicar funcao assistente
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy assistente --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
 
       - name: Resumo
         run: echo "Funcoes publicadas. Confira em Supabase -> Edge Functions."
