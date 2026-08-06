@@ -729,6 +729,15 @@ html.light .sb-flyout{background:#1A2847}
   border:1px solid rgba(255,255,255,0.07);
   margin-bottom:8px;
 }
+.sb-copy{
+  font-size:9.5px;line-height:1.5;text-align:center;
+  color:rgba(174,190,220,0.38);
+  margin-top:10px;letter-spacing:.2px;
+}
+.login-copy{
+  margin-top:22px;font-size:11px;text-align:center;
+  color:rgba(123,144,181,0.75);line-height:1.6;
+}
 .sb-user-info{flex:1;min-width:0}
 .sb-user-name{font-size:12px;font-weight:500;color:#EEF1F8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-user-role{font-size:10px;color:rgba(174,190,220,0.50);margin-top:1px}
@@ -2044,6 +2053,12 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       <p style="margin-top:10px;font-size:13px;color:#7B90B5;text-align:center">
         Não tem conta? <a href="cadastro.html" style="color:#E87722;text-decoration:none;font-weight:600">Solicite seu acesso →</a>
       </p>
+
+      <p class="login-copy">
+        © <span class="ano-atual">2026</span> AdminPro · Todos os direitos reservados.<br>
+        Software protegido por direitos autorais (Lei 9.610/98 e Lei 9.609/98).<br>
+        Reprodução, distribuição ou uso não autorizado são proibidos.
+      </p>
     </div>
   </div>
 </div>
@@ -2156,6 +2171,10 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         </div>
       </div>
       <button class="logout-btn" onclick="doLogout()">← Sair do Portal</button>
+      <!-- Aviso de autoria. Nao impede copia — nada impede, porque o
+           navegador precisa receber o codigo para roda-lo. Serve para que
+           ninguem alegue que encontrou este sistema sem dono. -->
+      <div class="sb-copy">© <span class="ano-atual">2026</span> AdminPro<br>Todos os direitos reservados</div>
     </div>
   </nav>
 
@@ -9703,6 +9722,11 @@ async function excluirRes(id){
 
 // ── Chips de antecedência: toggle ──
 document.addEventListener('DOMContentLoaded',()=>{
+  // Ano do aviso de direitos autorais: escrito pelo navegador para nao
+  // envelhecer sozinho no codigo (um "© 2026" em 2028 enfraquece o aviso).
+  var _ano = new Date().getFullYear();
+  document.querySelectorAll('.ano-atual').forEach(function(e){ e.textContent = _ano; });
+
   document.querySelectorAll('.alerta-chip').forEach(chip=>{
     chip.addEventListener('click',()=>{
       chip.classList.toggle('ativo');
