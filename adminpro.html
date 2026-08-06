@@ -1166,12 +1166,8 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   padding:13px 16px;
   overflow-wrap:break-word;
   text-align:left;
-  /* pre-wrap para as quebras por artigo aparecerem; o recuo negativo faz
-     a continuacao de um artigo longo alinhar debaixo do texto, e nao
-     debaixo do rotulo — igual a um PDF. */
+  /* pre-wrap e o que faz as quebras por artigo aparecerem na tela */
   white-space:pre-wrap;
-  padding-left:32px;
-  text-indent:-18px;
 }
 .reg-rotulo{color:var(--gold-l);font-weight:800}
 .reg-trecho + .reg-trecho{margin-top:10px}
@@ -1180,7 +1176,7 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   border-radius:3px;padding:1px 4px;font-weight:700;
 }
 @media (max-width:520px){
-  .reg-trecho{font-size:13px;line-height:1.7;padding:11px 13px 11px 26px}
+  .reg-trecho{font-size:13px;line-height:1.7;padding:11px 13px}
 }
 /* ══ INFORMACOES GERAIS ══ */
 .ig-card{margin-bottom:16px}
@@ -1265,7 +1261,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 .ia-vazio{color:var(--text-3);font-size:13px;text-align:center;padding:34px 10px;line-height:1.8}
 .ia-barra{display:flex;gap:10px;align-items:flex-end;margin-top:14px}
 .ia-barra textarea{
-  flex:1;min-width:0;resize:none;max-height:150px;
+  flex:1;min-width:0;resize:none;max-height:150px;min-height:46px;
   padding:12px 16px;border-radius:11px;border:1px solid var(--border);
   background:var(--ink-2);color:var(--text);font-size:14px;font-family:inherit;
   line-height:1.6;outline:none;
@@ -3506,7 +3502,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
           <div id="ia-sugestoes" style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px"></div>
 
           <div class="ia-barra">
-            <textarea id="ia-pergunta" rows="1" placeholder="Ex.: posso construir uma piscina no meu lote?"
+            <textarea id="ia-pergunta" rows="1" placeholder="Escreva sua pergunta…"
               oninput="_iaAutoAltura(this)" onkeydown="_iaTecla(event)"></textarea>
             <button class="btn btn-gold" id="ia-enviar" onclick="perguntarAssistente()">Perguntar</button>
           </div>
@@ -4950,7 +4946,7 @@ const _NORM = {
 };
 
 // Modulos que so admin/gestor pode gravar (RLS bloqueia morador).
-const _MOD_ADMIN = ['lotes','unidades','condominos','localizacoes','saas_condominios','usuarios'];
+const _MOD_ADMIN = ['lotes','unidades','condominos','localizacoes','saas_condominios','usuarios','infogerais'];
 function _podeGravarModulo(k){
   if(_MOD_ADMIN.indexOf(k) === -1) return true;          // modulo livre
   try{
@@ -5857,7 +5853,7 @@ function closeSidebar(){
 }
 
 /* ══ NAVIGATION ══ */
-const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',infogerais:'Informações Gerais',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas'};
+const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',infogerais:'Informações Gerais',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas',espacos:'Criar Espaços',admfotos:'Fotos dos Condôminos'};
 const ACESSO_PAINEIS = {
   admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','usuarios','configuracoes','procedimentos'],
   gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','procedimentos'],
@@ -11460,10 +11456,14 @@ function _regLimpaTexto(t){
     .replace(/\s+([,.;:!?%)\]])/g, '$1')    // espaco antes de pontuacao
     .replace(/([(\[])\s+/g, '$1')           // espaco depois de abre-parenteses
     // A extracao do PDF as vezes solta o "s" do plural da palavra:
-    // "casa s de maquinas", "construida s nos recuos". So o "s" e tratado
-    // aqui porque e o unico caso em que juntar e sempre certo — "a", "e",
-    // "o" sao palavras de verdade e nao podem ser coladas.
-    .replace(/(\p{L}{2,})\s+s(?=[\s,.;:)])/gu, '$1s')
+    // "casa s de maquinas", "construida s nos recuos".
+    // So cola quando o que vem DEPOIS confirma que aquele "s" era o fim de
+    // um plural — pontuacao ou uma palavra de ligacao. Colar sempre que
+    // aparece um "s" solto estragaria texto: "vaga s ao" viraria
+    // "vagass ao". Aqui, deixar de corrigir e melhor do que corromper.
+    .replace(
+      /(\p{L}{2,})\s+s(?=[,.;:)]|\s+(?:de|da|do|das|dos|e|ou|que|para|por|com|em|no|na|nos|nas|ao|aos|à|às|n[ãa]o|ser[ãa]o|dever[ãa]o|poder[ãa]o)\b)/gu,
+      '$1s')
     // Numero do artigo partido: "Artigo 3 7" e o artigo 37, nao o 3.
     // So dentro do rotulo do artigo — em texto comum, "sala 3 7" pode ser
     // duas coisas diferentes e nao se mexe.
@@ -11847,17 +11847,26 @@ async function perguntarAssistente(){
   if(inp){ inp.value=''; _iaAutoAltura(inp); }
 
   _iaHist.push({ quem:'eu', texto: pergunta });
-  _iaHist.push({ quem:'bot', texto:'Procurando nos documentos…' });
+  var _msg = { quem:'bot', texto:'Procurando nos documentos…' };
+  _iaHist.push(_msg);
   _iaPintar();
+
+  // Troca o "Procurando…" pela resposta. Se a conversa foi limpa nesse
+  // meio-tempo, a mensagem nao esta mais na lista e a resposta e
+  // descartada — em vez de reaparecer sozinha numa conversa vazia.
+  function _responder(novo){
+    var i = _iaHist.indexOf(_msg);
+    if(i >= 0) _iaHist[i] = novo;
+  }
 
   try{
     var trechos = _iaSelecionar(pergunta, 45000);
 
     if(!trechos.length){
-      _iaHist[_iaHist.length-1] = {
+      _responder({
         quem:'bot',
         texto:'Não encontrei nada nos documentos do condomínio sobre isso. Consulte a administração.'
-      };
+      });
       _iaPintar();
       return;
     }
@@ -11880,12 +11889,12 @@ async function perguntarAssistente(){
     var fontes = trechos.map(function(t){ return t.titulo; })
       .filter(function(v,i,a){ return a.indexOf(v)===i; });
 
-    _iaHist[_iaHist.length-1] = { quem:'bot', texto: resposta, fontes: fontes };
+    _responder({ quem:'bot', texto: resposta, fontes: fontes });
   }catch(e){
-    _iaHist[_iaHist.length-1] = {
+    _responder({
       quem:'erro',
       texto:'⚠️ Não consegui responder agora: ' + (e && e.message ? e.message : 'erro desconhecido') + '\n\nNenhuma regra foi inventada — quando falho, eu não respondo.'
-    };
+    });
   }finally{
     _iaOcupado = false;
     if(btn){ btn.disabled = false; btn.textContent = 'Perguntar'; }
@@ -11983,7 +11992,7 @@ function _igFormataTel(numero){
 /* ── Blocos de tela ── */
 
 function _igCard(id, icone, titulo, corpoHTML, editavel){
-  var botao = (editavel && _igPodeEditar() && _igEditando !== id)
+  var botao = (editavel && _igPodeEditar() && !_igEditando)
     ? '<button class="btn btn-ghost btn-sm" onclick="igEditar(\'' + id + '\')">✏️ Editar</button>'
     : '';
   return '<div class="card ig-card">'

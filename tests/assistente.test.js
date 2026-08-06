@@ -153,6 +153,10 @@ bloco('Texto do PDF: limpeza', () => {
   checa('não cola "a", que é palavra de verdade',
     fmt._regLimpaTexto('lotes a montante'), 'lotes a montante');
   checa('não cola "e"', fmt._regLimpaTexto('muro e, preservando'), 'muro e, preservando');
+  checa('cola quando vem palavra de ligação depois',
+    fmt._regLimpaTexto('máquina s não subterrâneas'), 'máquinas não subterrâneas');
+  checa('NÃO cola quando o que vem depois não confirma o plural',
+    fmt._regLimpaTexto('vaga s ão do bloco'), 'vaga s ão do bloco');
   checa('palavra partida no fim da linha é remontada',
     fmt._regLimpaTexto('constru-\nção'), 'construção');
   checa('número do artigo partido é remontado',
