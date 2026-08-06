@@ -1148,6 +1148,27 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .fg{display:flex;flex-direction:column;gap:6px}
 .fg.full{grid-column:1/-1}
+/* Trecho encontrado na busca dos Regulamentos.
+   A moldura cresce conforme o texto: antes tinha altura minima fixa, o
+   que deixava trecho curto com sobra vazia e trecho longo espremido. */
+.reg-trecho{
+  font-size:13.5px;line-height:1.75;color:var(--text-2);
+  background:var(--ink-2);
+  border:1px solid var(--border);
+  border-left:3px solid rgba(232,119,34,0.55);
+  border-radius:0 9px 9px 0;
+  padding:13px 16px;
+  overflow-wrap:break-word;
+  text-align:left;
+}
+.reg-trecho + .reg-trecho{margin-top:10px}
+.reg-trecho mark{
+  background:rgba(232,119,34,0.30);color:var(--gold-l);
+  border-radius:3px;padding:1px 4px;font-weight:700;
+}
+@media (max-width:520px){
+  .reg-trecho{font-size:13px;line-height:1.7;padding:11px 13px}
+}
 /* Lista de espacos do condominio (aba "Criar espacos") */
 .esp-item{
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
@@ -11241,6 +11262,38 @@ function salvarCfgReservas(){
   toast('✓ Configurações de reservas salvas!');
 }
 
+/* Arruma o texto que saiu do PDF antes de mostrar na tela.
+   A extracao entrega os pedacos soltos do arquivo, entao vem palavra
+   cortada por hifen no fim da linha, espaco repetido, espaco antes de
+   virgula e quebra de linha no meio da frase. Exibido como estava, o
+   trecho parecia desmontado. */
+function _regLimpaTexto(t){
+  return String(t||'')
+    .replace(/­/g, '')                 // hifen invisivel de separacao
+    .replace(/(\w)[-‐‑]\s+(\w)/g, '$1$2') // palavra partida no fim da linha
+    .replace(/\s*[\r\n]+\s*/g, ' ')         // quebra de linha vira espaco
+    .replace(/[ \t ]{2,}/g, ' ')       // espacos repetidos
+    .replace(/\s+([,.;:!?%)\]])/g, '$1')    // espaco antes de pontuacao
+    .replace(/([(\[])\s+/g, '$1')           // espaco depois de abre-parenteses
+    .trim();
+}
+
+/* Realca o termo procurado. Trabalha por posicao, e nao por substituicao
+   no HTML: assim o texto do PDF e sempre escapado antes de ir para a
+   tela. Antes ele era injetado cru — um PDF com codigo dentro poderia
+   quebrar a pagina. */
+function _regRealca(texto, termo){
+  if(!termo) return escHtml(texto);
+  var baixo = texto.toLowerCase(), alvo = termo.toLowerCase();
+  var out = '', pos = 0, idx;
+  while((idx = baixo.indexOf(alvo, pos)) >= 0){
+    out += escHtml(texto.slice(pos, idx));
+    out += '<mark>' + escHtml(texto.slice(idx, idx + alvo.length)) + '</mark>';
+    pos = idx + alvo.length;
+  }
+  return out + escHtml(texto.slice(pos));
+}
+
 function pesquisarReg(){
   const q = ($('reg-busca')?.value||'').trim().toLowerCase();
   const res = $('reg-resultados');
@@ -11249,31 +11302,35 @@ function pesquisarReg(){
   res.style.display='block';
   const docs = G('reg')||[];
   const achados = [];
-  const reEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 
   docs.forEach(d=>{
     const textoTotal = ((d.titulo||'')+' '+(d.desc||'')+' '+(d.texto||'')).toLowerCase();
     if(!textoTotal.includes(q)) return;
 
-    // Coletar TODOS os trechos onde o termo aparece no texto do documento
+    // Coletar os trechos onde o termo aparece no texto do documento
     const trechos = [];
+    let totalOcorrencias = 0;
     if(d.texto){
-      const texto = d.texto;
+      const texto = _regLimpaTexto(d.texto);
       const lower = texto.toLowerCase();
-      // Contexto generoso: ~350 chars antes e depois → ~5–6 linhas visíveis
-      const CTX = 350;
+      const CTX = 320;                    // contexto de cada lado
       let pos = 0;
       while(true){
         const idx = lower.indexOf(q, pos);
         if(idx < 0) break;
-        const ini = Math.max(0, idx - CTX);
-        const fim = Math.min(texto.length, idx + q.length + CTX);
-        trechos.push((ini>0?'…':'')+texto.slice(ini,fim)+(fim<texto.length?'…':''));
-        pos = idx + q.length; // avança para próxima ocorrência
-        if(trechos.length >= 3) break; // máximo 3 ocorrências por documento
+        totalOcorrencias++;
+        if(trechos.length < 3){           // mostra no maximo 3, mas conta todas
+          let ini = Math.max(0, idx - CTX);
+          let fim = Math.min(texto.length, idx + q.length + CTX);
+          // Nao comecar nem terminar no meio de uma palavra.
+          if(ini > 0){ const p = texto.indexOf(' ', ini); if(p >= 0 && p < idx) ini = p + 1; }
+          if(fim < texto.length){ const p = texto.lastIndexOf(' ', fim); if(p > idx + q.length) fim = p; }
+          trechos.push((ini>0?'… ':'') + texto.slice(ini,fim).trim() + (fim<texto.length?' …':''));
+        }
+        pos = idx + q.length;
       }
     }
-    achados.push({doc:d, trechos});
+    achados.push({doc:d, trechos, totalOcorrencias});
   });
 
   if(!achados.length){
@@ -11282,7 +11339,7 @@ function pesquisarReg(){
   }
 
   lista.innerHTML='';
-  achados.forEach(({doc, trechos})=>{
+  achados.forEach(({doc, trechos, totalOcorrencias})=>{
     const div = document.createElement('div');
     div.style.cssText='padding:18px 20px;border-radius:12px;background:var(--card-2);border:1px solid var(--border);margin-bottom:14px;transition:border-color 0.2s';
     div.onmouseenter=()=>div.style.borderColor='var(--border-h)';
@@ -11290,31 +11347,13 @@ function pesquisarReg(){
 
     const isDOCX = (doc.nome||'').toLowerCase().endsWith('.docx');
     const fileIcon = isDOCX ? '📝' : '📄';
-    const ocLabel = trechos.length===1 ? '1 ocorrência' : `${trechos.length} ocorrências`;
-
-    // Realçar termo em cada trecho
-    const hl = txt => txt.replace(
-      new RegExp(reEscape(q),'gi'),
-      m=>`<mark style="background:rgba(232,119,34,0.35);color:var(--gold-l);border-radius:3px;padding:1px 3px;font-weight:600">${m}</mark>`
-    );
+    const ocLabel = totalOcorrencias===1
+      ? '1 ocorrência'
+      : `${totalOcorrencias} ocorrências`
+        + (totalOcorrencias > trechos.length ? ` · mostrando ${trechos.length}` : '');
 
     const tretchosHTML = trechos.length
-      ? trechos.map((t, i)=>`
-          ${i>0?`<div style="height:1px;background:rgba(255,255,255,0.06);margin:10px 0"></div>`:''}
-          <div style="
-            font-size:13px;
-            color:var(--text-2);
-            line-height:1.85;
-            white-space:pre-wrap;
-            word-break:break-word;
-            background:var(--ink-2);
-            border:1px solid var(--border);
-            border-left:3px solid rgba(232,119,34,0.5);
-            border-radius:0 9px 9px 0;
-            padding:14px 16px;
-            min-height:110px;
-          ">${hl(t)}</div>
-        `).join('')
+      ? trechos.map(t=>`<div class="reg-trecho">${_regRealca(t, q)}</div>`).join('')
       : `<div style="font-size:12px;color:var(--text-3);padding:8px 0">Termo encontrado no título ou descrição do documento.</div>`;
 
     div.innerHTML=`
@@ -11322,7 +11361,7 @@ function pesquisarReg(){
         <span style="font-size:20px">${fileIcon}</span>
         <span style="font-size:15px;font-weight:700;color:var(--text)">${doc.titulo}</span>
         <span class="pill pill-gold" style="font-size:10px">${doc.cat}</span>
-        ${trechos.length?`<span style="font-size:11px;color:var(--text-3);margin-left:auto">${ocLabel} encontrada${trechos.length!==1?'s':''}</span>`:''}
+        ${trechos.length?`<span style="font-size:11px;color:var(--text-3);margin-left:auto">${ocLabel}</span>`:''}
       </div>
       ${tretchosHTML}
       ${(doc.storagePath||doc.storageUrl||doc.b64)?`<button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="baixarPDF(${doc.id})">⬇ Baixar ${isDOCX?'Word':'PDF'}</button>`:''}
