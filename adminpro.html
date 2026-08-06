@@ -1175,6 +1175,39 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 @media (max-width:520px){
   .reg-trecho{font-size:13px;line-height:1.7;padding:11px 13px}
 }
+/* ══ ASSISTENTE CONDOMINIO ══ */
+#ia-conversa{
+  display:flex;flex-direction:column;gap:14px;
+  min-height:180px;max-height:52vh;overflow-y:auto;
+  padding:4px 2px 2px;
+}
+.ia-msg{max-width:88%;padding:13px 16px;border-radius:14px;font-size:14px;line-height:1.75;overflow-wrap:break-word;white-space:pre-wrap}
+.ia-msg.eu{align-self:flex-end;background:rgba(232,119,34,0.14);border:1px solid rgba(232,119,34,0.35);color:var(--text);border-bottom-right-radius:5px}
+.ia-msg.bot{align-self:flex-start;background:var(--ink-2);border:1px solid var(--border);color:var(--text-2);border-bottom-left-radius:5px}
+.ia-msg.erro{align-self:flex-start;background:rgba(224,82,82,0.10);border:1px solid rgba(224,82,82,0.35);color:var(--text-2)}
+.ia-fonte{margin-top:10px;font-size:11.5px;color:var(--text-3);letter-spacing:.2px}
+.ia-vazio{color:var(--text-3);font-size:13px;text-align:center;padding:34px 10px;line-height:1.8}
+.ia-barra{display:flex;gap:10px;align-items:flex-end;margin-top:14px}
+.ia-barra textarea{
+  flex:1;min-width:0;resize:none;max-height:150px;
+  padding:12px 16px;border-radius:11px;border:1px solid var(--border);
+  background:var(--ink-2);color:var(--text);font-size:14px;font-family:inherit;
+  line-height:1.6;outline:none;
+}
+.ia-barra textarea:focus{border-color:var(--border-h)}
+.ia-barra .btn{white-space:nowrap}
+.ia-sug{
+  background:var(--ink-2);border:1px solid var(--border);color:var(--text-3);
+  border-radius:99px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:inherit;
+  transition:border-color .2s,color .2s;
+}
+.ia-sug:hover{border-color:var(--border-h);color:var(--text-2)}
+@media (max-width:640px){
+  .ia-msg{max-width:100%;font-size:13.5px;padding:12px 14px}
+  #ia-conversa{max-height:none}
+  .ia-barra{flex-direction:column;align-items:stretch}
+  .ia-barra .btn{width:100%}
+}
 /* Lista de espacos do condominio (aba "Criar espacos") */
 .esp-item{
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
@@ -1985,6 +2018,12 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
       <div class="nav-standalone" data-acesso="admin,gestor,morador">
         <div class="nav-item" id="nav-regulamento" onclick="showPanel('regulamento',this)">
           <div class="nav-icon"><i class="fa-solid fa-scroll"></i></div>Regulamentos
+        </div>
+      </div>
+
+      <div class="nav-standalone" data-acesso="admin,gestor">
+        <div class="nav-item" id="nav-assistente" onclick="showPanel('assistente',this)">
+          <div class="nav-icon"><i class="fa-solid fa-robot"></i></div>Assistente
         </div>
       </div>
 
@@ -3348,6 +3387,40 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
             <span id="reg-count" style="font-size:12px;color:var(--text-3)"></span>
           </div>
           <div id="reg-lista"></div>
+        </div>
+      </div>
+
+      <!-- ████ ASSISTENTE CONDOMÍNIO ████ -->
+      <div class="panel" id="panel-assistente">
+        <div class="ph">
+          <div>
+            <div class="ph-title">🤖 Assistente Condomínio</div>
+            <div class="ph-sub">Pergunte em português e o assistente procura a resposta nos regulamentos anexados, citando o artigo.</div>
+          </div>
+          <div class="ph-actions">
+            <button class="btn btn-ghost btn-sm" onclick="limparAssistente()">🗑 Limpar conversa</button>
+          </div>
+        </div>
+
+        <div class="card" id="ia-card">
+          <div class="card-head">
+            <div class="card-title"><div class="card-icon">💬</div>Conversa</div>
+            <span id="ia-base" style="font-size:12px;color:var(--text-3)"></span>
+          </div>
+
+          <div id="ia-conversa"></div>
+
+          <div id="ia-sugestoes" style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px"></div>
+
+          <div class="ia-barra">
+            <textarea id="ia-pergunta" rows="1" placeholder="Ex.: posso construir uma piscina no meu lote?"
+              oninput="_iaAutoAltura(this)" onkeydown="_iaTecla(event)"></textarea>
+            <button class="btn btn-gold" id="ia-enviar" onclick="perguntarAssistente()">Perguntar</button>
+          </div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:10px;line-height:1.6">
+            O assistente responde <strong>somente</strong> com o que está escrito nos documentos cadastrados em Regulamentos.
+            Ele não interpreta a lei e não substitui a administração — em caso de dúvida, a palavra final é da administração do condomínio.
+          </div>
         </div>
       </div>
 
@@ -4943,6 +5016,7 @@ const MODULOS_SAAS = {
   comunicados:    { label:'Comunicados (Informativos)', grupo:null,           secao:'Operações' },
   eventos:        { label:'Eventos',                   grupo:null,           secao:'Operações' },
   regulamento:    { label:'Regulamentos',              grupo:null,            secao:'Operações' },
+  assistente:     { label:'Assistente Condomínio',     grupo:null,            secao:'Operações' },
   procedimentos:  { label:'Procedimentos',             grupo:'operacoes',     secao:'Operações' },
   usuarios:       { label:'Usuários',                  grupo:'sistema',       secao:'Sistema' },
   configuracoes:  { label:'Configurações',             grupo:'sistema',       secao:'Sistema' },
@@ -5067,7 +5141,7 @@ function painelInicial(){
   // 'comunicados' e 'eventos' viraram abas dentro do item standalone
   // Comunicados (fora de SB_GRUPOS) -> sem isto, sumiriam desta lista e um
   // morador cujo unico modulo liberado fosse um dos dois ficaria sem tela.
-  const ordem = ['dashboard','comunicados','eventos','regulamento'];
+  const ordem = ['dashboard','comunicados','eventos','regulamento','assistente'];
   ['paineis','administrativo','cadastro','operacoes','sistema'].forEach(function(g){
     ((SB_GRUPOS[g]||{}).itens||[]).forEach(function(it){
       if(String(it.id).indexOf('__nav')!==0) ordem.push(it.id);
@@ -5093,7 +5167,7 @@ function aplicarSaas(){
   // Itens standalone (Dashboard, Reservas, Comunicados, Encomendas): gate por tela.
   // Comunicados hospeda duas abas com modulo proprio cada (comunicados = Informativos,
   // eventos = Eventos) -> o item so some se NENHUMA das duas estiver liberada.
-  ['dashboard','reservas','comunicados','regulamento','encomendas'].forEach(function(id){
+  ['dashboard','reservas','comunicados','regulamento','assistente','encomendas'].forEach(function(id){
     var nav=$('nav-'+id); if(!nav) return;
     var st=nav.closest('.nav-standalone'); if(!st) return;
     var liberado = id==='comunicados' ? (ativos.includes('comunicados')||ativos.includes('eventos')) : ativos.includes(id);
@@ -5689,10 +5763,10 @@ function closeSidebar(){
 }
 
 /* ══ NAVIGATION ══ */
-const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas'};
+const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas'};
 const ACESSO_PAINEIS = {
-  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','regulamento','usuarios','configuracoes','procedimentos'],
-  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','regulamento','procedimentos'],
+  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','regulamento','assistente','usuarios','configuracoes','procedimentos'],
+  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','regulamento','assistente','procedimentos'],
   morador: ['inicio','reservas','encomendas','comunicados','eventos','regulamento','procedimentos']
 };
 /* ══════════════════════════
@@ -6986,7 +7060,7 @@ function showPanel(id,el){
   try{ localStorage.setItem('apvc_last_panel', id); }catch(_){}
   sbFecharFlyout();
   closeSidebar();
-  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
+  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
 }
 
 function setTab(t){
@@ -11384,6 +11458,296 @@ function pesquisarReg(){
     lista.appendChild(div);
   });
 }
+/* ══════════════════════════
+   ASSISTENTE CONDOMÍNIO
+
+   Como funciona, em ordem:
+     1. O texto de cada documento (já extraído do PDF/Word na hora do upload
+        e guardado no banco em "reg") é quebrado em pedaços por ARTIGO.
+     2. A pergunta do usuário vira uma lista de palavras-chave e os pedaços
+        são pontuados por quantas dessas palavras contêm.
+     3. Só os melhores pedaços vão para a Edge Function "assistente", que
+        chama a IA com uma instrução dura: responder SÓ com base neles.
+
+   O passo 2 é o que segura o custo: uma pergunta manda alguns milhares de
+   caracteres, não o regulamento inteiro. E o passo 3 é o que segura o risco:
+   a IA não pode inventar regra, porque não recebe nada além do documento.
+══════════════════════════ */
+
+var _iaHist = [];        // [{quem:'eu'|'bot'|'erro', texto, fontes}]
+var _iaOcupado = false;
+
+// Palavras que não ajudam a achar nada — tirar melhora muito a pontuação.
+var _IA_STOP = ('a as o os um uma uns umas de do da dos das em no na nos nas por para com sem sob sobre '
+  + 'e ou mas que se ao aos à às pelo pela é são ser está estão eu meu minha meus minhas '
+  + 'posso pode podem poderia devo deve tem tenho há qual quais quando onde como porque por que '
+  + 'isso isto aquilo lá aqui já não sim muito mais menos meu no meu do meu').split(/\s+/);
+
+function _iaPalavras(q){
+  return semAcento(q).replace(/[^a-z0-9 ]+/g,' ').split(/\s+/)
+    .filter(function(w){ return w.length>2 && _IA_STOP.indexOf(w)<0; })
+    .filter(function(w,i,arr){ return arr.indexOf(w)===i; });
+}
+
+// Quebra o texto do documento em pedaços. Se o documento tem artigos
+// numerados, corta NELES — assim cada pedaço já chega com "Art. 42" na
+// frente e a IA consegue citar o artigo certo.
+function _iaPedacos(texto){
+  var t = _regLimpaTexto(texto);
+  if(!t) return [];
+  var out = [];
+  var re = /(?:^|\s)(Art(?:igo)?\.?\s*\d+[ºo°]?)/gi;
+  var marcas = [], m;
+  while((m = re.exec(t)) !== null){ marcas.push(m.index + m[0].length - m[1].length); }
+
+  if(marcas.length >= 3){
+    for(var i=0;i<marcas.length;i++){
+      var ini = marcas[i];
+      var fim = (i+1<marcas.length) ? marcas[i+1] : t.length;
+      var p = t.slice(ini, fim).trim();
+      // Artigo gigante: quebra em pedaços menores mantendo o cabeçalho.
+      if(p.length > 2600){
+        var cab = p.slice(0, 60);
+        for(var k=0;k<p.length;k+=2200){
+          out.push(k===0 ? p.slice(0,2200) : ('[continuação de ' + cab + '…] ' + p.slice(k, k+2200)));
+        }
+      } else if(p) out.push(p);
+    }
+    // O que vem ANTES do primeiro artigo (preâmbulo) também pode responder.
+    var pre = t.slice(0, marcas[0]).trim();
+    if(pre) out.unshift(pre.slice(-2200));
+  } else {
+    var TAM = 1600, PASSO = 1300;   // com sobreposição, para não cortar regra ao meio
+    for(var j=0;j<t.length;j+=PASSO) out.push(t.slice(j, j+TAM));
+  }
+  // Corte baixo de proposito: artigo curto ("Art. 5o E proibido fumar.")
+  // e regra valida e nao pode sumir da base.
+  return out.filter(function(x){ return x && x.trim().length > 12; });
+}
+
+// Cache dos pedaços: quebrar o texto todo a cada pergunta é desperdício.
+var _iaCache = { chave:'', docs:null };
+function _iaBaseDocs(){
+  var docs = (G('reg')||[]).filter(function(d){ return d && d.texto && String(d.texto).trim(); });
+  var chave = _condAtual + '|' + docs.map(function(d){ return d.id+':'+String(d.texto).length; }).join(',');
+  if(_iaCache.chave === chave && _iaCache.docs) return _iaCache.docs;
+  var prep = docs.map(function(d){
+    return { titulo: d.titulo || d.nome || 'Documento', pedacos: _iaPedacos(d.texto) };
+  });
+  _iaCache = { chave: chave, docs: prep };
+  return prep;
+}
+
+// Seleciona o que mandar para a IA. A base é SEMPRE o conjunto completo
+// de documentos cadastrados em Regulamentos — o que muda é quanto dele cabe:
+//   • Se tudo couber no limite, manda TUDO (nada é deixado de fora).
+//   • Se não couber, manda os pedaços mais relevantes de TODOS os documentos.
+// Documento novo anexado em Regulamentos entra na base sozinho, sem
+// nenhuma configuração: a base é lida do banco a cada pergunta.
+function _iaSelecionar(pergunta, limiteChars){
+  var base = _iaBaseDocs();
+  if(!base.length) return [];
+
+  // Cabe inteiro? Então não escolhe nada: manda o regulamento completo.
+  var total = 0;
+  base.forEach(function(d){ d.pedacos.forEach(function(p){ total += p.length; }); });
+  if(total <= limiteChars){
+    var tudo = [];
+    base.forEach(function(d){
+      d.pedacos.forEach(function(p, idx){ tudo.push({ titulo:d.titulo, idx:idx, texto:p }); });
+    });
+    return tudo;
+  }
+
+  var palavras = _iaPalavras(pergunta);
+  if(!palavras.length) return _iaPrimeirosPedacos(base, limiteChars);
+  var cands = [];
+  base.forEach(function(d){
+    d.pedacos.forEach(function(p, idx){
+      var alvo = semAcento(p);
+      var pontos = 0, distintas = 0;
+      palavras.forEach(function(w){
+        var n = 0, pos = 0;
+        while(true){ var i = alvo.indexOf(w, pos); if(i<0) break; n++; pos = i + w.length; }
+        if(n){ distintas++; pontos += 1 + Math.min(n-1, 3) * 0.35; }
+      });
+      if(!distintas) return;
+      // Pedaço que bate VÁRIAS palavras diferentes vale muito mais do que
+      // um que repete a mesma palavra — evita trazer trecho fora de contexto.
+      pontos *= (1 + distintas * 0.6);
+      cands.push({ titulo: d.titulo, idx: idx, texto: p, pontos: pontos });
+    });
+  });
+  cands.sort(function(a,b){ return b.pontos - a.pontos; });
+
+  var usado = 0, escolhidos = [];
+  for(var i=0;i<cands.length && escolhidos.length<16;i++){
+    if(usado + cands[i].texto.length > limiteChars) continue;
+    escolhidos.push(cands[i]);
+    usado += cands[i].texto.length;
+  }
+  // Nenhuma palavra bateu: em vez de dizer "não encontrei" sem nem olhar,
+  // manda o começo de cada documento e deixa a IA julgar.
+  if(!escolhidos.length) return _iaPrimeirosPedacos(base, limiteChars);
+  // Devolve na ordem do documento, não na ordem da pontuação: lido em
+  // sequência, o texto faz sentido.
+  escolhidos.sort(function(a,b){
+    return a.titulo === b.titulo ? a.idx - b.idx : a.titulo.localeCompare(b.titulo);
+  });
+  return escolhidos;
+}
+
+// Reserva de emergência: um pouco de cada documento, em rodízio, até encher.
+// Rodízio (e não "o primeiro documento inteiro") para que nenhum documento
+// fique de fora da base.
+function _iaPrimeirosPedacos(base, limiteChars){
+  var out = [], usado = 0, rodada = 0, seguiu = true;
+  while(seguiu && usado < limiteChars){
+    seguiu = false;
+    for(var i=0;i<base.length;i++){
+      var p = base[i].pedacos[rodada];
+      if(!p) continue;
+      seguiu = true;
+      if(usado + p.length > limiteChars) continue;
+      out.push({ titulo: base[i].titulo, idx: rodada, texto: p });
+      usado += p.length;
+    }
+    rodada++;
+  }
+  out.sort(function(a,b){
+    return a.titulo === b.titulo ? a.idx - b.idx : a.titulo.localeCompare(b.titulo);
+  });
+  return out;
+}
+
+function _iaAutoAltura(el){
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+}
+function _iaTecla(ev){
+  // Enter envia; Shift+Enter quebra linha. No celular o teclado manda
+  // Enter como nova linha e o botão fica sendo o caminho normal.
+  if(ev.key === 'Enter' && !ev.shiftKey && window.innerWidth > 640){
+    ev.preventDefault();
+    perguntarAssistente();
+  }
+}
+
+function renderAssistente(){
+  var base = _iaBaseDocs();
+  var n = base.length;
+  var el = $('ia-base');
+  if(el){
+    el.textContent = n
+      ? (n===1 ? '1 documento consultável' : n + ' documentos consultáveis')
+      : 'nenhum documento com texto';
+  }
+
+  var sug = $('ia-sugestoes');
+  if(sug){
+    var exemplos = ['Posso construir uma piscina?','Qual o horário de silêncio?','Posso ter cachorro?','Como funciona a multa por barulho?'];
+    sug.innerHTML = n
+      ? exemplos.map(function(t){
+          return '<button class="ia-sug" onclick="_iaUsarSugestao(this)">'+escHtml(t)+'</button>';
+        }).join('')
+      : '';
+  }
+  _iaPintar();
+}
+
+function _iaUsarSugestao(btn){
+  var inp = $('ia-pergunta');
+  if(!inp) return;
+  inp.value = btn.textContent;
+  _iaAutoAltura(inp);
+  perguntarAssistente();
+}
+
+function _iaPintar(){
+  var box = $('ia-conversa');
+  if(!box) return;
+  if(!_iaHist.length){
+    var temDoc = _iaBaseDocs().length > 0;
+    box.innerHTML = '<div class="ia-vazio">'
+      + (temDoc
+          ? '🤖 Faça uma pergunta sobre as regras do condomínio.<br>Eu procuro nos regulamentos anexados e respondo citando o artigo.'
+          : '📄 Ainda não há documento com texto cadastrado em <strong>Regulamentos</strong>.<br>Anexe o regulamento em PDF ou Word para eu poder consultar.<br><span style="font-size:12px">PDF escaneado (foto do papel) não tem texto para ler — precisa ser um PDF de texto.</span>')
+      + '</div>';
+    return;
+  }
+  box.innerHTML = _iaHist.map(function(m){
+    var cls = m.quem==='eu' ? 'eu' : (m.quem==='erro' ? 'bot erro' : 'bot');
+    var fontes = (m.fontes && m.fontes.length)
+      ? '<div class="ia-fonte">📄 Consultei: ' + escHtml(m.fontes.join(' · ')) + '</div>'
+      : '';
+    return '<div class="ia-msg '+cls+'">' + escHtml(m.texto) + fontes + '</div>';
+  }).join('');
+  box.scrollTop = box.scrollHeight;
+}
+
+function limparAssistente(){
+  _iaHist = [];
+  _iaPintar();
+}
+
+async function perguntarAssistente(){
+  if(_iaOcupado) return;
+  var inp = $('ia-pergunta');
+  var pergunta = (inp && inp.value || '').trim();
+  if(!pergunta){ toast('⚠️ Escreva a sua pergunta.'); return; }
+
+  var btn = $('ia-enviar');
+  _iaOcupado = true;
+  if(btn){ btn.disabled = true; btn.textContent = 'Consultando…'; }
+  if(inp){ inp.value=''; _iaAutoAltura(inp); }
+
+  _iaHist.push({ quem:'eu', texto: pergunta });
+  _iaHist.push({ quem:'bot', texto:'Procurando nos documentos…' });
+  _iaPintar();
+
+  try{
+    var trechos = _iaSelecionar(pergunta, 45000);
+
+    if(!trechos.length){
+      _iaHist[_iaHist.length-1] = {
+        quem:'bot',
+        texto:'Não encontrei nada nos documentos do condomínio sobre isso. Consulte a administração.'
+      };
+      _iaPintar();
+      return;
+    }
+
+    if(!SB || !SB.functions) throw new Error('Sem conexão com o servidor.');
+
+    var r = await SB.functions.invoke('assistente', {
+      body:{
+        pergunta: pergunta,
+        condominio: _condAtual,
+        trechos: trechos.map(function(t){ return { titulo:t.titulo, texto:t.texto }; })
+      }
+    });
+
+    if(r.error) throw new Error(r.error.message || 'Falha ao consultar o assistente.');
+    if(r.data && r.data.error) throw new Error(r.data.error);
+    var resposta = (r.data && r.data.resposta || '').trim();
+    if(!resposta) throw new Error('O assistente não devolveu resposta.');
+
+    var fontes = trechos.map(function(t){ return t.titulo; })
+      .filter(function(v,i,a){ return a.indexOf(v)===i; });
+
+    _iaHist[_iaHist.length-1] = { quem:'bot', texto: resposta, fontes: fontes };
+  }catch(e){
+    _iaHist[_iaHist.length-1] = {
+      quem:'erro',
+      texto:'⚠️ Não consegui responder agora: ' + (e && e.message ? e.message : 'erro desconhecido') + '\n\nNenhuma regra foi inventada — quando falho, eu não respondo.'
+    };
+  }finally{
+    _iaOcupado = false;
+    if(btn){ btn.disabled = false; btn.textContent = 'Perguntar'; }
+    _iaPintar();
+  }
+}
+
 /* ══════════════════════════
    DASHBOARD
 ══════════════════════════ */
