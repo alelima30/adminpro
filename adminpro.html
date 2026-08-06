@@ -2092,6 +2092,12 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       </div>
 
       <div class="nav-standalone" data-acesso="admin,gestor,morador">
+        <div class="nav-item" id="nav-infogerais" onclick="showPanel('infogerais',this)">
+          <div class="nav-icon"><i class="fa-solid fa-circle-info"></i></div>Informações Gerais
+        </div>
+      </div>
+
+      <div class="nav-standalone" data-acesso="admin,gestor,morador">
         <div class="nav-item" id="nav-regulamento" onclick="showPanel('regulamento',this)">
           <div class="nav-icon"><i class="fa-solid fa-scroll"></i></div>Regulamentos
         </div>
@@ -2848,7 +2854,6 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <div class="tabs" data-acesso="admin,gestor,morador" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
           <button class="tab" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
           <button class="tab active" onclick="showPanel('comunicados')"><i class="fa-solid fa-newspaper" style="margin-right:6px"></i>Informativos</button>
-          <button class="tab" onclick="showPanel('infogerais')"><i class="fa-solid fa-circle-info" style="margin-right:6px"></i>Informações Gerais</button>
         </div>
         <!-- LAYOUT: viewer PDF ocupa tudo + coluna lateral direita (empilha no celular, ver .inf-row) -->
         <div class="inf-row">
@@ -2936,7 +2941,6 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <div class="tabs" data-acesso="admin,gestor,morador" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
           <button class="tab active" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
           <button class="tab" onclick="showPanel('comunicados')"><i class="fa-solid fa-newspaper" style="margin-right:6px"></i>Informativos</button>
-          <button class="tab" onclick="showPanel('infogerais')"><i class="fa-solid fa-circle-info" style="margin-right:6px"></i>Informações Gerais</button>
         </div>
         <div class="ph">
           <div><div class="ph-title">Eventos</div><div class="ph-sub">Calendário de eventos e comunicados do condomínio</div></div>
@@ -2951,11 +2955,6 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 
       <!-- ████ P: INFORMAÇÕES GERAIS ████ -->
       <div class="panel" id="panel-infogerais">
-        <div class="tabs" data-acesso="admin,gestor,morador" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
-          <button class="tab" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
-          <button class="tab" onclick="showPanel('comunicados')"><i class="fa-solid fa-newspaper" style="margin-right:6px"></i>Informativos</button>
-          <button class="tab active" onclick="showPanel('infogerais')"><i class="fa-solid fa-circle-info" style="margin-right:6px"></i>Informações Gerais</button>
-        </div>
         <div class="ph">
           <div>
             <div class="ph-title">Informações Gerais</div>
@@ -5110,6 +5109,7 @@ const MODULOS_SAAS = {
   comunicados:    { label:'Comunicação (Informativos)', grupo:null,           secao:'Operações' },
   eventos:        { label:'Eventos',                   grupo:null,           secao:'Operações' },
   regulamento:    { label:'Regulamentos',              grupo:null,            secao:'Operações' },
+  infogerais:     { label:'Informações Gerais',         grupo:null,            secao:'Operações' },
   assistente:     { label:'Assistente Condomínio',     grupo:null,            secao:'Operações' },
   procedimentos:  { label:'Procedimentos',             grupo:'operacoes',     secao:'Operações' },
   usuarios:       { label:'Usuários',                  grupo:'sistema',       secao:'Sistema' },
@@ -5261,7 +5261,7 @@ function aplicarSaas(){
   // Itens standalone (Dashboard, Reservas, Comunicados, Encomendas): gate por tela.
   // Comunicados hospeda duas abas com modulo proprio cada (comunicados = Informativos,
   // eventos = Eventos) -> o item so some se NENHUMA das duas estiver liberada.
-  ['dashboard','reservas','comunicados','regulamento','assistente','encomendas'].forEach(function(id){
+  ['dashboard','reservas','comunicados','infogerais','regulamento','assistente','encomendas'].forEach(function(id){
     var nav=$('nav-'+id); if(!nav) return;
     var st=nav.closest('.nav-standalone'); if(!st) return;
     var liberado = id==='comunicados' ? (ativos.includes('comunicados')||ativos.includes('eventos')) : ativos.includes(id);
