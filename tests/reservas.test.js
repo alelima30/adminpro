@@ -343,6 +343,44 @@ bloco('Painel de números das Reservas', () => {
   checa('outro aparelho começa com o painel ligado', api._resDashVisivel(), true);
 });
 
+// ── Taxa a partir de um horário: os dois campos são necessários ────────
+// Caso real relatado: "coloquei R$ 20 a partir das 18h e não funcionou".
+// O valor tinha ido para o campo da taxa normal, que vale o dia inteiro.
+// Aqui fica registrado o que cada combinação produz, para a tela poder
+// avisar em vez de deixar a cobrança errada passar em silêncio.
+bloco('Taxa a partir de um horário', () => {
+  const { taxaDoHorario } = carregar(['taxaDoHorario', 'hrIni'], {});
+  const cobra = (cfg, hora) => taxaDoHorario(cfg, 'Quadra de Areia', hora);
+  const K = 'fin_quadra_de_areia_';
+
+  // Configuração correta: grátis de dia, R$ 20 a partir das 18h.
+  const certa = { [K + 'taxa']: '0', [K + 'hnoite']: '18:00', [K + 'taxanoite']: '20' };
+  checa('de manhã não cobra', cobra(certa, '08:00–09:00'), 0);
+  checa('às 17h ainda não cobra', cobra(certa, '17:00–18:00'), 0);
+  checa('às 18h em ponto já cobra', cobra(certa, '18:00–19:00'), 20);
+  checa('depois das 18h cobra', cobra(certa, '20:00–22:00'), 20);
+
+  // O erro que motivou este bloco: valor no campo da taxa normal.
+  const errada = { [K + 'taxa']: '20', [K + 'hnoite']: '18:00', [K + 'taxanoite']: '' };
+  checa('valor no campo errado cobra de manhã também', cobra(errada, '08:00–09:00'), 20);
+  checa('e cobra o mesmo à noite', cobra(errada, '18:00–19:00'), 20);
+
+  // Horário sem valor, e valor sem horário: nenhum dos dois faz efeito.
+  checa('horário sem valor: vale a taxa normal o dia todo',
+    cobra({ [K + 'taxa']: '5', [K + 'hnoite']: '18:00' }, '19:00–20:00'), 5);
+  checa('valor sem horário: idem',
+    cobra({ [K + 'taxa']: '5', [K + 'taxanoite']: '20' }, '19:00–20:00'), 5);
+
+  // Sem horário escolhido ainda, mostra a taxa normal — não a especial.
+  checa('sem horário escolhido usa a taxa normal', cobra(certa, ''), 0);
+
+  // Taxa normal em branco não vira "de graça" em espaço com padrão.
+  checa('espaço com padrão de fábrica usa esse padrão',
+    taxaDoHorario({}, 'Campo de Futebol', '08:00–09:00'), 20);
+  checa('espaço sem padrão e sem taxa é gratuito',
+    taxaDoHorario({}, 'Quadra de Areia', '08:00–09:00'), 0);
+});
+
 console.log('\n' + '-'.repeat(50));
 console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
 process.exit(falhas === 0 ? 0 : 1);
