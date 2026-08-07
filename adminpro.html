@@ -1197,6 +1197,33 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 }
 .ig-tabs::-webkit-scrollbar{display:none}
 .ig-tabs .tab{flex-shrink:0;white-space:nowrap}
+/* Botao de gerenciar abas: fica no fim da fila e visualmente separado das
+   abas de conteudo — e configuracao, nao mais um assunto. */
+.ig-tab-gerir{margin-left:auto;opacity:.75}
+.ig-tab-gerir.active{opacity:1}
+
+/* Gerenciar abas */
+.ig-gerir-linha{
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  padding:10px;margin-bottom:8px;
+  border:1px solid var(--border);border-radius:10px;background:var(--ink-2);
+}
+.ig-gerir-ordem{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.ig-gerir-linha .ig-g-nome{flex:2;min-width:150px;width:auto}
+.ig-gerir-linha .ig-g-tipo{flex:1;min-width:120px;width:auto}
+.ig-gerir-linha .ig-g-icone{flex:1;min-width:110px;width:auto}
+.ig-g-ativa{
+  display:inline-flex;align-items:center;gap:6px;flex-shrink:0;cursor:pointer;
+  font-size:12.5px;color:var(--text-2);white-space:nowrap;
+}
+.ig-g-ativa input{accent-color:var(--gold);width:16px;height:16px;cursor:pointer}
+.ig-g-del{flex-shrink:0;color:var(--red)}
+@media (max-width:640px){
+  .ig-gerir-linha{align-items:stretch}
+  .ig-gerir-linha .ig-g-nome,.ig-gerir-linha .ig-g-tipo,.ig-gerir-linha .ig-g-icone{width:100%;flex:none}
+  .ig-gerir-ordem{flex-direction:row}
+  .ig-tab-gerir{margin-left:0}
+}
 .ig-card{margin-bottom:16px}
 .ig-texto{font-size:14px;line-height:1.85;color:var(--text-2);white-space:pre-wrap;overflow-wrap:break-word}
 .ig-vazio{font-size:13px;color:var(--text-3);padding:6px 0;font-style:italic}
@@ -12286,127 +12313,295 @@ function _igLinhaTelefone(t, i, comWhats){
     + '</div>';
 }
 
-// Abas de Informações Gerais. Cada aba mostra um assunto — antes era tudo
-// numa coluna só e, no celular, achar o telefone da portaria exigia rolar
-// a história do condomínio inteira.
-var _IG_ABAS = [
-  { id:'historia',   icone:'fa-landmark',              rotulo:'História'        },
-  { id:'mapa',       icone:'fa-map',                   rotulo:'Mapa'            },
-  { id:'telefones',  icone:'fa-phone',                 rotulo:'Telefones úteis' },
-  { id:'horarios',   icone:'fa-clock',                 rotulo:'Horários'        },
-  { id:'coleta',     icone:'fa-recycle',               rotulo:'Coleta de lixo'  },
-  { id:'emergencia', icone:'fa-truck-medical',         rotulo:'Emergência'      },
+/* ══════════════════════════
+   ABAS DE INFORMAÇÕES GERAIS — definidas pela administração
+
+   As abas deixaram de ser fixas no código. Cada condomínio monta as suas:
+   cria, renomeia, reordena, liga/desliga e escolhe o TIPO de cada uma.
+
+   Três tipos, que são as três formas de informação que apareceram na
+   prática:
+     texto     — parágrafos livres (história, horários, coleta de lixo)
+     telefones — lista com nome + número, ligar e WhatsApp
+     arquivo   — um PDF anexado (mapa do loteamento, planta)
+
+   O que já estava cadastrado é convertido por _igMigrar() na primeira
+   abertura. Nenhum campo antigo é apagado do registro: se algum dia a
+   conversão se mostrar errada, o dado original continua lá para recuperar.
+══════════════════════════ */
+
+var _IG_TIPOS = {
+  texto:     { rotulo:'Texto',      icone:'fa-align-left', descricao:'Parágrafos livres — história, horários, avisos.' },
+  telefones: { rotulo:'Telefones',  icone:'fa-phone',      descricao:'Lista de contatos, com botão de ligar e WhatsApp.' },
+  arquivo:   { rotulo:'Arquivo PDF',icone:'fa-file-pdf',   descricao:'Um documento anexado, como o mapa do loteamento.' },
+};
+
+// Ícones oferecidos na hora de criar a aba. Lista curta de propósito:
+// escolher entre 1.400 ícones trava a decisão de quem só quer criar uma aba.
+var _IG_ICONES = [
+  'fa-landmark','fa-map','fa-phone','fa-clock','fa-recycle','fa-truck-medical',
+  'fa-file-lines','fa-circle-info','fa-bullhorn','fa-shield-halved','fa-key',
+  'fa-car','fa-dog','fa-water','fa-dumbbell','fa-utensils','fa-wifi','fa-tree',
 ];
-var _igAba = 'historia';
+
+var _igAba = '';        // aba aberta ('' = a primeira ativa)
+var _igGerenciando = false;
+
+function _igNovoId(){
+  return 'aba' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+
+/* Converte o formato antigo (campos soltos) para a lista de abas.
+   Só roda quando ainda não existe d.abas. Preserva tudo — inclusive os
+   dois horários, que eram campos separados e viram um texto só, cada um
+   com seu rótulo, para não perder nenhum dos dois. */
+function _igMigrar(d){
+  if(!d || typeof d!=='object') return d;
+  if(Array.isArray(d.abas)) return d;
+
+  var abas = [];
+  abas.push({ id:'historia', nome:'História', tipo:'texto', icone:'fa-landmark',
+              ativa:true, texto:String(d.historia||'') });
+  abas.push({ id:'mapa', nome:'Mapa do loteamento', tipo:'arquivo', icone:'fa-map',
+              ativa:true, arquivo:d.mapa||null });
+  abas.push({ id:'telefones', nome:'Telefones úteis', tipo:'telefones', icone:'fa-phone',
+              ativa:true, itens:Array.isArray(d.telefones)?d.telefones:[] });
+
+  var horas = [];
+  if(String(d.horarioAdm||'').trim())      horas.push('Administração\n' + String(d.horarioAdm).trim());
+  if(String(d.horarioPortaria||'').trim()) horas.push('Portaria\n' + String(d.horarioPortaria).trim());
+  abas.push({ id:'horarios', nome:'Horários', tipo:'texto', icone:'fa-clock',
+              ativa:true, texto:horas.join('\n\n') });
+
+  abas.push({ id:'coleta', nome:'Coleta de lixo', tipo:'texto', icone:'fa-recycle',
+              ativa:true, texto:String(d.coleta||'') });
+  abas.push({ id:'emergencia', nome:'Emergência', tipo:'telefones', icone:'fa-truck-medical',
+              ativa:true, semWhats:true, itens:Array.isArray(d.emergencia)?d.emergencia:[] });
+
+  d.abas = abas;
+  return d;
+}
+
+// Estado da tela, já migrado. Os campos antigos continuam no registro.
+function _igDados(){
+  return _igMigrar(getInfoGerais() || _igPadrao());
+}
+
+function _igAbasAtivas(d){
+  return (d.abas||[]).filter(function(a){ return a.ativa !== false; });
+}
+
+function _igAbaAtual(d){
+  var ativas = _igAbasAtivas(d);
+  if(!ativas.length) return null;
+  var achada = null;
+  ativas.forEach(function(a){ if(a.id === _igAba) achada = a; });
+  return achada || ativas[0];
+}
 
 function igAbrirAba(id){
-  // Trocar de aba no meio de uma edição descartaria o que foi digitado.
   if(_igEditando && !confirm('Você está editando. Sair desta aba descarta o que não foi salvo. Continuar?')) return;
   _igEditando = '';
+  _igGerenciando = false;
   _igAba = id;
   renderInfoGerais();
 }
 
-function _igBarraAbas(){
-  return '<div class="tabs ig-tabs">'
-    + _IG_ABAS.map(function(a){
-        return '<button class="tab' + (_igAba === a.id ? ' active' : '') + '" '
-             + 'onclick="igAbrirAba(\'' + a.id + '\')">'
-             + '<i class="fa-solid ' + a.icone + '"></i> ' + escHtml(a.rotulo) + '</button>';
-      }).join('')
+function _igBarraAbas(d){
+  var atual = _igAbaAtual(d);
+  var botoes = _igAbasAtivas(d).map(function(a){
+    var on = atual && a.id === atual.id && !_igGerenciando;
+    return '<button class="tab' + (on ? ' active' : '') + '" onclick="igAbrirAba(\'' + a.id + '\')">'
+         + '<i class="fa-solid ' + escHtml(a.icone||'fa-circle-info') + '"></i> ' + escHtml(a.nome||'Sem nome') + '</button>';
+  }).join('');
+
+  var gerir = _igPodeEditar()
+    ? '<button class="tab ig-tab-gerir' + (_igGerenciando ? ' active' : '') + '" onclick="igGerenciarAbas()" '
+      + 'title="Criar, renomear, reordenar e desligar abas"><i class="fa-solid fa-sliders"></i> Abas</button>'
+    : '';
+
+  return '<div class="tabs ig-tabs">' + botoes + gerir + '</div>';
+}
+
+/* ── Conteúdo de uma aba, conforme o tipo ── */
+
+function _igCorpoTexto(a){
+  if(_igEditando === a.id){
+    return '<textarea id="ig-in-texto" class="ig-input" rows="12" placeholder="Escreva aqui…">'
+      + escHtml(a.texto||'') + '</textarea>' + _igBotoesEdicao('igSalvarTexto()');
+  }
+  return _igTexto(a.texto, 'Nada escrito ainda.');
+}
+
+function _igCorpoTelefones(a){
+  var comWhats = !a.semWhats;
+  if(_igEditando === a.id){
+    return '<div id="ig-lista-tel">'
+      + (a.itens||[]).map(function(t,i){ return _igFormTelefone(t,i,comWhats); }).join('')
+      + '</div>'
+      + '<button class="btn btn-ghost btn-sm" onclick="igAddTelefone()"><i class="fa-solid fa-plus"></i> Adicionar telefone</button>'
+      + _igBotoesEdicao('igSalvarTelefones()');
+  }
+  return (a.itens && a.itens.length)
+    ? a.itens.map(function(t,i){ return _igLinhaTelefone(t,i,comWhats); }).join('')
+    : _igVazio('Nenhum telefone cadastrado.');
+}
+
+function _igCorpoArquivo(a){
+  if(_igEditando === a.id){
+    return '<input type="file" id="ig-in-arquivo" accept="application/pdf,.pdf" class="ig-input">'
+      + '<div class="ig-dica">Arquivo PDF. Substitui o atual, se houver.</div>'
+      + _igBotoesEdicao('igSalvarArquivo()')
+      + (a.arquivo ? '<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="igRemoverArquivo()">'
+                     + '<i class="fa-solid fa-trash-can"></i> Remover o arquivo atual</button>' : '');
+  }
+  if(a.arquivo && _storagePathDe(a.arquivo)){
+    return '<div class="ig-arquivo">'
+      + '<i class="fa-solid fa-file-pdf" style="font-size:20px;color:var(--gold)"></i>'
+      + '<div style="min-width:0;flex:1"><div class="ig-arquivo-nome">' + escHtml(a.arquivo.nome||'arquivo.pdf') + '</div>'
+      + '<div class="ig-dica">Documento em PDF</div></div>'
+      + '<button class="btn btn-gold btn-sm" onclick="igAbrirArquivo()">Abrir</button>'
+      + '</div>';
+  }
+  return _igVazio('Nenhum arquivo anexado.');
+}
+
+function _igConteudoAba(a){
+  var corpo = ({ texto:_igCorpoTexto, telefones:_igCorpoTelefones, arquivo:_igCorpoArquivo })[a.tipo]
+              || _igCorpoTexto;
+  return _igCard(a.id, a.icone||'fa-circle-info', a.nome||'Sem nome', corpo(a), true);
+}
+
+/* ── Gerenciar abas (só administração) ── */
+
+function igGerenciarAbas(){
+  if(_igEditando && !confirm('Você está editando. Sair desta aba descarta o que não foi salvo. Continuar?')) return;
+  _igEditando = '';
+  _igGerenciando = true;
+  renderInfoGerais();
+}
+
+function _igLinhaGerir(a, i, total){
+  var opcTipo = Object.keys(_IG_TIPOS).map(function(t){
+    return '<option value="' + t + '"' + (a.tipo===t?' selected':'') + '>' + _IG_TIPOS[t].rotulo + '</option>';
+  }).join('');
+  var opcIcone = _IG_ICONES.concat(_IG_ICONES.indexOf(a.icone)<0 && a.icone ? [a.icone] : [])
+    .map(function(ic){ return '<option value="' + ic + '"' + (a.icone===ic?' selected':'') + '>' + ic.replace('fa-','') + '</option>'; }).join('');
+
+  return '<div class="ig-gerir-linha" data-aba="' + escHtml(a.id) + '">'
+    + '<div class="ig-gerir-ordem">'
+    +   '<button class="ig-seta" onclick="igAbaMover(this,-1)"' + (i===0?' disabled':'') + ' title="Subir"><i class="fa-solid fa-chevron-up"></i></button>'
+    +   '<button class="ig-seta" onclick="igAbaMover(this,1)"' + (i===total-1?' disabled':'') + ' title="Descer"><i class="fa-solid fa-chevron-down"></i></button>'
+    + '</div>'
+    + '<input class="ig-input ig-g-nome" value="' + escHtml(a.nome||'') + '" placeholder="Nome da aba">'
+    + '<select class="ig-input ig-g-tipo">' + opcTipo + '</select>'
+    + '<select class="ig-input ig-g-icone">' + opcIcone + '</select>'
+    + '<label class="ig-g-ativa" title="Desmarque para esconder esta aba sem apagar o conteúdo">'
+    +   '<input type="checkbox" class="ig-g-chk"' + (a.ativa!==false?' checked':'') + '> Visível</label>'
+    + '<button class="btn btn-ghost btn-sm ig-g-del" onclick="igAbaRemover(this)" title="Excluir esta aba e o conteúdo dela">'
+    +   '<i class="fa-solid fa-trash-can"></i></button>'
     + '</div>';
 }
 
-/* ── Conteúdo de cada aba ── */
-
-function _igAbaHistoria(d){
-  return _igCard('historia', 'fa-landmark', 'História do condomínio',
-    _igEditando === 'historia'
-      ? '<textarea id="ig-in-historia" class="ig-input" rows="12" placeholder="Conte a história do condomínio…">'
-        + escHtml(d.historia||'') + '</textarea>' + _igBotoesEdicao('igSalvarHistoria()')
-      : _igTexto(d.historia, 'Ainda não foi escrita a história do condomínio.'),
-    true);
+function _igTelaGerir(d){
+  var abas = d.abas||[];
+  var corpo = '<div class="ig-dica" style="margin-bottom:14px">'
+    + 'Desmarcar <strong>Visível</strong> esconde a aba dos moradores sem apagar nada. '
+    + 'Excluir apaga a aba <strong>e o conteúdo dela</strong>.</div>'
+    + '<div id="ig-gerir-lista">'
+    + abas.map(function(a,i){ return _igLinhaGerir(a,i,abas.length); }).join('')
+    + '</div>'
+    + '<button class="btn btn-ghost btn-sm" onclick="igAbaAdd()"><i class="fa-solid fa-plus"></i> Nova aba</button>'
+    + '<div class="ig-acoes">'
+    +   '<button class="btn btn-gold btn-sm" onclick="igAbasSalvar()"><i class="fa-solid fa-floppy-disk"></i> Salvar abas</button>'
+    +   '<button class="btn btn-ghost btn-sm" onclick="igAbrirAba(\'\')">Cancelar</button>'
+    + '</div>';
+  return '<div class="card ig-card">'
+    + '<div class="card-head"><div class="card-title"><div class="card-icon"><i class="fa-solid fa-sliders"></i></div>Abas desta tela</div></div>'
+    + corpo + '</div>';
 }
 
-function _igAbaMapa(d){
-  var corpo;
-  if(_igEditando === 'mapa'){
-    corpo = '<input type="file" id="ig-in-mapa" accept="application/pdf,.pdf" class="ig-input">'
-      + '<div class="ig-dica">Arquivo PDF. Substitui o mapa atual, se houver.</div>'
-      + _igBotoesEdicao('igSalvarMapa()')
-      + (d.mapa ? '<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="igRemoverMapa()"><i class="fa-solid fa-trash-can"></i> Remover o mapa atual</button>' : '');
-  } else if(d.mapa && d.mapa.storagePath){
-    corpo = '<div class="ig-arquivo">'
-      + '<i class="fa-solid fa-map" style="font-size:20px;color:var(--gold)"></i>'
-      + '<div style="min-width:0;flex:1"><div class="ig-arquivo-nome">' + escHtml(d.mapa.nome||'mapa.pdf') + '</div>'
-      + '<div class="ig-dica">Mapa do loteamento em PDF</div></div>'
-      + '<button class="btn btn-gold btn-sm" onclick="igAbrirMapa()">Abrir</button>'
-      + '</div>';
-  } else {
-    corpo = _igVazio('Nenhum mapa anexado.');
-  }
-  return _igCard('mapa', 'fa-map', 'Mapa do loteamento', corpo, true);
+function igAbaAdd(){
+  var box = $('ig-gerir-lista'); if(!box) return;
+  var nova = { id:_igNovoId(), nome:'', tipo:'texto', icone:'fa-circle-info', ativa:true, texto:'' };
+  box.insertAdjacentHTML('beforeend', _igLinhaGerir(nova, box.children.length, box.children.length+1));
+  _igAtualizaSetas();
+  var campos = box.querySelectorAll('.ig-g-nome');
+  if(campos.length) campos[campos.length-1].focus();
 }
 
-function _igAbaTelefones(d){
-  var corpo;
-  if(_igEditando === 'telefones'){
-    corpo = '<div id="ig-lista-tel">'
-      + (d.telefones||[]).map(function(t,i){ return _igFormTelefone(t,i,true); }).join('')
-      + '</div>'
-      + '<button class="btn btn-ghost btn-sm" onclick="igAddTelefone()">+ Adicionar telefone</button>'
-      + _igBotoesEdicao('igSalvarTelefones()');
-  } else {
-    corpo = (d.telefones && d.telefones.length)
-      ? (d.telefones||[]).map(function(t,i){ return _igLinhaTelefone(t,i,true); }).join('')
-      : _igVazio('Nenhum telefone cadastrado.');
-  }
-  return _igCard('telefones', 'fa-phone', 'Telefones úteis', corpo, true);
+function igAbaRemover(btn){
+  var linha = btn.closest('.ig-gerir-linha'); if(!linha) return;
+  var nome = (linha.querySelector('.ig-g-nome')||{}).value || 'esta aba';
+  if(!confirm('Excluir "' + nome + '" e todo o conteúdo dela?\n\nPara apenas escondê-la dos moradores, desmarque "Visível" em vez de excluir.')) return;
+  linha.remove();
+  _igAtualizaSetas();
 }
 
-function _igAbaHorarios(d){
-  return _igCard('horarioAdm', 'fa-clock', 'Horário de funcionamento da administração',
-      _igEditando === 'horarioAdm'
-        ? '<textarea id="ig-in-horarioAdm" class="ig-input" rows="4">' + escHtml(d.horarioAdm||'') + '</textarea>'
-          + _igBotoesEdicao('igSalvarCampo(\'horarioAdm\')')
-        : _igTexto(d.horarioAdm, 'Horário não informado.'),
-      true)
-   + _igCard('horarioPortaria', 'fa-shield-halved', 'Horário da portaria',
-      _igEditando === 'horarioPortaria'
-        ? '<textarea id="ig-in-horarioPortaria" class="ig-input" rows="3">' + escHtml(d.horarioPortaria||'') + '</textarea>'
-          + _igBotoesEdicao('igSalvarCampo(\'horarioPortaria\')')
-        : _igTexto(d.horarioPortaria, 'Horário não informado.'),
-      true);
+function igAbaMover(btn, passo){
+  var linha = btn.closest('.ig-gerir-linha'); if(!linha) return;
+  var alvo = passo < 0 ? linha.previousElementSibling : linha.nextElementSibling;
+  if(!alvo) return;
+  // Move o proprio elemento: o que foi digitado e ainda nao salvo vai junto.
+  if(passo < 0) linha.parentNode.insertBefore(linha, alvo);
+  else          linha.parentNode.insertBefore(alvo, linha);
+  _igAtualizaSetas();
 }
 
-function _igAbaColeta(d){
-  // Texto livre: cada condominio tem dias, empresas e regras proprias.
-  // Uma tabela fixa de dias engessaria quem coleta em outro esquema.
-  var v = (d.coleta === undefined || d.coleta === null) ? _igColetaPadrao() : d.coleta;
-  return _igCard('coleta', 'fa-recycle', 'Coleta de lixo',
-    _igEditando === 'coleta'
-      ? '<textarea id="ig-in-coleta" class="ig-input" rows="9" placeholder="Dias, horários e empresa responsável por cada tipo de coleta…">'
-        + escHtml(v) + '</textarea>' + _igBotoesEdicao('igSalvarCampo(\'coleta\')')
-      : _igTexto(v, 'Nenhuma informação de coleta cadastrada.'),
-    true);
+function _igAtualizaSetas(){
+  var box = $('ig-gerir-lista'); if(!box) return;
+  var linhas = box.querySelectorAll('.ig-gerir-linha');
+  linhas.forEach(function(l, i){
+    var s = l.querySelectorAll('.ig-seta');
+    if(s[0]) s[0].disabled = (i === 0);
+    if(s[1]) s[1].disabled = (i === linhas.length-1);
+  });
 }
 
-function _igAbaEmergencia(d){
-  var corpo;
-  if(_igEditando === 'emergencia'){
-    corpo = '<div id="ig-lista-emg">'
-      + (d.emergencia||[]).map(function(t,i){ return _igFormTelefone(t,i,false); }).join('')
-      + '</div>'
-      + '<button class="btn btn-ghost btn-sm" onclick="igAddEmergencia()">+ Adicionar contato</button>'
-      + _igBotoesEdicao('igSalvarEmergencia()');
-  } else {
-    // Sem WhatsApp de proposito: 190, 193 e afins nao tem.
-    corpo = (d.emergencia && d.emergencia.length)
-      ? (d.emergencia||[]).map(function(t,i){ return _igLinhaTelefone(t,i,false); }).join('')
-      : _igVazio('Nenhum contato cadastrado.');
-  }
-  return _igCard('emergencia', 'fa-truck-medical', 'Contatos de emergência', corpo, true);
+function igAbasSalvar(){
+  var box = $('ig-gerir-lista'); if(!box) return;
+  var d = _igDados();
+  var porId = {};
+  (d.abas||[]).forEach(function(a){ porId[a.id] = a; });
+
+  var novas = [], semNome = null;
+  box.querySelectorAll('.ig-gerir-linha').forEach(function(l){
+    var id    = l.dataset.aba;
+    var nome  = ((l.querySelector('.ig-g-nome')||{}).value || '').trim();
+    var tipo  = (l.querySelector('.ig-g-tipo')||{}).value || 'texto';
+    var icone = (l.querySelector('.ig-g-icone')||{}).value || 'fa-circle-info';
+    var ativa = !!(l.querySelector('.ig-g-chk')||{}).checked;
+    if(!nome){ if(!semNome) semNome = l; return; }
+
+    var antes = porId[id] || {};
+    var aba = { id:id, nome:nome, tipo:tipo, icone:icone, ativa:ativa };
+    if(antes.semWhats) aba.semWhats = true;
+    // O conteudo acompanha a aba. Mudar o tipo NAO apaga o que existia no
+    // tipo anterior: se a pessoa voltar atras, o conteudo continua la.
+    if(antes.texto   !== undefined) aba.texto   = antes.texto;
+    if(antes.itens   !== undefined) aba.itens   = antes.itens;
+    if(antes.arquivo !== undefined) aba.arquivo = antes.arquivo;
+    if(tipo==='texto'     && aba.texto===undefined)   aba.texto = '';
+    if(tipo==='telefones' && aba.itens===undefined)   aba.itens = [];
+    if(tipo==='arquivo'   && aba.arquivo===undefined) aba.arquivo = null;
+    novas.push(aba);
+  });
+
+  if(semNome){ toast('⚠️ Dê um nome a todas as abas antes de salvar.'); semNome.querySelector('.ig-g-nome').focus(); return; }
+  if(!novas.length){ toast('⚠️ Deixe pelo menos uma aba.'); return; }
+  if(!novas.some(function(a){ return a.ativa; })){ toast('⚠️ Pelo menos uma aba precisa ficar visível.'); return; }
+
+  d.abas = novas;
+  _igSalvar(d, function(ok){
+    if(!ok) return;
+    _igGerenciando = false;
+    _igAba = '';
+    renderInfoGerais();
+    toast('✓ Abas salvas.');
+  });
 }
+
+/* ── Tela ── */
 
 function renderInfoGerais(){
   var alvo = $('ig-conteudo');
@@ -12418,43 +12613,107 @@ function renderInfoGerais(){
   // chegarem, esse "padrao" era gravado POR CIMA do que ja existia,
   // apagando telefones ja cadastrados. Agora so grava quando a
   // administracao salva de fato.
-  var d = getInfoGerais() || _igPadrao();
+  var d = _igDados();
 
   var sub = $('ig-sub');
   if(sub){
     sub.textContent = _igPodeEditar()
-      ? 'Dados do condomínio, telefones e horários — clique em Editar para alterar'
+      ? 'Dados do condomínio — use a aba "Abas" para criar, renomear ou esconder'
       : 'Dados do condomínio, telefones e horários';
   }
 
-  var conteudo = ({
-    historia:   _igAbaHistoria,
-    mapa:       _igAbaMapa,
-    telefones:  _igAbaTelefones,
-    horarios:   _igAbaHorarios,
-    coleta:     _igAbaColeta,
-    emergencia: _igAbaEmergencia,
-  })[_igAba] || _igAbaHistoria;
+  if(_igGerenciando && _igPodeEditar()){
+    alvo.innerHTML = _igBarraAbas(d) + _igTelaGerir(d);
+    return;
+  }
 
-  alvo.innerHTML = _igBarraAbas() + conteudo(d);
+  var aba = _igAbaAtual(d);
+  alvo.innerHTML = _igBarraAbas(d)
+    + (aba ? _igConteudoAba(aba) : _igVazio('Nenhuma aba visível. Use "Abas" para ativar alguma.'));
 }
 
-/* ── Edição ── */
+/* ── Edição do conteúdo ── */
 
 function igEditar(secao){ _igEditando = secao; renderInfoGerais(); }
-function igCancelar(){ _igEditando = ''; renderInfoGerais(); }
+function igCancelar(){ _igEditando = ''; _igGerenciando = false; renderInfoGerais(); }
 
-function igSalvarCampo(campo){
-  var el = $('ig-in-' + campo);
-  if(!el) return;
-  var d = getInfoGerais() || _igPadrao();
-  d[campo] = el.value.trim();
+// Localiza a aba em edicao dentro do registro que sera gravado.
+function _igAbaEmEdicao(d){
+  var achada = null;
+  (d.abas||[]).forEach(function(a){ if(a.id === _igEditando) achada = a; });
+  return achada;
+}
+
+function igSalvarTexto(){
+  var el = $('ig-in-texto'); if(!el) return;
+  var d = _igDados(); var a = _igAbaEmEdicao(d);
+  if(!a){ toast('⚠️ Aba não encontrada.'); return; }
+  a.texto = el.value.trim();
   _igConcluir(d, 'Salvo.');
 }
 
-function igSalvarHistoria(){ igSalvarCampo('historia'); }
+function igSalvarTelefones(){
+  var d = _igDados(); var a = _igAbaEmEdicao(d);
+  if(!a){ toast('⚠️ Aba não encontrada.'); return; }
+  var comWhats = !a.semWhats;
+  var lista = _igLerLista('ig-lista-tel', comWhats);
+  var semNumero = lista.filter(function(t){ return !_igDigitos(t.numero); });
+  if(semNumero.length){ toast('⚠️ Falta o telefone de "' + semNumero[0].nome + '".'); return; }
+  if(comWhats){
+    var semWa = lista.filter(function(t){ return t.whats && !_igWhatsLink(t.numero); });
+    if(semWa.length){
+      toast('⚠️ "' + semWa[0].nome + '" está marcado como WhatsApp, mas o número está incompleto — informe com DDD.');
+      return;
+    }
+  }
+  a.itens = lista;
+  _igConcluir(d, 'Telefones salvos.');
+}
 
-/* ── Telefones ── */
+async function igSalvarArquivo(){
+  var inp = $('ig-in-arquivo');
+  var f = inp && inp.files && inp.files[0];
+  if(!f){ toast('⚠️ Escolha um arquivo PDF.'); return; }
+  if(!/\.pdf$/i.test(f.name)){ toast('⚠️ O arquivo precisa ser um PDF.'); return; }
+
+  var btn = document.querySelector('#ig-conteudo .btn-gold');
+  if(btn){ btn.disabled = true; btn.textContent = 'Enviando…'; }
+  try{
+    var caminho = await uploadPDF(f, 'infogerais');
+    var d = _igDados(); var a = _igAbaEmEdicao(d);
+    if(!a) throw new Error('aba não encontrada');
+    a.arquivo = { storagePath: caminho, nome: f.name };
+    _igConcluir(d, 'Arquivo anexado.');
+  }catch(e){
+    toast('⚠️ Não consegui enviar: ' + (e && e.message ? e.message : 'tente novamente.'));
+  }finally{
+    if(btn){ btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Salvar'; }
+  }
+}
+
+async function igAbrirArquivo(){
+  var d = _igDados();
+  var aba = _igAbaAtual(d);
+  var caminho = aba && aba.arquivo && _storagePathDe(aba.arquivo);
+  if(!caminho){ toast('⚠️ Nenhum arquivo anexado.'); return; }
+  try{
+    var url = await _linkTemporario(caminho);
+    if(!url) throw new Error('link vazio');
+    window.open(url, '_blank', 'noopener');
+  }catch(e){
+    toast('⚠️ Não consegui abrir: ' + (e && e.message ? e.message : 'tente novamente.'));
+  }
+}
+
+function igRemoverArquivo(){
+  if(!confirm('Remover o arquivo desta aba?')) return;
+  var d = _igDados(); var a = _igAbaEmEdicao(d) || _igAbaAtual(d);
+  if(!a){ toast('⚠️ Aba não encontrada.'); return; }
+  a.arquivo = null;
+  _igConcluir(d, 'Arquivo removido.');
+}
+
+/* ── Campos da lista de telefones ── */
 
 function _igFormTelefone(t, i, comWhats){
   t = t || {};
@@ -12474,9 +12733,6 @@ function _igFormTelefone(t, i, comWhats){
     + '</div>';
 }
 
-/* Sobe ou desce a linha na lista. Mexe nos elementos da tela, e nao nos
-   dados: o que a pessoa digitou e que ainda nao salvou continua onde
-   esta, porque o proprio campo e movido junto. */
 function igMover(btn, passo){
   var linha = btn.closest('.ig-tel-form');
   if(!linha) return;
@@ -12496,13 +12752,7 @@ function igAddTelefone(){
   var box = $('ig-lista-tel'); if(!box) return;
   box.insertAdjacentHTML('beforeend', _igFormTelefone({}, box.children.length, true));
 }
-function igAddEmergencia(){
-  var box = $('ig-lista-emg'); if(!box) return;
-  box.insertAdjacentHTML('beforeend', _igFormTelefone({}, box.children.length, false));
-}
 
-// Lê os campos da tela. Linha sem nome E sem número é descartada em
-// silêncio — é a linha em branco que a pessoa adicionou e não preencheu.
 function _igLerLista(boxId, comWhats){
   var box = $(boxId);
   if(!box) return [];
@@ -12520,71 +12770,6 @@ function _igLerLista(boxId, comWhats){
     out.push(item);
   });
   return out;
-}
-
-function igSalvarTelefones(){
-  var lista = _igLerLista('ig-lista-tel', true);
-  var semNumero = lista.filter(function(t){ return !_igDigitos(t.numero); });
-  if(semNumero.length){ toast('⚠️ Falta o telefone de "' + semNumero[0].nome + '".'); return; }
-  var semWa = lista.filter(function(t){ return t.whats && !_igWhatsLink(t.numero); });
-  if(semWa.length){
-    toast('⚠️ "' + semWa[0].nome + '" está marcado como WhatsApp, mas o número está incompleto — informe com DDD.');
-    return;
-  }
-  var d = getInfoGerais() || _igPadrao();
-  d.telefones = lista;
-  _igConcluir(d, 'Telefones salvos.');
-}
-
-function igSalvarEmergencia(){
-  var lista = _igLerLista('ig-lista-emg', false);
-  var semNumero = lista.filter(function(t){ return !_igDigitos(t.numero); });
-  if(semNumero.length){ toast('⚠️ Falta o telefone de "' + semNumero[0].nome + '".'); return; }
-  var d = getInfoGerais() || _igPadrao();
-  d.emergencia = lista;
-  _igConcluir(d, 'Contatos salvos.');
-}
-
-/* ── Mapa do loteamento ── */
-
-async function igSalvarMapa(){
-  var inp = $('ig-in-mapa');
-  var f = inp && inp.files && inp.files[0];
-  if(!f){ toast('⚠️ Escolha um arquivo PDF.'); return; }
-  if(!/\.pdf$/i.test(f.name)){ toast('⚠️ O mapa precisa ser um PDF.'); return; }
-
-  var btn = document.querySelector('#ig-conteudo .btn-gold');
-  if(btn){ btn.disabled = true; btn.textContent = 'Enviando…'; }
-  try{
-    var caminho = await uploadPDF(f, 'infogerais');
-    var d = getInfoGerais() || _igPadrao();
-    d.mapa = { storagePath: caminho, nome: f.name };
-    _igConcluir(d, 'Mapa anexado.');
-  }catch(e){
-    toast('⚠️ Não consegui enviar o mapa: ' + (e && e.message ? e.message : 'tente novamente.'));
-  }finally{
-    if(btn){ btn.disabled = false; btn.textContent = 'Salvar'; }
-  }
-}
-
-async function igAbrirMapa(){
-  var d = getInfoGerais();
-  var caminho = d && d.mapa && _storagePathDe(d.mapa);
-  if(!caminho){ toast('⚠️ Nenhum mapa anexado.'); return; }
-  try{
-    var url = await _linkTemporario(caminho);
-    if(!url) throw new Error('link vazio');
-    window.open(url, '_blank', 'noopener');
-  }catch(e){
-    toast('⚠️ Não consegui abrir o mapa: ' + (e && e.message ? e.message : 'tente novamente.'));
-  }
-}
-
-function igRemoverMapa(){
-  if(!confirm('Remover o mapa do loteamento?')) return;
-  var d = getInfoGerais() || _igPadrao();
-  d.mapa = null;
-  _igConcluir(d, 'Mapa removido.');
 }
 
 /* ══════════════════════════
