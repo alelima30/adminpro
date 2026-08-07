@@ -152,9 +152,22 @@ function copiarPix(){
    Ex.: campo gratis de dia (taxa 0) e pago a partir das 18:00. */
 function taxaDoHorario(cfg, espaco, horario){
   var chv = String(espaco||'').toLowerCase().replace(/[^a-z0-9]/g,'_');
+  /* Sugestao de fabrica, usada SO enquanto o condominio nunca configurou
+     aquele espaco. Depois que a administracao salva, quem manda e ela —
+     inclusive quando deixa o campo em branco, que quer dizer SEM TAXA.
+
+     Antes qualquer valor vazio caia nesta tabela. O efeito: o condominio
+     apagava a taxa do campo de futebol para deixa-lo gratis de dia e o
+     sistema reinstalava R$ 20, cobrando o dia inteiro. */
   var padraoTaxa = {'Campo de Futebol':20,'Salão de Festa':1500,'Cozinha / Espaço Lazer':300};
-  var base = parseFloat(cfg['fin_'+chv+'_taxa']);
-  if(isNaN(base)) base = padraoTaxa[espaco] || 0;
+  var bruto = cfg['fin_'+chv+'_taxa'];
+  var base;
+  if(bruto === undefined || bruto === null){
+    base = padraoTaxa[espaco] || 0;        // nunca configurado
+  } else {
+    base = parseFloat(bruto);
+    if(isNaN(base)) base = 0;              // configurado em branco = sem taxa
+  }
 
   var hIni = String(cfg['fin_'+chv+'_hnoite']||'').trim();
   var tEsp = parseFloat(cfg['fin_'+chv+'_taxanoite']);
@@ -4439,7 +4452,8 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       </div>
       <div class="fg" id="mres-hr-custom-wrap" style="display:none">
         <label>Horário Personalizado</label>
-        <input type="text" id="mres-hr-custom" placeholder="Ex: 15:00 – 20:00">
+        <input type="text" id="mres-hr-custom" placeholder="Ex: 15:00 – 20:00"
+          oninput="try{onEspacoChange()}catch(_){}">
       </div>
       <div class="fg full" style="grid-column:1/-1">
         <label>Finalidade / Tipo de Evento</label>
@@ -11102,29 +11116,35 @@ function renderCfgReservas(){
           }
         </div>
         <div id="cfg-fin-campos-${chv}" style="margin-top:10px;display:${ativo?'grid':'none'};grid-template-columns:1fr 1fr;gap:10px">
-          <div class="fg" style="margin:0"><label>Taxa (R$)</label>
-            <input type="number" data-fin-taxa="${chv}" value="${taxa}" placeholder="0,00" min="0" step="0.01"
+          <div class="fg" style="margin:0"><label>Taxa normal — vale o dia todo (R$)</label>
+            <input type="number" data-fin-taxa="${chv}" oninput="_cfgFinPrevia('${chv}')" value="${taxa}" placeholder="0,00" min="0" step="0.01"
               style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;outline:none;width:100%">
           </div>
           <div class="fg" style="margin:0"><label>Caução (R$)</label>
             <input type="number" data-fin-caucao="${chv}" value="${caucao}" placeholder="0,00" min="0" step="0.01"
               style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;outline:none;width:100%">
           </div>
-          <div class="fg" style="margin:0"><label>Taxa a partir de (opcional)</label>
-            <input type="time" data-fin-hnoite="${chv}" value="${hnoite}"
+          <div class="fg" style="margin:0"><label>A partir deste horário… (opcional)</label>
+            <input type="time" data-fin-hnoite="${chv}" oninput="_cfgFinPrevia('${chv}')" value="${hnoite}"
               style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;outline:none;width:100%">
           </div>
-          <div class="fg" style="margin:0"><label>Taxa nesse horário (R$)</label>
-            <input type="number" data-fin-taxanoite="${chv}" value="${taxaNoite}" placeholder="0,00" min="0" step="0.01"
+          <div class="fg" style="margin:0"><label>…passa a cobrar (R$)</label>
+            <input type="number" data-fin-taxanoite="${chv}" oninput="_cfgFinPrevia('${chv}')" value="${taxaNoite}" placeholder="0,00" min="0" step="0.01"
               style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;outline:none;width:100%">
           </div>
+          <div id="cfg-fin-previa-${chv}" style="grid-column:1/-1;font-size:12.5px;line-height:1.6;
+               background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px 12px"></div>
           <div style="grid-column:1/-1;font-size:11.5px;color:var(--text-3);line-height:1.5">
-            Ex.: campo grátis de dia e pago à noite → Taxa (R$) = 0, "a partir de" = 18:00 e a taxa noturna.
-            Deixe o horário em branco para cobrar o mesmo valor o dia todo.
+            <strong>Para cobrar só a partir de um horário</strong> (ex.: grátis de dia, R$ 20 a partir das 18h):
+            <em>Taxa normal</em> = <strong>0</strong>, <em>A partir deste horário</em> = <strong>18:00</strong>,
+            <em>…passa a cobrar</em> = <strong>20</strong>.<br>
+            A <em>Taxa normal</em> é cobrada o dia inteiro, inclusive antes desse horário.
+            Campo em branco quer dizer <strong>sem taxa</strong>.
           </div>
         </div>
       </div>`;
     }).join('');
+    ESPACOS_CFG.forEach(function(esp){ _cfgFinPrevia(esp.toLowerCase().replace(/[^a-z0-9]/g,'_')); });
   }
   renderCfgDisponibilidade();
   renderCfgBloqueios();
@@ -11673,6 +11693,51 @@ function _fmtHorasBR(h){
 }
 
 var _cfgFinAvisos = [];
+
+/* Mostra, em portugues, o que a configuracao atual vai cobrar.
+
+   Foi o que faltou no caso da taxa das 18h: os campos pareciam certos e
+   nao havia como saber que o resultado seria "R$ 20 o dia inteiro" antes
+   de um morador reservar. Agora a frase fica ao lado dos campos e muda a
+   cada tecla. */
+function _cfgFinPrevia(chv){
+  var alvo = $('cfg-fin-previa-' + chv);
+  if(!alvo) return;
+  var g = function(nome){
+    var e = document.querySelector('#cfg-fin-espacos [data-fin-' + nome + '="' + chv + '"]');
+    return e ? String(e.value||'').trim() : '';
+  };
+  var moeda = function(v){ return 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2}); };
+
+  var base = g('taxa'), hora = g('hnoite'), vNoite = g('taxanoite');
+  var nBase  = base   === '' ? 0 : (parseFloat(base) || 0);
+  var nNoite = vNoite === '' ? NaN : (parseFloat(vNoite) || 0);
+  var oDiaTodo = nBase > 0 ? moeda(nBase) + ' o dia inteiro' : 'grátis o dia inteiro';
+
+  var txt, cor = 'var(--text-2)';
+  if(hora && !isNaN(nNoite)){
+    txt = (nBase > 0 ? moeda(nBase) : 'Grátis') + ' até ' + _horaMenos1(hora)
+        + ' · <strong>' + moeda(nNoite) + '</strong> a partir das ' + hora;
+  } else if(hora){
+    txt = 'Falta o valor a cobrar a partir das ' + hora + '. Do jeito que está: ' + oDiaTodo + '.';
+    cor = 'var(--amber)';
+  } else if(!isNaN(nNoite)){
+    txt = 'Falta o horário. Do jeito que está: ' + oDiaTodo + '.';
+    cor = 'var(--amber)';
+  } else {
+    txt = nBase > 0 ? moeda(nBase) + ' o dia inteiro' : 'Grátis — sem taxa.';
+  }
+  alvo.innerHTML = '<span style="color:var(--text-3)">Resultado: </span><span style="color:' + cor + '">' + txt + '</span>';
+}
+
+// "18:00" -> "17:59": a frase nao pode sugerir que as 18h ainda estao no
+// periodo anterior.
+function _horaMenos1(hhmm){
+  var p = String(hhmm||'').split(':');
+  var m = (parseInt(p[0],10)||0) * 60 + (parseInt(p[1],10)||0) - 1;
+  if(m < 0) m += 1440;
+  return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+}
 
 function salvarCfgReservas(){
   const elTermos = $('cfg-reservas-espacos');
