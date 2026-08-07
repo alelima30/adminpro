@@ -1241,6 +1241,21 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 .ig-f-wa input{accent-color:#25d366;width:16px;height:16px;cursor:pointer}
 .ig-f-wa i{color:#25d366;font-size:15px}
 .ig-f-del{flex-shrink:0}
+.ig-f-ordem{display:flex;gap:4px;flex-shrink:0}
+/* Altura fixa: o botao so tem um icone dentro, entao sem isto ele
+   colapsaria para uma tira fina enquanto o icone nao carrega. */
+.ig-f-ordem .btn{padding:0 10px;min-height:34px;display:inline-flex;align-items:center;justify-content:center}
+/* Botao de ligar: mesma forma do WhatsApp, cor da marca do sistema.
+   Aparece tambem em telefone fixo, que nao tem WhatsApp. */
+.ig-ligar{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border-radius:9px;flex-shrink:0;
+  background:rgba(232,119,34,0.14);border:1px solid rgba(232,119,34,0.42);
+  color:var(--gold);font-size:15px;text-decoration:none;
+  transition:background .2s,transform .1s;
+}
+.ig-ligar:hover{background:rgba(232,119,34,0.26)}
+.ig-ligar:active{transform:scale(0.94)}
 
 /* Mapa anexado */
 .ig-arquivo{
@@ -1262,7 +1277,10 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
     padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:12px;
   }
   .ig-tel-form .ig-f-nome,.ig-tel-form .ig-f-num{width:100%;flex:none}
-  .ig-f-del{align-self:flex-end}
+  /* No celular os tres botoes ficam lado a lado, alinhados a direita e
+     com area de toque confortavel. */
+  .ig-f-ordem{width:100%;justify-content:flex-end;gap:6px}
+  .ig-f-ordem .btn{min-height:38px;min-width:44px}
   .ig-arquivo .btn{width:100%}
 }
 /* ══ ASSISTENTE CONDOMINIO ══ */
@@ -2890,8 +2908,8 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       <div class="panel" id="panel-comunicados" style="padding-top:0;padding-bottom:0">
         <div class="inf-shell">
         <div class="tabs" data-acesso="admin,gestor,morador" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
-          <button class="tab" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
           <button class="tab active" onclick="showPanel('comunicados')"><i class="fa-solid fa-newspaper" style="margin-right:6px"></i>Informativos</button>
+          <button class="tab" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
         </div>
         <!-- LAYOUT: viewer PDF ocupa tudo + coluna lateral direita (empilha no celular, ver .inf-row) -->
         <div class="inf-row">
@@ -2977,8 +2995,8 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       <!-- ████ P: EVENTOS ████ -->
       <div class="panel" id="panel-eventos">
         <div class="tabs" data-acesso="admin,gestor,morador" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
-          <button class="tab active" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
           <button class="tab" onclick="showPanel('comunicados')"><i class="fa-solid fa-newspaper" style="margin-right:6px"></i>Informativos</button>
+          <button class="tab active" onclick="showPanel('eventos')"><i class="fa-solid fa-calendar-day" style="margin-right:6px"></i>Eventos</button>
         </div>
         <div class="ph">
           <div><div class="ph-title">Eventos</div><div class="ph-sub">Calendário de eventos e comunicados do condomínio</div></div>
@@ -12087,6 +12105,17 @@ var _IG_HISTORIA_APVC =
 
 // Valores iniciais. Servem de ponto de partida — a administração edita
 // tudo pela tela; nada aqui é fixo no código.
+// Coleta do Village Castelo. Outros condominios comecam em branco e a
+// administracao escreve o esquema deles.
+function _igColetaPadrao(){
+  if(_condAtual !== 'APVC') return '';
+  return 'Lixo comum — segunda, quarta e sexta, sempre pela manhã.\n'
+       + 'Responsável: EPPO · (11) 94824-0175\n\n'
+       + 'Reciclagem — terça-feira, sempre pela manhã.\n'
+       + 'Responsável: COMAREI · (11) 96337-3849\n\n'
+       + 'Lixo verde (podas e galhos) — terça e sexta, sempre pela manhã.';
+}
+
 function _igPadrao(){
   return {
     historia: (_condAtual === 'APVC') ? _IG_HISTORIA_APVC : '',
@@ -12094,6 +12123,7 @@ function _igPadrao(){
     telefones: [],
     horarioAdm: 'Segunda a sexta, das 8h às 17h\nSábado, das 8h às 12h\nDomingos e feriados: fechado',
     horarioPortaria: 'Portaria 24 horas, todos os dias, inclusive feriados',
+    coleta: _igColetaPadrao(),
     emergencia: [
       { nome:'Polícia Militar',        numero:'190' },
       { nome:'Bombeiros',              numero:'193' },
@@ -12240,11 +12270,16 @@ function _igLinhaTelefone(t, i, comWhats){
   var num = String(t.numero||'');
   var wa = comWhats && t.whats ? _igWhatsLink(num) : '';
   var tel = _igTelLink(num);
+  // O botao de ligar aparece SEMPRE que houver numero — inclusive em fixo,
+  // que nao tem WhatsApp. Antes so o proprio numero era clicavel, e num
+  // celular ninguem percebia que dava para tocar ali.
   return '<div class="ig-tel">'
     + '<div class="ig-tel-nome">' + escHtml(t.nome||'—') + '</div>'
     + '<div class="ig-tel-dir">'
     +   (tel ? '<a class="ig-tel-num" href="' + escHtml(tel) + '">' + escHtml(_igFormataTel(num)) + '</a>'
             : '<span class="ig-tel-num">' + escHtml(_igFormataTel(num)) + '</span>')
+    +   (tel ? '<a class="ig-ligar" href="' + escHtml(tel) + '" title="Ligar para ' + escHtml(t.nome||num) + '">'
+             + '<i class="fa-solid fa-phone"></i></a>' : '')
     +   (wa ? '<a class="ig-wa" href="' + escHtml(wa) + '" target="_blank" rel="noopener" title="Conversar no WhatsApp">'
              + '<i class="fa-brands fa-whatsapp"></i></a>' : '')
     + '</div>'
@@ -12259,6 +12294,7 @@ var _IG_ABAS = [
   { id:'mapa',       icone:'fa-map',                   rotulo:'Mapa'            },
   { id:'telefones',  icone:'fa-phone',                 rotulo:'Telefones úteis' },
   { id:'horarios',   icone:'fa-clock',                 rotulo:'Horários'        },
+  { id:'coleta',     icone:'fa-recycle',               rotulo:'Coleta de lixo'  },
   { id:'emergencia', icone:'fa-truck-medical',         rotulo:'Emergência'      },
 ];
 var _igAba = 'historia';
@@ -12343,6 +12379,18 @@ function _igAbaHorarios(d){
       true);
 }
 
+function _igAbaColeta(d){
+  // Texto livre: cada condominio tem dias, empresas e regras proprias.
+  // Uma tabela fixa de dias engessaria quem coleta em outro esquema.
+  var v = (d.coleta === undefined || d.coleta === null) ? _igColetaPadrao() : d.coleta;
+  return _igCard('coleta', 'fa-recycle', 'Coleta de lixo',
+    _igEditando === 'coleta'
+      ? '<textarea id="ig-in-coleta" class="ig-input" rows="9" placeholder="Dias, horários e empresa responsável por cada tipo de coleta…">'
+        + escHtml(v) + '</textarea>' + _igBotoesEdicao('igSalvarCampo(\'coleta\')')
+      : _igTexto(v, 'Nenhuma informação de coleta cadastrada.'),
+    true);
+}
+
 function _igAbaEmergencia(d){
   var corpo;
   if(_igEditando === 'emergencia'){
@@ -12384,6 +12432,7 @@ function renderInfoGerais(){
     mapa:       _igAbaMapa,
     telefones:  _igAbaTelefones,
     horarios:   _igAbaHorarios,
+    coleta:     _igAbaColeta,
     emergencia: _igAbaEmergencia,
   })[_igAba] || _igAbaHistoria;
 
@@ -12417,8 +12466,25 @@ function _igFormTelefone(t, i, comWhats){
           + '<input type="checkbox" class="ig-f-whats"' + (t.whats ? ' checked' : '') + '> '
           + '<i class="fa-brands fa-whatsapp"></i> WhatsApp</label>'
         : '')
-    + '<button class="btn btn-ghost btn-sm ig-f-del" onclick="igRemoverLinha(this)" title="Remover"><i class="fa-solid fa-trash-can"></i></button>'
+    + '<div class="ig-f-ordem">'
+    +   '<button class="btn btn-ghost btn-sm" onclick="igMover(this,-1)" title="Subir"><i class="fa-solid fa-arrow-up"></i></button>'
+    +   '<button class="btn btn-ghost btn-sm" onclick="igMover(this,1)" title="Descer"><i class="fa-solid fa-arrow-down"></i></button>'
+    +   '<button class="btn btn-ghost btn-sm ig-f-del" onclick="igRemoverLinha(this)" title="Remover"><i class="fa-solid fa-trash-can"></i></button>'
+    + '</div>'
     + '</div>';
+}
+
+/* Sobe ou desce a linha na lista. Mexe nos elementos da tela, e nao nos
+   dados: o que a pessoa digitou e que ainda nao salvou continua onde
+   esta, porque o proprio campo e movido junto. */
+function igMover(btn, passo){
+  var linha = btn.closest('.ig-tel-form');
+  if(!linha) return;
+  var vizinho = passo < 0 ? linha.previousElementSibling : linha.nextElementSibling;
+  if(!vizinho || !vizinho.classList.contains('ig-tel-form')) return;   // ja e a primeira/ultima
+  if(passo < 0) linha.parentNode.insertBefore(linha, vizinho);
+  else          linha.parentNode.insertBefore(vizinho, linha);
+  linha.scrollIntoView({block:'nearest'});
 }
 
 function igRemoverLinha(btn){
