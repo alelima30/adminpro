@@ -1209,6 +1209,18 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   border:1px solid var(--border);border-radius:10px;background:var(--ink-2);
 }
 .ig-gerir-ordem{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.ig-seta{
+  width:28px;height:20px;padding:0;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--card-2);color:var(--text-2);
+  border:1px solid var(--border);border-radius:6px;
+  font-size:10px;cursor:pointer;transition:border-color .15s,color .15s;
+}
+.ig-seta:hover:not(:disabled){border-color:var(--border-h);color:var(--gold)}
+.ig-seta:disabled{opacity:.3;cursor:default}
+/* Aba escondida dos moradores: so a administracao a enxerga, e precisa
+   ver de relance que ela nao esta no ar. */
+.ig-tab-oculta{opacity:.55;font-style:italic}
 .ig-gerir-linha .ig-g-nome{flex:2;min-width:150px;width:auto}
 .ig-gerir-linha .ig-g-tipo{flex:1;min-width:120px;width:auto}
 .ig-gerir-linha .ig-g-icone{flex:1;min-width:110px;width:auto}
@@ -8871,7 +8883,8 @@ function resToggleDash(){
   try{ localStorage.setItem('apvc_res_dash', ligar ? 'on' : 'off'); }catch(_){}
   // Ao religar, o painel precisa ser montado: enquanto esteve desligado,
   // renderReservas nao gerou os graficos.
-  if(ligar && (window._userNivel||'morador') !== 'morador'){
+  var _n = window._userNivel || 'morador';
+  if(ligar && (_n === 'admin' || _n === 'gestor')){
     try{ renderReservas(); }catch(_){ _resAplicarDash(); }
   } else {
     _resAplicarDash();
@@ -8882,7 +8895,11 @@ function resToggleDash(){
 function _resAplicarDash(){
   var ligado    = _resDashVisivel();
   var emCal     = (typeof _resView !== 'undefined' && _resView === 'calendario');
-  var isMorador = (window._userNivel || 'morador') === 'morador';
+  // Mesma regra do resto da tela: so admin e gestor veem o painel
+  // analitico. Comparar com 'morador' deixava o supervisor sem numero
+  // nenhum — a grade escondida e o painel BI vazio.
+  var _nv = window._userNivel || 'morador';
+  var isMorador = (_nv !== 'admin' && _nv !== 'gestor');
   var mostrar   = ligado && !emCal;
 
   var kpi = $('res-kpi');   if(kpi)  kpi.style.display  = (mostrar &&  isMorador) ? '' : 'none';
@@ -12410,40 +12427,64 @@ function _igMigrar(d){
   if(!d || typeof d!=='object') return d;
   if(Array.isArray(d.abas)) return d;
 
+  // Campo que nunca existiu naquele registro (foi salvo antes de a aba
+  // ser criada) herda o ponto de partida do condominio. Sem isto, quem
+  // salvou antes da aba "Coleta de lixo" existir ficaria com ela vazia.
+  var pad = _igPadrao();
+  var _de = function(campo){ return d[campo] !== undefined ? d[campo] : pad[campo]; };
+
   var abas = [];
   abas.push({ id:'historia', nome:'História', tipo:'texto', icone:'fa-landmark',
-              ativa:true, texto:String(d.historia||'') });
+              ativa:true, texto:String(_de('historia')||'') });
   abas.push({ id:'mapa', nome:'Mapa do loteamento', tipo:'arquivo', icone:'fa-map',
-              ativa:true, arquivo:d.mapa||null });
+              ativa:true, arquivo:_de('mapa')||null });
   abas.push({ id:'telefones', nome:'Telefones úteis', tipo:'telefones', icone:'fa-phone',
-              ativa:true, itens:Array.isArray(d.telefones)?d.telefones:[] });
+              ativa:true, itens:Array.isArray(_de('telefones'))?_de('telefones'):[] });
 
   var horas = [];
-  if(String(d.horarioAdm||'').trim())      horas.push('Administração\n' + String(d.horarioAdm).trim());
-  if(String(d.horarioPortaria||'').trim()) horas.push('Portaria\n' + String(d.horarioPortaria).trim());
+  if(String(_de('horarioAdm')||'').trim())      horas.push('Administração\n' + String(_de('horarioAdm')).trim());
+  if(String(_de('horarioPortaria')||'').trim()) horas.push('Portaria\n' + String(_de('horarioPortaria')).trim());
   abas.push({ id:'horarios', nome:'Horários', tipo:'texto', icone:'fa-clock',
               ativa:true, texto:horas.join('\n\n') });
 
   abas.push({ id:'coleta', nome:'Coleta de lixo', tipo:'texto', icone:'fa-recycle',
-              ativa:true, texto:String(d.coleta||'') });
+              ativa:true, texto:String(_de('coleta')||'') });
   abas.push({ id:'emergencia', nome:'Emergência', tipo:'telefones', icone:'fa-truck-medical',
-              ativa:true, semWhats:true, itens:Array.isArray(d.emergencia)?d.emergencia:[] });
+              ativa:true, semWhats:true, itens:Array.isArray(_de('emergencia'))?_de('emergencia'):[] });
 
   d.abas = abas;
   return d;
 }
 
-// Estado da tela, já migrado. Os campos antigos continuam no registro.
+/* Estado da tela, já migrado — e sempre uma CÓPIA.
+
+   G() devolve o próprio objeto do cache. Editar esse objeto direto
+   significa alterar o cache antes de o servidor confirmar; e o desfazer de
+   _igSalvar, que guarda a referência do que havia antes, acabaria
+   guardando o objeto já alterado — não teria o que restaurar. O resultado
+   seria a tela dizer "nada foi salvo" com a alteração ainda aplicada. */
 function _igDados(){
-  return _igMigrar(getInfoGerais() || _igPadrao());
+  var d = getInfoGerais();
+  try{ d = d ? JSON.parse(JSON.stringify(d)) : null; }
+  catch(_){ d = null; }
+  return _igMigrar(d || _igPadrao());
 }
 
 function _igAbasAtivas(d){
   return (d.abas||[]).filter(function(a){ return a.ativa !== false; });
 }
 
+/* O que aparece na barra de abas.
+
+   A administracao ve TAMBEM as abas escondidas, marcadas como tal — do
+   contrario, esconder uma aba tornaria impossivel editar o conteudo dela
+   depois, e o unico jeito de voltar atras seria reativar as cegas. */
+function _igAbasVisiveis(d){
+  return _igPodeEditar() ? (d.abas||[]) : _igAbasAtivas(d);
+}
+
 function _igAbaAtual(d){
-  var ativas = _igAbasAtivas(d);
+  var ativas = _igAbasVisiveis(d);
   if(!ativas.length) return null;
   var achada = null;
   ativas.forEach(function(a){ if(a.id === _igAba) achada = a; });
@@ -12452,6 +12493,9 @@ function _igAbaAtual(d){
 
 function igAbrirAba(id){
   if(_igEditando && !confirm('Você está editando. Sair desta aba descarta o que não foi salvo. Continuar?')) return;
+  // Sair da tela de abas tambem descarta: renomear, reordenar e criar so
+  // valem depois de "Salvar abas".
+  if(_igGerenciando && !confirm('Você está mexendo nas abas. Sair descarta o que não foi salvo. Continuar?')) return;
   _igEditando = '';
   _igGerenciando = false;
   _igAba = id;
@@ -12460,10 +12504,14 @@ function igAbrirAba(id){
 
 function _igBarraAbas(d){
   var atual = _igAbaAtual(d);
-  var botoes = _igAbasAtivas(d).map(function(a){
+  var botoes = _igAbasVisiveis(d).map(function(a){
     var on = atual && a.id === atual.id && !_igGerenciando;
-    return '<button class="tab' + (on ? ' active' : '') + '" onclick="igAbrirAba(\'' + a.id + '\')">'
-         + '<i class="fa-solid ' + escHtml(a.icone||'fa-circle-info') + '"></i> ' + escHtml(a.nome||'Sem nome') + '</button>';
+    var oculta = (a.ativa === false);
+    return '<button class="tab' + (on ? ' active' : '') + (oculta ? ' ig-tab-oculta' : '') + '" '
+         + (oculta ? 'title="Escondida dos moradores — só você vê" ' : '')
+         + 'onclick="igAbrirAba(\'' + a.id + '\')">'
+         + '<i class="fa-solid ' + escHtml(a.icone||'fa-circle-info') + '"></i> ' + escHtml(a.nome||'Sem nome')
+         + (oculta ? ' <i class="fa-solid fa-eye-slash"></i>' : '') + '</button>';
   }).join('');
 
   var gerir = _igPodeEditar()
@@ -12490,7 +12538,8 @@ function _igCorpoTelefones(a){
     return '<div id="ig-lista-tel">'
       + (a.itens||[]).map(function(t,i){ return _igFormTelefone(t,i,comWhats); }).join('')
       + '</div>'
-      + '<button class="btn btn-ghost btn-sm" onclick="igAddTelefone()"><i class="fa-solid fa-plus"></i> Adicionar telefone</button>'
+      + '<button class="btn btn-ghost btn-sm" onclick="igAddTelefone(' + (comWhats?'true':'false') + ')">'
+      + '<i class="fa-solid fa-plus"></i> Adicionar telefone</button>'
       + _igBotoesEdicao('igSalvarTelefones()');
   }
   return (a.itens && a.itens.length)
@@ -12799,9 +12848,12 @@ function igRemoverLinha(btn){
   if(linha) linha.remove();
 }
 
-function igAddTelefone(){
+// comWhats vem da aba: numa aba de emergencia (190, 193) a caixinha de
+// WhatsApp nao deve aparecer. Antes vinha fixa em "true", entao a linha
+// nova mostrava a caixinha e o valor era descartado em silencio ao salvar.
+function igAddTelefone(comWhats){
   var box = $('ig-lista-tel'); if(!box) return;
-  box.insertAdjacentHTML('beforeend', _igFormTelefone({}, box.children.length, true));
+  box.insertAdjacentHTML('beforeend', _igFormTelefone({}, box.children.length, comWhats !== false));
 }
 
 function _igLerLista(boxId, comWhats){
