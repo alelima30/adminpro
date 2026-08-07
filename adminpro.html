@@ -11621,6 +11621,8 @@ function _fmtHorasBR(h){
   return mm+'min';
 }
 
+var _cfgFinAvisos = [];
+
 function salvarCfgReservas(){
   const elTermos = $('cfg-reservas-espacos');
   const elFin    = $('cfg-fin-espacos');
@@ -11678,6 +11680,30 @@ function salvarCfgReservas(){
     elFin.querySelectorAll('input[data-fin-taxanoite]').forEach(inp=>{
       cfgRes['fin_'+inp.dataset.finTaxanoite+'_taxanoite'] = inp.value;
     });
+
+    /* Confere se a taxa por horario ficou completa.
+
+       Preencher so um dos dois campos nao produz efeito nenhum — e a tela
+       nao dizia isso. Quem punha o valor no campo errado ("Taxa normal" em
+       vez de "passa a cobrar") passava a cobrar o dia inteiro achando que
+       so cobraria a partir das 18h. Sem aviso, o erro so apareceria na
+       conta do morador. */
+    _cfgFinAvisos = [];
+    elFin.querySelectorAll('input[data-fin-hnoite]').forEach(function(inp){
+      var chv    = inp.dataset.finHnoite;
+      var hora   = String(inp.value||'').trim();
+      var vNoite = String(cfgRes['fin_'+chv+'_taxanoite']||'').trim();
+      var nome   = ((typeof ESPACOS_CFG!=='undefined' ? ESPACOS_CFG : []) || []).filter(function(e){
+        return String(e).toLowerCase().replace(/[^a-z0-9]/g,'_') === chv;
+      })[0] || chv;
+      if(hora && !vNoite){
+        _cfgFinAvisos.push('"' + nome + '": horário ' + hora + ' definido, mas sem o valor a cobrar. '
+          + 'Preencha "…passa a cobrar" — do contrário a taxa normal vale o dia todo.');
+      } else if(!hora && vNoite){
+        _cfgFinAvisos.push('"' + nome + '": valor definido para um horário, mas o horário está em branco. '
+          + 'Preencha "A partir deste horário".');
+      }
+    });
   }
 
   // Disponibilidade: dias da semana + limite de horas por morador
@@ -11710,7 +11736,11 @@ function salvarCfgReservas(){
   Object.keys(_diasPorChv).forEach(function(c){ cfgRes['disp_'+c+'_dias']=_diasPorChv[c].sort(); });
 
   setCfgRes(cfgRes);
-  toast('✓ Configurações de reservas salvas!');
+  if(_cfgFinAvisos && _cfgFinAvisos.length){
+    toast('⚠️ Salvo, mas a taxa por horário ficou incompleta — ' + _cfgFinAvisos[0]);
+  } else {
+    toast('✓ Configurações de reservas salvas!');
+  }
 }
 
 /* Arruma o texto que saiu do PDF antes de mostrar na tela.
