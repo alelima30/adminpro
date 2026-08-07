@@ -265,13 +265,19 @@ bloco('Horas escritas por extenso na mensagem', () => {
 // Cada pessoa escolhe se quer ver os números no topo. O que este bloco
 // protege: a escolha não pode se perder ao ir e voltar do calendário —
 // era exatamente ali que a tela reexibia o painel por conta própria.
+//
+// _resView NÃO é passado como stub de propósito: assim ele é resolvido no
+// escopo global, e o teste consegue trocar a visão de verdade. Passado
+// como stub, ficaria congelado no valor inicial e a ida ao calendário
+// nunca seria exercitada — que era o defeito da primeira versão deste
+// bloco: ele dizia cobrir o calendário e não cobria.
 bloco('Painel de números das Reservas', () => {
   const els = {};
-  const criar = (id) => (els[id] = { style: { display: '' }, innerHTML: '', title: '', });
-  ['res-kpi', 'res-dash', 'res-btn-dash'].forEach(criar);
+  ['res-kpi', 'res-dash', 'res-btn-dash'].forEach((id) => {
+    els[id] = { style: { display: '' }, innerHTML: '', title: '' };
+  });
   const guardado = {};
   const janela = { _userNivel: 'admin' };
-  let vista = 'lista';
 
   const api = carregar(
     ['_resDashVisivel', 'resToggleDash', '_resAplicarDash'],
@@ -282,37 +288,58 @@ bloco('Painel de números das Reservas', () => {
       window: janela,
       toast: () => {},
       renderReservas: () => api._resAplicarDash(),
-      get _resView() { return vista; },
     },
   );
-  // _resView é lido por closure; o getter acima não alcança o escopo da
-  // função extraída, então a visão é injetada pelo objeto global do teste.
-  const aplicar = (v) => { vista = v; api._resAplicarDash(); };
+  const verVisao = (v) => { global._resView = v; api._resAplicarDash(); };
   const visivel = (id) => els[id].style.display === '';
 
+  // ── admin ──
   janela._userNivel = 'admin';
-  aplicar('lista');
+  verVisao('lista');
   checa('admin começa vendo o painel analítico', visivel('res-dash'), true);
   checa('e não a grade simples de números', visivel('res-kpi'), false);
 
   api.resToggleDash();
   checa('desligou: painel some', visivel('res-dash'), false);
-  checa('o botão passa a oferecer Mostrar',
-    api._resDashVisivel(), false);
+  checa('a escolha ficou registrada', api._resDashVisivel(), false);
+
+  // O ponto do bloco: ir ao calendário e voltar não pode religar sozinho.
+  verVisao('calendario');
+  checa('no calendário não há painel', visivel('res-dash'), false);
+  checa('e o botão some, porque ali não teria efeito', visivel('res-btn-dash'), false);
+  verVisao('lista');
+  checa('voltou da lista e o painel CONTINUA desligado', visivel('res-dash'), false);
+  checa('o botão reaparece', visivel('res-btn-dash'), true);
 
   api.resToggleDash();
   checa('religou: painel volta', visivel('res-dash'), true);
+  verVisao('calendario'); verVisao('lista');
+  checa('ligado também sobrevive à ida e volta', visivel('res-dash'), true);
 
+  // ── morador ──
+  delete guardado.apvc_res_dash;
   janela._userNivel = 'morador';
-  aplicar('lista');
+  verVisao('lista');
   checa('morador vê a grade de números', visivel('res-kpi'), true);
   checa('e não o painel analítico', visivel('res-dash'), false);
-
   api.resToggleDash();
   checa('morador desligou: some também', visivel('res-kpi'), false);
+  verVisao('calendario'); verVisao('lista');
+  checa('e continua desligado depois do calendário', visivel('res-kpi'), false);
 
-  checa('a escolha fica guardada no aparelho', guardado['apvc_res_dash'], 'off');
-  delete guardado['apvc_res_dash'];
+  // ── supervisor: nível que existia e ficava sem número nenhum ──
+  delete guardado.apvc_res_dash;
+  janela._userNivel = 'supervisor';
+  verVisao('lista');
+  checa('supervisor vê a grade de números, como o morador', visivel('res-kpi'), true);
+  checa('e não um painel analítico vazio', visivel('res-dash'), false);
+
+  // ── a escolha é do aparelho ──
+  checa('fica guardada no aparelho', guardado.apvc_res_dash, undefined);
+  janela._userNivel = 'admin';
+  api.resToggleDash();
+  checa('depois de desligar, fica gravada', guardado.apvc_res_dash, 'off');
+  delete guardado.apvc_res_dash;
   checa('outro aparelho começa com o painel ligado', api._resDashVisivel(), true);
 });
 
