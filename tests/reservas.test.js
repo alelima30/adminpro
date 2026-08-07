@@ -374,11 +374,25 @@ bloco('Taxa a partir de um horário', () => {
   // Sem horário escolhido ainda, mostra a taxa normal — não a especial.
   checa('sem horário escolhido usa a taxa normal', cobra(certa, ''), 0);
 
-  // Taxa normal em branco não vira "de graça" em espaço com padrão.
-  checa('espaço com padrão de fábrica usa esse padrão',
+  // Sugestão de fábrica: vale enquanto o condomínio nunca configurou.
+  checa('espaço nunca configurado usa a sugestão de fábrica',
     taxaDoHorario({}, 'Campo de Futebol', '08:00–09:00'), 20);
-  checa('espaço sem padrão e sem taxa é gratuito',
+  checa('espaço nunca configurado e sem sugestão é gratuito',
     taxaDoHorario({}, 'Quadra de Areia', '08:00–09:00'), 0);
+
+  // O caso que gerou o relato: o condomínio apagou a taxa do campo para
+  // deixá-lo grátis de dia, e o sistema reinstalava os R$ 20 de fábrica —
+  // cobrando o dia inteiro. Campo salvo em branco quer dizer SEM TAXA.
+  const F = 'fin_campo_de_futebol_';
+  const apagada = { [F + 'taxa']: '', [F + 'hnoite']: '18:00', [F + 'taxanoite']: '20' };
+  checa('taxa apagada de propósito NÃO volta ao valor de fábrica',
+    taxaDoHorario(apagada, 'Campo de Futebol', '14:00–16:00'), 0);
+  checa('e a taxa do horário continua valendo',
+    taxaDoHorario(apagada, 'Campo de Futebol', '18:00–19:00'), 20);
+  checa('taxa apagada sem regra de horário: grátis o dia todo',
+    taxaDoHorario({ [F + 'taxa']: '' }, 'Campo de Futebol', '20:00–21:00'), 0);
+  checa('taxa zero explícita também é grátis',
+    taxaDoHorario({ [F + 'taxa']: '0' }, 'Campo de Futebol', '08:00–09:00'), 0);
 });
 
 console.log('\n' + '-'.repeat(50));
