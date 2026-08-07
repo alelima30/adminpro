@@ -38,13 +38,17 @@ bloco('Conflito de horário', () => {
 
 // ── Regras de negócio da reserva ───────────────────────────────────────
 // reservaViolaRegra devolve uma MENSAGEM quando viola, ou algo falso quando pode.
-function montar(cfg, nivel) {
-  return carregar(['reservaViolaRegra', '_chvEsp', 'hrIni', 'hrFim', '_minHora'], {
-    getCfgRes: () => cfg,
-    window: { _userNivel: nivel || 'morador' },
-    G: () => [],
-    _DIAS_SEM: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
-  });
+function montar(cfg, nivel, reservas) {
+  return carregar(
+    ['reservaViolaRegra', '_chvEsp', 'hrIni', 'hrFim', '_minHora',
+     '_resInstante', '_fmtDataBRCurta', '_fmtHorasBR', '_horasReserva'],
+    {
+      getCfgRes: () => cfg,
+      window: { _userNivel: nivel || 'morador' },
+      G: () => (reservas || []),
+      _DIAS_SEM: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
+    },
+  );
 }
 const viola = (api, ...args) => !!api.reservaViolaRegra(...args);
 
@@ -211,6 +215,52 @@ bloco('Escape de texto do usuário (XSS)', () => {
 });
 
 // ── Resultado ──────────────────────────────────────────────────────────
+// ── Intervalo mínimo entre reservas da mesma unidade ───────────────────
+// O condomínio quer espaçar o uso: reservou de manhã, só de novo depois de
+// N horas. Conta do FIM de uma reserva ao INÍCIO da outra.
+bloco('Intervalo mínimo entre reservas da mesma unidade', () => {
+  const cfg = { disp_quadra_interv: 4 };   // 4 horas
+  const jaTem = [{
+    id: 1, espaco: 'Quadra', data: '2030-06-10', horario: '08:00–09:00',
+    lote: 'L01', status: 'confirmada',
+  }];
+  const api = montar(cfg, 'morador', jaTem);
+  const v = (data, hora, lote) => !!api.reservaViolaRegra('Quadra', data, hora, lote || 'L01', null);
+
+  checa('3h depois do fim ainda é cedo', v('2030-06-10', '12:00–13:00'), true);
+  checa('exatamente 4h depois já pode', v('2030-06-10', '13:00–14:00'), false);
+  checa('5h depois pode', v('2030-06-10', '14:00–15:00'), false);
+  checa('vale também para ANTES da reserva existente', v('2030-06-10', '06:00–07:00'), true);
+  checa('4h antes já pode', v('2030-06-10', '03:00–04:00'), false);
+  checa('outra unidade não é afetada', v('2030-06-10', '12:00–13:00', 'L02'), false);
+  checa('outro dia, longe, pode', v('2030-06-11', '08:00–09:00'), false);
+  checa('vira o dia: 23h de um dia e 1h do outro é só 2h de distância',
+    (() => {
+      const noite = [{ id: 9, espaco: 'Quadra', data: '2030-06-10', horario: '22:00–23:00', lote: 'L01', status: 'confirmada' }];
+      return !!montar(cfg, 'morador', noite).reservaViolaRegra('Quadra', '2030-06-11', '01:00–02:00', 'L01', null);
+    })(), true);
+  checa('reserva cancelada não conta',
+    (() => {
+      const canc = [{ id: 9, espaco: 'Quadra', data: '2030-06-10', horario: '08:00–09:00', lote: 'L01', status: 'cancelada' }];
+      return !!montar(cfg, 'morador', canc).reservaViolaRegra('Quadra', '2030-06-10', '12:00–13:00', 'L01', null);
+    })(), false);
+  checa('outro espaço não conta',
+    (() => api.reservaViolaRegra('Piscina', '2030-06-10', '12:00–13:00', 'L01', null))(), null);
+  checa('editando a própria reserva não bloqueia a si mesma',
+    !!api.reservaViolaRegra('Quadra', '2030-06-10', '08:00–09:00', 'L01', 1), false);
+  checa('admin não é barrado pelo intervalo',
+    !!montar(cfg, 'admin', jaTem).reservaViolaRegra('Quadra', '2030-06-10', '12:00–13:00', 'L01', null), false);
+  checa('sem intervalo configurado, nada bloqueia',
+    !!montar({}, 'morador', jaTem).reservaViolaRegra('Quadra', '2030-06-10', '09:30–10:30', 'L01', null), false);
+});
+
+bloco('Horas escritas por extenso na mensagem', () => {
+  const { _fmtHorasBR } = montar({}, 'morador', []);
+  checa('4 horas', _fmtHorasBR(4), '4h');
+  checa('1 hora e meia', _fmtHorasBR(1.5), '1h30');
+  checa('meia hora', _fmtHorasBR(0.5), '30min');
+});
+
 console.log('\n' + '-'.repeat(50));
 console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
 process.exit(falhas === 0 ? 0 : 1);
