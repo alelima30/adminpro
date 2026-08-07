@@ -1459,6 +1459,20 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
   max-width:300px;
 }
 .toast.show{transform:translateX(0);opacity:1}
+/* Icone do aviso. A cor da barra lateral e do icone dizem o tipo — antes
+   quem dizia isso era um emoji no meio do texto. */
+.toast{display:flex;align-items:flex-start;gap:10px;line-height:1.5}
+.toast > i{font-size:15px;flex-shrink:0;margin-top:1px}
+.toast > span{min-width:0;overflow-wrap:break-word;white-space:pre-line}
+.toast[data-tipo="alerta"]{border-left-color:var(--amber)}
+.toast[data-tipo="alerta"] > i{color:var(--amber)}
+.toast[data-tipo="erro"]{border-left-color:var(--red)}
+.toast[data-tipo="erro"] > i{color:var(--red)}
+.toast[data-tipo="ok"]{border-left-color:var(--green)}
+.toast[data-tipo="ok"] > i{color:var(--green)}
+.toast[data-tipo="espera"]{border-left-color:var(--gold)}
+.toast[data-tipo="espera"] > i{color:var(--gold)}
+.toast[data-tipo="info"] > i{color:var(--gold)}
 
 /* ══ MODAL CLOSE BTN ══ */
 .modal-close-x{
@@ -2268,8 +2282,8 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <div class="ph">
           <div><div class="ph-title">Censo de Lotes</div><div class="ph-sub">327 lotes · Atualização mês a mês</div></div>
           <div class="ph-actions">
-            <div class="month-sel">📅 <select id="sel-lm" onchange="renderLotes()"></select></div>
-            <button class="btn btn-ghost" onclick="abrirModalLotes()">✏️ Editar Dados</button>
+            <div class="month-sel"><i class="fa-solid fa-calendar-days"></i> <select id="sel-lm" onchange="renderLotes()"></select></div>
+            <button class="btn btn-ghost" onclick="abrirModalLotes()"><i class="fa-solid fa-pen"></i> Editar Dados</button>
             <button class="btn btn-gold" onclick="abrirModalLotes()">+ Novo Mês</button>
           </div>
         </div>
@@ -2280,12 +2294,12 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         </div>
         <div class="card">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon">📋</div>Detalhamento Residencial</div>
+            <div class="card-title"><div class="card-icon"><i class="fa-solid fa-clipboard-list"></i></div>Detalhamento Residencial</div>
           </div>
           <div class="kpi-grid" id="lkpi2"></div>
         </div>
         <div class="card">
-          <div class="card-head"><div class="card-title"><div class="card-icon">🕘</div>Histórico Mensal</div></div>
+          <div class="card-head"><div class="card-title"><div class="card-icon"><i class="fa-solid fa-clock"></i></div>Histórico Mensal</div></div>
           <div class="tbl-wrap">
             <table>
               <thead><tr><th>Período</th><th>Lotes</th><th>Construídas</th><th>Fixos</th><th>Veraneio</th><th>Vazios</th><th>Obras</th><th>Paradas</th><th>APVC</th></tr></thead>
@@ -2316,7 +2330,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
               <div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-house-chimney"></i></div>
               <span id="uni-form-title">Nova Unidade</span>
             </div>
-            <button class="btn btn-ghost btn-sm" onclick="uniFecharForm()" style="margin-left:auto">✕ Cancelar</button>
+            <button class="btn btn-ghost btn-sm" onclick="uniFecharForm()" style="margin-left:auto"><i class="fa-solid fa-xmark"></i> Cancelar</button>
           </div>
 
           <!-- Linha 1: Código + Situação -->
@@ -2448,7 +2462,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
               <div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-map-pin"></i></div>
               <span id="loc-form-title">Nova Localização</span>
             </div>
-            <button class="btn btn-ghost btn-sm" onclick="locFecharForm()" style="margin-left:auto">✕ Cancelar</button>
+            <button class="btn btn-ghost btn-sm" onclick="locFecharForm()" style="margin-left:auto"><i class="fa-solid fa-xmark"></i> Cancelar</button>
           </div>
 
           <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:16px;margin-bottom:20px">
@@ -2557,7 +2571,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
               <div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-tags"></i></div>
               <span id="cla-form-title">Nova Classificação</span>
             </div>
-            <button class="btn btn-ghost btn-sm" onclick="claFecharForm()" style="margin-left:auto">✕ Cancelar</button>
+            <button class="btn btn-ghost btn-sm" onclick="claFecharForm()" style="margin-left:auto"><i class="fa-solid fa-xmark"></i> Cancelar</button>
           </div>
           <div style="display:grid;grid-template-columns:120px 1fr;gap:16px;margin-bottom:20px">
             <div class="fg"><label>Código <small style="color:var(--text-3);font-weight:400">(auto)</small></label><input type="text" id="cla-cod" placeholder="—" readonly style="background:var(--ink-3);color:var(--gold);font-weight:700;cursor:default;text-align:center"></div>
@@ -2616,7 +2630,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
                 <button class="btn btn-ghost btn-sm" onclick="conNovoCondomino()" title="Limpar para novo cadastro"><i class="fa-solid fa-file"></i> Novo</button>
                 <button class="btn btn-gold btn-sm" onclick="salvarCondomino()"><i class="fa-solid fa-floppy-disk"></i> Gravar</button>
                 <button class="btn btn-ghost btn-sm" id="con-btn-excluir" onclick="conExcluirForm()" style="color:var(--red);display:none"><i class="fa-solid fa-trash"></i> Excluir</button>
-                <button class="btn btn-ghost btn-sm" onclick="conFecharForm()">✕ Cancelar</button>
+                <button class="btn btn-ghost btn-sm" onclick="conFecharForm()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
               </div>
             </div>
             <div style="display:grid;grid-template-columns:120px 1fr;gap:16px">
@@ -2805,9 +2819,9 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
           <!-- Filtros -->
           <div class="card" style="margin-bottom:16px">
             <div class="card-head" style="flex-wrap:wrap;gap:10px">
-              <div class="card-title"><div class="card-icon">🔍</div>Pesquisa & Filtros</div>
+              <div class="card-title"><div class="card-icon"><i class="fa-solid fa-magnifying-glass"></i></div>Pesquisa & Filtros</div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-                <input type="text" id="func-busca" placeholder="🔍 Nome, cargo, depto, horário..." oninput="renderFTabela()"
+                <input type="text" id="func-busca" placeholder="Nome, cargo, depto, horário..." oninput="renderFTabela()"
                   style="padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:240px;outline:none;">
                 <select id="func-f-dept" onchange="renderFTabela()"
                   style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;">
@@ -2815,13 +2829,13 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
                   <option>Diretoria</option><option>Administração</option><option>Segurança</option>
                   <option>Manutenção</option><option>Limpeza</option><option>Jardinagem</option><option>Serviços Gerais</option>
                 </select>
-                <button onclick="limparFiltrosFunc()" class="btn btn-ghost btn-sm">✕ Limpar</button>
+                <button onclick="limparFiltrosFunc()" class="btn btn-ghost btn-sm"><i class="fa-solid fa-xmark"></i> Limpar</button>
               </div>
             </div>
           </div>
           <div class="card">
             <div class="card-head">
-              <div class="card-title"><div class="card-icon">👥</div>Todos os Colaboradores</div>
+              <div class="card-title"><div class="card-icon"><i class="fa-solid fa-users"></i></div>Todos os Colaboradores</div>
               <span id="func-count" style="font-size:12px;color:var(--text-3)"></span>
             </div>
             <div class="tbl-wrap"><table><thead><tr><th>Nome</th><th>Cargo</th><th>Depto</th><th>Horário de Trabalho</th><th>Admissão</th><th>Ações</th></tr></thead><tbody id="ftbody"></tbody></table></div>
@@ -2841,8 +2855,8 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <div class="ph">
           <div><div class="ph-title">Financeiro</div><div class="ph-sub">Receitas, despesas e saldo mensal</div></div>
           <div class="ph-actions">
-            <div class="month-sel">📅 <select id="sel-fm" onchange="renderFin()"></select></div>
-            <button class="btn btn-gold" onclick="abrirModalFin()">✏️ Atualizar Mês</button>
+            <div class="month-sel"><i class="fa-solid fa-calendar-days"></i> <select id="sel-fm" onchange="renderFin()"></select></div>
+            <button class="btn btn-gold" onclick="abrirModalFin()"><i class="fa-solid fa-pen"></i> Atualizar Mês</button>
           </div>
         </div>
         <div class="kpi-grid" id="finkpi"></div>
@@ -2852,11 +2866,11 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         </div>
         <div class="chart-row" style="grid-template-columns:1fr 1fr">
           <div class="card" style="margin-bottom:0">
-            <div class="card-head"><div class="card-title"><div class="card-icon">📥</div>Receitas do Mês</div></div>
+            <div class="card-head"><div class="card-title"><div class="card-icon"><i class="fa-solid fa-download"></i></div>Receitas do Mês</div></div>
             <div id="fin-rec"></div>
           </div>
           <div class="card" style="margin-bottom:0">
-            <div class="card-head"><div class="card-title"><div class="card-icon">📤</div>Despesas do Mês</div></div>
+            <div class="card-head"><div class="card-title"><div class="card-icon"><i class="fa-solid fa-arrow-up-from-bracket"></i></div>Despesas do Mês</div></div>
             <div id="fin-desp"></div>
           </div>
         </div>
@@ -2869,7 +2883,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
           <div class="ph-actions"><button class="btn btn-gold" onclick="abrirModalManut(null)">+ Nova Ordem</button></div>
         </div>
         <div class="kpi-grid" id="mkpi"></div>
-        <div class="card"><div class="card-head"><div class="card-title"><div class="card-icon">🔧</div>Ordens de Serviço</div></div><div id="mlista"></div></div>
+        <div class="card"><div class="card-head"><div class="card-title"><div class="card-icon"><i class="fa-solid fa-wrench"></i></div>Ordens de Serviço</div></div><div id="mlista"></div></div>
       </div>
 
       <!-- ████ P5: COMUNICADOS ████ -->
@@ -2889,16 +2903,16 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
             <div id="inf-viewer-topbar" style="display:flex;flex-direction:column;gap:0;background:var(--card);border:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;flex-shrink:0">
               <!-- Linha 1: ícone + título da edição -->
               <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)">
-                <span style="font-size:18px;flex-shrink:0">📰</span>
+                <span style="font-size:18px;flex-shrink:0"><i class="fa-solid fa-newspaper"></i></span>
                 <div style="min-width:0;flex:1">
                   <div style="display:flex;align-items:center;gap:6px">
                     <div style="font-size:13px;font-weight:700;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="inf-viewer-ed">Informativos</div>
-                    <button id="btn-editar-titulo-inf" onclick="editarTituloInformativos()" title="Renomear este título (fica salvo para este condomínio)" style="display:none;background:transparent;color:var(--text-3);border:none;cursor:pointer;font-size:12px;padding:2px 4px;flex-shrink:0">✏️</button>
+                    <button id="btn-editar-titulo-inf" onclick="editarTituloInformativos()" title="Renomear este título (fica salvo para este condomínio)" style="display:none;background:transparent;color:var(--text-3);border:none;cursor:pointer;font-size:12px;padding:2px 4px;flex-shrink:0"><i class="fa-solid fa-pen"></i></button>
                   </div>
                   <div style="font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="inf-viewer-titulo">Selecione uma edição na lista ao lado</div>
                 </div>
                 <!-- Botão Editar — visível apenas para admin após abrir um informativo -->
-                <button id="btn-editar-inf" onclick="editarInformativoAtual()" title="Editar esta edição" style="display:none;background:rgba(232,119,34,0.12);color:var(--gold);border:1px solid rgba(232,119,34,0.3);border-radius:7px;padding:0 10px;height:30px;cursor:pointer;font-size:12px;font-weight:600;align-items:center;gap:4px;flex-shrink:0">✏️ Editar</button>
+                <button id="btn-editar-inf" onclick="editarInformativoAtual()" title="Editar esta edição" style="display:none;background:rgba(232,119,34,0.12);color:var(--gold);border:1px solid rgba(232,119,34,0.3);border-radius:7px;padding:0 10px;height:30px;cursor:pointer;font-size:12px;font-weight:600;align-items:center;gap:4px;flex-shrink:0"><i class="fa-solid fa-pen"></i> Editar</button>
               </div>
               <!-- Linha 2: controles de zoom, página, baixar -->
               <div id="inf-viewer-controls" style="display:flex;align-items:center;gap:6px;padding:8px 12px;flex-wrap:wrap">
@@ -2911,7 +2925,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
                 <!-- Separador -->
                 <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
                 <!-- Baixar -->
-                <span onclick="infBaixarPdf()" id="btn-inf-baixar" title="Baixar PDF" style="background:var(--card-2);color:var(--text-2);border:1px solid var(--border);border-radius:7px;padding:0 6px;height:32px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:4px;flex-shrink:0;white-space:nowrap;user-select:none">⬇ Baixar</span>
+                <span onclick="infBaixarPdf()" id="btn-inf-baixar" title="Baixar PDF" style="background:var(--card-2);color:var(--text-2);border:1px solid var(--border);border-radius:7px;padding:0 6px;height:32px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:4px;flex-shrink:0;white-space:nowrap;user-select:none"><i class="fa-solid fa-download"></i> Baixar</span>
                 <!-- Separador -->
                 <div style="width:1px;height:24px;background:var(--border);flex-shrink:0"></div>
                 <!-- Navegação de páginas -->
@@ -2927,13 +2941,13 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
             <div id="inf-canvas-wrap" class="inf-canvas-wrap" onclick="infToggleTelaCheia(event)" title="Toque para ver em tela cheia">
               <!-- Placeholder -->
               <div id="inf-viewer-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;height:100%;width:100%;color:rgba(255,255,255,0.2)">
-                <div style="font-size:72px;opacity:0.25">📰</div>
+                <div style="font-size:72px;opacity:0.25"><i class="fa-solid fa-newspaper"></i></div>
                 <div style="font-size:16px;font-weight:600">Carregando informativo…</div>
               </div>
               <canvas id="inf-pdf-canvas" style="display:none;box-shadow:0 12px 60px rgba(0,0,0,0.8);border-radius:2px"></canvas>
               <!-- Barra da tela cheia: so aparece com .inf-tela-cheia ativo -->
               <div id="inf-tela-cheia-barra">
-                <button onclick="event.stopPropagation();infToggleTelaCheia(event)" title="Fechar tela cheia (Esc)">✕</button>
+                <button onclick="event.stopPropagation();infToggleTelaCheia(event)" title="Fechar tela cheia (Esc)"><i class="fa-solid fa-xmark"></i></button>
                 <button onclick="event.stopPropagation();infPdfAnterior()" title="Página anterior">‹</button>
                 <span id="inf-tela-cheia-pag">— / —</span>
                 <button onclick="event.stopPropagation();infPdfProxima()" title="Próxima página">›</button>
@@ -2948,7 +2962,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
             <div class="card" style="padding:0;overflow:hidden;flex:1">
               <div style="padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
                 <div style="display:flex;align-items:center;gap:8px">
-                  <span style="font-size:15px">📰</span>
+                  <span style="font-size:15px"><i class="fa-solid fa-newspaper"></i></span>
                   <span style="font-size:13px;font-weight:700;color:var(--text)">Informativos</span>
                 </div>
                 <button id="btn-add-inf" onclick="abrirModalInformativo()" style="display:none;background:rgba(232,119,34,0.1);color:var(--gold);border:1px solid rgba(232,119,34,0.3);padding:5px 12px;border-radius:7px;cursor:pointer;font-size:11px;font-weight:700">+ Anexar</button>
@@ -2994,7 +3008,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
           <div><div class="ph-title">Inadimplência</div><div class="ph-sub">Controle de pagamentos e devedores</div></div>
           <div class="ph-actions">
             <button class="btn btn-gold" onclick="abrirModalInad(null)">+ Novo Registro</button>
-            <button class="btn btn-ghost" onclick="exportarInadCSV()">⬇ Exportar CSV</button>
+            <button class="btn btn-ghost" onclick="exportarInadCSV()"><i class="fa-solid fa-download"></i> Exportar CSV</button>
           </div>
         </div>
         <div class="kpi-grid" id="inad-kpi"></div>
@@ -3004,9 +3018,9 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         </div>
         <div class="card">
           <div class="card-head" style="flex-wrap:wrap;gap:10px">
-            <div class="card-title"><div class="card-icon">🔍</div>Pesquisa & Filtros</div>
+            <div class="card-title"><div class="card-icon"><i class="fa-solid fa-magnifying-glass"></i></div>Pesquisa & Filtros</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <input type="text" id="inad-busca" placeholder="🔍 Nome, lote, observação..." oninput="renderInadimplencia()"
+              <input type="text" id="inad-busca" placeholder="Nome, lote, observação..." oninput="renderInadimplencia()"
                 style="padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:230px;outline:none;">
               <select id="inad-f-status" onchange="renderInadimplencia()"
                 style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;">
@@ -3016,13 +3030,13 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
                 <option value="judicial">Judicial</option>
                 <option value="em_dia">Em Dia</option>
               </select>
-              <button onclick="limparFiltrosInad()" class="btn btn-ghost btn-sm">✕ Limpar</button>
+              <button onclick="limparFiltrosInad()" class="btn btn-ghost btn-sm"><i class="fa-solid fa-xmark"></i> Limpar</button>
             </div>
           </div>
         </div>
         <div class="card">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon">⚠️</div>Registros de Inadimplência</div>
+            <div class="card-title"><div class="card-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>Registros de Inadimplência</div>
             <span id="inad-count" style="font-size:12px;color:var(--text-3)"></span>
           </div>
           <div class="tbl-wrap">
@@ -3045,9 +3059,9 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <div class="kpi-grid" id="pvkpi"></div>
         <div class="card">
           <div class="card-head" style="flex-wrap:wrap;gap:12px">
-            <div class="card-title"><div class="card-icon">🛠️</div>Registros</div>
+            <div class="card-title"><div class="card-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>Registros</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <input type="text" id="prev-busca" placeholder="🔍 Pesquisar texto..." oninput="renderPreventivas()"
+              <input type="text" id="prev-busca" placeholder="Pesquisar texto..." oninput="renderPreventivas()"
                 style="padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:190px;outline:none;">
               <select id="prev-filtro-tipo" onchange="renderPreventivas()"
                 style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;">
@@ -3082,7 +3096,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
                 <input type="date" id="prev-data-fim" onchange="renderPreventivas()"
                   style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;">
               </div>
-              <button onclick="limparFiltrosPrev()" class="btn btn-ghost btn-sm" style="white-space:nowrap">✕ Limpar</button>
+              <button onclick="limparFiltrosPrev()" class="btn btn-ghost btn-sm" style="white-space:nowrap"><i class="fa-solid fa-xmark"></i> Limpar</button>
             </div>
           </div>
           <div id="pvlista"></div>
@@ -3102,7 +3116,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <div class="card" id="saas-form-card" style="margin-bottom:16px;display:none">
           <div class="card-head">
             <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-city"></i></div><span id="saas-form-title">Novo Condomínio</span></div>
-            <button class="btn btn-ghost btn-sm" onclick="saasFecharForm()" style="margin-left:auto">✕ Cancelar</button>
+            <button class="btn btn-ghost btn-sm" onclick="saasFecharForm()" style="margin-left:auto"><i class="fa-solid fa-xmark"></i> Cancelar</button>
           </div>
           <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;padding-top:6px">
             <!-- Logotipo -->
@@ -3269,7 +3283,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
                 <input type="date" id="res-f-fim" onchange="renderReservas()"
                   style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;">
               </div>
-              <button onclick="limparFiltrosRes()" class="btn btn-ghost btn-sm">✕ Limpar</button>
+              <button onclick="limparFiltrosRes()" class="btn btn-ghost btn-sm"><i class="fa-solid fa-xmark"></i> Limpar</button>
             </div>
           </div>
         </div>
@@ -3437,7 +3451,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 
         <div class="card" style="margin-bottom:18px">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)">🏢</div>Espaços do condomínio</div>
+            <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-building"></i></div>Espaços do condomínio</div>
             <span id="esp-contagem" style="font-size:12px;color:var(--text-3);margin-left:auto"></span>
           </div>
 
@@ -3483,13 +3497,13 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <!-- Pesquisa nos PDFs -->
         <div class="card" style="margin-bottom:16px">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon">🔍</div>Pesquisar nos Documentos</div>
+            <div class="card-title"><div class="card-icon"><i class="fa-solid fa-magnifying-glass"></i></div>Pesquisar nos Documentos</div>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
             <input type="text" id="reg-busca" placeholder="Pesquisar texto nos documentos anexados..."
               oninput="pesquisarReg()"
               style="flex:1;min-width:260px;padding:11px 16px;border-radius:9px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:14px;outline:none;">
-            <button onclick="$('reg-busca').value='';pesquisarReg()" class="btn btn-ghost btn-sm">✕ Limpar</button>
+            <button onclick="$('reg-busca').value='';pesquisarReg()" class="btn btn-ghost btn-sm"><i class="fa-solid fa-xmark"></i> Limpar</button>
           </div>
           <div id="reg-resultados" style="display:none">
             <div class="divider-label" style="margin-bottom:12px">Resultados da Pesquisa</div>
@@ -3500,7 +3514,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <!-- Lista de Documentos -->
         <div class="card">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon">📋</div>Documentos Cadastrados</div>
+            <div class="card-title"><div class="card-icon"><i class="fa-solid fa-clipboard-list"></i></div>Documentos Cadastrados</div>
             <span id="reg-count" style="font-size:12px;color:var(--text-3)"></span>
           </div>
           <div id="reg-lista"></div>
@@ -3511,17 +3525,17 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       <div class="panel" id="panel-assistente">
         <div class="ph">
           <div>
-            <div class="ph-title">🤖 Assistente Condomínio</div>
+            <div class="ph-title"><i class="fa-solid fa-robot"></i> Assistente Condomínio</div>
             <div class="ph-sub">Pergunte em português e o assistente procura a resposta nos regulamentos anexados, citando o artigo.</div>
           </div>
           <div class="ph-actions">
-            <button class="btn btn-ghost btn-sm" onclick="limparAssistente()">🗑 Limpar conversa</button>
+            <button class="btn btn-ghost btn-sm" onclick="limparAssistente()"><i class="fa-solid fa-trash-can"></i> Limpar conversa</button>
           </div>
         </div>
 
         <div class="card" id="ia-card">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon">💬</div>Conversa</div>
+            <div class="card-title"><div class="card-icon"><i class="fa-solid fa-comments"></i></div>Conversa</div>
             <span id="ia-base" style="font-size:12px;color:var(--text-3)"></span>
           </div>
 
@@ -3545,7 +3559,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       <div class="panel" id="panel-procedimentos">
         <div class="ph">
           <div>
-            <div class="ph-title">📋 Procedimentos</div>
+            <div class="ph-title"><i class="fa-solid fa-clipboard-list"></i> Procedimentos</div>
             <div class="ph-sub">Guias e orientações para o dia a dia no condomínio.</div>
           </div>
           <div class="ph-actions">
@@ -3555,7 +3569,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 
         <!-- Busca -->
         <div style="position:relative;margin-bottom:20px">
-          <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none">🔍</span>
+          <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--text-3);pointer-events:none"><i class="fa-solid fa-magnifying-glass"></i></span>
           <input type="text" id="proc-busca" placeholder="Buscar procedimento..."
             oninput="renderProcedimentos()"
             style="width:100%;padding:11px 16px 11px 42px;border-radius:10px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:14px;outline:none;font-family:inherit;transition:border-color 0.2s">
@@ -3572,26 +3586,26 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       <div class="modal-ov" id="m-proc" onclick="if(event.target===this)fecharModalProc()">
         <div class="modal" style="width:620px;max-height:88vh;overflow-y:auto;padding:0">
           <div style="position:sticky;top:0;background:var(--card);z-index:1;border-bottom:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;padding:24px 26px 20px">
-            <div class="modal-close-x" onclick="fecharModalProc()">✕</div>
+            <div class="modal-close-x" onclick="fecharModalProc()"><i class="fa-solid fa-xmark"></i></div>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
               <span id="mp-badge" style="display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.5px"></span>
               <div id="mp-admin-btns" style="display:none;gap:6px">
-                <button onclick="editarProcAtual()" class="btn btn-ghost btn-sm">✏️ Editar</button>
-                <button onclick="excluirProcAtual()" class="btn btn-sm" style="background:rgba(224,82,82,0.12);border:1px solid rgba(224,82,82,0.3);color:var(--red)">🗑 Apagar</button>
+                <button onclick="editarProcAtual()" class="btn btn-ghost btn-sm"><i class="fa-solid fa-pen"></i> Editar</button>
+                <button onclick="excluirProcAtual()" class="btn btn-sm" style="background:rgba(224,82,82,0.12);border:1px solid rgba(224,82,82,0.3);color:var(--red)"><i class="fa-solid fa-trash-can"></i> Apagar</button>
               </div>
             </div>
             <div class="modal-title" id="mp-titulo" style="font-size:20px;margin:10px 0 6px"></div>
             <div class="modal-sub" id="mp-subtitulo" style="font-size:13px;line-height:1.5"></div>
           </div>
           <div style="padding:24px 26px">
-            <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-3);margin-bottom:16px">✅ Passo a passo</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-3);margin-bottom:16px"><i class="fa-solid fa-circle-check"></i> Passo a passo</div>
             <div id="mp-passos" style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px"></div>
             <div id="mp-docs-wrap">
-              <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-3);margin-bottom:12px">📎 Documentos necessários</div>
+              <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-3);margin-bottom:12px"><i class="fa-solid fa-paperclip"></i> Documentos necessários</div>
               <ul id="mp-docs" style="list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:24px"></ul>
             </div>
             <div id="mp-obs-wrap">
-              <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-3);margin-bottom:12px">⚠️ Observações importantes</div>
+              <div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-3);margin-bottom:12px"><i class="fa-solid fa-triangle-exclamation"></i> Observações importantes</div>
               <ul id="mp-obs" style="list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></ul>
             </div>
           </div>
@@ -3606,7 +3620,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       <!-- ── Modal FORMULÁRIO (novo / editar) ── -->
       <div class="modal-ov" id="m-proc-form" onclick="if(event.target===this)fecharFormProc()">
         <div class="modal" style="width:660px;max-height:92vh;overflow-y:auto">
-          <div class="modal-close-x" onclick="fecharFormProc()">✕</div>
+          <div class="modal-close-x" onclick="fecharFormProc()"><i class="fa-solid fa-xmark"></i></div>
           <div class="modal-title" id="mf-titulo">Novo Procedimento</div>
           <div class="modal-sub">Preencha todos os campos obrigatórios</div>
 
@@ -3664,7 +3678,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 
           <div class="modal-actions">
             <button class="btn btn-ghost" onclick="fecharFormProc()">Cancelar</button>
-            <button class="btn btn-gold" onclick="salvarProc()">✓ Salvar Procedimento</button>
+            <button class="btn btn-gold" onclick="salvarProc()"><i class="fa-solid fa-check"></i> Salvar Procedimento</button>
           </div>
         </div>
       </div>
@@ -3689,11 +3703,11 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
             </button>
             <button id="usr-tab-ativos" onclick="setUsrTab('ativos')"
               style="flex:1;padding:14px;background:none;border:none;color:var(--text-3);font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s">
-              ✅ Ativos
+              <i class="fa-solid fa-circle-check"></i> Ativos
             </button>
             <button id="usr-tab-inativos" onclick="setUsrTab('inativos')"
               style="flex:1;padding:14px;background:none;border:none;color:var(--text-3);font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s">
-              🚫 Rejeitados / Bloqueados
+              <i class="fa-solid fa-ban"></i> Rejeitados / Bloqueados
             </button>
           </div>
           <div style="padding:16px">
@@ -3704,10 +3718,10 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 
       <div class="panel" id="panel-configuracoes">
         <div class="ph">
-          <div><div class="ph-title">⚙️ Configurações</div><div class="ph-sub">Reservas, avisos por WhatsApp e por e-mail</div></div>
+          <div><div class="ph-title"><i class="fa-solid fa-gear"></i> Configurações</div><div class="ph-sub">Reservas, avisos por WhatsApp e por e-mail</div></div>
           <div class="ph-actions">
-            <button class="btn btn-gold" onclick="salvarConfigs()">💾 Salvar Configurações</button>
-            <button id="btn-enviar-manual" class="btn btn-ghost" onclick="enviarAlertaManual()">📤 Enviar alertas pendentes agora</button>
+            <button class="btn btn-gold" onclick="salvarConfigs()"><i class="fa-solid fa-floppy-disk"></i> Salvar Configurações</button>
+            <button id="btn-enviar-manual" class="btn btn-ghost" onclick="enviarAlertaManual()"><i class="fa-solid fa-arrow-up-from-bracket"></i> Enviar alertas pendentes agora</button>
           </div>
         </div>
 
@@ -3722,8 +3736,8 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
              (apenas dentre as que o sênior liberou para este condomínio) -->
         <div class="cfg-card cfg-grp-modulos card" style="margin-bottom:18px;display:none">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon">👁️</div>Módulos visíveis para os moradores</div>
-            <button class="btn btn-gold btn-sm" onclick="salvarModulosMorador()">💾 Salvar</button>
+            <div class="card-title"><div class="card-icon"><i class="fa-solid fa-eye"></i></div>Módulos visíveis para os moradores</div>
+            <button class="btn btn-gold btn-sm" onclick="salvarModulosMorador()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
           </div>
           <div style="font-size:12px;color:var(--text-3);margin-bottom:14px;line-height:1.6">
             Marque o que os <strong>moradores</strong> podem ver no portal. Só aparecem aqui os módulos
@@ -3735,7 +3749,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 
         <div class="cfg-card cfg-grp-sistema card" style="margin-bottom:18px;display:none">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon">📱</div>WhatsApp Automático</div>
+            <div class="card-title"><div class="card-icon"><i class="fa-solid fa-mobile-screen"></i></div>WhatsApp Automático</div>
             <span id="cfg-zapi-status" style="font-size:12px;color:var(--text-3)">Não configurado</span>
           </div>
           <div class="fg" style="max-width:360px;margin-bottom:16px"><label>Como enviar o WhatsApp?</label>
@@ -3760,7 +3774,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
               <div class="fg full"><label>Client Token (Security Token)</label><input type="text" id="cfg-zapi-client-token" placeholder="Encontrado em Security na Z-API"></div>
             </div>
             <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn btn-ghost btn-sm" onclick="testarZAPI()">🧪 Testar Conexão</button>
+              <button class="btn btn-ghost btn-sm" onclick="testarZAPI()"><i class="fa-solid fa-flask"></i> Testar Conexão</button>
               <span id="cfg-zapi-teste" style="font-size:12px;color:var(--text-3);align-self:center"></span>
             </div>
           </div>
@@ -3772,12 +3786,12 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
               <strong>Passo a passo (1x):</strong><br>
               1. Crie um app em <a href="https://developers.facebook.com" target="_blank" style="color:#25D366">developers.facebook.com</a> → produto <strong>WhatsApp</strong> → conecte seu número dedicado.<br>
               2. Crie um <strong>modelo (template)</strong> de mensagem, categoria <strong>Utilidade</strong>, corpo:<br>
-              <code style="background:rgba(255,255,255,0.08);padding:4px 8px;border-radius:5px;display:inline-block;margin:4px 0">🔔 Aviso do seu condomínio:\n\n&#123;&#123;1&#125;&#125;</code><br>
+              <code style="background:rgba(255,255,255,0.08);padding:4px 8px;border-radius:5px;display:inline-block;margin:4px 0"><i class="fa-solid fa-bell"></i> Aviso do seu condomínio:\n\n&#123;&#123;1&#125;&#125;</code><br>
               3. No Supabase → <strong>Edge Functions → Secrets</strong>, adicione: <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">WHATSAPP_TOKEN</code>, <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">WHATSAPP_PHONE_ID</code>, <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">WHATSAPP_TEMPLATE</code> (nome do modelo) e <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">WHATSAPP_LANG</code> (ex: pt_BR).<br>
               4. Republique a Edge Function <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">notificar</code> (código novo que enviei) e teste abaixo.
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-              <button class="btn btn-ghost btn-sm" onclick="testarWhatsCloud()">🧪 Testar WhatsApp</button>
+              <button class="btn btn-ghost btn-sm" onclick="testarWhatsCloud()"><i class="fa-solid fa-flask"></i> Testar WhatsApp</button>
               <input type="text" id="cfg-wa-teste-num" placeholder="Nº com DDD para teste" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;width:220px">
               <span id="cfg-wa-teste" style="font-size:12px;color:var(--text-3);align-self:center"></span>
             </div>
@@ -3794,7 +3808,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
               4. Republique a Edge Function <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">notificar</code> e teste abaixo.
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-              <button class="btn btn-ghost btn-sm" onclick="testarWhatsEvolution()">🧪 Testar WhatsApp</button>
+              <button class="btn btn-ghost btn-sm" onclick="testarWhatsEvolution()"><i class="fa-solid fa-flask"></i> Testar WhatsApp</button>
               <input type="text" id="cfg-evo-teste-num" placeholder="Nº com DDD para teste" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;width:220px">
               <span id="cfg-evo-teste" style="font-size:12px;color:var(--text-3);align-self:center"></span>
             </div>
@@ -3803,7 +3817,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 
         <div class="cfg-card cfg-grp-sistema card" style="margin-bottom:18px;display:none">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon">✉️</div>E-mail Automático (Supabase + Resend)</div>
+            <div class="card-title"><div class="card-icon"><i class="fa-solid fa-envelope"></i></div>E-mail Automático (Supabase + Resend)</div>
             <span id="cfg-ejs-status" style="font-size:12px;color:var(--text-3)">Via Edge Function</span>
           </div>
           <div style="background:rgba(91,156,246,0.06);border:1px solid rgba(91,156,246,0.15);border-radius:10px;padding:16px 18px;margin-bottom:16px;font-size:13px;color:var(--text-2);line-height:1.7">
@@ -3812,10 +3826,10 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
             1. Crie conta no <a href="https://resend.com" target="_blank" style="color:var(--blue)">resend.com</a> e copie a <strong>API Key</strong>.<br>
             2. No Supabase → <strong>Edge Functions</strong> → publique a função <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">notificar</code> (código no arquivo <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">supabase/functions/notificar</code>).<br>
             3. No Supabase → <strong>Project Settings → Edge Functions → Secrets</strong>, adicione <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">RESEND_API_KEY</code> e <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px">EMAIL_FROM</code>.<br>
-            4. Teste abaixo. ✅
+            4. Teste abaixo.
           </div>
           <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn btn-ghost btn-sm" onclick="testarEmailJS()">🧪 Testar E-mail</button>
+            <button class="btn btn-ghost btn-sm" onclick="testarEmailJS()"><i class="fa-solid fa-flask"></i> Testar E-mail</button>
             <input type="email" id="cfg-ejs-teste-dest" placeholder="E-mail para teste" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;width:220px">
             <span id="cfg-ejs-teste" style="font-size:12px;color:var(--text-3);align-self:center"></span>
           </div>
@@ -3824,15 +3838,15 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <!-- ▸ Config de Reservas: termos e caução -->
         <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon">📝</div>Termos de Responsabilidade & Valores por Espaço</div>
-            <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()">💾 Salvar</button>
+            <div class="card-title"><div class="card-icon"><i class="fa-solid fa-file-pen"></i></div>Termos de Responsabilidade & Valores por Espaço</div>
+            <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
           </div>
           <div style="font-size:13px;color:var(--text-2);margin-bottom:16px">
-            Cole o link do Google Drive (PDF compartilhado publicamente) ou outro link direto para o termo de cada espaço. O morador verá o botão "📄 Ler Termo" ao fazer a reserva.
+            Cole o link do Google Drive (PDF compartilhado publicamente) ou outro link direto para o termo de cada espaço. O morador verá o botão "Ler Termo" ao fazer a reserva.
           </div>
           <div id="cfg-reservas-espacos" style="display:flex;flex-direction:column;gap:14px"></div>
           <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
-            <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);margin-bottom:10px">💰 Financeiro por Espaço</div>
+            <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);margin-bottom:10px"><i class="fa-solid fa-sack-dollar"></i> Financeiro por Espaço</div>
             <div style="font-size:12px;color:var(--text-3);margin-bottom:12px">
               Por padrão, financeiro aparece no <strong style="color:var(--text-2)">Salão de Festa</strong>, <strong style="color:var(--text-2)">Cozinha / Espaço Lazer</strong> e <strong style="color:var(--text-2)">Campo de Futebol</strong>.
               Você pode habilitar e configurar valores para qualquer outro espaço abaixo.
@@ -3863,7 +3877,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 
         <!-- ▸ Espaços: agora tem tela propria dentro de Reservas -->
         <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:16px">
-          <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)">🏢</div>Espaços do condomínio</div></div>
+          <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-building"></i></div>Espaços do condomínio</div></div>
           <div style="font-size:12.5px;color:var(--text-3);line-height:1.7">
             Criar, renomear e excluir espaços passou para uma tela própria:
             <b>Reservas → Criar espaços</b>. Aqui embaixo ficam as configurações
@@ -3876,7 +3890,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 
         <!-- ▸ Pix do condomínio (pagamento da taxa de reserva) -->
         <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:16px">
-          <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(42,157,111,0.14);color:var(--green-l)">💰</div>Pix para a taxa de reserva</div></div>
+          <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(42,157,111,0.14);color:var(--green-l)"><i class="fa-solid fa-sack-dollar"></i></div>Pix para a taxa de reserva</div></div>
           <div style="font-size:12.5px;color:var(--text-3);margin-bottom:12px">
             Informe a chave Pix <b>do condomínio</b>. O morador verá o QR Code e o "copia e cola" já com o valor da taxa.
             O dinheiro cai direto na conta do condomínio — o AdminPro não intermedia o pagamento.
@@ -3985,12 +3999,12 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 
         <div class="cfg-card cfg-grp-sistema card" style="display:none">
           <div class="card-head">
-            <div class="card-title"><div class="card-icon">🔔</div>Log de Envios Automáticos</div>
+            <div class="card-title"><div class="card-icon"><i class="fa-solid fa-bell"></i></div>Log de Envios Automáticos</div>
           </div>
           <div id="cfg-log" style="font-size:12px;color:var(--text-2);line-height:1.9;font-family:monospace;background:var(--ink-2);border-radius:9px;padding:14px 16px;max-height:220px;overflow-y:auto">
             Nenhum envio registrado ainda.
           </div>
-          <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="limparLog()">🗑️ Limpar Log</button>
+          <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="limparLog()"><i class="fa-solid fa-trash-can"></i> Limpar Log</button>
         </div>
       </div>
 
@@ -4049,7 +4063,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 
         <!-- Banner info -->
         <div class="af-banner">
-          <div class="af-banner-icon">☁️</div>
+          <div class="af-banner-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
           <div class="af-banner-text">
             As fotos são salvas no <strong>banco de dados do condomínio</strong> e ficam visíveis para todos os usuários,
             em qualquer dispositivo, imediatamente após salvar. Faça upload de um arquivo <em>ou</em> cole uma URL.
@@ -4068,15 +4082,15 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
             <div class="af-hero-ttl">Imagem de Fundo Principal</div>
             <div class="af-hero-sub">Aparece como plano de fundo da seção de entrada do site</div>
             <div class="af-up-area">
-              <div class="af-up-icon">📁</div>
+              <div class="af-up-icon"><i class="fa-solid fa-folder-open"></i></div>
               <div class="af-up-txt">Clique para anexar uma foto</div>
               <input type="file" accept="image/*" onchange="afHandleFile(this,'hero')">
             </div>
             <div class="af-or-div">— ou cole uma URL —</div>
             <input type="text" class="af-url-field" id="af-hero-url" placeholder="https://exemplo.com/imagem.jpg" oninput="afPreviewUrl(this.value,'hero')">
             <div class="af-slot-acts" style="margin-top:14px">
-              <button class="af-btn-save" id="af-hero-save-btn" onclick="afSaveSlot('hero')">💾 Salvar Capa</button>
-              <button class="af-btn-reset" onclick="afResetSlot('hero')">↺ Padrão</button>
+              <button class="af-btn-save" id="af-hero-save-btn" onclick="afSaveSlot('hero')"><i class="fa-solid fa-floppy-disk"></i> Salvar Capa</button>
+              <button class="af-btn-reset" onclick="afResetSlot('hero')"><i class="fa-solid fa-rotate-left"></i> Padrão</button>
             </div>
           </div>
         </div>
@@ -4098,7 +4112,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <!-- BARRA SALVAR TUDO -->
         <div class="af-save-bar">
           <div class="af-save-bar-msg"><strong>Dica:</strong> Salve individualmente ou use o botão para salvar tudo de uma vez.</div>
-          <button class="af-btn-save-all" id="af-save-all-btn" onclick="afSaveAll()">💾 Salvar Tudo</button>
+          <button class="af-btn-save-all" id="af-save-all-btn" onclick="afSaveAll()"><i class="fa-solid fa-floppy-disk"></i> Salvar Tudo</button>
         </div>
 
       </div><!-- /panel-admfotos -->
@@ -4110,7 +4124,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 <!-- M: Pesquisa de Condôminos -->
 <div class="modal-ov" id="m-pesq-con" onclick="if(event.target===this)closeModal('m-pesq-con')">
   <div class="modal" style="width:920px;max-width:96vw" onclick="event.stopPropagation()">
-    <button class="modal-close-x" onclick="closeModal('m-pesq-con')" title="Fechar">✕</button>
+    <button class="modal-close-x" onclick="closeModal('m-pesq-con')" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
     <div class="modal-title">Pesquisa de Condôminos</div>
     <div class="modal-sub">Filtre e clique em um registro para carregá-lo no formulário</div>
 
@@ -4174,7 +4188,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 <!-- M: Alterar Senha Usuário -->
 <div class="modal-ov" id="m-usr-senha" onclick="event.stopPropagation()">
   <div class="modal" style="max-width:420px" onclick="event.stopPropagation()">
-    <button class="modal-close-x" onclick="closeModal('m-usr-senha')" title="Fechar">✕</button>
+    <button class="modal-close-x" onclick="closeModal('m-usr-senha')" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
     <div class="modal-title">Alterar Senha</div>
     <div class="modal-sub" id="musr-senha-info"></div>
     <input type="hidden" id="musr-senha-docid">
@@ -4188,7 +4202,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('m-usr-senha')">Cancelar</button>
-      <button class="btn btn-gold" onclick="salvarNovaSenha()">💾 Salvar Senha</button>
+      <button class="btn btn-gold" onclick="salvarNovaSenha()"><i class="fa-solid fa-floppy-disk"></i> Salvar Senha</button>
     </div>
   </div>
 </div>
@@ -4196,7 +4210,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 <!-- M: Aprovar Usuário -->
 <div class="modal-ov" id="m-usr" onclick="event.stopPropagation()">
   <div class="modal" style="max-width:500px" onclick="event.stopPropagation()">
-    <button class="modal-close-x" onclick="fecharModalUsr()" title="Fechar">✕</button>
+    <button class="modal-close-x" onclick="fecharModalUsr()" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
     <div class="modal-title" id="musr-t">Aprovar Cadastro</div>
     <div class="modal-sub" id="musr-info"></div>
     <input type="hidden" id="musr-docid">
@@ -4207,10 +4221,10 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       <div class="fg"><label>E-mail (login — não editável)</label><input type="text" id="musr-email" disabled style="opacity:.65"></div>
       <div class="fg full"><label>Nível de Acesso</label>
         <select id="musr-nivel" onchange="musrNivelChange()" style="padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:14px;outline:none;width:100%">
-          <option value="morador">🏠 Morador — Comunicados e Reservas</option>
-          <option value="supervisor">🧰 Supervisor — Acesso só aos módulos marcados</option>
-          <option value="gestor">📋 Gestor — Acesso a todos os módulos</option>
-          <option value="admin">🔑 Admin — Acesso total ao sistema</option>
+          <option value="morador">Morador — Comunicados e Reservas</option>
+          <option value="supervisor">Supervisor — Acesso só aos módulos marcados</option>
+          <option value="gestor">Gestor — Acesso a todos os módulos</option>
+          <option value="admin">Admin — Acesso total ao sistema</option>
         </select>
       </div>
       <div class="fg full" id="musr-modulos-box" style="display:none">
@@ -4227,9 +4241,9 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="fecharModalUsr()">Cancelar</button>
-      <button class="btn" style="background:var(--red);color:#fff" onclick="rejeitarUsuario()">✕ Rejeitar</button>
+      <button class="btn" style="background:var(--red);color:#fff" onclick="rejeitarUsuario()"><i class="fa-solid fa-xmark"></i> Rejeitar</button>
       <button class="btn btn-ghost" id="musr-btn-salvar" onclick="salvarDadosUsr()" style="display:none"><i class="fa-solid fa-floppy-disk"></i> Salvar dados</button>
-      <button class="btn btn-gold" id="musr-btn-aprovar" onclick="aprovarUsuario()">✓ Aprovar Acesso</button>
+      <button class="btn btn-gold" id="musr-btn-aprovar" onclick="aprovarUsuario()"><i class="fa-solid fa-check"></i> Aprovar Acesso</button>
     </div>
   </div>
 </div>
@@ -4237,7 +4251,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 <!-- M: Inadimplência -->
 <div class="modal-ov" id="m-inad" onclick="event.stopPropagation()">
   <div class="modal" style="max-width:560px" onclick="event.stopPropagation()">
-    <button class="modal-close-x" onclick="fecharModalInad()" title="Fechar">✕</button>
+    <button class="modal-close-x" onclick="fecharModalInad()" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
     <div class="modal-title" id="minad-t">Novo Registro</div>
     <div class="modal-sub">Preencha os dados do inadimplente</div>
     <input type="hidden" id="minad-id">
@@ -4260,7 +4274,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
     </div>
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="fecharModalInad()">Cancelar</button>
-      <button class="btn btn-gold" onclick="salvarInad()">💾 Salvar</button>
+      <button class="btn btn-gold" onclick="salvarInad()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
     </div>
   </div>
 </div>
@@ -4268,7 +4282,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 <!-- M: Reservas -->
 <div class="modal-ov" id="m-res" onclick="if(event.target===this)fecharModalRes()">
   <div class="modal" style="max-width:680px" onclick="event.stopPropagation()">
-    <button class="modal-close-x" onclick="fecharModalRes()" title="Fechar">✕</button>
+    <button class="modal-close-x" onclick="fecharModalRes()" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
     <div class="modal-title" id="mres-t">Nova Reserva</div>
     <div class="modal-sub">Preencha os dados da reserva do espaço comum</div>
     <input type="hidden" id="mres-id">
@@ -4559,7 +4573,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 <!-- M: Preventivas & Corretivas -->
 <div class="modal-ov" id="m-prev">
   <div class="modal" style="max-width:620px">
-    <button class="modal-close-x" onclick="fecharModal('m-prev',salvarPrev,'mpv-tit')" title="Fechar">✕</button>
+    <button class="modal-close-x" onclick="fecharModal('m-prev',salvarPrev,'mpv-tit')" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
     <div class="modal-title" id="mpv-t">Novo Registro</div>
     <div class="modal-sub">Preencha todos os detalhes da manutenção</div>
     <input type="hidden" id="mpv-id">
@@ -4627,7 +4641,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gold" onclick="salvarPrev()">💾 Salvar Registro</button>
+      <button class="btn btn-gold" onclick="salvarPrev()"><i class="fa-solid fa-floppy-disk"></i> Salvar Registro</button>
     </div>
   </div>
 </div>
@@ -4635,7 +4649,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 <!-- M: Lotes -->
 <div class="modal-ov" id="m-lotes">
   <div class="modal">
-    <button class="modal-close-x" onclick="fecharModal('m-lotes',salvarLotes,'fl-mes')" title="Fechar">✕</button>
+    <button class="modal-close-x" onclick="fecharModal('m-lotes',salvarLotes,'fl-mes')" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
     <div class="modal-title">Atualizar Censo de Lotes</div>
     <div class="modal-sub">Salve os dados mensais — cada mês fica registrado no histórico.</div>
     <div class="form-grid">
@@ -4650,7 +4664,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       <div class="fg"><label>Terrenos Vazios</label><input type="number" id="fl-terrenos"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gold" onclick="salvarLotes()">💾 Salvar</button>
+      <button class="btn btn-gold" onclick="salvarLotes()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
     </div>
   </div>
 </div>
@@ -4658,7 +4672,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 <!-- M: Func -->
 <div class="modal-ov" id="m-func">
   <div class="modal" style="max-width:700px">
-    <button class="modal-close-x" onclick="fecharModal('m-func',salvarFunc,'mf-nome')" title="Fechar">✕</button>
+    <button class="modal-close-x" onclick="fecharModal('m-func',salvarFunc,'mf-nome')" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
     <div class="modal-title" id="mf-t">Novo Colaborador</div>
     <div class="modal-sub">Preencha os dados do funcionário e configure o horário personalizado.</div>
     <input type="hidden" id="mf-id">
@@ -4741,7 +4755,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gold" onclick="salvarFunc()">💾 Salvar Colaborador</button>
+      <button class="btn btn-gold" onclick="salvarFunc()"><i class="fa-solid fa-floppy-disk"></i> Salvar Colaborador</button>
     </div>
   </div>
 </div>
@@ -4749,7 +4763,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 <!-- M: Fin -->
 <div class="modal-ov" id="m-fin">
   <div class="modal">
-    <button class="modal-close-x" onclick="fecharModal('m-fin',salvarFin,'ff-mes')" title="Fechar">✕</button>
+    <button class="modal-close-x" onclick="fecharModal('m-fin',salvarFin,'ff-mes')" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
     <div class="modal-title">Atualizar Financeiro</div>
     <div class="modal-sub">Informe os valores do mês selecionado em R$.</div>
     <div class="form-grid">
@@ -4767,7 +4781,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       <div class="fg"><label>Outras Despesas</label><input type="number" id="ff-outdesp" placeholder="0"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gold" onclick="salvarFin()">💾 Salvar</button>
+      <button class="btn btn-gold" onclick="salvarFin()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
     </div>
   </div>
 </div>
@@ -4775,20 +4789,20 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 <!-- M: Manut -->
 <div class="modal-ov" id="m-manut">
   <div class="modal">
-    <button class="modal-close-x" onclick="fecharModal('m-manut',salvarManut,'mm-tit')" title="Fechar">✕</button>
+    <button class="modal-close-x" onclick="fecharModal('m-manut',salvarManut,'mm-tit')" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
     <div class="modal-title" id="mm-t">Nova Ordem de Serviço</div>
     <input type="hidden" id="mm-id">
     <div class="form-grid">
       <div class="fg full"><label>Título</label><input type="text" id="mm-tit" placeholder="Descreva o serviço"></div>
       <div class="fg full"><label>Descrição</label><textarea id="mm-desc" placeholder="Detalhes..."></textarea></div>
       <div class="fg"><label>Prioridade</label>
-        <select id="mm-prio"><option value="ok">✅ Concluído</option><option value="pendente" selected>🟡 Pendente</option><option value="urgente">🔴 Urgente</option></select>
+        <select id="mm-prio"><option value="ok">Concluído</option><option value="pendente" selected>Pendente</option><option value="urgente">Urgente</option></select>
       </div>
       <div class="fg"><label>Data</label><input type="date" id="mm-data"></div>
       <div class="fg full"><label>Responsável</label><input type="text" id="mm-resp" placeholder="Nome do responsável"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gold" onclick="salvarManut()">💾 Salvar</button>
+      <button class="btn btn-gold" onclick="salvarManut()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
     </div>
   </div>
 </div>
@@ -4796,7 +4810,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 <!-- M: Comun -->
 <div class="modal-ov" id="m-comun">
   <div class="modal">
-    <button class="modal-close-x" onclick="fecharModal('m-comun',salvarComun,'mc-tit')" title="Fechar">✕</button>
+    <button class="modal-close-x" onclick="fecharModal('m-comun',salvarComun,'mc-tit')" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
     <div class="modal-title" id="mc-t">Novo Evento</div>
     <input type="hidden" id="mc-id">
     <div class="form-grid">
@@ -4808,7 +4822,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gold" onclick="salvarComun()">💾 Salvar</button>
+      <button class="btn btn-gold" onclick="salvarComun()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
     </div>
   </div>
 </div>
@@ -4816,7 +4830,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 <!-- M: Regulamentos -->
 <div class="modal-ov" id="m-reg" onclick="event.stopPropagation()">
   <div class="modal" style="max-width:640px" onclick="event.stopPropagation()">
-    <button class="modal-close-x" onclick="closeModal('m-reg')" title="Fechar">✕</button>
+    <button class="modal-close-x" onclick="closeModal('m-reg')" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
     <div class="modal-title" id="mreg-t">Adicionar Tópico</div>
     <div class="modal-sub">Preencha as informações do tópico e anexe o documento</div>
     <input type="hidden" id="mreg-id">
@@ -4832,15 +4846,15 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       <div class="fg">
         <label>Categoria</label>
         <select id="mreg-cat">
-          <option value="Regulamento">📋 Regulamento</option>
-          <option value="Convenção">📜 Convenção</option>
-          <option value="Ata">📝 Ata</option>
-          <option value="Contrato">🤝 Contrato</option>
-          <option value="Comunicado">📣 Comunicado</option>
-          <option value="Portaria">🚪 Portaria</option>
-          <option value="Manutenção">🔧 Manutenção</option>
-          <option value="Obras">🏗️ Obras</option>
-          <option value="Outro">📄 Outro</option>
+          <option value="Regulamento">Regulamento</option>
+          <option value="Convenção">Convenção</option>
+          <option value="Ata">Ata</option>
+          <option value="Contrato">Contrato</option>
+          <option value="Comunicado">Comunicado</option>
+          <option value="Portaria">Portaria</option>
+          <option value="Manutenção">Manutenção</option>
+          <option value="Obras">Obras</option>
+          <option value="Outro">Outro</option>
         </select>
       </div>
       <div class="fg">
@@ -4859,7 +4873,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <label>Arquivo (PDF ou Word)</label>
         <div id="mreg-drop-area" onclick="$('mreg-arquivo').click()" style="border:2px dashed var(--border-h);border-radius:12px;padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--ink-2)"
           onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor=''">
-          <div style="font-size:34px;margin-bottom:8px">📎</div>
+          <div style="font-size:34px;margin-bottom:8px"><i class="fa-solid fa-paperclip"></i></div>
           <div style="font-size:14px;color:var(--text-2);margin-bottom:4px">Clique para selecionar um arquivo</div>
           <div style="font-size:11px;color:var(--text-3)">Aceita <strong style="color:var(--gold)">.pdf</strong> e <strong style="color:var(--gold)">.docx</strong></div>
           <div id="mreg-arquivo-nome" style="margin-top:10px;font-size:13px;color:var(--gold);display:none"></div>
@@ -4872,7 +4886,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-gold" onclick="salvarReg()">💾 Salvar Tópico</button>
+      <button class="btn btn-gold" onclick="salvarReg()"><i class="fa-solid fa-floppy-disk"></i> Salvar Tópico</button>
     </div>
   </div>
 </div>
@@ -5530,7 +5544,7 @@ async function esqueciSenha(){
   try{
     var r = await SB.auth.resetPasswordForEmail(e, { redirectTo: window.location.href.split('#')[0] });
     if(r.error){ showLoginErr('Erro: '+r.error.message); return; }
-    if(errEl){ errEl.textContent='✓ Se este e-mail tiver cadastro, enviamos um link para redefinir a senha. Confira sua caixa de entrada (e o spam).'; errEl.style.display='block'; errEl.style.color='#28C882'; }
+    if(errEl){ errEl.textContent='Se este e-mail tiver cadastro, enviamos um link para redefinir a senha. Confira sua caixa de entrada (e o spam).'; errEl.style.display='block'; errEl.style.color='#28C882'; }
   }catch(err){ showLoginErr('Erro: '+(err.message||err)); }
 }
 
@@ -5545,7 +5559,7 @@ async function doLogin() {
   const r = await SB.auth.signInWithPassword({ email:e, password:s });
   if (r.error) {
     const m = (r.error.message||'').toLowerCase();
-    showLoginErr( m.indexOf('invalid')>=0 ? 'Credenciais invalidas. Tente novamente.' : ('⚠️ ' + r.error.message) );
+    showLoginErr( m.indexOf('invalid')>=0 ? 'Credenciais invalidas. Tente novamente.' : (r.error.message) );
     if(btn){ btn.textContent='Entrar no painel'; btn.disabled=false; }
   }
   // sucesso -> onAuthStateChange cuida do resto
@@ -6046,8 +6060,8 @@ function renderUnidades(){
 
   const dash = v => v ? escU(v) : '<span style="color:var(--text-3)">—</span>';
   const badgeTipo = t => {
-    if(t==='Casa Construída') return '<span style="font-size:11px;font-weight:600;color:var(--green-l);background:rgba(24,160,104,0.12);border:1px solid rgba(24,160,104,0.25);border-radius:6px;padding:2px 8px">🏠 Casa</span>';
-    if(t==='Terreno')         return '<span style="font-size:11px;font-weight:600;color:var(--amber);background:rgba(240,168,67,0.12);border:1px solid rgba(240,168,67,0.28);border-radius:6px;padding:2px 8px">🟫 Terreno</span>';
+    if(t==='Casa Construída') return '<span style="font-size:11px;font-weight:600;color:var(--green-l);background:rgba(24,160,104,0.12);border:1px solid rgba(24,160,104,0.25);border-radius:6px;padding:2px 8px"><i class="fa-solid fa-house"></i> Casa</span>';
+    if(t==='Terreno')         return '<span style="font-size:11px;font-weight:600;color:var(--amber);background:rgba(240,168,67,0.12);border:1px solid rgba(240,168,67,0.28);border-radius:6px;padding:2px 8px"><i class="fa-solid fa-vector-square"></i> Terreno</span>';
     return '<span style="color:var(--text-3)">—</span>';
   };
 
@@ -7211,8 +7225,47 @@ function popSel(selId,data,cur){
   if(cur&&data[cur]) sel.value=cur;
 }
 
+/* Aviso rapido no rodape.
+
+   As ~170 chamadas de toast() ja marcavam o tipo com um simbolo no inicio
+   do texto ("aviso", "ok", "erro"). Em vez de reescrever cada chamada, o
+   simbolo e lido AQUI: vira icone de verdade, ganha cor e sai do texto.
+   Assim o sistema deixa de exibir emoji sem que nada mais precise mudar.
+
+   O texto continua entrando por textContent — nunca por HTML — para que
+   um nome de morador com "<" nao consiga injetar nada na pagina. */
+var _TOAST_TIPOS = [
+  [/^\s*(?:\u26a0\ufe0f?)\s*/u,            'alerta', 'fa-triangle-exclamation'],
+  [/^\s*(?:\u26d4|\u{1F6AB}|\u274c)\s*/u,  'erro',   'fa-circle-xmark'],
+  [/^\s*(?:\u2713|\u2705|\u2714\ufe0f?)\s*/u, 'ok', 'fa-circle-check'],
+  [/^\s*(?:\u23f3|\u231b)\s*/u,           'espera', 'fa-hourglass-half'],
+  [/^\s*(?:\u{1F5D1}\ufe0f?)\s*/u,        'ok',     'fa-trash-can'],
+  [/^\s*(?:\u{1F4F7}|\u{1F4F8})\s*/u,     'ok',     'fa-camera'],
+  [/^\s*(?:\u27a1\ufe0f?|\u2192)\s*/u,   'info',   'fa-arrow-right'],
+];
+var _TOAST_ICONE = { alerta:'fa-triangle-exclamation', erro:'fa-circle-xmark',
+                     ok:'fa-circle-check', espera:'fa-hourglass-half', info:'fa-circle-info' };
+
 function toast(msg){
-  const t=$('toast'); t.textContent=msg;
+  const t=$('toast'); if(!t) return;
+  var texto = String(msg==null?'':msg);
+  var tipo = 'info', icone = _TOAST_ICONE.info;
+  for(var i=0;i<_TOAST_TIPOS.length;i++){
+    if(_TOAST_TIPOS[i][0].test(texto)){
+      texto = texto.replace(_TOAST_TIPOS[i][0], '');
+      tipo  = _TOAST_TIPOS[i][1];
+      icone = _TOAST_TIPOS[i][2];
+      break;
+    }
+  }
+  t.innerHTML = '';
+  var ic = document.createElement('i');
+  ic.className = 'fa-solid ' + icone;
+  var sp = document.createElement('span');
+  sp.textContent = texto;
+  t.appendChild(ic); t.appendChild(sp);
+  t.dataset.tipo = tipo;
+
   t.classList.add('show');
   clearTimeout(t._to);
   t._to=setTimeout(()=>t.classList.remove('show'),3000);
@@ -7438,8 +7491,8 @@ function initFuncs(){
 
 function formatarHorarioFunc(f){
   const t=f.tipoHorario||'fixo';
-  if(t==='12x36_dia') return '<span class="pill pill-blue">12×36</span> <span style="color:var(--text-2);font-size:12px">☀️ 06h–18h</span>';
-  if(t==='12x36_noite') return '<span class="pill pill-amber">12×36</span> <span style="color:var(--text-2);font-size:12px">🌙 18h–06h</span>';
+  if(t==='12x36_dia') return '<span class="pill pill-blue">12×36</span> <span style="color:var(--text-2);font-size:12px"><i class="fa-solid fa-sun"></i> 06h–18h</span>';
+  if(t==='12x36_noite') return '<span class="pill pill-amber">12×36</span> <span style="color:var(--text-2);font-size:12px"><i class="fa-solid fa-moon"></i> 18h–06h</span>';
   if(t==='fixo'){
     const h=f.horarioFixo||{};
     const entrada=h.entrada||'—', saida=h.saida||'—';
@@ -7471,7 +7524,7 @@ function formatarHorarioFunc(f){
   return '—';
 }
 
-const NIVEL_LABELS={0:'🏛️ Diretoria',1:'👔 Gestor',2:'👥 Colaborador',3:'🔧 Auxiliar'};
+const NIVEL_LABELS={0:'Diretoria',1:'Gestor',2:'Colaborador',3:'Auxiliar'};
 const NIVEL_PILLS={0:'pill-gold',1:'pill-gold',2:'pill-blue',3:'pill-green'};
 
 function renderFuncs(){renderFTabela();}
@@ -7506,7 +7559,7 @@ function renderFTabela(){
       <td><span class="pill pill-blue">${f.dept}</span></td>
       <td>${formatarHorarioFunc(f)}</td>
       <td>${admFmt}</td>
-      <td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="abrirModalFunc(${f.id})">✏️ Editar</button><button class="btn btn-red btn-sm" onclick="excluirFunc(${f.id})">🗑️</button></div></td>`;
+      <td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="abrirModalFunc(${f.id})"><i class="fa-solid fa-pen"></i> Editar</button><button class="btn btn-red btn-sm" onclick="excluirFunc(${f.id})"><i class="fa-solid fa-trash-can"></i></button></div></td>`;
     tb.appendChild(tr);
   });
 
@@ -7704,7 +7757,7 @@ function renderFin(){
   $('finkpi').innerHTML=`
     <div class="kpi green"><div class="kpi-label">Receita Total</div><div class="kpi-val" style="font-size:26px">${fmt(rec)}</div><div class="kpi-sub" style="color:#3DC68D">↑ Entrada do mês</div></div>
     <div class="kpi red"><div class="kpi-label">Despesa Total</div><div class="kpi-val" style="font-size:26px">${fmt(desp)}</div><div class="kpi-sub" style="color:#E05252">↓ Saída do mês</div></div>
-    <div class="kpi ${saldo>=0?'gold':'red'}"><div class="kpi-label">Saldo do Mês</div><div class="kpi-val ${saldo>=0?'saldo-pos':'saldo-neg'}" style="font-size:26px">${fmt(saldo)}</div><div class="kpi-sub">${saldo>=0?'✓ Superávit':'⚠ Déficit'}</div></div>
+    <div class="kpi ${saldo>=0?'gold':'red'}"><div class="kpi-label">Saldo do Mês</div><div class="kpi-val ${saldo>=0?'saldo-pos':'saldo-neg'}" style="font-size:26px">${fmt(saldo)}</div><div class="kpi-sub">${saldo>=0?'<i class=\'fa-solid fa-arrow-trend-up\'></i> Superávit':'<i class=\'fa-solid fa-arrow-trend-down\'></i> Déficit'}</div></div>
   `;
   const keys=Object.keys(d).sort().slice(-6);
   const recArr=keys.map(k=>{const r2=d[k]||{};return(r2.taxa||0)+(r2.multas||0)+(r2.outrec||0)});
@@ -7780,11 +7833,13 @@ function renderManut(){
   const prioMap={urgente:0,pendente:1,ok:2};
   [...its].sort((a,b)=>prioMap[a.prio]-prioMap[b.prio]).forEach(it=>{
     const div=document.createElement('div');div.className='manut-item';
-    const emojiPrio={ok:'✅',pendente:'🟡',urgente:'🔴'}[it.prio];
+    // Antes: emoji colorido. Agora um icone que acompanha a cor da
+    // classe mp-<prio>, que ja existia no CSS.
+    const emojiPrio='<i class="fa-solid '+({ok:'fa-circle-check',pendente:'fa-clock',urgente:'fa-circle-exclamation'}[it.prio]||'fa-circle')+'"></i>';
     const dt=it.data?new Date(it.data+'T00:00').toLocaleDateString('pt-BR'):'';
     div.innerHTML=`<div class="manut-prio mp-${it.prio}">${emojiPrio}</div>
       <div style="flex:1"><div class="manut-title">${it.tit}</div><div class="manut-desc">${it.desc} · ${it.resp} · ${dt}</div></div>
-      <div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="abrirModalManut(${it.id})">✏️</button><button class="btn btn-red btn-sm" onclick="excluirManut(${it.id})">🗑️</button></div>`;
+      <div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="abrirModalManut(${it.id})"><i class="fa-solid fa-pen"></i></button><button class="btn btn-red btn-sm" onclick="excluirManut(${it.id})"><i class="fa-solid fa-trash-can"></i></button></div>`;
     lista.appendChild(div);
   });
 }
@@ -7847,8 +7902,8 @@ function renderEventos(){
     div.className='comun-item';
     const acoes = !isAdmin ? '' :
       `<div style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-shrink:0">
-        <button class="btn btn-ghost btn-sm" onclick="abrirModalComun(${it.id})" title="Editar">✏️</button>
-        <button class="btn btn-red btn-sm" onclick="excluirComun(${it.id})" title="Excluir">🗑️</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalComun(${it.id})" title="Editar"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-red btn-sm" onclick="excluirComun(${it.id})" title="Excluir"><i class="fa-solid fa-trash-can"></i></button>
       </div>`;
     div.innerHTML=`<div class="comun-date"><div class="cd-day">${String(d.getDate()).padStart(2,'0')}</div><div class="cd-mon">${d.toLocaleString('pt-BR',{month:'short'})}</div></div>
       <div class="comun-body" style="flex:1"><div class="comun-title">${it.tit} <span class="pill ${pillCls[it.cat]||'pill-blue'}">${it.cat}</span></div><div class="comun-desc">${it.desc}</div></div>
@@ -7922,15 +7977,19 @@ function renderPreventivas(){
     const div=document.createElement('div');
     div.className='manut-item';
     const tipoPill=it.tipo==='Preventiva'?'pill-blue':'pill-amber';
-    const statusMap={pendente:['🟡','pill-amber','Pendente'],em_andamento:['🔵','pill-blue','Em Andamento'],concluida:['✅','pill-green','Concluída']};
-    const prioMap={baixa:'🟢',media:'🟡',alta:'🟠',urgente:'🔴'};
-    const [sEmoji,sPill,sLabel]=statusMap[it.status]||['🟡','pill-amber','Pendente'];
+    // Icone + cor no lugar das bolinhas coloridas de emoji. A cor vem da
+    // classe pill-*, que ja existia; o icone diz o estado a quem nao
+    // distingue as cores.
+    const _i=function(c){ return '<i class="fa-solid '+c+'"></i>'; };
+    const statusMap={pendente:[_i('fa-clock'),'pill-amber','Pendente'],em_andamento:[_i('fa-spinner'),'pill-blue','Em Andamento'],concluida:[_i('fa-circle-check'),'pill-green','Concluída']};
+    const prioMap={baixa:'<i class="fa-solid fa-angle-down" style="color:var(--green)"></i>',media:'<i class="fa-solid fa-minus" style="color:var(--amber)"></i>',alta:'<i class="fa-solid fa-angle-up" style="color:#F0843F"></i>',urgente:'<i class="fa-solid fa-angles-up" style="color:var(--red)"></i>'};
+    const [sEmoji,sPill,sLabel]=statusMap[it.status]||['<i class="fa-solid fa-clock"></i>','pill-amber','Pendente'];
     const dataAb=it.dataAbertura?new Date(it.dataAbertura+'T00:00').toLocaleDateString('pt-BR'):'—';
     const dataPv=it.dataPrev?new Date(it.dataPrev+'T00:00').toLocaleDateString('pt-BR'):'—';
     const custo=it.custo>0?`R$ ${parseFloat(it.custo).toLocaleString('pt-BR',{minimumFractionDigits:2})}`:'—';
     div.innerHTML=`
       <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:40px">
-        <span style="font-size:20px">${prioMap[it.prio]||'🟡'}</span>
+        <span style="font-size:18px">${prioMap[it.prio]||prioMap.media}</span>
         <span style="font-size:10px;color:var(--text-2);text-transform:capitalize">${it.prio||''}</span>
       </div>
       <div style="flex:1;min-width:0">
@@ -7940,17 +7999,17 @@ function renderPreventivas(){
           <span class="pill ${sPill}">${sEmoji} ${sLabel}</span>
         </div>
         <div class="manut-desc" style="margin-top:5px;display:flex;flex-wrap:wrap;gap:10px">
-          <span>📍 ${it.local||'—'}</span>
-          <span>👤 ${it.resp||'—'}</span>
-          <span>📅 Abertura: ${dataAb}</span>
-          <span>🏁 Previsão: ${dataPv}</span>
-          <span>💰 ${custo}</span>
+          <span><i class="fa-solid fa-location-dot"></i> ${it.local||'—'}</span>
+          <span><i class="fa-solid fa-user"></i> ${it.resp||'—'}</span>
+          <span><i class="fa-solid fa-calendar-days"></i> Abertura: ${dataAb}</span>
+          <span><i class="fa-solid fa-flag-checkered"></i> Previsão: ${dataPv}</span>
+          <span><i class="fa-solid fa-sack-dollar"></i> ${custo}</span>
         </div>
         ${it.obs?`<div style="margin-top:6px;font-size:13px;color:var(--text-2);font-style:italic;border-left:2px solid var(--border-h);padding-left:8px">${it.obs}</div>`:''}
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;align-items:flex-start">
-        <button class="btn btn-ghost btn-sm" onclick="abrirModalPrev(${it.id})">✏️</button>
-        <button class="btn btn-red btn-sm" onclick="excluirPrev(${it.id})">🗑️</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalPrev(${it.id})"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-red btn-sm" onclick="excluirPrev(${it.id})"><i class="fa-solid fa-trash-can"></i></button>
       </div>`;
     lista.appendChild(div);
   });
@@ -8335,7 +8394,7 @@ function renderReservas(){
       <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;
         background:${c.ok?'rgba(42,157,111,0.15)':'rgba(255,255,255,0.04)'};
         color:${c.ok?'var(--green-l)':'var(--text-3)'};
-        border:1px solid ${c.ok?'rgba(42,157,111,0.3)':'var(--border)'}">${c.ok?'✓':'○'} ${c.label}</span>
+        border:1px solid ${c.ok?'rgba(42,157,111,0.3)':'var(--border)'}"><i class="fa-solid ${c.ok?'fa-circle-check':'fa-circle'}"></i> ${c.label}</span>
     `).join('');
 
     div.innerHTML=`
@@ -8344,7 +8403,7 @@ function renderReservas(){
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
             <span style="font-size:16px;font-weight:700;color:var(--text)">${escHtml(r.espaco)}</span>
             <span class="pill ${st.pill}" style="font-size:11px">${st.label}</span>
-            ${(r.pgto && (r.taxa>0 || r.pgto==='pago'))?`<span title="Situação do pagamento da taxa" style="font-size:11px;color:${r.pgto==='pago'?'var(--green-l)':r.pgto==='isento'?'var(--text-3)':'var(--gold)'};border:1px solid var(--border);border-radius:6px;padding:2px 8px">💰 Pagamento: ${pgtoMap[r.pgto]||''}</span>`:''}
+            ${(r.pgto && (r.taxa>0 || r.pgto==='pago'))?`<span title="Situação do pagamento da taxa" style="font-size:11px;color:${r.pgto==='pago'?'var(--green-l)':r.pgto==='isento'?'var(--text-3)':'var(--gold)'};border:1px solid var(--border);border-radius:6px;padding:2px 8px"><i class="fa-solid fa-sack-dollar"></i> Pagamento: ${pgtoMap[r.pgto]||''}</span>`:''}
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 20px;margin-bottom:10px">
             <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Morador</span><div style="font-size:13px;color:var(--text);font-weight:600">${escHtml(r.nome)||'—'}</div></div>
@@ -8365,7 +8424,7 @@ function renderReservas(){
           ${(!isMorador && r.status==='pendente')?`
           <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="aprovarReserva(${r.id})"><i class="fa-solid fa-check"></i> Aprovar</button>
           <button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="recusarReserva(${r.id})"><i class="fa-solid fa-xmark"></i> Recusar</button>`:''}
-          ${(r.taxa>0 && r.pgto!=='pago' && r.pgto!=='isento' && _pixChave)?`<button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="abrirPixReserva(${r.id})">💰 Pagar com Pix</button>`:''}
+          ${(r.taxa>0 && r.pgto!=='pago' && r.pgto!=='isento' && _pixChave)?`<button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="abrirPixReserva(${r.id})"><i class="fa-solid fa-sack-dollar"></i> Pagar com Pix</button>`:''}
           ${!isMorador?`<button class="btn btn-ghost btn-sm" onclick="abrirModalRes(${r.id})">Editar</button>`:''}
           ${!isMorador?`<button class="btn btn-ghost btn-sm" onclick="imprimirComprovante(${r.id})"><i class="fa-solid fa-receipt"></i> Comprovante</button>`:''}
           <button class="btn btn-red btn-sm" onclick="excluirRes(${r.id})">Excluir</button>
@@ -8698,7 +8757,7 @@ function renderEncomendas(){
             '<span style="font-size:15px;font-weight:700;color:var(--text)">'+(e.numero?('#'+e.numero+' · '):'')+'Unidade '+escHtml(e.unidade||'—')+'</span>'+
             '<span class="pill '+(aguardando?'pill-amber':'pill-green')+'" style="font-size:11px">'+(aguardando?'Aguardando retirada':'Retirada')+'</span>'+
             (e.registrado?'<span class="pill pill-blue" style="font-size:11px">Registrada'+(e.numeroRegistro?(' '+e.numeroRegistro):'')+'</span>':'')+
-            (aguardando&&e.codigo?('<span style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.3);border-radius:6px;padding:2px 8px">🔑 Código: '+e.codigo+'</span>'):'')+
+            (aguardando&&e.codigo?('<span style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.3);border-radius:6px;padding:2px 8px"><i class="fa-solid fa-key"></i> Código: '+e.codigo+'</span>'):'')+
           '</div>'+
           '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:4px 18px;font-size:13px">'+
             '<div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase">Destinatário</span><div style="color:var(--text)">'+escHtml(e.destinatario||'—')+'</div></div>'+
@@ -9034,7 +9093,7 @@ function _blocoAceiteTermo(r){
   var quem   = (r.criadoPor||'').trim();
   var doc    = (r.termoDoc||'').trim();
 
-  var html='<div class="aceite"><b>✓ Termo de Responsabilidade — aceito</b>'+
+  var html='<div class="aceite"><b><i class="fa-solid fa-check"></i> Termo de Responsabilidade — aceito</b>'+
     '<div>O responsável declarou, no ato da reserva, ter lido e concordado '+
     'com o Termo de Responsabilidade do espaço.</div>'+
     '<div class="ev">';
@@ -9791,12 +9850,12 @@ function addAlertaHorario(dia='mesmo',hora='08:00'){
     <input type="time" value="${hora}" style="width:110px">
     <span style="font-size:13px;color:var(--text-2);white-space:nowrap">do</span>
     <select style="flex:1">
-      <option value="mesmo"${dia==='mesmo'?' selected':''}>📅 dia da reserva</option>
-      <option value="anterior"${dia==='anterior'?' selected':''}>📅 dia anterior</option>
-      <option value="2anterior"${dia==='2anterior'?' selected':''}>📅 2 dias antes</option>
-      <option value="3anterior"${dia==='3anterior'?' selected':''}>📅 3 dias antes</option>
+      <option value="mesmo"${dia==='mesmo'?' selected':''}>dia da reserva</option>
+      <option value="anterior"${dia==='anterior'?' selected':''}>dia anterior</option>
+      <option value="2anterior"${dia==='2anterior'?' selected':''}>2 dias antes</option>
+      <option value="3anterior"${dia==='3anterior'?' selected':''}>3 dias antes</option>
     </select>
-    <button type="button" onclick="removerAlertaHorario('${id}')" class="btn btn-red btn-sm" style="padding:5px 9px">✕</button>
+    <button type="button" onclick="removerAlertaHorario('${id}')" class="btn btn-red btn-sm" style="padding:5px 9px"><i class="fa-solid fa-xmark"></i></button>
   `;
   cont.appendChild(div);
   atualizarEmptyHorarios();
@@ -9983,7 +10042,7 @@ function verificarAlertas(){
       <div class="alert-banner-head">
         <div class="alert-banner-title"><i class="fa-solid fa-bell" style="margin-right:6px"></i>${urgentes.length?`${urgentes.length} alerta${urgentes.length>1?'s':''} ativo${urgentes.length>1?'s':''}`:''} ${futuros.length?`${urgentes.length?'+ ':''}${futuros.length} próximo${futuros.length>1?'s':''}`:''}
         </div>
-        <button onclick="dispensarAlertas()" class="btn btn-ghost btn-sm" style="margin-left:auto">✕ Dispensar</button>
+        <button onclick="dispensarAlertas()" class="btn btn-ghost btn-sm" style="margin-left:auto"><i class="fa-solid fa-xmark"></i> Dispensar</button>
       </div>
       ${urgentes.map(renderItem).join('')}
       ${futuros.length?`<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin:${urgentes.length?'12px':'0'} 0 8px">Próximos alertas agendados</div>${futuros.slice(0,5).map(renderItem).join('')}`:''}
@@ -10040,15 +10099,15 @@ function renderReg(){
 
   // Categorias disponíveis
   const CAT_CFG = {
-    'Regulamento': {cor:'#E87722', bg:'rgba(232,119,34,0.12)', icon:'📋'},
-    'Convenção':   {cor:'#5B9CF6', bg:'rgba(91,156,246,0.12)', icon:'📜'},
-    'Ata':         {cor:'#2A9D6F', bg:'rgba(42,157,111,0.12)', icon:'📝'},
-    'Contrato':    {cor:'#F0A843', bg:'rgba(240,168,67,0.12)', icon:'🤝'},
-    'Comunicado':  {cor:'#5B9CF6', bg:'rgba(91,156,246,0.12)', icon:'📣'},
-    'Portaria':    {cor:'#a78bfa', bg:'rgba(167,139,250,0.12)', icon:'🚪'},
-    'Manutenção':  {cor:'#F0A843', bg:'rgba(240,168,67,0.12)', icon:'🔧'},
-    'Obras':       {cor:'#e07070', bg:'rgba(224,112,112,0.12)', icon:'🏗️'},
-    'Outro':       {cor:'#94a3b8', bg:'rgba(148,163,184,0.12)', icon:'📄'},
+    'Regulamento': {cor:'#E87722', bg:'rgba(232,119,34,0.12)', icon:'fa-clipboard-list'},
+    'Convenção':   {cor:'#5B9CF6', bg:'rgba(91,156,246,0.12)', icon:'fa-scroll'},
+    'Ata':         {cor:'#2A9D6F', bg:'rgba(42,157,111,0.12)', icon:'fa-file-pen'},
+    'Contrato':    {cor:'#F0A843', bg:'rgba(240,168,67,0.12)', icon:'fa-handshake'},
+    'Comunicado':  {cor:'#5B9CF6', bg:'rgba(91,156,246,0.12)', icon:'fa-bullhorn'},
+    'Portaria':    {cor:'#a78bfa', bg:'rgba(167,139,250,0.12)', icon:'fa-door-open'},
+    'Manutenção':  {cor:'#F0A843', bg:'rgba(240,168,67,0.12)', icon:'fa-wrench'},
+    'Obras':       {cor:'#e07070', bg:'rgba(224,112,112,0.12)', icon:'fa-helmet-safety'},
+    'Outro':       {cor:'#94a3b8', bg:'rgba(148,163,184,0.12)', icon:'fa-file-lines'},
   };
 
   // Renderiza filtros de categoria
@@ -10060,7 +10119,7 @@ function renderReg(){
     filtrosEl.innerHTML = cats.map(c=>`
       <button onclick="setRegCat('${c}',this)"
         style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:${c==='Todas'?'var(--gold)':'var(--ink-3)'};color:${c==='Todas'?'#000':'var(--text-2)'};font-size:12px;font-weight:600;cursor:pointer;transition:all 0.18s"
-        data-cat="${c}">${c==='Todas'?'Todas':''}${CAT_CFG[c]?CAT_CFG[c].icon+' ':''} ${c}</button>
+        data-cat="${c}">${c==='Todas'?'Todas':''}${CAT_CFG[c]?'<i class="fa-solid '+CAT_CFG[c].icon+'"></i> ':''}${c}</button>
     `).join('');
   }
 
@@ -10079,7 +10138,7 @@ function renderReg(){
   if(!docsFiltrados.length){
     lista.style.display='block';
     lista.innerHTML=`<div style="text-align:center;padding:60px 20px;color:var(--text-3);grid-column:1/-1">
-      <div style="font-size:48px;margin-bottom:16px">📭</div>
+      <div style="font-size:48px;margin-bottom:16px"><i class="fa-solid fa-inbox"></i></div>
       <div style="font-size:16px;font-weight:600;margin-bottom:8px">${docs.length?'Nenhum tópico encontrado':'Nenhum tópico cadastrado ainda'}</div>
       <div style="font-size:13px">${docs.length?'Tente outro filtro ou busca.':isMorador?'A administração ainda não publicou documentos.':'Clique em "+ Adicionar Tópico" para começar.'}</div>
     </div>`;
@@ -10106,7 +10165,7 @@ function renderReg(){
       <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,${cfg.cor}88,transparent);border-radius:16px 16px 0 0"></div>
       <!-- Header: icon + category -->
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;margin-top:4px">
-        <div style="width:44px;height:44px;border-radius:12px;background:${cfg.bg};border:1px solid ${cfg.cor}33;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">${cfg.icon}</div>
+        <div style="width:44px;height:44px;border-radius:12px;background:${cfg.bg};border:1px solid ${cfg.cor}33;display:flex;align-items:center;justify-content:center;font-size:19px;color:${cfg.cor};flex-shrink:0"><i class="fa-solid ${cfg.icon}"></i></div>
         <span style="padding:4px 12px;border-radius:20px;background:${cfg.bg};border:1px solid ${cfg.cor}44;font-size:11px;font-weight:700;color:${cfg.cor};letter-spacing:0.5px">${d.cat||'Documento'}</span>
       </div>
       <!-- Title + desc -->
@@ -10127,8 +10186,8 @@ function renderReg(){
         </div>
         <div style="display:flex;gap:6px">
           ${temArquivo?`<button class="btn btn-ghost btn-sm" onclick="baixarPDF(${d.id})" style="font-size:12px;padding:5px 10px">Ler completo →</button>`:''}
-          ${!isMorador?`<button class="btn btn-ghost btn-sm" onclick="editarReg(${d.id})" style="font-size:12px;padding:5px 8px">✏️</button>`:''}
-          ${!isMorador?`<button class="btn btn-red btn-sm" onclick="excluirReg(${d.id})" style="font-size:12px;padding:5px 8px">🗑️</button>`:''}
+          ${!isMorador?`<button class="btn btn-ghost btn-sm" onclick="editarReg(${d.id})" style="font-size:12px;padding:5px 8px"><i class="fa-solid fa-pen"></i></button>`:''}
+          ${!isMorador?`<button class="btn btn-red btn-sm" onclick="excluirReg(${d.id})" style="font-size:12px;padding:5px 8px"><i class="fa-solid fa-trash-can"></i></button>`:''}
         </div>
       </div>
     `;
@@ -10181,7 +10240,7 @@ function editarReg(id){
   $('mreg-arquivo').value='';
   const hasFile = !!(d.nome);
   $('mreg-arquivo-nome').style.display=hasFile?'block':'none';
-  $('mreg-arquivo-nome').textContent=hasFile?('📎 '+d.nome):'';
+  $('mreg-arquivo-nome').textContent=hasFile?d.nome:'';
   $('mreg-pdf-preview').style.display=d.texto?'':'none';
   $('mreg-pdf-texto').textContent=d.texto||'';
   $('mreg-t').textContent='Editar Tópico';
@@ -10200,7 +10259,7 @@ function selecionarArquivo(input){
 
   _regFile = file;
   _regPDFNome = file.name;
-  $('mreg-arquivo-nome').textContent = '📎 ' + file.name;
+  $('mreg-arquivo-nome').textContent = file.name;
   $('mreg-arquivo-nome').style.display = 'block';
   $('mreg-pdf-preview').style.display  = 'none';
   $('mreg-pdf-texto').textContent = '';
@@ -10510,10 +10569,10 @@ function atualizarStatusCfg(){
   const zEl = $('cfg-zapi-status');
   const eEl = $('cfg-ejs-status');
   if(zEl) zEl.innerHTML = zapiOk
-    ? '<span style="color:#25D366;font-weight:600">✓ Configurado</span>'
+    ? '<span style="color:#25D366;font-weight:600"><i class="fa-solid fa-check"></i> Configurado</span>'
     : '<span style="color:var(--text-3)">Não configurado</span>';
   if(eEl) eEl.innerHTML = ejsOk
-    ? '<span style="color:var(--blue);font-weight:600">✓ Configurado</span>'
+    ? '<span style="color:var(--blue);font-weight:600"><i class="fa-solid fa-check"></i> Configurado</span>'
     : '<span style="color:var(--text-3)">Não configurado</span>';
 }
 
@@ -11680,7 +11739,7 @@ function pesquisarReg(){
     div.onmouseleave=()=>div.style.borderColor='var(--border)';
 
     const isDOCX = (doc.nome||'').toLowerCase().endsWith('.docx');
-    const fileIcon = isDOCX ? '📝' : '📄';
+    const fileIcon = '<i class="fa-solid '+(isDOCX?'fa-file-word':'fa-file-pdf')+'"></i>';
     const ocLabel = totalOcorrencias===1
       ? '1 ocorrência'
       : `${totalOcorrencias} ocorrências`
@@ -11698,7 +11757,7 @@ function pesquisarReg(){
         ${trechos.length?`<span style="font-size:11px;color:var(--text-3);margin-left:auto">${ocLabel}</span>`:''}
       </div>
       ${tretchosHTML}
-      ${(doc.storagePath||doc.storageUrl||doc.b64)?`<button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="baixarPDF(${doc.id})">⬇ Baixar ${isDOCX?'Word':'PDF'}</button>`:''}
+      ${(doc.storagePath||doc.storageUrl||doc.b64)?`<button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="baixarPDF(${doc.id})"><i class="fa-solid fa-download"></i> Baixar ${isDOCX?'Word':'PDF'}</button>`:''}
     `;
     lista.appendChild(div);
   });
@@ -11915,7 +11974,7 @@ function _iaPintar(){
     var temDoc = _iaBaseDocs().length > 0;
     box.innerHTML = '<div class="ia-vazio">'
       + (temDoc
-          ? '🤖 Faça uma pergunta sobre as regras do condomínio.<br>Eu procuro nos regulamentos anexados e respondo citando o artigo.'
+          ? '<i class="fa-solid fa-robot"></i> Faça uma pergunta sobre as regras do condomínio.<br>Eu procuro nos regulamentos anexados e respondo citando o artigo.'
           : '📄 Ainda não há documento com texto cadastrado em <strong>Regulamentos</strong>.<br>Anexe o regulamento em PDF ou Word para eu poder consultar.<br><span style="font-size:12px">PDF escaneado (foto do papel) não tem texto para ler — precisa ser um PDF de texto.</span>')
       + '</div>';
     return;
@@ -11923,7 +11982,7 @@ function _iaPintar(){
   box.innerHTML = _iaHist.map(function(m){
     var cls = m.quem==='eu' ? 'eu' : (m.quem==='erro' ? 'bot erro' : 'bot');
     var fontes = (m.fontes && m.fontes.length)
-      ? '<div class="ia-fonte">📄 Consultei: ' + escHtml(m.fontes.join(' · ')) + '</div>'
+      ? '<div class="ia-fonte"><i class="fa-solid fa-file-lines"></i> Consultei: ' + escHtml(m.fontes.join(' · ')) + '</div>'
       : '';
     return '<div class="ia-msg '+cls+'">' + escHtml(m.texto) + fontes + '</div>';
   }).join('');
@@ -12093,11 +12152,11 @@ function _igFormataTel(numero){
 
 function _igCard(id, icone, titulo, corpoHTML, editavel){
   var botao = (editavel && _igPodeEditar() && !_igEditando)
-    ? '<button class="btn btn-ghost btn-sm" onclick="igEditar(\'' + id + '\')">✏️ Editar</button>'
+    ? '<button class="btn btn-ghost btn-sm" onclick="igEditar(\'' + id + '\')"><i class="fa-solid fa-pen"></i> Editar</button>'
     : '';
   return '<div class="card ig-card">'
     + '<div class="card-head">'
-    +   '<div class="card-title"><div class="card-icon">' + icone + '</div>' + escHtml(titulo) + '</div>'
+    +   '<div class="card-title"><div class="card-icon"><i class="fa-solid ' + icone + '"></i></div>' + escHtml(titulo) + '</div>'
     +   botao
     + '</div>'
     + corpoHTML
@@ -12106,7 +12165,7 @@ function _igCard(id, icone, titulo, corpoHTML, editavel){
 
 function _igBotoesEdicao(salvar){
   return '<div class="ig-acoes">'
-    + '<button class="btn btn-gold btn-sm" onclick="' + salvar + '">💾 Salvar</button>'
+    + '<button class="btn btn-gold btn-sm" onclick="' + salvar + '"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>'
     + '<button class="btn btn-ghost btn-sm" onclick="igCancelar()">Cancelar</button>'
     + '</div>';
 }
@@ -12140,11 +12199,11 @@ function _igLinhaTelefone(t, i, comWhats){
 // numa coluna só e, no celular, achar o telefone da portaria exigia rolar
 // a história do condomínio inteira.
 var _IG_ABAS = [
-  { id:'historia',   icone:'🏛️', rotulo:'História'        },
-  { id:'mapa',       icone:'🗺️', rotulo:'Mapa'            },
-  { id:'telefones',  icone:'📞', rotulo:'Telefones úteis' },
-  { id:'horarios',   icone:'🕗', rotulo:'Horários'        },
-  { id:'emergencia', icone:'🚨', rotulo:'Emergência'      },
+  { id:'historia',   icone:'fa-landmark',              rotulo:'História'        },
+  { id:'mapa',       icone:'fa-map',                   rotulo:'Mapa'            },
+  { id:'telefones',  icone:'fa-phone',                 rotulo:'Telefones úteis' },
+  { id:'horarios',   icone:'fa-clock',                 rotulo:'Horários'        },
+  { id:'emergencia', icone:'fa-truck-medical',         rotulo:'Emergência'      },
 ];
 var _igAba = 'historia';
 
@@ -12161,7 +12220,7 @@ function _igBarraAbas(){
     + _IG_ABAS.map(function(a){
         return '<button class="tab' + (_igAba === a.id ? ' active' : '') + '" '
              + 'onclick="igAbrirAba(\'' + a.id + '\')">'
-             + a.icone + ' ' + escHtml(a.rotulo) + '</button>';
+             + '<i class="fa-solid ' + a.icone + '"></i> ' + escHtml(a.rotulo) + '</button>';
       }).join('')
     + '</div>';
 }
@@ -12169,7 +12228,7 @@ function _igBarraAbas(){
 /* ── Conteúdo de cada aba ── */
 
 function _igAbaHistoria(d){
-  return _igCard('historia', '🏛️', 'História do condomínio',
+  return _igCard('historia', 'fa-landmark', 'História do condomínio',
     _igEditando === 'historia'
       ? '<textarea id="ig-in-historia" class="ig-input" rows="12" placeholder="Conte a história do condomínio…">'
         + escHtml(d.historia||'') + '</textarea>' + _igBotoesEdicao('igSalvarHistoria()')
@@ -12183,10 +12242,10 @@ function _igAbaMapa(d){
     corpo = '<input type="file" id="ig-in-mapa" accept="application/pdf,.pdf" class="ig-input">'
       + '<div class="ig-dica">Arquivo PDF. Substitui o mapa atual, se houver.</div>'
       + _igBotoesEdicao('igSalvarMapa()')
-      + (d.mapa ? '<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="igRemoverMapa()">🗑 Remover o mapa atual</button>' : '');
+      + (d.mapa ? '<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="igRemoverMapa()"><i class="fa-solid fa-trash-can"></i> Remover o mapa atual</button>' : '');
   } else if(d.mapa && d.mapa.storagePath){
     corpo = '<div class="ig-arquivo">'
-      + '<span style="font-size:22px">🗺️</span>'
+      + '<i class="fa-solid fa-map" style="font-size:20px;color:var(--gold)"></i>'
       + '<div style="min-width:0;flex:1"><div class="ig-arquivo-nome">' + escHtml(d.mapa.nome||'mapa.pdf') + '</div>'
       + '<div class="ig-dica">Mapa do loteamento em PDF</div></div>'
       + '<button class="btn btn-gold btn-sm" onclick="igAbrirMapa()">Abrir</button>'
@@ -12194,7 +12253,7 @@ function _igAbaMapa(d){
   } else {
     corpo = _igVazio('Nenhum mapa anexado.');
   }
-  return _igCard('mapa', '🗺️', 'Mapa do loteamento', corpo, true);
+  return _igCard('mapa', 'fa-map', 'Mapa do loteamento', corpo, true);
 }
 
 function _igAbaTelefones(d){
@@ -12210,17 +12269,17 @@ function _igAbaTelefones(d){
       ? (d.telefones||[]).map(function(t,i){ return _igLinhaTelefone(t,i,true); }).join('')
       : _igVazio('Nenhum telefone cadastrado.');
   }
-  return _igCard('telefones', '📞', 'Telefones úteis', corpo, true);
+  return _igCard('telefones', 'fa-phone', 'Telefones úteis', corpo, true);
 }
 
 function _igAbaHorarios(d){
-  return _igCard('horarioAdm', '🕗', 'Horário de funcionamento da administração',
+  return _igCard('horarioAdm', 'fa-clock', 'Horário de funcionamento da administração',
       _igEditando === 'horarioAdm'
         ? '<textarea id="ig-in-horarioAdm" class="ig-input" rows="4">' + escHtml(d.horarioAdm||'') + '</textarea>'
           + _igBotoesEdicao('igSalvarCampo(\'horarioAdm\')')
         : _igTexto(d.horarioAdm, 'Horário não informado.'),
       true)
-   + _igCard('horarioPortaria', '🛡️', 'Horário da portaria',
+   + _igCard('horarioPortaria', 'fa-shield-halved', 'Horário da portaria',
       _igEditando === 'horarioPortaria'
         ? '<textarea id="ig-in-horarioPortaria" class="ig-input" rows="3">' + escHtml(d.horarioPortaria||'') + '</textarea>'
           + _igBotoesEdicao('igSalvarCampo(\'horarioPortaria\')')
@@ -12242,7 +12301,7 @@ function _igAbaEmergencia(d){
       ? (d.emergencia||[]).map(function(t,i){ return _igLinhaTelefone(t,i,false); }).join('')
       : _igVazio('Nenhum contato cadastrado.');
   }
-  return _igCard('emergencia', '🚨', 'Contatos de emergência', corpo, true);
+  return _igCard('emergencia', 'fa-truck-medical', 'Contatos de emergência', corpo, true);
 }
 
 function renderInfoGerais(){
@@ -12303,7 +12362,7 @@ function _igFormTelefone(t, i, comWhats){
           + '<input type="checkbox" class="ig-f-whats"' + (t.whats ? ' checked' : '') + '> '
           + '<i class="fa-brands fa-whatsapp"></i> WhatsApp</label>'
         : '')
-    + '<button class="btn btn-ghost btn-sm ig-f-del" onclick="igRemoverLinha(this)" title="Remover">🗑</button>'
+    + '<button class="btn btn-ghost btn-sm ig-f-del" onclick="igRemoverLinha(this)" title="Remover"><i class="fa-solid fa-trash-can"></i></button>'
     + '</div>';
 }
 
@@ -12383,7 +12442,7 @@ async function igSalvarMapa(){
   }catch(e){
     toast('⚠️ Não consegui enviar o mapa: ' + (e && e.message ? e.message : 'tente novamente.'));
   }finally{
-    if(btn){ btn.disabled = false; btn.textContent = '💾 Salvar'; }
+    if(btn){ btn.disabled = false; btn.textContent = 'Salvar'; }
   }
 }
 
@@ -12634,8 +12693,8 @@ function renderInadimplencia(){
       <td style="color:var(--text-2)">${ultimoPagFmt}</td>
       <td>${statusLabel[i.status]||i.status}</td>
       <td><div style="display:flex;gap:6px">
-        <button class="btn btn-ghost btn-sm" onclick="abrirModalInad(${i.id})">✏️</button>
-        <button class="btn btn-red btn-sm" onclick="excluirInad(${i.id})">🗑️</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalInad(${i.id})"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-red btn-sm" onclick="excluirInad(${i.id})"><i class="fa-solid fa-trash-can"></i></button>
       </div></td>`;
     tb.appendChild(tr);
   });
@@ -13094,7 +13153,7 @@ function _renderInfLista(lista, isAdmin, autoLoad){
   el.innerHTML=lista.map(function(inf){
     var infJson=JSON.stringify(inf).replace(/"/g,'&quot;');
     var adminBtns=isAdmin
-      ? '<button onclick="event.stopPropagation();excluirInformativo('+inf.edicao+')" style="background:rgba(224,82,82,0.1);color:var(--red);border:1px solid rgba(224,82,82,0.2);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;flex-shrink:0" title="Excluir">🗑</button>'
+      ? '<button onclick="event.stopPropagation();excluirInformativo('+inf.edicao+')" style="background:rgba(224,82,82,0.1);color:var(--red);border:1px solid rgba(224,82,82,0.2);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;flex-shrink:0" title="Excluir"><i class="fa-solid fa-trash-can"></i></button>'
       : '';
     return '<div class="inf-card-row" data-edicao="'+inf.edicao+'"'+
       ' onclick="abrirPdfViewer(JSON.parse(this.dataset.infJson))"'+
@@ -13104,7 +13163,7 @@ function _renderInfLista(lista, isAdmin, autoLoad){
       ' onmouseleave="if(this.style.borderLeftColor!==\'rgb(200, 168, 75)\')this.style.background=\'\'"'+
       '>'+
       '<div style="width:38px;height:46px;border-radius:7px;background:linear-gradient(135deg,#1A2E18,#2D4A28);border:1px solid rgba(232,119,34,0.25);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;gap:1px">'+
-        '<span style="font-size:13px">📰</span>'+
+        '<span style="font-size:13px"><i class="fa-solid fa-newspaper"></i></span>'+
         '<span style="font-size:8px;font-weight:800;color:var(--gold)">ED.'+inf.edicao+'</span>'+
       '</div>'+
       '<div style="min-width:0;flex:1">'+
@@ -13148,7 +13207,7 @@ function editarInformativoAtual(){
   document.getElementById('inf-titulo').value=inf.titulo||'';
   document.getElementById('inf-data').value=inf.data||'';
   document.getElementById('inf-pdf-input').value='';
-  document.getElementById('inf-drop-icon').textContent='📎';
+  document.getElementById('inf-drop-icon').innerHTML='<i class="fa-solid fa-paperclip"></i>';
 
   // Verifica se já tem PDF salvo no Firestore
   var nomeEl = document.getElementById('inf-pdf-nome');
@@ -13158,7 +13217,7 @@ function editarInformativoAtual(){
     _infMeta().then(function(mapa){
       var m=mapa[String(inf.edicao)];
       if(m && m.temPdf){
-        nomeEl.textContent='✅ PDF atual mantido — selecione outro apenas para substituir';
+        nomeEl.textContent='PDF atual mantido — selecione outro apenas para substituir';
         nomeEl.style.color='var(--green-l)';
         document.getElementById('inf-drop-icon').textContent='✅';
       } else {
@@ -13172,7 +13231,7 @@ function editarInformativoAtual(){
   }
 
   var modalTitle = m.querySelector('.modal-title');
-  if(modalTitle) modalTitle.textContent='✏️ Editar Edição '+inf.edicao;
+  if(modalTitle) modalTitle.textContent='Editar Edição '+inf.edicao;
   var btnSalvar = m.querySelector('.btn-gold');
   if(btnSalvar) btnSalvar.textContent='✓ Salvar Alterações';
   m.classList.add('open');
@@ -13188,9 +13247,9 @@ function abrirModalInformativo(){
   document.getElementById('inf-pdf-input').value='';
   document.getElementById('inf-pdf-nome').textContent='Nenhum arquivo selecionado';
   document.getElementById('inf-pdf-nome').style.color='var(--text-3)';
-  document.getElementById('inf-drop-icon').textContent='📎';
+  document.getElementById('inf-drop-icon').innerHTML='<i class="fa-solid fa-paperclip"></i>';
   var modalTitle = m.querySelector('.modal-title');
-  if(modalTitle) modalTitle.textContent='📰 Adicionar Edição';
+  if(modalTitle) modalTitle.textContent='Adicionar Edição';
   var btnSalvar = m.querySelector('.btn-gold');
   if(btnSalvar) btnSalvar.textContent='✓ Publicar Informativo';
   m.classList.add('open');
@@ -13585,8 +13644,8 @@ async function excluirUsuario(docId){
 <!-- ══ MODAL ADICIONAR INFORMATIVO ══ -->
 <div class="modal-ov" id="m-inf" onclick="if(event.target===this)fecharModalInformativo()">
   <div class="modal" style="width:520px">
-    <div class="modal-close-x" onclick="fecharModalInformativo()">✕</div>
-    <div class="modal-title">📰 Adicionar Edição</div>
+    <div class="modal-close-x" onclick="fecharModalInformativo()"><i class="fa-solid fa-xmark"></i></div>
+    <div class="modal-title"><i class="fa-solid fa-newspaper"></i> Adicionar Edição</div>
     <div class="modal-sub">Preencha os dados e anexe o PDF do informativo</div>
 
     <div class="form-grid">
@@ -13612,7 +13671,7 @@ async function excluirUsuario(docId){
                  padding:22px 18px;text-align:center;cursor:pointer;
                  background:rgba(232,119,34,0.03);transition:all 0.2s;
                  display:flex;flex-direction:column;align-items:center;gap:8px">
-          <span id="inf-drop-icon" style="font-size:28px">📎</span>
+          <span id="inf-drop-icon" style="font-size:28px"><i class="fa-solid fa-paperclip"></i></span>
           <span style="font-size:13px;font-weight:600;color:var(--text-2)">Clique ou arraste o PDF aqui</span>
           <span id="inf-pdf-nome" style="font-size:12px;color:var(--text-3)">Nenhum arquivo selecionado</span>
         </div>
@@ -13623,7 +13682,7 @@ async function excluirUsuario(docId){
 
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="fecharModalInformativo()">Cancelar</button>
-      <button class="btn btn-gold" onclick="salvarInformativo()">✓ Publicar Informativo</button>
+      <button class="btn btn-gold" onclick="salvarInformativo()"><i class="fa-solid fa-check"></i> Publicar Informativo</button>
     </div>
   </div>
 </div>
@@ -13812,7 +13871,7 @@ async function excluirUsuario(docId){
     var grid = document.getElementById('proc-grid');
     if(!grid) return;
     if(!data.length){
-      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-3)"><div style="font-size:40px;margin-bottom:12px;opacity:0.3">🔍</div><p>Nenhum procedimento encontrado.</p></div>';
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text-3)"><div style="font-size:40px;margin-bottom:12px;opacity:0.3"><i class="fa-solid fa-magnifying-glass"></i></div><p>Nenhum procedimento encontrado.</p></div>';
       return;
     }
     grid.innerHTML = data.map(function(p){
@@ -13910,7 +13969,7 @@ async function excluirUsuario(docId){
   window.abrirFormProc = function(id){
     var p = id ? PROCEDIMENTOS.find(function(x){return x.id===id;}) : null;
     var mf = document.getElementById('mf-titulo');
-    if(mf) mf.textContent = p ? '✏️ Editar Procedimento' : '➕ Novo Procedimento';
+    if(mf) mf.textContent = p ? 'Editar Procedimento' : 'Novo Procedimento';
 
     // Preenche campos
     _setVal('mf-cat',      p ? p.categoria   : 'Reservas');
@@ -13982,7 +14041,7 @@ async function excluirUsuario(docId){
     inp.addEventListener('blur',  function(){ this.style.borderColor='var(--border)'; });
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.textContent = '✕';
+    btn.textContent = '\u00d7';
     btn.style.cssText = 'padding:8px 10px;border-radius:var(--radius-sm);background:rgba(224,82,82,0.1);border:1px solid rgba(224,82,82,0.2);color:var(--red);cursor:pointer;font-size:12px;flex-shrink:0';
     btn.onclick = function(){ div.remove(); };
     div.appendChild(inp);
@@ -14126,14 +14185,14 @@ async function excluirUsuario(docId){
           '<div class="af-gal-body">'+
             '<div class="af-slot-num">Foto '+(idx+1)+' de 12</div>'+
             '<input type="text" class="af-lbl-field" id="af-glbl-'+idx+'" placeholder="Legenda" value="'+AF_DEFAULTS[idx].label+'">'+
-            '<div class="af-up-area"><div class="af-up-icon">📁</div><div class="af-up-txt">Anexar foto</div>'+
+            '<div class="af-up-area"><div class="af-up-icon"><i class="fa-solid fa-folder-open"></i></div><div class="af-up-txt">Anexar foto</div>'+
               '<input type="file" accept="image/*" onchange="afHandleFile(this,\''+idx+'\')">'+
             '</div>'+
             '<div class="af-or-div">— ou URL —</div>'+
             '<input type="text" class="af-url-field" id="af-gurl-'+idx+'" placeholder="https://..." oninput="afPreviewUrl(this.value,\''+idx+'\')">'+
             '<div class="af-slot-acts">'+
-              '<button class="af-btn-save" id="af-gsave-'+idx+'" onclick="afSaveSlot(\''+idx+'\')">💾 Salvar</button>'+
-              '<button class="af-btn-reset" onclick="afResetSlot(\''+idx+'\')">↺</button>'+
+              '<button class="af-btn-save" id="af-gsave-'+idx+'" onclick="afSaveSlot(\''+idx+'\')"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>'+
+              '<button class="af-btn-reset" onclick="afResetSlot(\''+idx+'\')"><i class="fa-solid fa-rotate-left"></i></button>'+
             '</div>'+
           '</div>';
         g.appendChild(c);
@@ -14148,14 +14207,14 @@ async function excluirUsuario(docId){
           '<img id="af-sobre-gimg-'+idx+'" src="'+AF_SOBRE_DEFAULTS[idx]+'" class="af-gal-thumb" alt="Slide '+(idx+1)+'">'+
           '<div class="af-gal-body">'+
             '<div class="af-slot-num">Slide '+(idx+1)+' de 4</div>'+
-            '<div class="af-up-area"><div class="af-up-icon">📁</div><div class="af-up-txt">Anexar foto</div>'+
+            '<div class="af-up-area"><div class="af-up-icon"><i class="fa-solid fa-folder-open"></i></div><div class="af-up-txt">Anexar foto</div>'+
               '<input type="file" accept="image/*" onchange="afHandleFile(this,\'sobre_'+idx+'\')">'+
             '</div>'+
             '<div class="af-or-div">— ou URL —</div>'+
             '<input type="text" class="af-url-field" id="af-sobre-gurl-'+idx+'" placeholder="https://..." oninput="afPreviewUrl(this.value,\'sobre_'+idx+'\')">'+
             '<div class="af-slot-acts">'+
-              '<button class="af-btn-save" id="af-sobre-gsave-'+idx+'" onclick="afSaveSlot(\'sobre_'+idx+'\')">💾 Salvar</button>'+
-              '<button class="af-btn-reset" onclick="afResetSlot(\'sobre_'+idx+'\')">↺</button>'+
+              '<button class="af-btn-save" id="af-sobre-gsave-'+idx+'" onclick="afSaveSlot(\'sobre_'+idx+'\')"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>'+
+              '<button class="af-btn-reset" onclick="afResetSlot(\'sobre_'+idx+'\')"><i class="fa-solid fa-rotate-left"></i></button>'+
             '</div>'+
           '</div>';
         s.appendChild(c);
@@ -14298,7 +14357,7 @@ async function excluirUsuario(docId){
     for(var i=0;i<4;i++) await window.afSaveSlot('sobre_'+i);
     for(var i=0;i<12;i++) await window.afSaveSlot(String(i));
     toast('✅ Todas as fotos foram salvas!');
-    if(btn){ btn.disabled=false; btn.textContent='💾 Salvar Tudo'; }
+    if(btn){ btn.disabled=false; btn.textContent='Salvar Tudo'; }
   };
 
   /* Reset slot */
