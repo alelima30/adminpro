@@ -12111,10 +12111,66 @@ function getInfoGerais(){
   return d;
 }
 
-function _igSalvar(d){
-  try{ S('infogerais', d); }
-  catch(e){ toast('⚠️ Erro ao salvar: ' + (e && e.message ? e.message : 'tente novamente.')); return false; }
-  return true;
+/* Grava e SO diz que salvou depois que o servidor confirmou.
+
+   Antes usava S(), que envia sem esperar resposta: se o servidor recusasse
+   (permissao, rede, campo invalido), o erro ia parar no console e a tela
+   dizia "salvo". O telefone ficava so na memoria deste aparelho e sumia no
+   proximo acesso — exatamente o defeito relatado: cadastra, sai da tela,
+   os dados somem.
+
+   Em caso de recusa, desfaz no aparelho e mostra o motivo. Um dado que so
+   existe num celular e pior que um erro visivel: a administracao acha que
+   avisou o condominio inteiro e nao avisou. */
+/* Fecha a edicao e avisa — mas so depois do servidor confirmar.
+   Se recusar, _igSalvar ja desfez e mostrou o motivo; aqui nao se diz
+   "salvo" para nao contradizer a mensagem de erro. */
+function _igConcluir(d, mensagem){
+  _igSalvar(d, function(ok){
+    if(!ok) return;
+    _igEditando = '';
+    renderInfoGerais();
+    toast('✓ ' + mensagem);
+  });
+}
+
+function _igSalvar(d, aoConcluir){
+  var antesCache = DB_CACHE['infogerais'];
+  var antesLocal = null;
+  try{ antesLocal = localStorage.getItem('apvc_infogerais'); }catch(_){}
+
+  DB_CACHE['infogerais'] = d;
+  try{ localStorage.setItem('apvc_infogerais', JSON.stringify(d)); }catch(_){}
+
+  function desfazer(motivo){
+    if(antesCache === undefined) delete DB_CACHE['infogerais'];
+    else DB_CACHE['infogerais'] = antesCache;
+    try{
+      if(antesLocal === null) localStorage.removeItem('apvc_infogerais');
+      else localStorage.setItem('apvc_infogerais', antesLocal);
+    }catch(_){}
+    toast('⚠️ O servidor recusou: ' + motivo + '. Nada foi salvo.');
+    _igEditando = '';
+    renderInfoGerais();
+  }
+
+  if(!window.SB){
+    // Sem conexao: fica so neste aparelho, e a pessoa precisa saber disso.
+    toast('⚠️ Sem conexão com o servidor. Salvo apenas neste aparelho.');
+    if(aoConcluir) aoConcluir(true);
+    return;
+  }
+
+  SB.from('modulo_dados')
+    .upsert({ condominio_id:_condAtual, modulo:'infogerais', valor:d }, { onConflict:'condominio_id,modulo' })
+    .then(function(r){
+      if(r.error){ desfazer(r.error.message); if(aoConcluir) aoConcluir(false); return; }
+      if(aoConcluir) aoConcluir(true);
+    })
+    .catch(function(e){
+      desfazer((e && e.message) ? e.message : 'falha de rede');
+      if(aoConcluir) aoConcluir(false);
+    });
 }
 
 /* ── Telefone ── */
@@ -12308,14 +12364,13 @@ function renderInfoGerais(){
   var alvo = $('ig-conteudo');
   if(!alvo) return;
 
-  var d = getInfoGerais();
-  if(!d){
-    // Primeira vez neste condomínio: grava o ponto de partida para a
-    // administração já encontrar os horários e os telefones de emergência
-    // prontos. Morador não grava (o banco recusaria) — só vê.
-    d = _igPadrao();
-    if(_igPodeEditar()) _igSalvar(d);
-  }
+  // O ponto de partida (horarios, contatos de emergencia) e apenas EXIBIDO
+  // enquanto nao houver registro gravado. Antes ele era gravado sozinho ao
+  // abrir a tela — e, se a tela abrisse antes de os dados do banco
+  // chegarem, esse "padrao" era gravado POR CIMA do que ja existia,
+  // apagando telefones ja cadastrados. Agora so grava quando a
+  // administracao salva de fato.
+  var d = getInfoGerais() || _igPadrao();
 
   var sub = $('ig-sub');
   if(sub){
@@ -12345,7 +12400,7 @@ function igSalvarCampo(campo){
   if(!el) return;
   var d = getInfoGerais() || _igPadrao();
   d[campo] = el.value.trim();
-  if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Salvo.'); }
+  _igConcluir(d, 'Salvo.');
 }
 
 function igSalvarHistoria(){ igSalvarCampo('historia'); }
@@ -12412,7 +12467,7 @@ function igSalvarTelefones(){
   }
   var d = getInfoGerais() || _igPadrao();
   d.telefones = lista;
-  if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Telefones salvos.'); }
+  _igConcluir(d, 'Telefones salvos.');
 }
 
 function igSalvarEmergencia(){
@@ -12421,7 +12476,7 @@ function igSalvarEmergencia(){
   if(semNumero.length){ toast('⚠️ Falta o telefone de "' + semNumero[0].nome + '".'); return; }
   var d = getInfoGerais() || _igPadrao();
   d.emergencia = lista;
-  if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Contatos salvos.'); }
+  _igConcluir(d, 'Contatos salvos.');
 }
 
 /* ── Mapa do loteamento ── */
@@ -12438,7 +12493,7 @@ async function igSalvarMapa(){
     var caminho = await uploadPDF(f, 'infogerais');
     var d = getInfoGerais() || _igPadrao();
     d.mapa = { storagePath: caminho, nome: f.name };
-    if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Mapa anexado.'); }
+    _igConcluir(d, 'Mapa anexado.');
   }catch(e){
     toast('⚠️ Não consegui enviar o mapa: ' + (e && e.message ? e.message : 'tente novamente.'));
   }finally{
@@ -12463,7 +12518,7 @@ function igRemoverMapa(){
   if(!confirm('Remover o mapa do loteamento?')) return;
   var d = getInfoGerais() || _igPadrao();
   d.mapa = null;
-  if(_igSalvar(d)){ _igEditando = ''; renderInfoGerais(); toast('✓ Mapa removido.'); }
+  _igConcluir(d, 'Mapa removido.');
 }
 
 /* ══════════════════════════
