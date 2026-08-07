@@ -4477,6 +4477,11 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <div class="form-grid" style="gap:12px">
           <div class="fg"><label>Taxa (R$)</label><input type="number" id="mres-taxa-val" placeholder="0,00" min="0" step="0.01"></div>
           <div class="fg"><label>Caução (R$)</label><input type="number" id="mres-caucao-val" placeholder="0,00" min="0" step="0.01"></div>
+          <div class="fg full" id="mres-fin-trava-wrap" style="grid-column:1/-1;display:none;margin-top:-4px">
+            <div id="mres-fin-trava-msg" style="font-size:11.5px;color:var(--text-3);line-height:1.6"></div>
+            <button type="button" id="mres-fin-destravar" class="btn btn-ghost btn-sm" style="margin-top:6px"
+              onclick="mresDestravarValores()"><i class="fa-solid fa-pen"></i> Alterar valor manualmente</button>
+          </div>
           <div class="fg"><label>Forma de Pagamento</label>
             <select id="mres-forma-pgto">
               <option value="">Selecione...</option>
@@ -9398,6 +9403,9 @@ function mresDataChange(){
   atualizarHorariosEspaco($('mres-espaco')?$('mres-espaco').value:'', undefined);
 }
 
+// Destravar o valor vale so para a reserva aberta no momento.
+var _mresValoresSoltos = false;
+
 // Atualiza blocos financeiro e termo ao trocar espaço
 function onEspacoChange(reservaExistente){
   const espaco = $('mres-espaco').value;
@@ -9496,12 +9504,53 @@ function onEspacoChange(reservaExistente){
   //  - Forma/Status/Data de pagamento e Comprovante: só admin
   const soAdminPgto = ['mres-forma-pgto','mres-pgto','mres-data-pgto','mres-comprovante'];
   soAdminPgto.forEach(function(cid){ var el=$(cid); if(el&&el.closest('.fg')) el.closest('.fg').style.display = isAdmin ? '' : 'none'; });
+  /* Valores vem da configuracao — inclusive para o admin.
+
+     Antes o admin digitava a taxa a mao. O efeito colateral era grave: uma
+     configuracao errada nunca aparecia, porque o admin corrigia o numero
+     na hora, reserva por reserva, sem perceber que a regra estava errada
+     para todo mundo. Foi o que aconteceu com a taxa das 18h.
+
+     Com o valor travado, a configuracao errada fica visivel na primeira
+     reserva. E o admin continua podendo mudar — mas por um ato
+     deliberado, nao por distracao. */
   ['mres-taxa-val','mres-caucao-val'].forEach(function(cid){
     var el=$(cid); if(!el) return;
-    el.readOnly = !isAdmin;
-    el.style.opacity = isAdmin ? '1' : '0.75';
-    el.style.cursor  = isAdmin ? 'text' : 'default';
+    var solto = isAdmin && _mresValoresSoltos;
+    el.readOnly = !solto;
+    el.style.opacity = solto ? '1' : '0.75';
+    el.style.cursor  = solto ? 'text' : 'default';
   });
+
+  var wrap = $('mres-fin-trava-wrap');
+  if(wrap){
+    var mostrar = isAdmin && finAtivo;
+    wrap.style.display = mostrar ? '' : 'none';
+    if(mostrar){
+      var msg = $('mres-fin-trava-msg');
+      var btn = $('mres-fin-destravar');
+      if(_mresValoresSoltos){
+        if(msg) msg.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="color:var(--amber)"></i> '
+          + 'Valor liberado para edição. O que você digitar vale só para esta reserva — '
+          + 'a regra do condomínio não muda. Para mudar a regra, use Configurações → Financeiro.';
+        if(btn) btn.style.display = 'none';
+      } else {
+        if(msg) msg.innerHTML = 'Valor calculado pela configuração do espaço e do horário escolhido.';
+        if(btn){ btn.style.display = ''; btn.innerHTML = '<i class="fa-solid fa-pen"></i> Alterar valor manualmente'; }
+      }
+    }
+  }
+}
+
+/* Libera taxa e caucao para digitacao nesta reserva.
+
+   Volta a travar sozinho na proxima reserva: destravar e excecao, e
+   excecao que fica ligada deixa de ser excecao. */
+function mresDestravarValores(){
+  _mresValoresSoltos = true;
+  try{ onEspacoChange(); }catch(_){}
+  var t = $('mres-taxa-val'); if(t){ t.focus(); t.select && t.select(); }
+  toast('⚠️ Valor liberado só para esta reserva. A regra do condomínio continua a mesma.');
 }
 
 // helper para setar valor em select
@@ -9517,6 +9566,8 @@ function fecharModalRes(){
 }
 
 function abrirModalRes(id){
+  // Cada reserva comeca com os valores travados na configuracao.
+  _mresValoresSoltos = false;
   // Fallback: garante que reservas estejam carregadas
   if(!G('reservas')){
     try{
