@@ -261,6 +261,88 @@ bloco('Horas escritas por extenso na mensagem', () => {
   checa('meia hora', _fmtHorasBR(0.5), '30min');
 });
 
+// ── Painel de números das Reservas (ligar/desligar) ────────────────────
+// Cada pessoa escolhe se quer ver os números no topo. O que este bloco
+// protege: a escolha não pode se perder ao ir e voltar do calendário —
+// era exatamente ali que a tela reexibia o painel por conta própria.
+//
+// _resView NÃO é passado como stub de propósito: assim ele é resolvido no
+// escopo global, e o teste consegue trocar a visão de verdade. Passado
+// como stub, ficaria congelado no valor inicial e a ida ao calendário
+// nunca seria exercitada — que era o defeito da primeira versão deste
+// bloco: ele dizia cobrir o calendário e não cobria.
+bloco('Painel de números das Reservas', () => {
+  const els = {};
+  ['res-kpi', 'res-dash', 'res-btn-dash'].forEach((id) => {
+    els[id] = { style: { display: '' }, innerHTML: '', title: '' };
+  });
+  const guardado = {};
+  const janela = { _userNivel: 'admin' };
+
+  const api = carregar(
+    ['_resDashVisivel', 'resToggleDash', '_resAplicarDash'],
+    {
+      $: (id) => els[id] || null,
+      localStorage: { getItem: (k) => (k in guardado ? guardado[k] : null),
+                      setItem: (k, v) => { guardado[k] = String(v); } },
+      window: janela,
+      toast: () => {},
+      renderReservas: () => api._resAplicarDash(),
+    },
+  );
+  const verVisao = (v) => { global._resView = v; api._resAplicarDash(); };
+  const visivel = (id) => els[id].style.display === '';
+
+  // ── admin ──
+  janela._userNivel = 'admin';
+  verVisao('lista');
+  checa('admin começa vendo o painel analítico', visivel('res-dash'), true);
+  checa('e não a grade simples de números', visivel('res-kpi'), false);
+
+  api.resToggleDash();
+  checa('desligou: painel some', visivel('res-dash'), false);
+  checa('a escolha ficou registrada', api._resDashVisivel(), false);
+
+  // O ponto do bloco: ir ao calendário e voltar não pode religar sozinho.
+  verVisao('calendario');
+  checa('no calendário não há painel', visivel('res-dash'), false);
+  checa('e o botão some, porque ali não teria efeito', visivel('res-btn-dash'), false);
+  verVisao('lista');
+  checa('voltou da lista e o painel CONTINUA desligado', visivel('res-dash'), false);
+  checa('o botão reaparece', visivel('res-btn-dash'), true);
+
+  api.resToggleDash();
+  checa('religou: painel volta', visivel('res-dash'), true);
+  verVisao('calendario'); verVisao('lista');
+  checa('ligado também sobrevive à ida e volta', visivel('res-dash'), true);
+
+  // ── morador ──
+  delete guardado.apvc_res_dash;
+  janela._userNivel = 'morador';
+  verVisao('lista');
+  checa('morador vê a grade de números', visivel('res-kpi'), true);
+  checa('e não o painel analítico', visivel('res-dash'), false);
+  api.resToggleDash();
+  checa('morador desligou: some também', visivel('res-kpi'), false);
+  verVisao('calendario'); verVisao('lista');
+  checa('e continua desligado depois do calendário', visivel('res-kpi'), false);
+
+  // ── supervisor: nível que existia e ficava sem número nenhum ──
+  delete guardado.apvc_res_dash;
+  janela._userNivel = 'supervisor';
+  verVisao('lista');
+  checa('supervisor vê a grade de números, como o morador', visivel('res-kpi'), true);
+  checa('e não um painel analítico vazio', visivel('res-dash'), false);
+
+  // ── a escolha é do aparelho ──
+  checa('fica guardada no aparelho', guardado.apvc_res_dash, undefined);
+  janela._userNivel = 'admin';
+  api.resToggleDash();
+  checa('depois de desligar, fica gravada', guardado.apvc_res_dash, 'off');
+  delete guardado.apvc_res_dash;
+  checa('outro aparelho começa com o painel ligado', api._resDashVisivel(), true);
+});
+
 console.log('\n' + '-'.repeat(50));
 console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
 process.exit(falhas === 0 ? 0 : 1);
