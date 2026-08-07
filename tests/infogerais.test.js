@@ -91,6 +91,71 @@ bloco('Coleta de lixo', () => {
   checa('e o ponto de partida dele também', outro._igPadrao().coleta, '');
 });
 
+// ── Migração do formato antigo para abas ───────────────────────────────
+// O teste que mais importa deste arquivo: a administração JÁ tem dados
+// cadastrados. Se a conversão perder um telefone ou um horário, o
+// condomínio perde informação de verdade.
+const mig = carregar(['_igMigrar'], {});
+
+bloco('Migração: nada do que estava cadastrado pode sumir', () => {
+  const antigo = {
+    historia: 'Fundado em 1996.',
+    mapa: { storagePath: 'APVC/infogerais/1.pdf', nome: 'mapa.pdf' },
+    telefones: [
+      { nome: 'Portaria', numero: '11987654321', whats: true },
+      { nome: 'Zeladoria', numero: '1134567890' },
+    ],
+    horarioAdm: 'Seg a sex, 8h às 17h',
+    horarioPortaria: 'Portaria 24 horas',
+    coleta: 'Lixo comum: seg, qua, sex',
+    emergencia: [{ nome: 'Polícia Militar', numero: '190' }],
+  };
+  const d = mig._igMigrar(JSON.parse(JSON.stringify(antigo)));
+  const por = (id) => d.abas.find((a) => a.id === id);
+
+  checa('virou uma lista de abas', Array.isArray(d.abas), true);
+  checa('seis abas', d.abas.length, 6);
+
+  checa('a história foi preservada', por('historia').texto, 'Fundado em 1996.');
+  checa('o mapa foi preservado', por('mapa').arquivo.nome, 'mapa.pdf');
+  checa('o caminho do arquivo veio junto',
+    por('mapa').arquivo.storagePath, 'APVC/infogerais/1.pdf');
+  checa('os dois telefones vieram', por('telefones').itens.length, 2);
+  checa('a marcação de WhatsApp veio junto', por('telefones').itens[0].whats, true);
+  checa('a coleta foi preservada', por('coleta').texto, 'Lixo comum: seg, qua, sex');
+  checa('a emergência foi preservada', por('emergencia').itens[0].numero, '190');
+  checa('emergência continua sem WhatsApp', por('emergencia').semWhats, true);
+
+  // Os dois horários eram campos separados e viram um texto só.
+  const h = por('horarios').texto;
+  checa('o horário da administração está no texto', h.indexOf('8h às 17h') > 0, true);
+  checa('o horário da portaria também', h.indexOf('24 horas') > 0, true);
+  checa('cada um com seu rótulo',
+    [h.indexOf('Administração') >= 0, h.indexOf('Portaria') > 0], [true, true]);
+
+  checa('os campos antigos continuam no registro (rede de segurança)',
+    [d.historia, d.telefones.length], ['Fundado em 1996.', 2]);
+  checa('toda aba nasce visível', d.abas.every((a) => a.ativa === true), true);
+  checa('toda aba tem tipo', d.abas.every((a) => !!a.tipo), true);
+  checa('toda aba tem ícone', d.abas.every((a) => /^fa-/.test(a.icone)), true);
+});
+
+bloco('Migração: não roda duas vezes', () => {
+  const jaMigrado = { abas: [{ id: 'x', nome: 'Só esta', tipo: 'texto', ativa: true, texto: 'oi' }] };
+  const d = mig._igMigrar(jaMigrado);
+  checa('mantém as abas que já existiam', d.abas.length, 1);
+  checa('não recria as antigas', d.abas[0].nome, 'Só esta');
+});
+
+bloco('Migração: registro vazio não quebra', () => {
+  const d = mig._igMigrar({});
+  checa('cria as abas mesmo sem dado antigo', d.abas.length, 6);
+  checa('história vazia', d.abas[0].texto, '');
+  checa('telefones vazios', d.abas.find((a) => a.id === 'telefones').itens, []);
+  checa('horários vazios não geram rótulo solto',
+    d.abas.find((a) => a.id === 'horarios').texto, '');
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.log(`FALHOU: ${falhas} de ${ok + falhas}`); process.exit(1); }
 console.log(`TODOS OS TESTES PASSARAM (${ok})`);
