@@ -1188,6 +1188,15 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   .reg-trecho{font-size:13px;line-height:1.7;padding:11px 13px}
 }
 /* ══ INFORMACOES GERAIS ══ */
+/* Abas: no celular deslizam na horizontal em vez de empilhar e empurrar
+   o conteudo para baixo da dobra. */
+.ig-tabs{
+  display:flex;gap:8px;margin-bottom:18px;
+  overflow-x:auto;padding-bottom:4px;
+  scrollbar-width:none;
+}
+.ig-tabs::-webkit-scrollbar{display:none}
+.ig-tabs .tab{flex-shrink:0;white-space:nowrap}
 .ig-card{margin-bottom:16px}
 .ig-texto{font-size:14px;line-height:1.85;color:var(--text-2);white-space:pre-wrap;overflow-wrap:break-word}
 .ig-vazio{font-size:13px;color:var(--text-3);padding:6px 0;font-style:italic}
@@ -3838,7 +3847,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
             <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-calendar-day"></i></div>Disponibilidade por Espaço</div>
             <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
           </div>
-          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">Marque os dias em que cada espaço aceita reserva e o limite de horas por morador no mesmo dia (0 = sem limite).</div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">Marque os dias em que cada espaço aceita reserva e os limites por unidade (0 = sem limite). Os limites contam as reservas de TODA a unidade, não de cada morador.</div>
           <div id="cfg-disp-espacos" style="display:flex;flex-direction:column;gap:12px"></div>
         </div>
 
@@ -11210,6 +11219,7 @@ function renderCfgDisponibilidade(){
     var maxh=cfg['disp_'+chv+'_maxh']||'';
     var antec=cfg['disp_'+chv+'_antec']||'';
     var antmin=cfg['disp_'+chv+'_antmin']||'';
+    var interv=cfg['disp_'+chv+'_interv']||'';
     var slots=(cfg['disp_'+chv+'_slots']||'').replace(/"/g,'&quot;');
     var confirmar=cfg['disp_'+chv+'_confirmar']?true:false;
     var ativo=(cfg['disp_'+chv+'_ativo']===false)?false:true; // padrão: ativo
@@ -11225,9 +11235,10 @@ function renderCfgDisponibilidade(){
       '</div>'+
       '<div class="cfg-disp-dias">'+chips+'</div>'+
       '<div class="cfg-disp-flds">'+
-      '<label class="cfg-disp-fld num"><span>Máx. horas/morador/dia:</span><input type="number" min="0" step="0.5" data-disp-maxh="'+chv+'" value="'+maxh+'" placeholder="0"></label>'+
+      '<label class="cfg-disp-fld num"><span>Máx. horas/unidade/dia:</span><input type="number" min="0" step="0.5" data-disp-maxh="'+chv+'" value="'+maxh+'" placeholder="0"></label>'+
       '<label class="cfg-disp-fld num"><span>Antecedência máx. (dias):</span><input type="number" min="0" step="1" data-disp-antec="'+chv+'" value="'+antec+'" placeholder="0" title="Morador só consegue reservar até N dias à frente (0 = sem limite)"></label>'+
       '<label class="cfg-disp-fld num"><span>Antecedência mín. (dias):</span><input type="number" min="0" step="1" data-disp-antmin="'+chv+'" value="'+antmin+'" placeholder="0" title="Reserva só a partir de N dias à frente (ex: 7 = salão precisa de preparo). 0 = sem exigência"></label>'+
+      '<label class="cfg-disp-fld num"><span>Intervalo entre reservas (h):</span><input type="number" min="0" step="0.5" data-disp-interv="'+chv+'" value="'+interv+'" placeholder="0" title="A mesma unidade só reserva este espaço de novo depois de N horas. Ex: 4 = reservou de manhã, só pode à noite. Conta do fim de uma reserva ao início da outra. 0 = sem intervalo."></label>'+
       '<label class="cfg-disp-fld slots"><span>Horários permitidos:</span><input type="text" data-disp-slots="'+chv+'" value="'+slots+'" placeholder="Ex: 07:00–08:00, 08:00–09:00 (vazio = padrão)" title="Somente estes horários aparecem para o morador. Separe por vírgula."></label>'+
       '</div>'+
       '<label class="cfg-disp-check"><input type="checkbox" data-disp-confirmar="'+chv+'" '+(confirmar?'checked':'')+' style="width:16px;height:16px;accent-color:var(--gold);flex-shrink:0" title="Se marcado, a reserva do morador fica PENDENTE até o administrador confirmar. Se desmarcado, a reserva já fica CONFIRMADA automaticamente."><span>Exigir confirmação do administrador <span style="color:var(--text-3)">(reserva fica <b style="color:var(--amber)">pendente</b> até aprovar)</span></span></label>'+
@@ -11371,9 +11382,71 @@ function reservaViolaRegra(espaco, data, horario, lote, idAtual){
       usadas+=_horasReserva(r.horario);
     });
     if(usadas + _horasReserva(horario) > maxh + 0.001)
-      return 'Limite de '+maxh+'h por morador neste espaço/dia atingido (já usadas: '+usadas+'h).';
+      return 'Limite de '+maxh+'h por unidade neste espaço/dia atingido (já usadas: '+usadas+'h).';
+  }
+
+  // 4) intervalo minimo entre reservas da MESMA unidade no MESMO espaco.
+  //    Ex.: reservou de manha, so pode de novo depois de 4h. Impede que uma
+  //    unidade tome a quadra o dia todo em blocos separados — o limite de
+  //    horas/dia sozinho nao resolve isso quando o condominio nao quer
+  //    limitar o total, e sim espacar o uso.
+  //    Medido do FIM da reserva anterior ao INICIO da nova (nos dois
+  //    sentidos: tanto faz se a outra reserva e antes ou depois).
+  //    Admin e gestor passam, como nas demais regras.
+  var interv = parseFloat(cfg['disp_'+chv+'_interv']);
+  if(interv > 0 && lote && data && horario && _nivelR!=='admin' && _nivelR!=='gestor'){
+    var loteN = String(lote).trim().toUpperCase();
+    var novo = _resInstante(data, horario);
+    var minutos = interv * 60;
+    var conflito = null;
+    (G('reservas')||[]).forEach(function(r){
+      if(conflito) return;
+      if(r.id===idAtual) return;
+      if(r.status==='cancelada') return;
+      if(r.espaco!==espaco) return;
+      if(String(r.lote||'').trim().toUpperCase()!==loteN) return;
+      var outra = _resInstante(r.data, r.horario);
+      if(!outra || !novo) return;
+      var gap;
+      if(novo.ini >= outra.fim)      gap = novo.ini - outra.fim;   // nova depois
+      else if(novo.fim <= outra.ini) gap = outra.ini - novo.fim;   // nova antes
+      else                           gap = 0;                      // sobrepostas
+      if(gap < minutos) conflito = r;
+    });
+    if(conflito){
+      return 'Sua unidade já tem reserva de '+espaco+' em '
+        + _fmtDataBRCurta(conflito.data) + ' às ' + (conflito.horario||'')
+        + '. É preciso um intervalo de ' + _fmtHorasBR(interv)
+        + ' entre uma reserva e outra da mesma unidade neste espaço.';
+    }
   }
   return null;
+}
+
+// Instante da reserva em minutos absolutos, para comparar reservas de dias
+// diferentes. Sem isso, "23h de ontem" e "1h de hoje" pareceriam distantes
+// 22 horas quando na verdade sao 2.
+function _resInstante(data, horario){
+  if(!data) return null;
+  var d = new Date(data+'T00:00');
+  if(isNaN(d.getTime())) return null;
+  var dia = Math.floor(d.getTime()/86400000);
+  return { ini: dia*1440 + hrIni(horario), fim: dia*1440 + hrFim(horario) };
+}
+
+function _fmtDataBRCurta(iso){
+  if(!iso) return '';
+  var p = String(iso).split('-');
+  return p.length===3 ? (p[2]+'/'+p[1]) : iso;
+}
+
+// 4 -> "4h";  1.5 -> "1h30";  0.5 -> "30min"
+function _fmtHorasBR(h){
+  var n = Number(h)||0;
+  var hh = Math.floor(n), mm = Math.round((n-hh)*60);
+  if(hh && mm) return hh+'h'+String(mm).padStart(2,'0');
+  if(hh) return hh+'h';
+  return mm+'min';
 }
 
 function salvarCfgReservas(){
@@ -11444,6 +11517,9 @@ function salvarCfgReservas(){
   });
   document.querySelectorAll('#cfg-disp-espacos [data-disp-antmin]').forEach(function(inp){
     cfgRes['disp_'+inp.dataset.dispAntmin+'_antmin'] = inp.value;
+  });
+  document.querySelectorAll('#cfg-disp-espacos [data-disp-interv]').forEach(function(inp){
+    cfgRes['disp_'+inp.dataset.dispInterv+'_interv'] = inp.value;
   });
   document.querySelectorAll('#cfg-disp-espacos [data-disp-slots]').forEach(function(inp){
     cfgRes['disp_'+inp.dataset.dispSlots+'_slots'] = inp.value.trim();
@@ -12060,6 +12136,115 @@ function _igLinhaTelefone(t, i, comWhats){
     + '</div>';
 }
 
+// Abas de Informações Gerais. Cada aba mostra um assunto — antes era tudo
+// numa coluna só e, no celular, achar o telefone da portaria exigia rolar
+// a história do condomínio inteira.
+var _IG_ABAS = [
+  { id:'historia',   icone:'🏛️', rotulo:'História'        },
+  { id:'mapa',       icone:'🗺️', rotulo:'Mapa'            },
+  { id:'telefones',  icone:'📞', rotulo:'Telefones úteis' },
+  { id:'horarios',   icone:'🕗', rotulo:'Horários'        },
+  { id:'emergencia', icone:'🚨', rotulo:'Emergência'      },
+];
+var _igAba = 'historia';
+
+function igAbrirAba(id){
+  // Trocar de aba no meio de uma edição descartaria o que foi digitado.
+  if(_igEditando && !confirm('Você está editando. Sair desta aba descarta o que não foi salvo. Continuar?')) return;
+  _igEditando = '';
+  _igAba = id;
+  renderInfoGerais();
+}
+
+function _igBarraAbas(){
+  return '<div class="tabs ig-tabs">'
+    + _IG_ABAS.map(function(a){
+        return '<button class="tab' + (_igAba === a.id ? ' active' : '') + '" '
+             + 'onclick="igAbrirAba(\'' + a.id + '\')">'
+             + a.icone + ' ' + escHtml(a.rotulo) + '</button>';
+      }).join('')
+    + '</div>';
+}
+
+/* ── Conteúdo de cada aba ── */
+
+function _igAbaHistoria(d){
+  return _igCard('historia', '🏛️', 'História do condomínio',
+    _igEditando === 'historia'
+      ? '<textarea id="ig-in-historia" class="ig-input" rows="12" placeholder="Conte a história do condomínio…">'
+        + escHtml(d.historia||'') + '</textarea>' + _igBotoesEdicao('igSalvarHistoria()')
+      : _igTexto(d.historia, 'Ainda não foi escrita a história do condomínio.'),
+    true);
+}
+
+function _igAbaMapa(d){
+  var corpo;
+  if(_igEditando === 'mapa'){
+    corpo = '<input type="file" id="ig-in-mapa" accept="application/pdf,.pdf" class="ig-input">'
+      + '<div class="ig-dica">Arquivo PDF. Substitui o mapa atual, se houver.</div>'
+      + _igBotoesEdicao('igSalvarMapa()')
+      + (d.mapa ? '<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="igRemoverMapa()">🗑 Remover o mapa atual</button>' : '');
+  } else if(d.mapa && d.mapa.storagePath){
+    corpo = '<div class="ig-arquivo">'
+      + '<span style="font-size:22px">🗺️</span>'
+      + '<div style="min-width:0;flex:1"><div class="ig-arquivo-nome">' + escHtml(d.mapa.nome||'mapa.pdf') + '</div>'
+      + '<div class="ig-dica">Mapa do loteamento em PDF</div></div>'
+      + '<button class="btn btn-gold btn-sm" onclick="igAbrirMapa()">Abrir</button>'
+      + '</div>';
+  } else {
+    corpo = _igVazio('Nenhum mapa anexado.');
+  }
+  return _igCard('mapa', '🗺️', 'Mapa do loteamento', corpo, true);
+}
+
+function _igAbaTelefones(d){
+  var corpo;
+  if(_igEditando === 'telefones'){
+    corpo = '<div id="ig-lista-tel">'
+      + (d.telefones||[]).map(function(t,i){ return _igFormTelefone(t,i,true); }).join('')
+      + '</div>'
+      + '<button class="btn btn-ghost btn-sm" onclick="igAddTelefone()">+ Adicionar telefone</button>'
+      + _igBotoesEdicao('igSalvarTelefones()');
+  } else {
+    corpo = (d.telefones && d.telefones.length)
+      ? (d.telefones||[]).map(function(t,i){ return _igLinhaTelefone(t,i,true); }).join('')
+      : _igVazio('Nenhum telefone cadastrado.');
+  }
+  return _igCard('telefones', '📞', 'Telefones úteis', corpo, true);
+}
+
+function _igAbaHorarios(d){
+  return _igCard('horarioAdm', '🕗', 'Horário de funcionamento da administração',
+      _igEditando === 'horarioAdm'
+        ? '<textarea id="ig-in-horarioAdm" class="ig-input" rows="4">' + escHtml(d.horarioAdm||'') + '</textarea>'
+          + _igBotoesEdicao('igSalvarCampo(\'horarioAdm\')')
+        : _igTexto(d.horarioAdm, 'Horário não informado.'),
+      true)
+   + _igCard('horarioPortaria', '🛡️', 'Horário da portaria',
+      _igEditando === 'horarioPortaria'
+        ? '<textarea id="ig-in-horarioPortaria" class="ig-input" rows="3">' + escHtml(d.horarioPortaria||'') + '</textarea>'
+          + _igBotoesEdicao('igSalvarCampo(\'horarioPortaria\')')
+        : _igTexto(d.horarioPortaria, 'Horário não informado.'),
+      true);
+}
+
+function _igAbaEmergencia(d){
+  var corpo;
+  if(_igEditando === 'emergencia'){
+    corpo = '<div id="ig-lista-emg">'
+      + (d.emergencia||[]).map(function(t,i){ return _igFormTelefone(t,i,false); }).join('')
+      + '</div>'
+      + '<button class="btn btn-ghost btn-sm" onclick="igAddEmergencia()">+ Adicionar contato</button>'
+      + _igBotoesEdicao('igSalvarEmergencia()');
+  } else {
+    // Sem WhatsApp de proposito: 190, 193 e afins nao tem.
+    corpo = (d.emergencia && d.emergencia.length)
+      ? (d.emergencia||[]).map(function(t,i){ return _igLinhaTelefone(t,i,false); }).join('')
+      : _igVazio('Nenhum contato cadastrado.');
+  }
+  return _igCard('emergencia', '🚨', 'Contatos de emergência', corpo, true);
+}
+
 function renderInfoGerais(){
   var alvo = $('ig-conteudo');
   if(!alvo) return;
@@ -12080,82 +12265,15 @@ function renderInfoGerais(){
       : 'Dados do condomínio, telefones e horários';
   }
 
-  var html = '';
+  var conteudo = ({
+    historia:   _igAbaHistoria,
+    mapa:       _igAbaMapa,
+    telefones:  _igAbaTelefones,
+    horarios:   _igAbaHorarios,
+    emergencia: _igAbaEmergencia,
+  })[_igAba] || _igAbaHistoria;
 
-  // 1) História do condomínio
-  html += _igCard('historia', '🏛️', 'História do condomínio',
-    _igEditando === 'historia'
-      ? '<textarea id="ig-in-historia" class="ig-input" rows="10" placeholder="Conte a história do condomínio…">'
-        + escHtml(d.historia||'') + '</textarea>' + _igBotoesEdicao('igSalvarHistoria()')
-      : _igTexto(d.historia, 'Ainda não foi escrita a história do condomínio.'),
-    true);
-
-  // 2) Mapa do loteamento
-  var mapaHTML;
-  if(_igEditando === 'mapa'){
-    mapaHTML = '<input type="file" id="ig-in-mapa" accept="application/pdf,.pdf" class="ig-input">'
-      + '<div class="ig-dica">Arquivo PDF. Substitui o mapa atual, se houver.</div>'
-      + _igBotoesEdicao('igSalvarMapa()')
-      + (d.mapa ? '<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="igRemoverMapa()">🗑 Remover o mapa atual</button>' : '');
-  } else if(d.mapa && d.mapa.storagePath){
-    mapaHTML = '<div class="ig-arquivo">'
-      + '<span style="font-size:22px">🗺️</span>'
-      + '<div style="min-width:0;flex:1"><div class="ig-arquivo-nome">' + escHtml(d.mapa.nome||'mapa.pdf') + '</div>'
-      + '<div class="ig-dica">Mapa do loteamento em PDF</div></div>'
-      + '<button class="btn btn-gold btn-sm" onclick="igAbrirMapa()">Abrir</button>'
-      + '</div>';
-  } else {
-    mapaHTML = _igVazio('Nenhum mapa anexado.');
-  }
-  html += _igCard('mapa', '🗺️', 'Mapa do loteamento', mapaHTML, true);
-
-  // 3) Telefones úteis
-  var telHTML;
-  if(_igEditando === 'telefones'){
-    telHTML = '<div id="ig-lista-tel">'
-      + (d.telefones||[]).map(function(t,i){ return _igFormTelefone(t,i,true); }).join('')
-      + '</div>'
-      + '<button class="btn btn-ghost btn-sm" onclick="igAddTelefone()">+ Adicionar telefone</button>'
-      + _igBotoesEdicao('igSalvarTelefones()');
-  } else {
-    telHTML = (d.telefones && d.telefones.length)
-      ? (d.telefones||[]).map(function(t,i){ return _igLinhaTelefone(t,i,true); }).join('')
-      : _igVazio('Nenhum telefone cadastrado.');
-  }
-  html += _igCard('telefones', '📞', 'Telefones úteis', telHTML, true);
-
-  // 4) Horário da administração
-  html += _igCard('horarioAdm', '🕗', 'Horário de funcionamento da administração',
-    _igEditando === 'horarioAdm'
-      ? '<textarea id="ig-in-horarioAdm" class="ig-input" rows="4">' + escHtml(d.horarioAdm||'') + '</textarea>'
-        + _igBotoesEdicao('igSalvarCampo(\'horarioAdm\')')
-      : _igTexto(d.horarioAdm, 'Horário não informado.'),
-    true);
-
-  // 5) Horário da portaria
-  html += _igCard('horarioPortaria', '🛡️', 'Horário da portaria',
-    _igEditando === 'horarioPortaria'
-      ? '<textarea id="ig-in-horarioPortaria" class="ig-input" rows="3">' + escHtml(d.horarioPortaria||'') + '</textarea>'
-        + _igBotoesEdicao('igSalvarCampo(\'horarioPortaria\')')
-      : _igTexto(d.horarioPortaria, 'Horário não informado.'),
-    true);
-
-  // 6) Contatos de emergência (sem WhatsApp: 190/193 não têm)
-  var emgHTML;
-  if(_igEditando === 'emergencia'){
-    emgHTML = '<div id="ig-lista-emg">'
-      + (d.emergencia||[]).map(function(t,i){ return _igFormTelefone(t,i,false); }).join('')
-      + '</div>'
-      + '<button class="btn btn-ghost btn-sm" onclick="igAddEmergencia()">+ Adicionar contato</button>'
-      + _igBotoesEdicao('igSalvarEmergencia()');
-  } else {
-    emgHTML = (d.emergencia && d.emergencia.length)
-      ? (d.emergencia||[]).map(function(t,i){ return _igLinhaTelefone(t,i,false); }).join('')
-      : _igVazio('Nenhum contato cadastrado.');
-  }
-  html += _igCard('emergencia', '🚨', 'Contatos de emergência', emgHTML, true);
-
-  alvo.innerHTML = html;
+  alvo.innerHTML = _igBarraAbas() + conteudo(d);
 }
 
 /* ── Edição ── */
