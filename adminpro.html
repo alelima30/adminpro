@@ -3228,6 +3228,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <div class="ph">
           <div><div class="ph-title">Gestão de Reservas</div><div class="ph-sub">Agendamento de espaços e áreas comuns do condomínio</div></div>
           <div class="ph-actions">
+            <button class="btn btn-ghost" id="res-btn-dash" onclick="resToggleDash()" title="Mostrar ou esconder os números no topo desta tela"><i class="fa-solid fa-chart-simple"></i> Ocultar painel</button>
             <button class="btn btn-ghost" id="res-btn-view" onclick="resToggleView()"><i class="fa-solid fa-calendar-days"></i> Ver calendário</button>
             <button class="btn btn-gold" onclick="abrirModalRes(null)">+ Nova Reserva</button>
           </div>
@@ -8346,13 +8347,12 @@ function renderReservas(){
     <div class="kpi green"><div class="kpi-label">Receita (taxas pagas)</div><div class="kpi-val" style="font-size:16px">${receitaTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div></div>
   `;
 
-  // Dashboard analítico — apenas admin/gestor (os cards BI substituem a grade de KPIs)
-  const dash=$('res-dash');
-  if(dash){
-    dash.style.display = isMorador ? 'none' : '';
-    const kpiGrid=$('res-kpi'); if(kpiGrid) kpiGrid.style.display = isMorador ? '' : 'none';
-    if(!isMorador) renderResDashboard(kpiBase);
-  }
+  // Quem ve o que: morador ve a grade de numeros, admin/gestor veem o
+  // painel analitico. Se a pessoa desligou o painel, nao se monta grafico
+  // nenhum — desenhar para esconder em seguida so gasta processamento do
+  // aparelho, que no celular custa caro.
+  if(!isMorador && _resDashVisivel()) renderResDashboard(kpiBase);
+  _resAplicarDash();
 
   const lista=$('res-lista'); lista.innerHTML='';
 
@@ -8852,12 +8852,63 @@ let _resView='lista';
 let _resCalRef=null; // Date do 1º dia do mês exibido
 const _CAL_CORES={confirmada:'#2A9D6F',pendente:'#F0A843',realizada:'#5B9CF6',concluida:'#14b8a6',cancelada:'#E05252'};
 
+/* Painel de numeros no topo das Reservas.
+
+   Preferencia de QUEM ESTA USANDO, guardada no proprio aparelho — nao e
+   configuracao do condominio. Um sindico que quer ver os graficos e um
+   morador que so quer a lista das proprias reservas nao precisam
+   concordar entre si, e um nao muda a tela do outro.
+
+   Por aparelho, tambem de proposito: quem usa o celular no portao quer a
+   lista limpa; o mesmo sindico no computador quer os graficos. */
+function _resDashVisivel(){
+  try{ return localStorage.getItem('apvc_res_dash') !== 'off'; }
+  catch(_){ return true; }
+}
+
+function resToggleDash(){
+  var ligar = !_resDashVisivel();
+  try{ localStorage.setItem('apvc_res_dash', ligar ? 'on' : 'off'); }catch(_){}
+  // Ao religar, o painel precisa ser montado: enquanto esteve desligado,
+  // renderReservas nao gerou os graficos.
+  if(ligar && (window._userNivel||'morador') !== 'morador'){
+    try{ renderReservas(); }catch(_){ _resAplicarDash(); }
+  } else {
+    _resAplicarDash();
+  }
+  toast(ligar ? '✓ Painel de números ligado.' : '✓ Painel de números desligado.');
+}
+
+function _resAplicarDash(){
+  var ligado    = _resDashVisivel();
+  var emCal     = (typeof _resView !== 'undefined' && _resView === 'calendario');
+  var isMorador = (window._userNivel || 'morador') === 'morador';
+  var mostrar   = ligado && !emCal;
+
+  var kpi = $('res-kpi');   if(kpi)  kpi.style.display  = (mostrar &&  isMorador) ? '' : 'none';
+  var dash= $('res-dash');  if(dash) dash.style.display = (mostrar && !isMorador) ? '' : 'none';
+
+  var btn = $('res-btn-dash');
+  if(btn){
+    btn.innerHTML = '<i class="fa-solid fa-chart-simple"></i> ' + (ligado ? 'Ocultar painel' : 'Mostrar painel');
+    btn.title = ligado
+      ? 'Esconder os números e deixar só as reservas'
+      : 'Mostrar os números no topo desta tela';
+    // No calendario o botao nao tem efeito visivel: la nao ha painel.
+    btn.style.display = emCal ? 'none' : '';
+  }
+}
+
 function resToggleView(){
   _resView = (_resView==='lista') ? 'calendario' : 'lista';
   const btn=$('res-btn-view');
   const emCal=_resView==='calendario';
   // elementos da visão lista
-  ['res-kpi','res-dash','res-lista-card','res-filtros-card'].forEach(function(id){ var e=$(id); if(e) e.style.display = emCal ? 'none' : ''; });
+  ['res-lista-card','res-filtros-card'].forEach(function(id){ var e=$(id); if(e) e.style.display = emCal ? 'none' : ''; });
+  // kpi e dash tem dono proprio: a preferencia de quem esta usando.
+  // Antes esta linha os reexibia ao voltar do calendario, ignorando quem
+  // tinha desligado o painel.
+  _resAplicarDash();
   if($('res-calendario')) $('res-calendario').style.display = emCal ? '' : 'none';
   if(btn) btn.innerHTML = emCal ? '<i class="fa-solid fa-list"></i> Ver lista' : '<i class="fa-solid fa-calendar-days"></i> Ver calendário';
   if(emCal){ if(!_resCalRef){ var h=new Date(); _resCalRef=new Date(h.getFullYear(),h.getMonth(),1); } _resCalPopularEspacos(); renderCalendario(); }

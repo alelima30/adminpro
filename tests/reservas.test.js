@@ -261,6 +261,61 @@ bloco('Horas escritas por extenso na mensagem', () => {
   checa('meia hora', _fmtHorasBR(0.5), '30min');
 });
 
+// ── Painel de números das Reservas (ligar/desligar) ────────────────────
+// Cada pessoa escolhe se quer ver os números no topo. O que este bloco
+// protege: a escolha não pode se perder ao ir e voltar do calendário —
+// era exatamente ali que a tela reexibia o painel por conta própria.
+bloco('Painel de números das Reservas', () => {
+  const els = {};
+  const criar = (id) => (els[id] = { style: { display: '' }, innerHTML: '', title: '', });
+  ['res-kpi', 'res-dash', 'res-btn-dash'].forEach(criar);
+  const guardado = {};
+  const janela = { _userNivel: 'admin' };
+  let vista = 'lista';
+
+  const api = carregar(
+    ['_resDashVisivel', 'resToggleDash', '_resAplicarDash'],
+    {
+      $: (id) => els[id] || null,
+      localStorage: { getItem: (k) => (k in guardado ? guardado[k] : null),
+                      setItem: (k, v) => { guardado[k] = String(v); } },
+      window: janela,
+      toast: () => {},
+      renderReservas: () => api._resAplicarDash(),
+      get _resView() { return vista; },
+    },
+  );
+  // _resView é lido por closure; o getter acima não alcança o escopo da
+  // função extraída, então a visão é injetada pelo objeto global do teste.
+  const aplicar = (v) => { vista = v; api._resAplicarDash(); };
+  const visivel = (id) => els[id].style.display === '';
+
+  janela._userNivel = 'admin';
+  aplicar('lista');
+  checa('admin começa vendo o painel analítico', visivel('res-dash'), true);
+  checa('e não a grade simples de números', visivel('res-kpi'), false);
+
+  api.resToggleDash();
+  checa('desligou: painel some', visivel('res-dash'), false);
+  checa('o botão passa a oferecer Mostrar',
+    api._resDashVisivel(), false);
+
+  api.resToggleDash();
+  checa('religou: painel volta', visivel('res-dash'), true);
+
+  janela._userNivel = 'morador';
+  aplicar('lista');
+  checa('morador vê a grade de números', visivel('res-kpi'), true);
+  checa('e não o painel analítico', visivel('res-dash'), false);
+
+  api.resToggleDash();
+  checa('morador desligou: some também', visivel('res-kpi'), false);
+
+  checa('a escolha fica guardada no aparelho', guardado['apvc_res_dash'], 'off');
+  delete guardado['apvc_res_dash'];
+  checa('outro aparelho começa com o painel ligado', api._resDashVisivel(), true);
+});
+
 console.log('\n' + '-'.repeat(50));
 console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
 process.exit(falhas === 0 ? 0 : 1);
