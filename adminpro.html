@@ -1188,6 +1188,15 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   .reg-trecho{font-size:13px;line-height:1.7;padding:11px 13px}
 }
 /* ══ INFORMACOES GERAIS ══ */
+/* Abas: no celular deslizam na horizontal em vez de empilhar e empurrar
+   o conteudo para baixo da dobra. */
+.ig-tabs{
+  display:flex;gap:8px;margin-bottom:18px;
+  overflow-x:auto;padding-bottom:4px;
+  scrollbar-width:none;
+}
+.ig-tabs::-webkit-scrollbar{display:none}
+.ig-tabs .tab{flex-shrink:0;white-space:nowrap}
 .ig-card{margin-bottom:16px}
 .ig-texto{font-size:14px;line-height:1.85;color:var(--text-2);white-space:pre-wrap;overflow-wrap:break-word}
 .ig-vazio{font-size:13px;color:var(--text-3);padding:6px 0;font-style:italic}
@@ -12060,6 +12069,115 @@ function _igLinhaTelefone(t, i, comWhats){
     + '</div>';
 }
 
+// Abas de Informações Gerais. Cada aba mostra um assunto — antes era tudo
+// numa coluna só e, no celular, achar o telefone da portaria exigia rolar
+// a história do condomínio inteira.
+var _IG_ABAS = [
+  { id:'historia',   icone:'🏛️', rotulo:'História'        },
+  { id:'mapa',       icone:'🗺️', rotulo:'Mapa'            },
+  { id:'telefones',  icone:'📞', rotulo:'Telefones úteis' },
+  { id:'horarios',   icone:'🕗', rotulo:'Horários'        },
+  { id:'emergencia', icone:'🚨', rotulo:'Emergência'      },
+];
+var _igAba = 'historia';
+
+function igAbrirAba(id){
+  // Trocar de aba no meio de uma edição descartaria o que foi digitado.
+  if(_igEditando && !confirm('Você está editando. Sair desta aba descarta o que não foi salvo. Continuar?')) return;
+  _igEditando = '';
+  _igAba = id;
+  renderInfoGerais();
+}
+
+function _igBarraAbas(){
+  return '<div class="tabs ig-tabs">'
+    + _IG_ABAS.map(function(a){
+        return '<button class="tab' + (_igAba === a.id ? ' active' : '') + '" '
+             + 'onclick="igAbrirAba(\'' + a.id + '\')">'
+             + a.icone + ' ' + escHtml(a.rotulo) + '</button>';
+      }).join('')
+    + '</div>';
+}
+
+/* ── Conteúdo de cada aba ── */
+
+function _igAbaHistoria(d){
+  return _igCard('historia', '🏛️', 'História do condomínio',
+    _igEditando === 'historia'
+      ? '<textarea id="ig-in-historia" class="ig-input" rows="12" placeholder="Conte a história do condomínio…">'
+        + escHtml(d.historia||'') + '</textarea>' + _igBotoesEdicao('igSalvarHistoria()')
+      : _igTexto(d.historia, 'Ainda não foi escrita a história do condomínio.'),
+    true);
+}
+
+function _igAbaMapa(d){
+  var corpo;
+  if(_igEditando === 'mapa'){
+    corpo = '<input type="file" id="ig-in-mapa" accept="application/pdf,.pdf" class="ig-input">'
+      + '<div class="ig-dica">Arquivo PDF. Substitui o mapa atual, se houver.</div>'
+      + _igBotoesEdicao('igSalvarMapa()')
+      + (d.mapa ? '<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="igRemoverMapa()">🗑 Remover o mapa atual</button>' : '');
+  } else if(d.mapa && d.mapa.storagePath){
+    corpo = '<div class="ig-arquivo">'
+      + '<span style="font-size:22px">🗺️</span>'
+      + '<div style="min-width:0;flex:1"><div class="ig-arquivo-nome">' + escHtml(d.mapa.nome||'mapa.pdf') + '</div>'
+      + '<div class="ig-dica">Mapa do loteamento em PDF</div></div>'
+      + '<button class="btn btn-gold btn-sm" onclick="igAbrirMapa()">Abrir</button>'
+      + '</div>';
+  } else {
+    corpo = _igVazio('Nenhum mapa anexado.');
+  }
+  return _igCard('mapa', '🗺️', 'Mapa do loteamento', corpo, true);
+}
+
+function _igAbaTelefones(d){
+  var corpo;
+  if(_igEditando === 'telefones'){
+    corpo = '<div id="ig-lista-tel">'
+      + (d.telefones||[]).map(function(t,i){ return _igFormTelefone(t,i,true); }).join('')
+      + '</div>'
+      + '<button class="btn btn-ghost btn-sm" onclick="igAddTelefone()">+ Adicionar telefone</button>'
+      + _igBotoesEdicao('igSalvarTelefones()');
+  } else {
+    corpo = (d.telefones && d.telefones.length)
+      ? (d.telefones||[]).map(function(t,i){ return _igLinhaTelefone(t,i,true); }).join('')
+      : _igVazio('Nenhum telefone cadastrado.');
+  }
+  return _igCard('telefones', '📞', 'Telefones úteis', corpo, true);
+}
+
+function _igAbaHorarios(d){
+  return _igCard('horarioAdm', '🕗', 'Horário de funcionamento da administração',
+      _igEditando === 'horarioAdm'
+        ? '<textarea id="ig-in-horarioAdm" class="ig-input" rows="4">' + escHtml(d.horarioAdm||'') + '</textarea>'
+          + _igBotoesEdicao('igSalvarCampo(\'horarioAdm\')')
+        : _igTexto(d.horarioAdm, 'Horário não informado.'),
+      true)
+   + _igCard('horarioPortaria', '🛡️', 'Horário da portaria',
+      _igEditando === 'horarioPortaria'
+        ? '<textarea id="ig-in-horarioPortaria" class="ig-input" rows="3">' + escHtml(d.horarioPortaria||'') + '</textarea>'
+          + _igBotoesEdicao('igSalvarCampo(\'horarioPortaria\')')
+        : _igTexto(d.horarioPortaria, 'Horário não informado.'),
+      true);
+}
+
+function _igAbaEmergencia(d){
+  var corpo;
+  if(_igEditando === 'emergencia'){
+    corpo = '<div id="ig-lista-emg">'
+      + (d.emergencia||[]).map(function(t,i){ return _igFormTelefone(t,i,false); }).join('')
+      + '</div>'
+      + '<button class="btn btn-ghost btn-sm" onclick="igAddEmergencia()">+ Adicionar contato</button>'
+      + _igBotoesEdicao('igSalvarEmergencia()');
+  } else {
+    // Sem WhatsApp de proposito: 190, 193 e afins nao tem.
+    corpo = (d.emergencia && d.emergencia.length)
+      ? (d.emergencia||[]).map(function(t,i){ return _igLinhaTelefone(t,i,false); }).join('')
+      : _igVazio('Nenhum contato cadastrado.');
+  }
+  return _igCard('emergencia', '🚨', 'Contatos de emergência', corpo, true);
+}
+
 function renderInfoGerais(){
   var alvo = $('ig-conteudo');
   if(!alvo) return;
@@ -12080,82 +12198,15 @@ function renderInfoGerais(){
       : 'Dados do condomínio, telefones e horários';
   }
 
-  var html = '';
+  var conteudo = ({
+    historia:   _igAbaHistoria,
+    mapa:       _igAbaMapa,
+    telefones:  _igAbaTelefones,
+    horarios:   _igAbaHorarios,
+    emergencia: _igAbaEmergencia,
+  })[_igAba] || _igAbaHistoria;
 
-  // 1) História do condomínio
-  html += _igCard('historia', '🏛️', 'História do condomínio',
-    _igEditando === 'historia'
-      ? '<textarea id="ig-in-historia" class="ig-input" rows="10" placeholder="Conte a história do condomínio…">'
-        + escHtml(d.historia||'') + '</textarea>' + _igBotoesEdicao('igSalvarHistoria()')
-      : _igTexto(d.historia, 'Ainda não foi escrita a história do condomínio.'),
-    true);
-
-  // 2) Mapa do loteamento
-  var mapaHTML;
-  if(_igEditando === 'mapa'){
-    mapaHTML = '<input type="file" id="ig-in-mapa" accept="application/pdf,.pdf" class="ig-input">'
-      + '<div class="ig-dica">Arquivo PDF. Substitui o mapa atual, se houver.</div>'
-      + _igBotoesEdicao('igSalvarMapa()')
-      + (d.mapa ? '<button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="igRemoverMapa()">🗑 Remover o mapa atual</button>' : '');
-  } else if(d.mapa && d.mapa.storagePath){
-    mapaHTML = '<div class="ig-arquivo">'
-      + '<span style="font-size:22px">🗺️</span>'
-      + '<div style="min-width:0;flex:1"><div class="ig-arquivo-nome">' + escHtml(d.mapa.nome||'mapa.pdf') + '</div>'
-      + '<div class="ig-dica">Mapa do loteamento em PDF</div></div>'
-      + '<button class="btn btn-gold btn-sm" onclick="igAbrirMapa()">Abrir</button>'
-      + '</div>';
-  } else {
-    mapaHTML = _igVazio('Nenhum mapa anexado.');
-  }
-  html += _igCard('mapa', '🗺️', 'Mapa do loteamento', mapaHTML, true);
-
-  // 3) Telefones úteis
-  var telHTML;
-  if(_igEditando === 'telefones'){
-    telHTML = '<div id="ig-lista-tel">'
-      + (d.telefones||[]).map(function(t,i){ return _igFormTelefone(t,i,true); }).join('')
-      + '</div>'
-      + '<button class="btn btn-ghost btn-sm" onclick="igAddTelefone()">+ Adicionar telefone</button>'
-      + _igBotoesEdicao('igSalvarTelefones()');
-  } else {
-    telHTML = (d.telefones && d.telefones.length)
-      ? (d.telefones||[]).map(function(t,i){ return _igLinhaTelefone(t,i,true); }).join('')
-      : _igVazio('Nenhum telefone cadastrado.');
-  }
-  html += _igCard('telefones', '📞', 'Telefones úteis', telHTML, true);
-
-  // 4) Horário da administração
-  html += _igCard('horarioAdm', '🕗', 'Horário de funcionamento da administração',
-    _igEditando === 'horarioAdm'
-      ? '<textarea id="ig-in-horarioAdm" class="ig-input" rows="4">' + escHtml(d.horarioAdm||'') + '</textarea>'
-        + _igBotoesEdicao('igSalvarCampo(\'horarioAdm\')')
-      : _igTexto(d.horarioAdm, 'Horário não informado.'),
-    true);
-
-  // 5) Horário da portaria
-  html += _igCard('horarioPortaria', '🛡️', 'Horário da portaria',
-    _igEditando === 'horarioPortaria'
-      ? '<textarea id="ig-in-horarioPortaria" class="ig-input" rows="3">' + escHtml(d.horarioPortaria||'') + '</textarea>'
-        + _igBotoesEdicao('igSalvarCampo(\'horarioPortaria\')')
-      : _igTexto(d.horarioPortaria, 'Horário não informado.'),
-    true);
-
-  // 6) Contatos de emergência (sem WhatsApp: 190/193 não têm)
-  var emgHTML;
-  if(_igEditando === 'emergencia'){
-    emgHTML = '<div id="ig-lista-emg">'
-      + (d.emergencia||[]).map(function(t,i){ return _igFormTelefone(t,i,false); }).join('')
-      + '</div>'
-      + '<button class="btn btn-ghost btn-sm" onclick="igAddEmergencia()">+ Adicionar contato</button>'
-      + _igBotoesEdicao('igSalvarEmergencia()');
-  } else {
-    emgHTML = (d.emergencia && d.emergencia.length)
-      ? (d.emergencia||[]).map(function(t,i){ return _igLinhaTelefone(t,i,false); }).join('')
-      : _igVazio('Nenhum contato cadastrado.');
-  }
-  html += _igCard('emergencia', '🚨', 'Contatos de emergência', emgHTML, true);
-
-  alvo.innerHTML = html;
+  alvo.innerHTML = _igBarraAbas() + conteudo(d);
 }
 
 /* ── Edição ── */
