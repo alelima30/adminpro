@@ -16,10 +16,16 @@ function checa(descricao, obtido, esperado) {
 function bloco(titulo, fn) { console.log('\n' + titulo); fn(); }
 
 const {
-  _igDigitos, _igWhatsLink, _igTelLink, _igFormataTel, _igPadrao,
+  _igDigitos, _igWhatsLink, _igTelLink, _igFormataTel, _igPadrao, _igColetaPadrao,
 } = carregar(
-  ['_igDigitos', '_igWhatsLink', '_igTelLink', '_igFormataTel', '_igPadrao'],
+  ['_igDigitos', '_igWhatsLink', '_igTelLink', '_igFormataTel', '_igColetaPadrao', '_igPadrao'],
   { _condAtual: 'APVC', _IG_HISTORIA_APVC: 'história de teste' },
+);
+
+// Mesmas funções, mas para um condomínio que não é o Village Castelo.
+const outro = carregar(
+  ['_igColetaPadrao', '_igPadrao'],
+  { _condAtual: 'XPTO', _IG_HISTORIA_APVC: 'história de teste' },
 );
 
 bloco('Link do WhatsApp', () => {
@@ -68,6 +74,21 @@ bloco('Ponto de partida cadastrado', () => {
   checa('telefones úteis começam vazios (a administração cadastra)',
     d.telefones.length, 0);
   checa('nenhum mapa no começo', d.mapa, null);
+});
+
+// ── Coleta de lixo ─────────────────────────────────────────────────────
+bloco('Coleta de lixo', () => {
+  const t = _igColetaPadrao();
+  checa('lixo comum: segunda, quarta e sexta', t.indexOf('segunda, quarta e sexta') > 0, true);
+  checa('empresa do lixo comum', t.indexOf('EPPO') > 0, true);
+  checa('telefone da EPPO', t.indexOf('(11) 94824-0175') > 0, true);
+  checa('reciclagem na terça', t.indexOf('Reciclagem — terça') > 0, true);
+  checa('empresa da reciclagem', t.indexOf('COMAREI') > 0, true);
+  checa('telefone da COMAREI', t.indexOf('(11) 96337-3849') > 0, true);
+  checa('lixo verde na terça e sexta', t.indexOf('terça e sexta') > 0, true);
+  checa('entra no ponto de partida do condomínio', _igPadrao().coleta === t, true);
+  checa('outro condomínio começa em branco', outro._igColetaPadrao(), '');
+  checa('e o ponto de partida dele também', outro._igPadrao().coleta, '');
 });
 
 console.log('\n' + '-'.repeat(50));
