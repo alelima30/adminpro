@@ -12213,10 +12213,26 @@ async function perguntarAssistente(){
 
 var _igEditando = '';   // qual seção está aberta para edição ('' = nenhuma)
 
+/* Dois niveis de poder em Informacoes Gerais.
+
+   _igPodeEditar    — sindico e gestor do condominio. Preenchem o CONTEUDO
+                      das abas: o texto, os telefones, o PDF.
+   _igPodeGerirAbas — gestor senior (administrador da plataforma). Define a
+                      ESTRUTURA: cria, renomeia, reordena, esconde e exclui
+                      aba.
+
+   A separacao evita o estrago silencioso: excluir uma aba apaga o conteudo
+   junto, e renomear muda o que todos os moradores enxergam. Quem cuida do
+   dia a dia de um condominio nao precisa desse poder para trabalhar — e um
+   clique errado ali nao tem como ser desfeito. */
 function _igPodeEditar(){
   try{ if(isSuperAdmin()) return true; }catch(_){}
   var n = window._userNivel || '';
   return n === 'admin' || n === 'gestor';
+}
+
+function _igPodeGerirAbas(){
+  try{ return isSuperAdmin(); }catch(_){ return false; }
 }
 
 // Só o Village Castelo (APVC) tem esta história; os demais começam vazio
@@ -12506,11 +12522,12 @@ function _igAbasAtivas(d){
 
 /* O que aparece na barra de abas.
 
-   A administracao ve TAMBEM as abas escondidas, marcadas como tal — do
-   contrario, esconder uma aba tornaria impossivel editar o conteudo dela
-   depois, e o unico jeito de voltar atras seria reativar as cegas. */
+   Quem controla a estrutura ve TAMBEM as abas escondidas, marcadas como
+   tal — do contrario, esconder uma aba tornaria impossivel voltar atras
+   sem reativar as cegas. O sindico nao as ve: ele nao pode reexibi-las, e
+   uma aba que ele nao consegue publicar so atrapalharia. */
 function _igAbasVisiveis(d){
-  return _igPodeEditar() ? (d.abas||[]) : _igAbasAtivas(d);
+  return _igPodeGerirAbas() ? (d.abas||[]) : _igAbasAtivas(d);
 }
 
 function _igAbaAtual(d){
@@ -12544,7 +12561,7 @@ function _igBarraAbas(d){
          + (oculta ? ' <i class="fa-solid fa-eye-slash"></i>' : '') + '</button>';
   }).join('');
 
-  var gerir = _igPodeEditar()
+  var gerir = _igPodeGerirAbas()
     ? '<button class="tab ig-tab-gerir' + (_igGerenciando ? ' active' : '') + '" onclick="igGerenciarAbas()" '
       + 'title="Criar, renomear, reordenar e desligar abas"><i class="fa-solid fa-sliders"></i> Abas</button>'
     : '';
@@ -12605,6 +12622,10 @@ function _igConteudoAba(a){
 /* ── Gerenciar abas (só administração) ── */
 
 function igGerenciarAbas(){
+  if(!_igPodeGerirAbas()){
+    toast('⚠️ Criar e renomear abas é do gestor sênior. Você edita o conteúdo das abas existentes.');
+    return;
+  }
   if(_igEditando && !confirm('Você está editando. Sair desta aba descarta o que não foi salvo. Continuar?')) return;
   _igEditando = '';
   _igGerenciando = true;
@@ -12689,6 +12710,7 @@ function _igAtualizaSetas(){
 }
 
 function igAbasSalvar(){
+  if(!_igPodeGerirAbas()){ toast('⚠️ Sem permissão para alterar as abas.'); return; }
   var box = $('ig-gerir-lista'); if(!box) return;
   var d = _igDados();
   var porId = {};
@@ -12747,12 +12769,14 @@ function renderInfoGerais(){
 
   var sub = $('ig-sub');
   if(sub){
-    sub.textContent = _igPodeEditar()
+    sub.textContent = _igPodeGerirAbas()
       ? 'Dados do condomínio — use a aba "Abas" para criar, renomear ou esconder'
-      : 'Dados do condomínio, telefones e horários';
+      : (_igPodeEditar()
+          ? 'Dados do condomínio — clique em Editar para alterar o conteúdo de cada aba'
+          : 'Dados do condomínio, telefones e horários');
   }
 
-  if(_igGerenciando && _igPodeEditar()){
+  if(_igGerenciando && _igPodeGerirAbas()){
     alvo.innerHTML = _igBarraAbas(d) + _igTelaGerir(d);
     return;
   }
