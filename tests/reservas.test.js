@@ -434,6 +434,76 @@ bloco('Comprovante — documento aceito', () => {
   checa('a unidade aparece', bloco1.indexOf('L01') > 0, true);
 });
 
+// ── Quem está ligado a uma unidade ─────────────────────────────────────
+// Duas fontes: o cadastro do condomínio (quem RESPONDE pela unidade) e as
+// contas do aplicativo (quem USA o sistema). O cadastro manda; as contas
+// entram marcadas, porque a divergência entre eles é informação — ou o
+// cadastro envelheceu, ou alguém se cadastrou numa unidade que não é dele.
+bloco('Pessoas da unidade: cadastro × contas do app', () => {
+  const UNIDADES = { L01: { proprietario: 'C1', morador: 'C2' } };
+  const CONDOMINOS = {
+    C1: { nome: 'Maria Souza', telefone: '1133334444', email: 'maria@old.com',
+          dependentes: [{ nome: 'Pedro Souza', telefone: '11955556666' }] },
+    C2: { nome: 'João Souza', telefone: '11944443333' },
+  };
+  let CONTAS = [];
+
+  // _usrCache NÃO entra como stub de propósito: stub é passado como
+  // argumento e ficaria congelado no valor do momento da carga. Ficando
+  // fora, é resolvido no escopo global e o teste consegue trocá-lo de
+  // verdade a cada caso.
+  const api = carregar(
+    ['encPessoasDaUnidade', '_soDigitos', '_usrDaUnidade'],
+    {
+      getUnidades: () => UNIDADES,
+      G: (k) => (k === 'condominos' ? CONDOMINOS : null),
+    },
+  );
+  const pessoas = (uni) => { global._usrCache = CONTAS; return api.encPessoasDaUnidade(uni); };
+
+  // Sem nenhuma conta no app: só o cadastro, como antes.
+  CONTAS = [];
+  let p = pessoas('L01');
+  checa('titular, cônjuge e dependente', p.map((x) => x.nome),
+    ['Maria Souza', 'Pedro Souza', 'João Souza']);
+  checa('todos vindos do cadastro', p.every((x) => x.origem === 'cadastro'), true);
+
+  // Mesma pessoa com telefone novo no app.
+  CONTAS = [{ nome: 'Maria Souza', tel: '11988887777', email: 'maria@nova.com',
+              unidade: 'L01', status: 'ativo' }];
+  p = pessoas('L01');
+  checa('não duplica quem já está no cadastro', p.length, 3);
+  checa('guarda o telefone do app como alternativa',
+    p.find((x) => x.nome === 'Maria Souza').telApp, '11988887777');
+  checa('e o do cadastro continua lá',
+    p.find((x) => x.nome === 'Maria Souza').tel, '1133334444');
+  checa('marca que essa pessoa tem conta',
+    p.find((x) => x.nome === 'Maria Souza').temConta, true);
+
+  // Telefone igual, escrito diferente: não é divergência.
+  CONTAS = [{ nome: 'Maria Souza', tel: '(11) 3333-4444', unidade: 'L01', status: 'ativo' }];
+  checa('mesmo número com máscara não vira divergência',
+    pessoas('L01').find((x) => x.nome === 'Maria Souza').telApp, undefined);
+
+  // Alguém com conta para a unidade sem constar no cadastro.
+  CONTAS = [{ nome: 'Carlos Estranho', tel: '11912345678', unidade: 'L01', status: 'ativo' }];
+  p = pessoas('L01');
+  checa('entra na lista, marcado', p.find((x) => x.nome === 'Carlos Estranho').origem, 'app');
+  checa('sem apagar quem estava no cadastro', p.length, 4);
+
+  // Conta bloqueada não deve entrar — o filtro é feito ao carregar.
+  CONTAS = [{ nome: 'Maria Souza', tel: '11988887777', unidade: 'L02', status: 'ativo' }];
+  checa('conta de outra unidade não aparece',
+    pessoas('L01').find((x) => x.telApp), undefined);
+
+  // Unidade que não existe no cadastro, mas tem conta no app.
+  CONTAS = [{ nome: 'Ana Nova', tel: '11911112222', unidade: 'Z99', status: 'ativo' }];
+  checa('unidade fora do cadastro ainda mostra quem tem conta',
+    pessoas('Z99').map((x) => x.nome), ['Ana Nova']);
+
+  checa('unidade sem nada devolve lista vazia', pessoas('X00'), []);
+});
+
 console.log('\n' + '-'.repeat(50));
 console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
 process.exit(falhas === 0 ? 0 : 1);
