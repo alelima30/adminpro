@@ -4392,6 +4392,8 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
           <option value="">— selecione a unidade acima —</option>
         </select>
         <div style="font-size:11px;color:var(--text-3);margin-top:4px">Selecione quem está reservando — nome e telefone preenchem sozinhos.</div>
+        <div id="mres-pessoa-aviso" style="display:none;margin-top:8px;font-size:11.5px;line-height:1.6;color:var(--amber);
+             background:rgba(240,168,67,0.10);border:1px solid rgba(240,168,67,0.30);border-radius:8px;padding:8px 11px"></div>
       </div>
       <div class="fg">
         <label>Telefone</label>
@@ -5842,8 +5844,39 @@ function mresPreencherPessoas(lote){
     return;
   }
   sel.innerHTML='<option value="">— selecione o morador/dependente —</option>'+
-    pessoas.map(function(p,i){ return '<option value="'+i+'">'+escU(p.nome)+(p.tel?' — '+escU(p.tel):'')+'</option>'; }).join('');
+    pessoas.map(function(p,i){
+      var marca = (p.origem==='app') ? '  (conta no app — fora do cadastro)'
+                : (p.telApp ? '  (contato diferente no app)' : '');
+      return '<option value="'+i+'">'+escU(p.nome)+(p.tel?' — '+escU(p.tel):'')+escU(marca)+'</option>';
+    }).join('');
   wrap.style.display='';
+  _mresAvisoPessoas(pessoas, lote);
+}
+
+/* Aviso de divergencia entre os dois cadastros.
+
+   Nao e erro a corrigir na hora — e informacao que so a administracao
+   consegue resolver, e que hoje nao aparecia em lugar nenhum. */
+function _mresAvisoPessoas(pessoas, lote){
+  var el = $('mres-pessoa-aviso');
+  if(!el) return;
+  var foraDoCadastro = pessoas.filter(function(p){ return p.origem==='app'; });
+  var contatoNovo    = pessoas.filter(function(p){ return p.telApp; });
+  var partes = [];
+  if(foraDoCadastro.length){
+    partes.push('<i class="fa-solid fa-triangle-exclamation"></i> '
+      + escU(foraDoCadastro.map(function(p){ return p.nome; }).join(', '))
+      + (foraDoCadastro.length>1 ? ' têm conta' : ' tem conta') + ' no app informando a unidade '
+      + escU(lote) + ', mas não consta' + (foraDoCadastro.length>1?'m':'')
+      + ' no cadastro do condomínio.');
+  }
+  contatoNovo.forEach(function(p){
+    partes.push('<i class="fa-solid fa-circle-info"></i> ' + escU(p.nome)
+      + ': telefone no cadastro é ' + escU(p.tel||'—')
+      + ', no app é ' + escU(p.telApp) + '.');
+  });
+  el.innerHTML = partes.length ? partes.join('<br>') : '';
+  el.style.display = partes.length ? '' : 'none';
 }
 
 // Ao escolher uma pessoa, preenche nome e telefone automaticamente
@@ -5852,7 +5885,11 @@ function mresPessoaSel(){
   var i=sel.value; if(i==='') return;
   var p=(window._mresPessoas||[])[+i]; if(!p) return;
   if($('mres-nome')) $('mres-nome').value=p.nome||'';
-  if($('mres-tel'))  $('mres-tel').value =p.tel||'';
+  // Havendo divergencia, entra o telefone do APP: foi a propria pessoa que
+  // digitou, e o do cadastro costuma ser o que envelheceu. Quem quiser o
+  // outro edita o campo — nao se apaga informacao, so se escolhe o padrao
+  // mais provavel de estar certo.
+  if($('mres-tel'))  $('mres-tel').value = p.telApp || p.tel || '';
 }
 
 // Fecha ao clicar fora
@@ -8521,18 +8558,91 @@ function _encIsMorador(){ var n=window._userNivel||'morador'; return n!=='admin'
 function _encUnidadeMorador(){ try{ return (JSON.parse(localStorage.getItem('apvc_user')||'{}').lote||'').trim().toUpperCase(); }catch(_){ return ''; } }
 
 // Lista todas as pessoas cadastradas na unidade (proprietário, morador e dependentes)
+/* Quem esta ligado a uma unidade.
+
+   Duas fontes, que respondem coisas diferentes:
+
+     Cadastro do condominio (Unidades + Condominos)
+       quem RESPONDE pela unidade — proprietario, morador titular e
+       dependentes. E o que a administracao conferiu, e e nele que se
+       apoia a responsabilidade por termo, taxa e dano.
+
+     Contas criadas no aplicativo (usuarios)
+       quem USA o sistema. O contato aqui costuma ser mais atual, porque
+       foi a propria pessoa que digitou — mas e declaracao, nao conferencia.
+
+   A fonte de verdade continua sendo o cadastro do condominio. As contas
+   entram como complemento, marcadas, porque a divergencia entre as duas
+   e informacao util: ou o cadastro envelheceu, ou alguem se cadastrou
+   dizendo ser de uma unidade que nao e. Esconder isso escolhendo uma
+   fonte so nao resolve nenhum dos dois casos. */
 function encPessoasDaUnidade(uni){
-  var u=getUnidades()[uni.toUpperCase()]; var pessoas=[]; var vistos={};
-  if(!u) return pessoas;
+  var chave=String(uni||'').toUpperCase().trim();
+  var u=getUnidades()[chave]; var pessoas=[]; var vistos={};
   var conds=G('condominos')||{};
-  [u.proprietario,u.morador].forEach(function(cod){
-    if(!cod) return;
-    var c=conds[cod]; if(!c) return;
-    var tel=c.telefone||((c.telefones&&c.telefones[0])?(c.telefones[0].numero||''):'');
-    if(c.nome && !vistos[c.nome]){ vistos[c.nome]=1; pessoas.push({nome:c.nome, tel:tel, email:c.email||''}); }
-    (c.dependentes||[]).forEach(function(d){ if(d.nome && !vistos[d.nome]){ vistos[d.nome]=1; pessoas.push({nome:d.nome, tel:d.telefone||tel, email:d.email||c.email||''}); } });
+  if(u){
+    [u.proprietario,u.morador].forEach(function(cod){
+      if(!cod) return;
+      var c=conds[cod]; if(!c) return;
+      var tel=c.telefone||((c.telefones&&c.telefones[0])?(c.telefones[0].numero||''):'');
+      if(c.nome && !vistos[c.nome]){
+        vistos[c.nome]=pessoas.length+1;
+        pessoas.push({nome:c.nome, tel:tel, email:c.email||'', origem:'cadastro'});
+      }
+      (c.dependentes||[]).forEach(function(d){
+        if(d.nome && !vistos[d.nome]){
+          vistos[d.nome]=pessoas.length+1;
+          pessoas.push({nome:d.nome, tel:d.telefone||tel, email:d.email||c.email||'', origem:'cadastro'});
+        }
+      });
+    });
+  }
+
+  // Contas do aplicativo daquela unidade
+  (_usrDaUnidade(chave)).forEach(function(a){
+    var nome=String(a.nome||'').trim();
+    if(!nome) return;
+    var pos=vistos[nome];
+    if(pos){
+      // Mesma pessoa nos dois cadastros: guarda o contato do app quando
+      // ele difere, para a administracao poder escolher qual usar.
+      var ja=pessoas[pos-1];
+      if(a.tel && _soDigitos(a.tel) !== _soDigitos(ja.tel)) ja.telApp=a.tel;
+      if(a.email && a.email !== ja.email) ja.emailApp=a.email;
+      ja.temConta=true;
+    } else {
+      vistos[nome]=pessoas.length+1;
+      pessoas.push({nome:nome, tel:a.tel||'', email:a.email||'', origem:'app', temConta:true});
+    }
   });
   return pessoas;
+}
+
+function _soDigitos(v){ return String(v||'').replace(/\D/g,''); }
+
+/* Contas do aplicativo, por unidade. O cache e preenchido sem travar a
+   tela: se ainda nao chegou, a lista sai so com o cadastro do condominio
+   e se completa na proxima abertura. Nunca deixa a tela esperando. */
+var _usrCache = null;
+
+function _usrDaUnidade(uni){
+  if(!Array.isArray(_usrCache)) return [];
+  var chave=String(uni||'').toUpperCase().trim();
+  return _usrCache.filter(function(u){
+    return String(u.unidade||'').toUpperCase().trim() === chave;
+  });
+}
+
+function carregarContasApp(forcar){
+  if(Array.isArray(_usrCache) && !forcar) return Promise.resolve(_usrCache);
+  if(!window.SB){ _usrCache = []; return Promise.resolve(_usrCache); }
+  return SB.from('usuarios').select('nome,email,tel,unidade,status')
+    .eq('condominio_id', _condAtual)
+    .then(function(r){
+      _usrCache = (r.data||[]).filter(function(u){ return (u.status||'ativo')==='ativo'; });
+      return _usrCache;
+    })
+    .catch(function(){ _usrCache = []; return _usrCache; });
 }
 
 // Preenche o seletor de destinatários e contatos ao informar a unidade
@@ -9606,6 +9716,15 @@ function fecharModalRes(){
 function abrirModalRes(id){
   // Cada reserva comeca com os valores travados na configuracao.
   _mresValoresSoltos = false;
+  // Contas do aplicativo, para cruzar com o cadastro do condominio. Se
+  // ainda nao chegaram, a lista sai so com o cadastro e se completa quando
+  // a resposta vier — a tela nunca fica esperando.
+  try{
+    carregarContasApp().then(function(){
+      var l = $('mres-lote') ? $('mres-lote').value : '';
+      if(l) mresPreencherPessoas(l);
+    });
+  }catch(_){}
   // Fallback: garante que reservas estejam carregadas
   if(!G('reservas')){
     try{
