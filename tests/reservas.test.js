@@ -395,6 +395,45 @@ bloco('Taxa a partir de um horário', () => {
     taxaDoHorario({ [F + 'taxa']: '0' }, 'Campo de Futebol', '08:00–09:00'), 0);
 });
 
+// ── Comprovante: qual documento o morador aceitou ──────────────────────
+// Num processo, o que identifica a peça é o NOME do documento, não o
+// endereço do arquivo. E o endereço pode ser trocado depois por outro PDF:
+// por isso o nome é gravado NA RESERVA, no momento do aceite.
+bloco('Comprovante — documento aceito', () => {
+  const { _blocoAceiteTermo } = carregar(
+    ['_blocoAceiteTermo', '_fmtDataHoraBR', 'escHtml'], {},
+  );
+  const doc = (r) => {
+    const m = _blocoAceiteTermo(r).match(/Documento aceito<\/span><b>([\s\S]*?)<\/b>/);
+    return m ? m[1] : '';
+  };
+  const base = { chkTermo: true, criadoEm: '2026-08-07T14:30:00Z',
+                 criadoPor: 'morador@email.com', lote: 'L01' };
+
+  const completo = doc({ ...base, termoNome: 'Termo de Uso do Salão — 2026',
+                                  termoDoc: 'https://ex.com/t.pdf' });
+  checa('mostra o nome do documento', completo.indexOf('Termo de Uso do Salão — 2026') === 0, true);
+  checa('e o endereço do arquivo abaixo', completo.indexOf('https://ex.com/t.pdf') > 0, true);
+
+  // Reserva feita antes de existir o campo do nome: não se inventa um.
+  const soLink = doc({ ...base, termoDoc: 'https://ex.com/t.pdf' });
+  checa('sem nome gravado, mostra o endereço', soLink.indexOf('https://ex.com/t.pdf') === 0, true);
+  checa('e diz que o nome não foi registrado',
+    soLink.indexOf('não registrado nesta reserva') > 0, true);
+
+  checa('sem nada gravado, diz que não consta',
+    doc({ ...base }).indexOf('não registrado') >= 0, true);
+
+  // Sem aceite não há bloco de evidência nenhum.
+  checa('sem aceite, o comprovante diz que não consta',
+    _blocoAceiteTermo({ chkTermo: false }).indexOf('Não consta aceite registrado') > 0, true);
+
+  // O nome do morador e a data continuam saindo.
+  const bloco1 = _blocoAceiteTermo({ ...base, termoNome: 'X' });
+  checa('quem aceitou aparece', bloco1.indexOf('morador@email.com') > 0, true);
+  checa('a unidade aparece', bloco1.indexOf('L01') > 0, true);
+});
+
 console.log('\n' + '-'.repeat(50));
 console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
 process.exit(falhas === 0 ? 0 : 1);
