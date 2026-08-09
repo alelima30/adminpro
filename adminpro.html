@@ -5159,7 +5159,7 @@ function _resRowToApp(r){
     // criado_em e carimbado pelo SERVIDOR (default now()) e nunca enviado
     // pelo app — por isso serve como data/hora do aceite que o navegador
     // do morador nao consegue forjar.
-    criadoEm:r.criado_em||'', termoDoc:c.termoDoc||'',
+    criadoEm:r.criado_em||'', termoDoc:c.termoDoc||'', termoNome:c.termoNome||'',
     loteResponsavel:r.unidade||'' };
 }
 function _resAppToRow(o){
@@ -5171,7 +5171,7 @@ function _resAppToRow(o){
     checklist:{ chkTermo:!!o.chkTermo, chkTaxaCampo:!!o.chkTaxaCampo, chkTaxaSalao:!!o.chkTaxaSalao,
       chkCaucaoAceite:!!o.chkCaucaoAceite, chkVPre:!!o.chkVPre, chkVPos:!!o.chkVPos,
       chkCaucaoDev:!!o.chkCaucaoDev, chkRegras:!!o.chkRegras, chkDevolucao:!!o.chkDevolucao,
-      termoDoc:o.termoDoc||'' },
+      termoDoc:o.termoDoc||'', termoNome:o.termoNome||'' },
     obs:o.obs||null, alerta_whatsapp:o.alertaWhatsapp||null, alerta_email:o.alertaEmail||null,
     alertas:o.alertas||[], criado_por:o.criadoPor||null };
 }
@@ -9155,6 +9155,7 @@ function _abrirImpressao(titulo, corpoHtml){
     '.aceite .ev>div{display:flex;justify-content:space-between;gap:12px;padding:3px 0}'+
     '.aceite .ev span{color:#666}'+
     '.aceite .ev b{color:#132040;text-align:right;word-break:break-all;max-width:62%}'+
+    '.aceite .ev b .docurl{display:block;font-weight:400;font-size:10.5px;color:#6b7280;margin-top:2px;word-break:break-all}'+
     '.aceite .obsv{margin-top:8px;font-size:11px;color:#8a6d3b;font-style:italic}'+
     '@media print{body{margin:14mm}button{display:none}}';
   var cab='<div class="cab">'+(logo?'<img src="'+logo+'">':'')+'<div><h1>'+nomeCond+'</h1><div class="sub">'+titulo+'</div></div></div>';
@@ -9224,6 +9225,7 @@ function _blocoAceiteTermo(r){
   var quando = _fmtDataHoraBR(r.criadoEm);
   var quem   = (r.criadoPor||'').trim();
   var doc    = (r.termoDoc||'').trim();
+  var nomeDoc= (r.termoNome||'').trim();
 
   var html='<div class="aceite"><b><i class="fa-solid fa-check"></i> Termo de Responsabilidade — aceito</b>'+
     '<div>O responsável declarou, no ato da reserva, ter lido e concordado '+
@@ -9232,7 +9234,24 @@ function _blocoAceiteTermo(r){
   html += '<div><span>Aceito por</span><b>'+escHtml(quem||'não registrado')+'</b></div>';
   html += '<div><span>Data e hora</span><b>'+escHtml(quando||'não registrada')+'</b></div>';
   html += '<div><span>Unidade</span><b>'+escHtml(r.lote||'—')+'</b></div>';
-  html += '<div><span>Documento aceito</span><b>'+(doc?escHtml(doc):'não registrado (reserva anterior a este controle)')+'</b></div>';
+  /* O documento aceito aparece pelo NOME, que e o que identifica a peca
+     num processo. O endereco do arquivo vai logo abaixo, em letra menor:
+     serve para localizar o PDF, mas nao e o que se le num comprovante.
+
+     Quando a reserva e antiga e o nome nao foi registrado, nao se inventa
+     um: mostra-se o endereco e diz-se que o nome nao consta. Evidencia
+     preenchida por deducao nao e evidencia. */
+  var docTxt;
+  if(nomeDoc){
+    docTxt = escHtml(nomeDoc)
+           + (doc ? '<div class="docurl">'+escHtml(doc)+'</div>' : '');
+  } else if(doc){
+    docTxt = escHtml(doc)
+           + '<div class="docurl">Nome do documento não registrado nesta reserva.</div>';
+  } else {
+    docTxt = 'não registrado (reserva anterior a este controle)';
+  }
+  html += '<div><span>Documento aceito</span><b>'+docTxt+'</b></div>';
   html += '</div>';
   if(!doc || !quando){
     html += '<div class="obsv">Esta reserva foi criada antes do registro completo de evidências; '+
@@ -9494,7 +9513,12 @@ function onEspacoChange(reservaExistente){
   // Termo de responsabilidade
   const chave = 'termo_'+chaveEsp;
   const link  = cfg[chave]||'';
-  if($('mres-termo-espaco-nome')) $('mres-termo-espaco-nome').textContent = 'Termo de: '+espaco;
+  // O morador precisa ver o NOME do que esta aceitando. E o mesmo nome que
+  // vai para o comprovante: se la constar "Termo de Uso do Salao — 2026",
+  // aqui tambem tem que constar, senao a pessoa aceita uma coisa e o
+  // documento registra outra.
+  const nomeTermo = (cfg[chave+'_nome']||'').trim();
+  if($('mres-termo-espaco-nome')) $('mres-termo-espaco-nome').textContent = nomeTermo || ('Termo de: '+espaco);
   if($('mres-termo-link')){
     if(link){ $('mres-termo-link').href=link; $('mres-termo-link').style.display='inline-flex'; }
     else     { $('mres-termo-link').style.display='none'; }
@@ -9815,6 +9839,13 @@ async function salvarRes(){
     // Qual documento estava valendo no instante do aceite. Sem isto,
     // trocar depois o PDF do termo do espaco apagaria a referencia do
     // que foi efetivamente aceito.
+    /* Nome do termo tal como estava no ato do aceite. Guardado JUNTO com o
+       link: o link pode ser trocado depois por outro arquivo, e ai a prova
+       de qual documento a pessoa aceitou se perderia. Em reserva ja
+       existente nao se mexe — a evidencia e daquele momento. */
+    termoNome: (_resExistente && _resExistente.termoNome !== undefined)
+                 ? _resExistente.termoNome
+                 : ((getCfgRes()['termo_'+_chvEsp(espacoRes)+'_nome']||'').trim()),
     termoDoc: (_resExistente && _resExistente.termoDoc)
                  ? _resExistente.termoDoc
                  : ((getCfgRes()['termo_'+_chvEsp(espacoRes)]||'').trim()),
@@ -11077,12 +11108,19 @@ function renderCfgReservas(){
   // Termos por espaço
   if(elTermos){
     elTermos.innerHTML = ESPACOS_CFG.map(esp=>{
-      const chave = 'termo_'+esp.toLowerCase().replace(/[^a-z0-9]/g,'_');
-      const val = cfgRes[chave]||'';
+      const chave     = 'termo_'+esp.toLowerCase().replace(/[^a-z0-9]/g,'_');
+      const chaveNome = chave+'_nome';
+      const val  = cfgRes[chave]||'';
+      const nome = cfgRes[chaveNome]||'';
+      const est  = 'padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none';
       return `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <label style="font-size:13px;font-weight:600;min-width:160px;color:var(--text)">${esp}</label>
-        <input type="text" data-chave="${chave}" value="${val}" placeholder="Cole o link do PDF do termo"
-          style="flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none">
+        <input type="text" data-chave-nome="${chaveNome}" value="${escU(nome)}"
+          placeholder="Nome do termo (ex.: Termo de Uso do Salão — 2026)"
+          title="É este nome que aparece no comprovante da reserva, como o documento que o morador aceitou."
+          style="flex:1;min-width:220px;${est}">
+        <input type="text" data-chave="${chave}" value="${escU(val)}" placeholder="Link do PDF do termo"
+          style="flex:1;min-width:200px;${est}">
       </div>`;
     }).join('');
   }
@@ -11774,6 +11812,9 @@ function salvarCfgReservas(){
 
   // Salva termos
   if(elTermos){
+    elTermos.querySelectorAll('input[data-chave-nome]').forEach(inp=>{
+      cfgRes[inp.dataset.chaveNome] = inp.value.trim();
+    });
     elTermos.querySelectorAll('input[data-chave]').forEach(inp=>{
       cfgRes[inp.dataset.chave] = inp.value.trim();
     });
