@@ -504,6 +504,145 @@ bloco('Pessoas da unidade: cadastro × contas do app', () => {
   checa('unidade sem nada devolve lista vazia', pessoas('X00'), []);
 });
 
+// ── Onde a conta do app entra no cadastro do condomínio ────────────────
+// O formulário público só declara. Quem decide a posição no cadastro é a
+// administração, na aprovação — que é o único momento em que dá para
+// responder "dependente de quem?".
+bloco('Conta do app → cadastro do condomínio', () => {
+  let UNI, CON, SEQ, SALVOU, ESCOLHA, ESCOLHA_DE, CONFIRMOU, MARCA_TEL, CAIXA;
+
+  function reset() {
+    UNI = { L01: { proprietario: '0001', morador: '' }, L02: {} };
+    CON = {
+      '0001': { nome: 'João Silva', telefone: '11911112222',
+                telefones: [{ numero: '11911112222', tipo: 'Celular' }], dependentes: [] },
+    };
+    SEQ = 1; SALVOU = []; ESCOLHA = 'nada'; ESCOLHA_DE = '0001';
+    CONFIRMOU = true; MARCA_TEL = false; CAIXA = '';
+  }
+  reset();
+
+  // Nenhuma variável mutável entra como stub: stub vira argumento e ficaria
+  // congelado. Só entram FUNÇÕES, que leem as variáveis por closure e por
+  // isso enxergam o valor do momento da chamada.
+  const api = carregar(
+    ['_musrNorm', '_musrCondsDaUnidade', '_musrJaNoCadastro', '_musrAplicarCadastro', '_soDigitos'],
+    {
+      getUnidades: () => UNI,
+      getCondominos: () => CON,
+      G: (k) => (k === 'condseq' ? SEQ : null),
+      S: (k, v) => { SALVOU.push(k); if (k === 'condseq') SEQ = v; },
+      conFormatCodigo: (n) => String(n).padStart(4, '0'),
+      conProximoCodigoNum: () => {
+        let m = SEQ;
+        Object.keys(CON).forEach((c) => { const n = parseInt(c, 10); if (!isNaN(n) && n > m) m = n; });
+        return m + 1;
+      },
+      confirm: () => CONFIRMOU,
+      $: (id) => {
+        if (id === 'musr-cad-box') return { style: { display: CAIXA } };
+        if (id === 'musr-cad-de') return { value: ESCOLHA_DE };
+        if (id === 'musr-cad-tel') return MARCA_TEL ? { checked: true } : null;
+        return null;
+      },
+      document: { querySelector: () => ({ value: ESCOLHA }) },
+    },
+  );
+
+  // ── Comparação de nomes ──
+  checa('acento e maiúscula não separam a mesma pessoa',
+    api._musrNorm('JOSÉ  da Silva'), api._musrNorm('jose da silva'));
+
+  // ── Quem pode ter dependente ──
+  checa('só proprietário e morador podem receber dependentes',
+    api._musrCondsDaUnidade('L01').map((c) => c.nome), ['João Silva']);
+  checa('unidade sem ninguém não oferece ninguém',
+    api._musrCondsDaUnidade('L02'), []);
+  UNI.L01.morador = '0009';
+  CON['0009'] = { nome: 'Maria Silva', dependentes: [] };
+  checa('havendo os dois, os dois podem ser o titular do dependente',
+    api._musrCondsDaUnidade('L01').map((c) => c.nome + '/' + c.papel),
+    ['João Silva/Proprietário', 'Maria Silva/Morador']);
+  reset();
+
+  // ── Já está no cadastro? ──
+  checa('acha o proprietário pelo nome',
+    api._musrJaNoCadastro('L01', 'joão silva').papel, 'proprietário');
+  checa('quem não está, não está', api._musrJaNoCadastro('L01', 'Ana Nova'), null);
+
+  // ── "Só liberar o acesso" não pode tocar no cadastro ──
+  reset(); ESCOLHA = 'nada';
+  checa('opção padrão não escreve nada', api._musrAplicarCadastro('Ana Nova', '11933334444', 'a@x.com', 'L01'), '');
+  checa('e nada foi salvo', SALVOU, []);
+
+  // ── Unidade que não existe: não se inventa lote ──
+  reset(); ESCOLHA = 'morador';
+  checa('unidade fora do cadastro não é criada', api._musrAplicarCadastro('Ana Nova', '', '', 'Z99'), '');
+  checa('nem grava nada', SALVOU, []);
+
+  // ── Entrar como morador de uma vaga vazia ──
+  reset(); ESCOLHA = 'morador';
+  let msg = api._musrAplicarCadastro('Ana Nova', '11933334444', 'ana@x.com', 'L01');
+  checa('avisa o que fez', msg, 'Ana Nova entrou no cadastro como morador do L01.');
+  checa('criou o condômino seguinte', Object.keys(CON).sort(), ['0001', '0002']);
+  checa('ligou à unidade', UNI.L01.morador, '0002');
+  checa('sem mexer no proprietário', UNI.L01.proprietario, '0001');
+  checa('telefone do app foi junto', CON['0002'].telefone, '11933334444');
+
+  // ── Dependente: o vínculo é com uma pessoa, não com a unidade ──
+  reset(); ESCOLHA = 'dependente'; ESCOLHA_DE = '0001';
+  msg = api._musrAplicarCadastro('Filho Silva', '11955556666', '', 'L01');
+  checa('diz de quem é dependente', msg, 'Filho Silva entrou no cadastro como dependente de João Silva.');
+  checa('entrou dentro do condômino', CON['0001'].dependentes.map((d) => d.nome), ['Filho Silva']);
+  checa('com código derivado do titular', CON['0001'].dependentes[0].codigo, '0001-01');
+  checa('não virou condômino solto', Object.keys(CON), ['0001']);
+
+  // segundo dependente numera em sequência
+  api._musrAplicarCadastro('Filha Silva', '', '', 'L01');
+  checa('o segundo dependente continua a contagem', CON['0001'].dependentes[1].codigo, '0001-02');
+
+  // ── Trocar o proprietário exige confirmação ──
+  reset(); ESCOLHA = 'proprietario'; CONFIRMOU = false;
+  checa('recusada a troca, nada acontece', api._musrAplicarCadastro('Ana Nova', '', '', 'L01'), '');
+  checa('proprietário continua o mesmo', UNI.L01.proprietario, '0001');
+
+  reset(); ESCOLHA = 'proprietario'; CONFIRMOU = true;
+  api._musrAplicarCadastro('Ana Nova', '', '', 'L01');
+  checa('confirmada, a posição troca', UNI.L01.proprietario, '0002');
+  checa('e o cadastro do anterior NÃO é apagado', CON['0001'].nome, 'João Silva');
+
+  // ── Não duplicar quem já é condômino em outra unidade ──
+  reset(); ESCOLHA = 'morador';
+  CON['0007'] = { nome: 'Ana Nova', telefone: '', dependentes: [] };
+  api._musrAplicarCadastro('Ana Nova', '', '', 'L01');
+  checa('reaproveita o condômino existente', UNI.L01.morador, '0007');
+  checa('sem criar um segundo registro dela', Object.keys(CON).sort(), ['0001', '0007']);
+
+  // Havendo dois com o mesmo nome é ambíguo: cria novo em vez de chutar.
+  reset(); ESCOLHA = 'morador';
+  CON['0007'] = { nome: 'Ana Nova', dependentes: [] };
+  CON['0008'] = { nome: 'ANA NOVA', dependentes: [] };
+  api._musrAplicarCadastro('Ana Nova', '', '', 'L01');
+  checa('nome ambíguo não é resolvido no chute', UNI.L01.morador, '0009');
+
+  // ── Atualizar telefone de quem já está no cadastro ──
+  reset(); MARCA_TEL = false;
+  checa('sem marcar a caixa, telefone não muda',
+    api._musrAplicarCadastro('João Silva', '11999998888', '', 'L01'), '');
+  checa('telefone intacto', CON['0001'].telefone, '11911112222');
+
+  reset(); MARCA_TEL = true;
+  msg = api._musrAplicarCadastro('João Silva', '11999998888', '', 'L01');
+  checa('marcando, atualiza', msg, 'Telefone de João Silva atualizado no cadastro.');
+  checa('no campo simples', CON['0001'].telefone, '11999998888');
+  checa('e na lista de telefones', CON['0001'].telefones[0].numero, '11999998888');
+  checa('não criou condômino nenhum', Object.keys(CON), ['0001']);
+
+  // ── A caixa escondida não age ──
+  reset(); ESCOLHA = 'morador'; CAIXA = 'none';
+  checa('bloco oculto não escreve', api._musrAplicarCadastro('Ana Nova', '', '', 'L01'), '');
+});
+
 console.log('\n' + '-'.repeat(50));
 console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
 process.exit(falhas === 0 ? 0 : 1);

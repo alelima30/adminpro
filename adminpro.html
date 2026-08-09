@@ -4286,9 +4286,9 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
     <div class="modal-sub" id="musr-info"></div>
     <input type="hidden" id="musr-docid">
     <div class="form-grid" style="margin-top:16px">
-      <div class="fg"><label>Nome</label><input type="text" id="musr-nome" placeholder="Nome completo"></div>
-      <div class="fg"><label><i class="fa-brands fa-whatsapp" style="color:var(--green-l)"></i> WhatsApp</label><input type="text" id="musr-tel" placeholder="(11) 99999-9999"></div>
-      <div class="fg"><label>Unidade</label><input type="text" id="musr-unidade" placeholder="Ex: K13" style="text-transform:uppercase"></div>
+      <div class="fg"><label>Nome</label><input type="text" id="musr-nome" placeholder="Nome completo" oninput="musrCadRender()"></div>
+      <div class="fg"><label><i class="fa-brands fa-whatsapp" style="color:var(--green-l)"></i> WhatsApp</label><input type="text" id="musr-tel" placeholder="(11) 99999-9999" oninput="musrCadRender()"></div>
+      <div class="fg"><label>Unidade</label><input type="text" id="musr-unidade" placeholder="Ex: K13" style="text-transform:uppercase" oninput="musrCadRender()"></div>
       <div class="fg"><label>E-mail (login — não editável)</label><input type="text" id="musr-email" disabled style="opacity:.65"></div>
       <div class="fg full"><label>Nível de Acesso</label>
         <select id="musr-nivel" onchange="musrNivelChange()" style="padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:14px;outline:none;width:100%">
@@ -4305,6 +4305,14 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
           Só aparecem os módulos liberados pela plataforma para este condomínio.
         </div>
         <div id="musr-modulos-list" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+      <div class="fg full" id="musr-cad-box" style="display:none">
+        <label><i class="fa-solid fa-address-book"></i> Cadastro do condomínio</label>
+        <div style="font-size:11px;color:var(--text-3);margin:2px 0 8px;line-height:1.5">
+          Quem se cadastra no app <strong>declara</strong> a unidade. Quem confere é você.
+          Nada entra no cadastro do condomínio sem passar por aqui.
+        </div>
+        <div id="musr-cad-corpo" style="background:var(--ink-3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7"></div>
       </div>
       <div class="fg full"><label>Observação (opcional)</label>
         <input type="text" id="musr-obs" placeholder="Ex: Lote confirmado, aprovado pelo síndico...">
@@ -5868,7 +5876,8 @@ function _mresAvisoPessoas(pessoas, lote){
       + escU(foraDoCadastro.map(function(p){ return p.nome; }).join(', '))
       + (foraDoCadastro.length>1 ? ' têm conta' : ' tem conta') + ' no app informando a unidade '
       + escU(lote) + ', mas não consta' + (foraDoCadastro.length>1?'m':'')
-      + ' no cadastro do condomínio.');
+      + ' no cadastro do condomínio. Para incluir ou corrigir, abra <b>Usuários</b>,'
+      + ' clique em <b>Nível</b> e escolha onde a pessoa entra.');
   }
   contatoNovo.forEach(function(p){
     partes.push('<i class="fa-solid fa-circle-info"></i> ' + escU(p.nome)
@@ -14204,6 +14213,7 @@ function abrirModalUsr(docId){
   _musrCarregarModulos(u.email, u.nivel);
   if($('musr-btn-aprovar')) $('musr-btn-aprovar').style.display = pend ? '' : 'none';
   if($('musr-btn-salvar'))  $('musr-btn-salvar').style.display  = pend ? 'none' : '';
+  musrCadRender();
   $('m-usr').classList.add('open');
 }
 
@@ -14275,10 +14285,218 @@ async function salvarDadosUsr(){
     var up = await SB.from(tabela).update(dados).eq('id', docId);
     if(up.error) throw up.error;
     if(dados.nivel==='supervisor') _salvarSupervisorMods(u.email);
+    // Quem já tinha sido aprovado antes disso existir entra no cadastro por aqui.
+    var _resumoCad='';
+    try{ _resumoCad=_musrAplicarCadastro(dados.nome, dados.tel, u.email, dados.unidade)||''; }catch(_e){}
     fecharModalUsr();
     await renderUsuarios();
-    toast('✓ Dados atualizados.');
+    toast('✓ Dados atualizados.' + (_resumoCad ? ' ' + _resumoCad : ''));
   }catch(e){ toast('⚠️ Erro: '+(e.message||e)); }
+}
+
+/* ── Onde a conta do app entra no cadastro do condomínio ──────────────
+
+   O cadastro do app e o cadastro do condomínio respondem coisas
+   diferentes. O do app diz quem USA o sistema; o do condomínio diz quem
+   RESPONDE pela unidade — e é ele que serve para cobrança, convocação e
+   quórum de assembleia. Por isso um formulário público, onde qualquer
+   pessoa digita "L01", nunca escreve no cadastro sozinho: ele declara,
+   a administração confere.
+
+   "Dependente" também não é pergunta para quem se cadastra. No modelo,
+   dependente não é uma característica da pessoa — é um vínculo COM OUTRA
+   PESSOA (mora dentro de condominos[cod].dependentes). Para responder,
+   seria preciso saber de quem, o que o recém-chegado muitas vezes não
+   sabe e que pode nem estar cadastrado ainda. Quem consegue responder é
+   quem está olhando a unidade: por isso a pergunta é feita aqui, na
+   aprovação, e não lá no cadastro. */
+
+function _musrNorm(s){
+  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/\s+/g,' ').trim();
+}
+
+// Proprietário e morador da unidade — os únicos que podem ter dependentes.
+function _musrCondsDaUnidade(uni){
+  var un=getUnidades()[String(uni||'').toUpperCase().trim()]||{};
+  var co=getCondominos(), out=[], vis={};
+  [['proprietario','Proprietário'],['morador','Morador']].forEach(function(p){
+    var cod=un[p[0]]; if(!cod||vis[cod]) return;
+    var c=co[cod]; if(!c) return;
+    vis[cod]=1; out.push({ cod:cod, nome:c.nome||cod, papel:p[1] });
+  });
+  return out;
+}
+
+/* A pessoa já está no cadastro daquela unidade? Procura por nome entre o
+   proprietário, o morador e os dependentes dos dois. Comparação sem
+   acento e sem diferença de maiúscula — "José da Silva" e "jose da
+   silva" são a mesma pessoa. */
+function _musrJaNoCadastro(uni, nome){
+  var alvo=_musrNorm(nome); if(!alvo) return null;
+  var un=getUnidades()[String(uni||'').toUpperCase().trim()]; if(!un) return null;
+  var co=getCondominos(), achado=null;
+  ['proprietario','morador'].forEach(function(slot){
+    if(achado) return;
+    var cod=un[slot]; if(!cod) return;
+    var c=co[cod]; if(!c) return;
+    if(_musrNorm(c.nome)===alvo){
+      var telC=c.telefone||((c.telefones&&c.telefones[0])?(c.telefones[0].numero||''):'');
+      achado={ cod:cod, papel:(slot==='proprietario'?'proprietário':'morador'), tel:telC, dep:-1 };
+      return;
+    }
+    (c.dependentes||[]).forEach(function(d,i){
+      if(achado) return;
+      if(_musrNorm(d.nome)===alvo){
+        achado={ cod:cod, papel:'dependente de '+(c.nome||cod), tel:d.telefone||'', dep:i };
+      }
+    });
+  });
+  return achado;
+}
+
+function musrCadRender(){
+  var box=$('musr-cad-box'), corpo=$('musr-cad-corpo');
+  if(!box||!corpo) return;
+  var uni =($('musr-unidade')?$('musr-unidade').value:'').trim().toUpperCase();
+  var nome=($('musr-nome')   ?$('musr-nome').value   :'').trim();
+  var tel =($('musr-tel')    ?$('musr-tel').value    :'').trim();
+  if(!uni||!nome){ box.style.display='none'; corpo.innerHTML=''; return; }
+  box.style.display='';
+
+  var un=getUnidades()[uni];
+  if(!un){
+    // Não se cria lote por aqui: lote tem tipo, área, localização. Só avisa.
+    corpo.innerHTML='<i class="fa-solid fa-triangle-exclamation" style="color:var(--amber)"></i> '
+      +'A unidade <b>'+escU(uni)+'</b> não existe no cadastro do condomínio. '
+      +'Cadastre a unidade em <b>Unidades</b> para poder vincular esta pessoa. '
+      +'O acesso ao app pode ser liberado normalmente.';
+    return;
+  }
+
+  var ja=_musrJaNoCadastro(uni, nome);
+  if(ja){
+    var h='<i class="fa-solid fa-circle-check" style="color:var(--green-l)"></i> '
+      +'<b>'+escU(nome)+'</b> já está no cadastro do '+escU(uni)+' como <b>'+escU(ja.papel)+'</b>.';
+    if(tel && _soDigitos(tel) && _soDigitos(tel)!==_soDigitos(ja.tel||'')){
+      h+='<label style="display:flex;gap:8px;align-items:flex-start;margin-top:9px;cursor:pointer">'
+        +'<input type="checkbox" id="musr-cad-tel" style="accent-color:var(--gold);width:16px;height:16px;margin-top:2px;flex:none">'
+        +'<span>Atualizar o telefone no cadastro: <b>'+escU(ja.tel||'(vazio)')+'</b> passa a ser <b>'+escU(tel)+'</b>.</span></label>';
+    }
+    corpo.innerHTML=h;
+    return;
+  }
+
+  var co=getCondominos();
+  var quemE=function(cod){ return cod ? ((co[cod]||{}).nome||cod) : ''; };
+  var linha=function(val, txt, extra){
+    return '<label style="display:flex;gap:8px;align-items:'+(extra?'center':'flex-start')+';cursor:pointer;padding:4px 0">'
+      +'<input type="radio" name="musr-cad-onde" value="'+val+'"'+(val==='nada'?' checked':'')
+      +' style="accent-color:var(--gold);flex:none;margin-top:'+(extra?'0':'3px')+'">'
+      +'<span>'+txt+'</span>'+(extra||'')+'</label>';
+  };
+
+  var h2='<div style="margin-bottom:9px"><b>'+escU(nome)+'</b> não está no cadastro do '
+    +escU(uni)+'. Onde essa pessoa entra?</div>';
+  h2+=linha('nada','Só liberar o acesso — <span style="color:var(--text-3)">não mexer no cadastro</span>');
+  h2+=linha('proprietario','Proprietário do '+escU(uni)
+    +' <span style="color:var(--text-3)">— hoje: '+escU(quemE(un.proprietario)||'vazio')+'</span>');
+  h2+=linha('morador','Morador / inquilino do '+escU(uni)
+    +' <span style="color:var(--text-3)">— hoje: '+escU(quemE(un.morador)||'vazio')+'</span>');
+
+  var conds=_musrCondsDaUnidade(uni);
+  if(conds.length){
+    var sel='<select id="musr-cad-de" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:12.5px;outline:none;max-width:100%">'
+      +conds.map(function(c){ return '<option value="'+escU(c.cod)+'">'+escU(c.nome)+' ('+escU(c.papel)+')</option>'; }).join('')
+      +'</select>';
+    h2+=linha('dependente','Dependente de', sel);
+  } else {
+    h2+='<div style="color:var(--text-3);padding:4px 0 0">Para marcar como dependente, o '
+      +escU(uni)+' precisa antes ter proprietário ou morador no cadastro.</div>';
+  }
+  corpo.innerHTML=h2;
+}
+
+/* Grava a escolha feita acima. Devolve uma frase do que fez (para entrar
+   no aviso da tela) ou '' se não mexeu em nada. Pode perguntar antes de
+   substituir alguém — trocar o proprietário de um lote não é coisa que
+   se faça em silêncio. */
+function _musrAplicarCadastro(nome, tel, email, uni){
+  var box=$('musr-cad-box');
+  if(!box || box.style.display==='none') return '';
+  uni=String(uni||'').toUpperCase().trim();
+  nome=String(nome||'').trim();
+  tel=String(tel||'').trim();
+  if(!uni||!nome) return '';
+  var un=getUnidades()[uni]; if(!un) return '';
+  var co=getCondominos();
+
+  // Já está no cadastro: no máximo atualiza o telefone, e só se pedirem.
+  var ja=_musrJaNoCadastro(uni, nome);
+  if(ja){
+    var chk=$('musr-cad-tel');
+    if(!chk||!chk.checked) return '';
+    var c=co[ja.cod]; if(!c) return '';
+    if(ja.dep>=0){
+      if(!c.dependentes||!c.dependentes[ja.dep]) return '';
+      c.dependentes[ja.dep].telefone=tel;
+    } else {
+      c.telefone=tel;
+      if(Array.isArray(c.telefones)&&c.telefones.length) c.telefones[0].numero=tel;
+      else c.telefones=[{numero:tel, tipo:'Celular'}];
+    }
+    co[ja.cod]=c; S('condominos', co);
+    return 'Telefone de '+nome+' atualizado no cadastro.';
+  }
+
+  var r=document.querySelector('input[name="musr-cad-onde"]:checked');
+  var onde=r?r.value:'nada';
+  if(onde==='nada') return '';
+
+  if(onde==='dependente'){
+    var de=$('musr-cad-de')?$('musr-cad-de').value:'';
+    var pai=co[de]; if(!pai) return '';
+    pai.dependentes=pai.dependentes||[];
+    var maxN=0;
+    pai.dependentes.forEach(function(d){
+      var m=String(d.codigo||'').match(/-(\d+)$/);
+      if(m){ var n=parseInt(m[1],10); if(n>maxN) maxN=n; }
+    });
+    pai.dependentes.push({
+      codigo: de+'-'+String(maxN+1).padStart(2,'0'),
+      nome:nome, parentesco:'', cpf:'', rg:'', nascimento:'', foto:'',
+      telefone:tel||'', email:String(email||'').trim()
+    });
+    co[de]=pai; S('condominos', co);
+    return nome+' entrou no cadastro como dependente de '+(pai.nome||de)+'.';
+  }
+
+  // proprietario | morador
+  var atual=un[onde];
+  if(atual && co[atual] && _musrNorm(co[atual].nome)!==_musrNorm(nome)){
+    var rotulo=(onde==='proprietario'?'proprietário':'morador');
+    if(!confirm('O '+rotulo+' do '+uni+' hoje é '+(co[atual].nome||atual)+'.\n\n'
+      +'Trocar por '+nome+'?\n\n'
+      +'O cadastro de '+(co[atual].nome||atual)+' NÃO é apagado — ele só deixa de\n'
+      +'ocupar essa posição na unidade.')) return '';
+  }
+
+  /* Reaproveita um condômino já existente com o mesmo nome. Se houver
+     mais de um, é ambíguo: cria um novo em vez de escolher no chute. */
+  var cod=null;
+  var iguais=Object.keys(co).filter(function(k){ return _musrNorm((co[k]||{}).nome)===_musrNorm(nome); });
+  if(iguais.length===1) cod=iguais[0];
+  if(!cod){
+    cod=conFormatCodigo(conProximoCodigoNum());
+    co[cod]={ nome:nome, tipoPessoa:'fisica', foto:'', cpf:'', rg:'',
+              email:String(email||'').trim(), telefone:tel||'',
+              telefones: tel?[{numero:tel, tipo:'Celular'}]:[], dependentes:[] };
+    var num=parseInt(cod,10);
+    if(!isNaN(num) && num>(parseInt(G('condseq'),10)||0)) S('condseq', num);
+  }
+  S('condominos', co);
+  var uns=getUnidades(); uns[uni]=uns[uni]||{}; uns[uni][onde]=cod; S('unidades', uns);
+  return nome+' entrou no cadastro como '+(onde==='proprietario'?'proprietário':'morador')+' do '+uni+'.';
 }
 
 function fecharModalUsr(){ closeModal('m-usr'); }
@@ -14290,24 +14508,38 @@ async function aprovarUsuario(){
   if(!docId || !SB){ toast('⚠️ Erro: banco não disponível.'); return; }
   var u = (window._usrLista||[]).find(function(x){return x._docId===docId;});
   if(!u){ toast('⚠️ Registro não encontrado.'); return; }
+  /* Vale o que está na tela, não o que veio do formulário público. Se a
+     administração corrigiu o nome ou a unidade antes de aprovar, era essa
+     a correção que ela quis salvar — antes esses ajustes eram perdidos. */
+  var _nomeF = ($('musr-nome').value||'').trim() || u.nome;
+  var _telF  = ($('musr-tel').value||'').trim();
+  var _uniF  = ($('musr-unidade').value||'').trim().toUpperCase();
+  var _telErrA = _validarWhats(_telF);
+  if(_telErrA){ toast('⚠️ '+_telErrA); return; }
   try {
     if(u._tipo==='sol'){
       if(!u.auth_id){ toast('⚠️ Solicitação sem conta vinculada. O morador precisa refazer o cadastro.'); return; }
       var ins = await SB.from('usuarios').insert({
-        id:u.auth_id, email:u.email, nome:u.nome, tel:u.tel||null,
-        condominio_id:u.condominio_id||_condAtual, unidade:u.unidade||null,
+        id:u.auth_id, email:u.email, nome:_nomeF, tel:_telF||null,
+        condominio_id:u.condominio_id||_condAtual, unidade:_uniF||null,
         vinculo:u.vinculo||null, nivel:nivel, super_admin:false, status:'ativo', obs:obs||null
       });
       if(ins.error) throw ins.error;
       await SB.from('solicitacoes').delete().eq('id', u._docId);
     } else {
-      var up = await SB.from('usuarios').update({ status:'ativo', nivel:nivel, obs:obs||null }).eq('id', u._docId);
+      var up = await SB.from('usuarios').update({
+        status:'ativo', nivel:nivel, obs:obs||null,
+        nome:_nomeF, tel:_telF||null, unidade:_uniF||null
+      }).eq('id', u._docId);
       if(up.error) throw up.error;
     }
+    // Só depois do acesso gravado é que o cadastro do condomínio é tocado.
+    var _resumoCad='';
+    try{ _resumoCad=_musrAplicarCadastro(_nomeF, _telF, u.email, _uniF)||''; }catch(_e){}
     if(nivel==='supervisor') _salvarSupervisorMods(u.email);
     fecharModalUsr();
     await renderUsuarios();
-    toast('✓ Acesso aprovado!');
+    toast('✓ Acesso aprovado!' + (_resumoCad ? ' ' + _resumoCad : ''));
     // Envia boas-vindas ao usuário aprovado (WhatsApp + e-mail)
     if(u.email || u.tel){
       var _cond = nomeCondominioAtual();
