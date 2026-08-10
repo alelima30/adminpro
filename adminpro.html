@@ -5086,8 +5086,56 @@ function _podeGravarModulo(k){
   }catch(_){ return true; }
 }
 
+/* ── Carga que falhou não pode virar gravação destrutiva ──────────────
+
+   _sincronizarTabela apaga do banco tudo que não estiver no objeto. Isso
+   está certo quando o objeto veio do banco — e é destruidor quando a
+   leitura falhou e o objeto ficou vazio.
+
+   O caminho, sem este freio: a leitura dos condôminos falha por um soluço
+   de rede, o `continue` do carregamento deixa o cache vazio, a tela
+   aparece em branco, a administração acha que sumiu e salva um condômino
+   para recomeçar — e o sincronizador apaga do banco todos os outros,
+   porque nenhum deles estava no objeto. Um erro de rede vira perda do
+   cadastro inteiro, avisado só no console.
+
+   Então cada chave que vem do banco fica marcada como carregada. Sem a
+   marca, S() não grava em lugar nenhum: nem no banco, nem no
+   localStorage, que é a cópia de emergência e não pode ser envenenada
+   com dados pela metade. Perder uma edição é ruim; perder o cadastro é
+   outra ordem de problema. */
+var _CARGA_OK = {};
+
+function _cargaMarcar(k, ok){
+  if(ok) _CARGA_OK[k] = true; else delete _CARGA_OK[k];
+}
+
+/* Carregar e vir vazio é diferente de falhar ao carregar: condomínio novo
+   tem zero condôminos e isso é um fato, não uma falha. Por isso a marca
+   vem do sucesso da CONSULTA, nunca da quantidade de linhas. */
+function _cargaConfiavel(k){
+  if(!SB) return true;              // modo local: não há banco para destruir
+  if(k==='reservas') return true;   // gravadas linha a linha, sem apagar em massa
+  if(_NORM[k]) return _CARGA_OK[k] === true;
+  return _CARGA_OK['__modulos'] === true;
+}
+
+var _avisouCarga = false;
+function _avisarCargaFalha(k){
+  console.error('BLOQUEADO: gravacao de "'+k+'" recusada porque a leitura do banco falhou nesta sessao.');
+  if(_avisouCarga) return;
+  _avisouCarga = true;
+  try{
+    toast('⛔ Não salvei: os dados não foram lidos do banco nesta sessão, '
+        + 'e gravar assim apagaria o que está lá. Recarregue a página (F5) e tente de novo.');
+  }catch(_){}
+}
+
 // Grava no cache + Supabase
 const S = (k, v) => {
+  // Antes de qualquer coisa: se o que está na memória não veio do banco,
+  // não se grava nada em lugar nenhum.
+  if(!_cargaConfiavel(k)){ _avisarCargaFalha(k); return; }
   DB_CACHE[k] = v;
   try{ localStorage.setItem('apvc_'+k, JSON.stringify(v)); }catch(_){}
   if(!SB) return;
@@ -5113,13 +5161,19 @@ async function _sincronizarTabela(cfg, obj){
     const up = await SB.from(cfg.tabela).upsert(rows, { onConflict:conflict });
     if(up.error) throw up.error;
   }
+  /* Objeto vazio nunca autoriza apagar tudo. Sem lista de códigos a
+     preservar, o delete abaixo varreria a tabela inteira do condomínio —
+     e a única forma de chegar aqui com zero linhas é o cache ter se
+     perdido. Esvaziar de propósito se faz um a um, pela tela. */
   const keys = rows.map(function(r){ return r[cfg.pk]; });
+  if(!keys.length){
+    console.error('sync '+cfg.tabela+': objeto vazio — nada foi apagado (era o cache que estava vazio, nao a tabela).');
+    return;
+  }
   let q = SB.from(cfg.tabela).delete();
   if(cfg.hasCond) q = q.eq('condominio_id', _condAtual);
-  if(keys.length){
-    const lista = '(' + keys.map(function(x){ return '"'+String(x).replace(/"/g,'')+'"'; }).join(',') + ')';
-    q = q.not(cfg.pk, 'in', lista);
-  }
+  const lista = '(' + keys.map(function(x){ return '"'+String(x).replace(/"/g,'')+'"'; }).join(',') + ')';
+  q = q.not(cfg.pk, 'in', lista);
   const del = await q;
   if(del.error) throw del.error;
 }
@@ -5130,22 +5184,51 @@ async function loadAllFromFirestore(){
   // Zera o cache antes de carregar: o que nao existir no condominio atual fica vazio
   DB_KEYS.forEach(function(k){ delete DB_CACHE[k]; });
   delete DB_CACHE['reservas'];
+  // Toda chave começa como NÃO carregada. Só o sucesso da consulta marca.
+  _CARGA_OK = {};
+  _avisouCarga = false;
+  var _falhou = [];
   for(const k of ['unidades','condominos','localizacoes']){
     const cfg=_NORM[k];
-    const res = await SB.from(cfg.tabela).select('*').eq('condominio_id', _condAtual);
-    if(res.error){ console.error('load '+k, res.error.message); continue; }
+    let res;
+    try{ res = await SB.from(cfg.tabela).select('*').eq('condominio_id', _condAtual); }
+    catch(e){ res = { error:{ message:(e&&e.message)||String(e) } }; }
+    if(res.error){ console.error('load '+k, res.error.message); _falhou.push(k); continue; }
     const obj={}; (res.data||[]).forEach(function(r){ obj[r[cfg.pk]] = cfg.toApp(r); });
     DB_CACHE[k]=obj; try{ localStorage.setItem('apvc_'+k, JSON.stringify(obj)); }catch(_){}
+    _cargaMarcar(k, true);
   }
   try{
     const res = await SB.from('condominios').select('*');
+    if(res.error) throw res.error;
     const obj={}; (res.data||[]).forEach(function(r){ obj[r.codigo]=_condRowToApp(r); });
     DB_CACHE['saas_condominios']=obj;
-  }catch(_){}
+    _cargaMarcar('saas_condominios', true);
+  }catch(_){ _falhou.push('condomínios'); }
   try{
     const res = await SB.from('modulo_dados').select('modulo,valor').eq('condominio_id', _condAtual);
+    if(res.error) throw res.error;
     (res.data||[]).forEach(function(r){ DB_CACHE[r.modulo]=r.valor; try{ localStorage.setItem('apvc_'+r.modulo, JSON.stringify(r.valor)); }catch(_){} });
-  }catch(_){}
+    _cargaMarcar('__modulos', true);
+  }catch(_){ _falhou.push('configurações'); }
+
+  /* Falha de leitura deixava só um console.error: a tela aparecia vazia e
+     parecia que os dados tinham sumido. Agora aparece, porque é a partir
+     daqui que alguém tenta "recadastrar" o que nunca deixou de existir. */
+  if(_falhou.length){
+    console.error('Leitura incompleta do banco: '+_falhou.join(', '));
+    /* Só para quem mexe no cadastro. O morador não pode fazer nada a
+       respeito, e para ele um alerta desses é só susto — o freio que
+       importa (S() recusando gravar) vale para todo mundo de qualquer
+       jeito. O nível já foi definido antes desta carga. */
+    var _nv = window._userNivel || 'morador';
+    if(_nv==='admin' || _nv==='gestor' || _nv==='supervisor'){
+      try{
+        toast('⚠️ Não consegui ler do banco: '+_falhou.join(', ')
+            + '. O que está na tela pode estar incompleto — NÃO recadastre. Recarregue a página (F5).');
+      }catch(_){}
+    }
+  }
   // Reservas: tabela normalizada (1 linha por reserva) -> array do app
   try{
     const res = await SB.from('reservas').select('*').eq('condominio_id', _condAtual);
