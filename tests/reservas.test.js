@@ -1069,6 +1069,59 @@ bloco('Aprovação avisa quando o pagamento não foi confirmado', () => {
   checa('usa o primeiro setor COM número', api._waAdministracao(), '(11) 91234-5678');
 });
 
+// ── Botão Atualizar ────────────────────────────────────────────────────
+bloco('Atualizar reservas', () => {
+  const CACHE = { reservas: [{ id: 1, nome: 'antigo' }] };
+  const avisos = [];
+  let RESPOSTA, botao = { disabled: false, innerHTML: '' };
+  const JANELA = {};
+
+  const api = carregar(['atualizarReservas', '_resRowToApp'], {
+    window: JANELA,
+    $: () => botao,
+    DB_CACHE: CACHE,
+    _condAtual: 'APVC',
+    localStorage: { setItem(){}, getItem: () => null },
+    renderReservas: () => {}, verificarAlertas: () => {}, atualizarBadgePendentes: () => {},
+    toast: (m) => avisos.push(m),
+    SB: { from: () => ({ select: () => ({ eq: async () => RESPOSTA }) }) },
+  });
+
+  return (async () => {
+    // Sucesso: troca o cache e diz quantas vieram.
+    RESPOSTA = { data: [{ id: 9, nome: 'Lucas' }, { id: 10, nome: 'Ana' }], error: null };
+    await api.atualizarReservas();
+    checa('substitui o cache pelo que veio do servidor',
+      CACHE.reservas.map((r) => r.nome), ['Lucas', 'Ana']);
+    checa('diz quantas são', avisos.pop(), '✓ 2 reservas — lista atualizada.');
+
+    RESPOSTA = { data: [{ id: 9, nome: 'Lucas' }], error: null };
+    await api.atualizarReservas();
+    checa('singular quando é uma só', avisos.pop(), '✓ 1 reserva — lista atualizada.');
+
+    // Falha: NÃO esvazia a tela. É o ponto todo — lista vazia faria
+    // qualquer um concluir que as reservas sumiram.
+    const antes = CACHE.reservas;
+    RESPOSTA = { data: null, error: { message: 'timeout' } };
+    await api.atualizarReservas();
+    checa('erro não mexe no que já estava na tela', CACHE.reservas, antes);
+    checa('e explica que o atual continua valendo',
+      avisos.pop(), '⚠️ Não consegui atualizar: timeout. O que está na tela continua valendo.');
+
+    // O botão volta ao normal mesmo depois de falhar.
+    checa('botão é reabilitado após o erro', botao.disabled, false);
+    checa('e volta ao rótulo original',
+      botao.innerHTML, '<i class="fa-solid fa-rotate"></i> Atualizar');
+
+    // Dois cliques não viram duas buscas.
+    JANELA._resAtualizando = true;
+    const quantos = avisos.length;
+    await api.atualizarReservas();
+    checa('clique repetido é ignorado enquanto busca', avisos.length, quantos);
+    JANELA._resAtualizando = false;
+  })();
+});
+
 Promise.all(_pendentes).then(() => {
   console.log('\n' + '-'.repeat(50));
   console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
