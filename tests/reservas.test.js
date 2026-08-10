@@ -721,6 +721,101 @@ bloco('Carga falha não apaga o banco', () => {
   });
 });
 
+// ── Lembrete das reservas que estão para começar ───────────────────────
+bloco('Lembrete "daqui a X tem a reserva do Fulano"', () => {
+  let RESERVAS = [];
+  const JANELA = { _userNivel: 'admin' };
+  let GUARDADO = {};
+
+  const api = carregar(
+    ['_resComecaEm', '_reslQuando', '_reslVistos', '_reslMarcar', '_reslPendentes', '_reslFrase',
+     'hrIni', 'hrFim', '_minHora'],
+    {
+      window: JANELA,
+      G: () => RESERVAS,
+      localStorage: {
+        getItem: (k) => (GUARDADO[k] === undefined ? null : GUARDADO[k]),
+        setItem: (k, v) => { GUARDADO[k] = v; },
+      },
+      escHtml: (v) => String(v == null ? '' : v),
+      _RESL_JANELA: 60,
+    },
+  );
+
+  // Monta uma reserva que começa daqui a `mins` minutos e dura `dur`.
+  function daquiA(id, nome, mins, dur) {
+    const ini = new Date(Date.now() + mins * 60000);
+    const fim = new Date(ini.getTime() + dur * 60000);
+    const hh = (d) => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    return { id, nome, espaco: 'Quadra', lote: 'D17', status: 'confirmada',
+             data: ini.getFullYear() + '-' + String(ini.getMonth() + 1).padStart(2, '0')
+                   + '-' + String(ini.getDate()).padStart(2, '0'),
+             horario: hh(ini) + '–' + hh(fim) };
+  }
+  const nomes = () => api._reslPendentes().map((x) => x.fase + ':' + x.r.nome);
+
+  // ── A janela ──
+  RESERVAS = [daquiA(1, 'Lucas', 45, 120)];
+  checa('reserva daqui a 45min entra como "breve"', nomes(), ['breve:Lucas']);
+
+  RESERVAS = [daquiA(2, 'Ana', 300, 120)];
+  checa('daqui a 5 horas ainda não avisa', nomes(), []);
+
+  RESERVAS = [daquiA(3, 'Bruno', -10, 120)];
+  checa('começou há 10min e ainda está rolando: "agora"', nomes(), ['agora:Bruno']);
+
+  RESERVAS = [daquiA(4, 'Carla', -180, 120)];
+  checa('já terminou, não avisa mais', nomes(), []);
+
+  // ── O que não deve aparecer ──
+  RESERVAS = [Object.assign(daquiA(5, 'Diego', 30, 60), { status: 'cancelada' })];
+  checa('cancelada não avisa', nomes(), []);
+  RESERVAS = [Object.assign(daquiA(6, 'Elis', 30, 60), { status: 'realizada' })];
+  checa('realizada não avisa', nomes(), []);
+  RESERVAS = [Object.assign(daquiA(7, 'Fabio', 30, 60), { data: '' })];
+  checa('sem data não quebra nem avisa', nomes(), []);
+
+  // ── Só quem administra ──
+  RESERVAS = [daquiA(8, 'Gil', 30, 60)];
+  JANELA._userNivel = 'morador';
+  checa('morador não recebe o lembrete', nomes(), []);
+  JANELA._userNivel = 'supervisor';
+  checa('supervisor recebe', nomes(), ['breve:Gil']);
+  JANELA._userNivel = 'admin';
+
+  // ── Não repetir o mesmo aviso ──
+  RESERVAS = [daquiA(9, 'Helena', 30, 60)];
+  checa('primeira vez avisa', nomes(), ['breve:Helena']);
+  api._reslMarcar(['9|breve']);
+  checa('depois de visto, não repete', nomes(), []);
+
+  // A MESMA reserva volta a avisar quando de fato começa: é outra fase,
+  // e é o segundo aviso que interessa de verdade.
+  RESERVAS = [daquiA(9, 'Helena', -5, 60)];
+  checa('mas volta a avisar quando começa', nomes(), ['agora:Helena']);
+  api._reslMarcar(['9|agora']);
+  checa('e esse também só uma vez', nomes(), []);
+
+  // Marca de ontem não cala o aviso de hoje.
+  GUARDADO['apvc_res_lembrete'] = JSON.stringify({ dia: '2020-01-01', ids: ['9|agora'] });
+  checa('marca de outro dia é descartada', nomes(), ['agora:Helena']);
+
+  // ── Ordem e frase ──
+  RESERVAS = [daquiA(10, 'Ivo', 50, 60), daquiA(11, 'Julia', 10, 60), daquiA(12, 'Kim', -5, 60)];
+  GUARDADO = {};
+  checa('o mais próximo primeiro', api._reslPendentes().map((x) => x.r.nome),
+    ['Kim', 'Julia', 'Ivo']);
+
+  const frase = (mins, fase) => api._reslFrase({ r: { nome: 'Lucas' }, mins, fase });
+  checa('agora', frase(0, 'agora'), 'Agora vai ter a reserva do(a) <b>Lucas</b>');
+  checa('45 minutos', frase(45, 'breve'), 'Daqui a 45 minutos tem a reserva do(a) <b>Lucas</b>');
+  checa('1 minuto no singular', frase(1, 'breve'), 'Daqui a 1 minuto tem a reserva do(a) <b>Lucas</b>');
+  checa('60 minutos vira "1 hora"', frase(60, 'breve'), 'Daqui a 1 hora tem a reserva do(a) <b>Lucas</b>');
+  checa('reserva sem nome não deixa a frase torta',
+    api._reslFrase({ r: { nome: '' }, mins: 0, fase: 'agora' }),
+    'Agora vai ter a reserva do(a) <b>sem nome</b>');
+});
+
 Promise.all(_pendentes).then(() => {
   console.log('\n' + '-'.repeat(50));
   console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
