@@ -7485,6 +7485,9 @@ function showPanel(id,el){
   try{ localStorage.setItem('apvc_last_panel', id); }catch(_){}
   sbFecharFlyout();
   closeSidebar();
+  // Rede de seguranca: trocar de tela nunca deve herdar trava de rolagem
+  // de um modal da tela anterior.
+  try{ _sincronizarTravaRolagem(); }catch(_){}
   ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();resLembreteChecar();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
 }
 
@@ -7574,6 +7577,52 @@ function _sincronizarTravaRolagem(){
   document.body.style.overflow = algumAberto ? 'hidden' : '';
 }
 function closeModal(id){ var e=$(id); if(e) e.classList.remove('open'); _sincronizarTravaRolagem(); }
+
+/* A trava de rolagem so era recalculada ao FECHAR um modal — e ha 25
+   lugares que abrem modal na mao, sem avisar ninguem. Bastava esta
+   sequencia:
+
+     abre A  ->  abre B  ->  fecha B pelo closeModal (a sincronizacao ve o
+     A ainda aberto e liga a trava)  ->  fecha A por um caminho que nao
+     passa pelo closeModal
+
+   ...e a trava ficava ligada para sempre: a pagina parava de rolar e a
+   barra sumia ate recarregar. Era o "as vezes aparece, as vezes nao".
+
+   Em vez de cacar os 25 lugares — e torcer para o proximo lembrar —, o
+   estado passa a ser observado. Qualquer modal que apareca, abra ou
+   feche, por qualquer caminho, recalcula a trava. */
+(function _vigiarTravaRolagem(){
+  if(typeof MutationObserver!=='function') return;   // navegador antigo: sem vigia
+  var agendado=false;
+  function tocaModal(muts){
+    return muts.some(function(m){
+      if(m.type==='attributes'){
+        return m.target.classList && m.target.classList.contains('modal-ov');
+      }
+      // Removido conta tanto quanto adicionado: arrancar do DOM um modal
+      // aberto tambem deixava a trava ligada, sem nada para desliga-la.
+      function ehModal(n){ return n.classList && n.classList.contains('modal-ov'); }
+      return Array.prototype.some.call(m.addedNodes||[], ehModal)
+          || Array.prototype.some.call(m.removedNodes||[], ehModal);
+    });
+  }
+  var obs=new MutationObserver(function(muts){
+    // A tela inteira troca de classe o tempo todo; so modal mexe na trava.
+    if(agendado || !tocaModal(muts)) return;
+    agendado=true;
+    requestAnimationFrame(function(){
+      agendado=false;
+      try{ _sincronizarTravaRolagem(); }catch(_){}
+    });
+  });
+  function ligar(){
+    obs.observe(document.body,
+      { attributes:true, attributeFilter:['class'], subtree:true, childList:true });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', ligar);
+  else ligar();
+})();
 document.querySelectorAll('.modal-ov').forEach(o=>{
   // Nenhum modal fecha ao clicar fora — só pelo X ou Salvar
   o.addEventListener('click',e=>e.stopPropagation());
