@@ -1018,6 +1018,57 @@ bloco('Marcar pago / desmarcar', async () => {
   checa('e não cria reserva nenhuma', CACHE.reservas.length, 1);
 });
 
+// ── Aprovar com a taxa em aberto ───────────────────────────────────────
+bloco('Aprovação avisa quando o pagamento não foi confirmado', () => {
+  let RESERVAS = [], perguntas = [], RESPOSTA = true, mudou = [];
+  const api = carregar(['aprovarReserva', '_waAdministracao'], {
+    G: () => RESERVAS,
+    fmt: (v) => 'R$ ' + Number(v).toFixed(2),
+    confirm: (m) => { perguntas.push(m); return RESPOSTA; },
+    _mudarStatusReserva: (id, st) => mudou.push(id + '→' + st),
+    _getAlertDestinos: () => [{ label: 'Portaria', whats: '' },
+                              { label: 'Síndico', whats: '(11) 91234-5678' }],
+  });
+  const r = (extra) => Object.assign({ id: 1, taxa: 1500, pgto: 'pendente' }, extra || {});
+  const reset = () => { perguntas = []; mudou = []; };
+
+  // Taxa pendente → pergunta antes.
+  reset(); RESERVAS = [r()]; RESPOSTA = true;
+  api.aprovarReserva(1);
+  checa('pergunta antes de aprovar', perguntas.length, 1);
+  checa('e diz o valor em aberto', perguntas[0].includes('R$ 1500.00'), true);
+  checa('confirmando, aprova', mudou, ['1→confirmada']);
+
+  // Recusando a pergunta, NÃO aprova — o ponto todo do aviso.
+  reset(); RESERVAS = [r()]; RESPOSTA = false;
+  api.aprovarReserva(1);
+  checa('recusando, não aprova', mudou, []);
+
+  // Já pago, isento ou sem taxa: aprova direto, sem atrapalhar.
+  RESPOSTA = true;
+  reset(); RESERVAS = [r({ pgto: 'pago' })];
+  api.aprovarReserva(1);
+  checa('pago não pergunta', perguntas.length, 0);
+  checa('e aprova', mudou, ['1→confirmada']);
+
+  reset(); RESERVAS = [r({ pgto: 'isento' })];
+  api.aprovarReserva(1);
+  checa('isento não pergunta', perguntas.length, 0);
+
+  reset(); RESERVAS = [r({ taxa: 0 })];
+  api.aprovarReserva(1);
+  checa('sem taxa não pergunta', perguntas.length, 0);
+  checa('e aprova normal', mudou, ['1→confirmada']);
+
+  // Reserva que não existe: aprova sem quebrar (o status cuida do resto).
+  reset(); RESERVAS = [];
+  api.aprovarReserva(99);
+  checa('id inexistente não quebra nem pergunta', perguntas.length, 0);
+
+  // WhatsApp da administração: pula setor sem número.
+  checa('usa o primeiro setor COM número', api._waAdministracao(), '(11) 91234-5678');
+});
+
 Promise.all(_pendentes).then(() => {
   console.log('\n' + '-'.repeat(50));
   console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
