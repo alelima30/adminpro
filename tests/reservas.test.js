@@ -904,6 +904,54 @@ bloco('Aviso de pagamento pendente', () => {
     api._reslPagamentos()[0].taxa, 1500);
 });
 
+// ── Pix abre sozinho depois da reserva ─────────────────────────────────
+// Dois modais abertos ao mesmo tempo se atrapalham, então o aviso da
+// reserva encadeia o Pix para quando for fechado.
+bloco('Aviso da reserva encadeia o Pix', () => {
+  const eventos = [];
+  // _avisoReservaDepois fica FORA dos stubs de propósito: stub vira
+  // argumento e congelaria; global, o teste vê o valor de verdade.
+  const api = carregar(['mostrarAvisoReserva', 'fecharAvisoReserva'], {
+    $: (id) => ({ textContent: '', classList: { add(){} } }),
+    document: { createElement: () => ({ classList:{add(){}}, style:{}, innerHTML:'' }),
+                body: { appendChild(){} } },
+    closeModal: (id) => eventos.push('fechou:' + id),
+    console: { error: (...a) => eventos.push('erro') },
+  });
+
+  // Sem ação encadeada: fecha e pronto.
+  global._avisoReservaDepois = null;
+  api.fecharAvisoReserva();
+  checa('sem ação encadeada, só fecha', eventos, ['fechou:m-aviso-reserva']);
+
+  // Com ação: roda ao fechar.
+  eventos.length = 0;
+  global._avisoReservaDepois = () => eventos.push('abriu o Pix');
+  api.fecharAvisoReserva();
+  checa('fecha o aviso e então abre o Pix', eventos,
+    ['fechou:m-aviso-reserva', 'abriu o Pix']);
+
+  // E não fica pendurada para a próxima reserva.
+  eventos.length = 0;
+  api.fecharAvisoReserva();
+  checa('a ação não se repete no próximo aviso', eventos, ['fechou:m-aviso-reserva']);
+  checa('a ação foi mesmo zerada', global._avisoReservaDepois, null);
+
+  // Ação que quebra não derruba o fechamento nem contamina a próxima.
+  eventos.length = 0;
+  global._avisoReservaDepois = () => { throw new Error('Pix falhou'); };
+  api.fecharAvisoReserva();
+  checa('ação que falha é contida', eventos, ['fechou:m-aviso-reserva', 'erro']);
+  checa('e mesmo falhando, foi zerada', global._avisoReservaDepois, null);
+
+  // mostrarAvisoReserva só aceita função; qualquer outra coisa vira null.
+  api.mostrarAvisoReserva('oi', 'isto não é função');
+  checa('valor que não é função não vira ação', global._avisoReservaDepois, null);
+  const f = () => {};
+  api.mostrarAvisoReserva('oi', f);
+  checa('função é aceita', global._avisoReservaDepois, f);
+});
+
 Promise.all(_pendentes).then(() => {
   console.log('\n' + '-'.repeat(50));
   console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
