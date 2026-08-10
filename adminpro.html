@@ -4279,6 +4279,19 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 </div>
 
 <!-- M: Aprovar Usuário -->
+<!-- Lembrete das reservas que estão para começar. Aparece sozinho dentro
+     do painel de Reservas; não tem nada para preencher, só avisar. -->
+<div class="modal-ov" id="m-res-lembrete" onclick="event.stopPropagation()">
+  <div class="modal" style="max-width:440px" onclick="event.stopPropagation()">
+    <button class="modal-close-x" onclick="resLembreteFechar()" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
+    <div class="modal-title"><i class="fa-solid fa-bell" style="color:var(--gold);margin-right:8px"></i>Lembrete</div>
+    <div id="mresl-corpo" style="margin-top:14px;display:flex;flex-direction:column;gap:10px"></div>
+    <div class="modal-foot">
+      <button class="btn btn-gold" onclick="resLembreteFechar()">Entendi</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-ov" id="m-usr" onclick="event.stopPropagation()">
   <div class="modal" style="max-width:500px" onclick="event.stopPropagation()">
     <button class="modal-close-x" onclick="fecharModalUsr()" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
@@ -7398,7 +7411,7 @@ function showPanel(id,el){
   try{ localStorage.setItem('apvc_last_panel', id); }catch(_){}
   sbFecharFlyout();
   closeSidebar();
-  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
+  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();resLembreteChecar();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
 }
 
 function setTab(t){
@@ -10379,6 +10392,18 @@ function verificarLembretesReserva(){
   });
 }
 
+/* Instante em que a reserva começa. Estava escrito solto dentro do
+   verificarAlertas; virou função porque o lembrete precisa do mesmo
+   cálculo, e duas contas de data separadas divergem cedo ou tarde. */
+function _resComecaEm(r){
+  if(!r || !r.data) return null;
+  var horIni = String(r.horario||'08:00').split('–')[0].split('-')[0].trim();
+  var p = horIni.split(':');
+  var hh = parseInt(p[0],10)||0, mm = parseInt(p[1],10)||0;
+  var d = new Date(r.data+'T'+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':00');
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function verificarAlertas(){
   try{ verificarLembretesReserva(); }catch(_){}
   const all=G('reservas')||[];
@@ -10493,6 +10518,195 @@ function verificarAlertas(){
 function dispensarAlertas(){
   const b=$('res-alertas-banner');if(b)b.style.display='none';
 }
+
+/* ── Lembrete das reservas que estão para começar ─────────────────────
+
+   "Daqui a 1h tem a reserva do Lucas." "Agora vai ter a reserva do
+   Lucas." É só isso: um aviso dentro do painel de Reservas, para a
+   administração não ser pega de surpresa por uma reserva que começa.
+
+   Não confundir com o banner de alertas logo acima: aquele mostra
+   lembretes que alguém configurou na mão, reserva por reserva, e dispara
+   WhatsApp e e-mail. Este aqui não configura nada e não envia nada — vale
+   para TODA reserva que está chegando, justamente porque ninguém precisou
+   lembrar de ligar. */
+
+var _RESL_JANELA = 60;   // minutos de antecedência do aviso
+
+// Início e fim de uma reserva como instantes de verdade, para dar conta
+// de "já começou e ainda está rolando".
+function _reslQuando(r){
+  if(!r || !r.data) return null;
+  var ini = _resComecaEm(r);
+  if(!ini) return null;
+  var dur = (typeof hrFim==='function' && typeof hrIni==='function')
+              ? (hrFim(r.horario||'') - hrIni(r.horario||'')) : 60;
+  if(!(dur > 0)) dur = 60;
+  return { ini:ini, fim:new Date(ini.getTime() + dur*60000) };
+}
+
+/* Já avisado não avisa de novo. A marca inclui a fase ("breve"/"agora"),
+   então a mesma reserva avisa duas vezes: uma quando está chegando e
+   outra quando começa — que é o comportamento útil. Guardado por dia,
+   para o histórico não crescer para sempre. */
+function _reslVistos(){
+  var hoje = new Date().toISOString().slice(0,10);
+  try{
+    var o = JSON.parse(localStorage.getItem('apvc_res_lembrete')||'{}');
+    if(o.dia !== hoje) return { dia:hoje, ids:[] };
+    return { dia:hoje, ids:(o.ids||[]) };
+  }catch(_){ return { dia:hoje, ids:[] }; }
+}
+function _reslMarcar(chaves){
+  var v = _reslVistos();
+  chaves.forEach(function(c){ if(v.ids.indexOf(c)<0) v.ids.push(c); });
+  try{ localStorage.setItem('apvc_res_lembrete', JSON.stringify(v)); }catch(_){}
+}
+
+function _reslPendentes(){
+  var nivel = window._userNivel||'morador';
+  if(nivel!=='admin' && nivel!=='gestor' && nivel!=='supervisor') return [];
+  var agora = Date.now();
+  var vistos = _reslVistos().ids;
+  var out = [];
+  (G('reservas')||[]).forEach(function(r){
+    if(!r.data || r.status==='cancelada' || r.status==='realizada') return;
+    var q = _reslQuando(r); if(!q) return;
+    var minsPara = (q.ini.getTime() - agora)/60000;
+    var fase;
+    if(agora >= q.ini.getTime() && agora < q.fim.getTime()) fase = 'agora';
+    else if(minsPara > 0 && minsPara <= _RESL_JANELA)       fase = 'breve';
+    else return;
+    var chave = r.id + '|' + fase;
+    if(vistos.indexOf(chave) >= 0) return;
+    out.push({ r:r, fase:fase, mins:Math.round(minsPara), chave:chave });
+  });
+  out.sort(function(a,b){ return a.mins - b.mins; });
+  return out;
+}
+
+/* Reservas com taxa e pagamento não confirmado.
+
+   Só entram as que pedem ação: as que já começaram e não foram pagas
+   (dinheiro que devia ter entrado) e as que começam nas próximas 48h
+   (dá para cobrar antes de entregar a chave). Uma reserva com taxa para
+   daqui a dois meses não é problema de hoje, e listar tudo faria a lista
+   virar paisagem — que é como um aviso deixa de ser lido.
+
+   "Isento" não é pendência: é uma decisão que já foi tomada. */
+var _RESL_ATRASO_MAX = 60;   // dias para trás que ainda cobramos
+var _RESL_AVISO_H    = 48;   // horas para frente
+
+function _reslPagamentos(){
+  var nivel = window._userNivel||'morador';
+  if(nivel!=='admin' && nivel!=='gestor' && nivel!=='supervisor') return [];
+  var agora = Date.now();
+  var vistos = _reslVistos().ids;
+  var out = [];
+  (G('reservas')||[]).forEach(function(r){
+    if(!r.data || r.status==='cancelada') return;
+    if((r.pgto||'') !== 'pendente') return;
+    var taxa = parseFloat(r.taxa);
+    if(!(taxa > 0)) return;                       // sem taxa, nada a cobrar
+    var ini = _resComecaEm(r); if(!ini) return;
+    var horas = (ini.getTime() - agora)/3600000;
+    var fase;
+    if(horas <= 0){
+      if(horas < -(_RESL_ATRASO_MAX*24)) return;  // velho demais, some da lista
+      fase = 'atrasado';
+    } else if(horas <= _RESL_AVISO_H){
+      fase = 'areceber';
+    } else return;
+    var chave = r.id + '|pgto';
+    if(vistos.indexOf(chave) >= 0) return;
+    out.push({ r:r, fase:fase, taxa:taxa, horas:horas, chave:chave });
+  });
+  // Atrasados primeiro, e entre eles o mais antigo na frente.
+  out.sort(function(a,b){
+    if((a.fase==='atrasado') !== (b.fase==='atrasado')) return a.fase==='atrasado' ? -1 : 1;
+    return a.horas - b.horas;
+  });
+  return out;
+}
+
+function _reslFrase(it){
+  var r = it.r;
+  var quem = (r.nome||'').trim() || 'sem nome';
+  if(it.fase === 'agora') return 'Agora vai ter a reserva do(a) <b>'+escHtml(quem)+'</b>';
+  if(it.mins <= 1)        return 'Daqui a 1 minuto tem a reserva do(a) <b>'+escHtml(quem)+'</b>';
+  if(it.mins < 60)        return 'Daqui a '+it.mins+' minutos tem a reserva do(a) <b>'+escHtml(quem)+'</b>';
+  return 'Daqui a 1 hora tem a reserva do(a) <b>'+escHtml(quem)+'</b>';
+}
+
+function resLembreteChecar(){
+  // Só dentro do painel de Reservas. Antes do login currentPanel nem
+  // existe, e aí também não é hora de avisar nada.
+  if(typeof currentPanel === 'undefined' || currentPanel !== 'reservas') return;
+  var el = $('m-res-lembrete'); if(!el) return;
+  if(el.classList.contains('open')) return;      // já tem um aberto
+  var itens  = _reslPendentes().slice(0,5);
+  var pagtos = _reslPagamentos();
+  var pagMostra = pagtos.slice(0,5);
+  if(!itens.length && !pagMostra.length) return;
+  var corpo = $('mresl-corpo'); if(!corpo) return;
+
+  var linha = function(cor, titulo, detalhe){
+    return '<div style="border-left:3px solid '+cor+';padding:8px 12px;background:var(--ink-3);border-radius:8px">'
+      + '<div style="font-size:14px;line-height:1.5">'+titulo+'</div>'
+      + '<div style="font-size:12px;color:var(--text-3);margin-top:4px">'+detalhe+'</div></div>';
+  };
+  var titulo = function(t){
+    return '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;'
+      + 'color:var(--text-3);margin-top:4px">'+t+'</div>';
+  };
+  var doEspaco = function(r){
+    return escHtml(r.espaco||'—') + ' &nbsp;•&nbsp; ' + escHtml(r.horario||'—')
+         + (r.lote?' &nbsp;•&nbsp; Lote '+escHtml(r.lote):'');
+  };
+
+  var html = '';
+  if(itens.length){
+    if(pagMostra.length) html += titulo('Começando');
+    html += itens.map(function(it){
+      return linha(it.fase==='agora' ? 'var(--red)' : 'var(--gold)',
+                   _reslFrase(it), doEspaco(it.r));
+    }).join('');
+  }
+  if(pagMostra.length){
+    html += titulo('Pagamento não confirmado');
+    html += pagMostra.map(function(it){
+      var r = it.r;
+      var quem = (r.nome||'').trim() || 'sem nome';
+      var quando = _fmtDataBRCurta ? _fmtDataBRCurta(r.data) : r.data;
+      var frase = (it.fase==='atrasado')
+        ? '<b>'+escHtml(quem)+'</b> não pagou a reserva de '+escHtml(quando)
+        : '<b>'+escHtml(quem)+'</b> ainda não pagou — reserva de '+escHtml(quando);
+      return linha(it.fase==='atrasado' ? 'var(--red)' : 'var(--amber)',
+                   frase, doEspaco(r) + ' &nbsp;•&nbsp; <b>'+fmt(it.taxa)+'</b>');
+    }).join('');
+    if(pagtos.length > pagMostra.length){
+      html += '<div style="font-size:12px;color:var(--text-3)">'
+            + '+ '+(pagtos.length-pagMostra.length)+' com pagamento pendente. '
+            + 'Use o filtro <b>Todas as reservas</b> para ver a lista completa.</div>';
+    }
+  }
+  corpo.innerHTML = html;
+
+  window._reslMostrando = itens.concat(pagMostra).map(function(it){ return it.chave; });
+  el.classList.add('open');
+  try{ _sincronizarTravaRolagem(); }catch(_){}
+}
+
+/* Só marca como visto ao FECHAR. Se a página cair com o aviso aberto, ele
+   volta — melhor repetir do que engolir. */
+function resLembreteFechar(){
+  try{ _reslMarcar(window._reslMostrando||[]); }catch(_){}
+  window._reslMostrando = [];
+  closeModal('m-res-lembrete');
+}
+
+// De minuto em minuto, e só quando o painel de Reservas está à vista.
+setInterval(function(){ try{ resLembreteChecar(); }catch(_){} }, 60000);
 
 /* ══════════════════════════
    REGULAMENTO
