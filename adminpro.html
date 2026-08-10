@@ -15995,10 +15995,35 @@ async function excluirUsuario(docId){
 (function(){
   let _deferredPrompt = null;
 
-  function _mostrarInstall(){ const w=document.getElementById('pwa-install-wrap'); if(w && localStorage.getItem('apvc_pwa_disp2')!=='1') w.style.display='inline-flex'; }
+  /* O "x" gravava 1 para sempre, e nada nunca apagava: quem tocasse uma
+     vez perdia o botao definitivamente naquele aparelho — inclusive quem
+     desinstalou o app e quis instalar de novo depois.
+
+     Agora a dispensa vale 30 dias e guarda QUANDO foi. A marca antiga
+     (apvc_pwa_disp2) deixa de ser respeitada de proposito: era o
+     comportamento defeituoso, e quem foi pego por ele precisa do botao
+     de volta. */
+  var _PWA_DISP_DIAS = 30;
+
+  function _pwaDispensadoAinda(){
+    var t=0;
+    try{ t=parseInt(localStorage.getItem('apvc_pwa_disp3')||'0',10)||0; }catch(_){ return false; }
+    return t>0 && (Date.now()-t) < _PWA_DISP_DIAS*86400000;
+  }
+
+  function _mostrarInstall(){
+    const w=document.getElementById('pwa-install-wrap');
+    if(w && !_pwaDispensadoAinda()) w.style.display='inline-flex';
+  }
   function _ocultarInstall(){ const w=document.getElementById('pwa-install-wrap'); if(w) w.style.display='none'; }
 
-  window.pwaDispensar = function(){ localStorage.setItem('apvc_pwa_disp2','1'); _ocultarInstall(); };
+  window.pwaDispensar = function(){
+    try{
+      localStorage.setItem('apvc_pwa_disp3', String(Date.now()));
+      localStorage.removeItem('apvc_pwa_disp2');   // nao deixa a marca velha confundir
+    }catch(_){}
+    _ocultarInstall();
+  };
 
   // Captura o evento de instalação (Android / Chrome / Edge desktop)
   window.addEventListener('beforeinstallprompt', e => {
