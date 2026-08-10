@@ -10120,13 +10120,23 @@ async function salvarRes(){
     // "Pagar com Pix" do card só descobria a taxa por acaso.
     const _faltaPagar = obj.taxa>0 && obj.pgto!=='pago' && obj.pgto!=='isento' && (_cfgN.pix_chave||'').trim();
     if(_faltaPagar){
-      _partes.push('Falta pagar a taxa de '+fmt(obj.taxa)+' via Pix. Toque em "Pagar com Pix" na sua reserva — '+
-        'a administração confirma o recebimento manualmente antes de liberar.');
+      _partes.push('Falta pagar a taxa de '+fmt(obj.taxa)+' via Pix. O código abre a seguir — '+
+        'a administração confirma o recebimento manualmente antes de liberar. '+
+        'Se preferir pagar depois, o botão "Pagar com Pix" fica na sua reserva.');
     }
     if(_partes.length){
       const _msg = _partes.join('\n\n');
-      if(typeof mostrarAvisoReserva==='function') mostrarAvisoReserva(_msg);
-      else { toast('✓ Reserva registrada.'); alert(_msg); }
+      // Havendo taxa, o Pix abre sozinho ao fechar o aviso: quem acabou de
+      // reservar é quem está mais disposto a pagar. Depois disso o morador
+      // teria de achar o botão no card — e quem não achasse não pagava.
+      const _idPix = obj.id;
+      const _depois = _faltaPagar ? function(){ abrirPixReserva(_idPix); } : null;
+      if(typeof mostrarAvisoReserva==='function'){
+        mostrarAvisoReserva(_msg, _depois, _faltaPagar ? 'Pagar com Pix' : 'Entendi');
+      } else {
+        toast('✓ Reserva registrada.'); alert(_msg);
+        if(_depois) _depois();
+      }
     } else {
       toast('✓ Reserva salva com sucesso.');
     }
@@ -10180,7 +10190,12 @@ function _enviarNotifsReserva(_novaReserva, _cfgN, obj, statusVal, _dtFmt, _cond
 }
 
 // Aviso pós-reserva (modal simples reutilizando estilos existentes)
-function mostrarAvisoReserva(msg){
+/* Aviso pós-reserva. Pode encadear uma ação para quando o morador fechar
+   — hoje, abrir o Pix. Dois modais abertos ao mesmo tempo se atrapalham,
+   então um espera o outro em vez de aparecerem juntos. */
+var _avisoReservaDepois = null;
+
+function mostrarAvisoReserva(msg, aoFechar, rotuloBotao){
   var ov=$('m-aviso-reserva');
   if(!ov){
     ov=document.createElement('div'); ov.id='m-aviso-reserva'; ov.className='modal-ov';
@@ -10189,12 +10204,23 @@ function mostrarAvisoReserva(msg){
       '<i class="fa-regular fa-clock" style="font-size:30px;color:var(--gold)"></i></div>'+
       '<div style="font-size:19px;font-weight:800;color:var(--text);margin-bottom:10px">Reserva registrada!</div>'+
       '<div id="m-aviso-reserva-txt" style="font-size:14px;color:var(--text-2);line-height:1.55;margin-bottom:22px"></div>'+
-      '<button class="btn btn-gold" style="width:100%;justify-content:center" onclick="closeModal(\'m-aviso-reserva\')">Entendi</button>'+
+      '<button class="btn btn-gold" id="m-aviso-reserva-btn" style="width:100%;justify-content:center" onclick="fecharAvisoReserva()">Entendi</button>'+
       '</div>';
     document.body.appendChild(ov);
   }
   var t=$('m-aviso-reserva-txt'); if(t) t.textContent=msg;
+  var b=$('m-aviso-reserva-btn'); if(b) b.textContent = rotuloBotao || 'Entendi';
+  _avisoReservaDepois = (typeof aoFechar==='function') ? aoFechar : null;
   ov.classList.add('open');
+}
+
+function fecharAvisoReserva(){
+  closeModal('m-aviso-reserva');
+  var seguir = _avisoReservaDepois;
+  _avisoReservaDepois = null;      // zera ANTES de executar: se a ação
+  if(seguir){                      // falhar, não fica pendurada para a
+    try{ seguir(); }catch(e){ console.error('pós-aviso', e); }   // próxima
+  }
 }
 
 async function excluirRes(id){
