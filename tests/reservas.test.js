@@ -1069,6 +1069,56 @@ bloco('Aprovação avisa quando o pagamento não foi confirmado', () => {
   checa('usa o primeiro setor COM número', api._waAdministracao(), '(11) 91234-5678');
 });
 
+// ── Comprovante anexado na reserva ─────────────────────────────────────
+bloco('Envio do comprovante', () => {
+  let enviado = null;
+  const api = carregar(['uploadComprovante'], {
+    SB: { storage: { from: () => ({ upload: async (caminho, f, o) => {
+      enviado = { caminho, tipo: o.contentType }; return { error: null };
+    } }) } },
+    _condAtual: 'APVC',
+    // Constantes vivem fora das funções, então entram como stub — os
+    // valores abaixo espelham os do adminpro.html.
+    _COMPROV_TIPOS: ['image/jpeg','image/png','image/webp','image/heic','application/pdf'],
+    _COMPROV_MAX: 8 * 1024 * 1024,
+  });
+  const arq = (tipo, tam) => ({ type: tipo, size: tam || 1000, name: 'x' });
+  const erro = async (f) => { try { await api.uploadComprovante(f, 7); return null; }
+                              catch (e) { return e.message; } };
+
+  return (async () => {
+    // Foto do app do banco é o caso comum — tem de passar.
+    await api.uploadComprovante(arq('image/jpeg'), 7);
+    checa('JPG é aceito', enviado.tipo, 'image/jpeg');
+    checa('vai para a pasta do condomínio', enviado.caminho.startsWith('APVC/comprovantes/7_'), true);
+    checa('e mantém a extensão certa', enviado.caminho.endsWith('.jpg'), true);
+
+    await api.uploadComprovante(arq('image/png'), 7);
+    checa('PNG mantém .png', enviado.caminho.endsWith('.png'), true);
+    await api.uploadComprovante(arq('application/pdf'), 7);
+    checa('PDF mantém .pdf', enviado.caminho.endsWith('.pdf'), true);
+    // iPhone manda HEIC: se barrasse, metade dos moradores não conseguiria.
+    await api.uploadComprovante(arq('image/heic'), 7);
+    checa('HEIC do iPhone é aceito', enviado.caminho.endsWith('.heic'), true);
+
+    // O que não pode entrar no cofre.
+    checa('executável é recusado', await erro(arq('application/x-msdownload')),
+      'Envie uma imagem (JPG, PNG) ou PDF.');
+    checa('tipo vazio é recusado', await erro(arq('')),
+      'Envie uma imagem (JPG, PNG) ou PDF.');
+    checa('arquivo grande demais é recusado', await erro(arq('image/jpeg', 9 * 1024 * 1024)),
+      'Arquivo muito grande (máximo 8 MB).');
+    checa('no limite de 8 MB ainda passa',
+      await erro(arq('image/jpeg', 8 * 1024 * 1024)), null);
+
+    // Dois envios seguidos não colidem (o nome carrega o instante).
+    await api.uploadComprovante(arq('image/jpeg'), 7); const a = enviado.caminho;
+    await new Promise((r) => setTimeout(r, 3));
+    await api.uploadComprovante(arq('image/jpeg'), 7);
+    checa('dois envios não se sobrescrevem', a !== enviado.caminho, true);
+  })();
+});
+
 Promise.all(_pendentes).then(() => {
   console.log('\n' + '-'.repeat(50));
   console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
