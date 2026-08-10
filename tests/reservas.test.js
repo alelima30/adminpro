@@ -1069,57 +1069,60 @@ bloco('Aprovação avisa quando o pagamento não foi confirmado', () => {
   checa('usa o primeiro setor COM número', api._waAdministracao(), '(11) 91234-5678');
 });
 
-// ── Botão Atualizar ────────────────────────────────────────────────────
-bloco('Atualizar reservas', () => {
-  const CACHE = { reservas: [{ id: 1, nome: 'antigo' }] };
-  const avisos = [];
-  let RESPOSTA, botao = { disabled: false, innerHTML: '' };
-  const JANELA = {};
-
-  const api = carregar(['atualizarReservas', '_resRowToApp'], {
-    window: JANELA,
-    $: () => botao,
-    DB_CACHE: CACHE,
-    _condAtual: 'APVC',
-    localStorage: { setItem(){}, getItem: () => null },
-    renderReservas: () => {}, verificarAlertas: () => {}, atualizarBadgePendentes: () => {},
-    toast: (m) => avisos.push(m),
-    SB: { from: () => ({ select: () => ({ eq: async () => RESPOSTA }) }) },
+// ── Histórico de lembretes ─────────────────────────────────────────────
+bloco('Lembretes recentes', () => {
+  let GUARDADO = {};
+  const api = carregar(['_reslHistLer', '_reslHistGravar', '_reslQuandoFoi'], {
+    localStorage: {
+      getItem: (k) => (GUARDADO[k] === undefined ? null : GUARDADO[k]),
+      setItem: (k, v) => { GUARDADO[k] = v; },
+    },
+    _RESL_HIST_DIAS: 7,
+    _RESL_HIST_MAX: 30,
   });
+  const agora = Date.now();
+  const dias = (n) => agora - n * 86400000;
+  const chaves = () => api._reslHistLer().map((x) => x.chave);
 
-  return (async () => {
-    // Sucesso: troca o cache e diz quantas vieram.
-    RESPOSTA = { data: [{ id: 9, nome: 'Lucas' }, { id: 10, nome: 'Ana' }], error: null };
-    await api.atualizarReservas();
-    checa('substitui o cache pelo que veio do servidor',
-      CACHE.reservas.map((r) => r.nome), ['Lucas', 'Ana']);
-    checa('diz quantas são', avisos.pop(), '✓ 2 reservas — lista atualizada.');
+  GUARDADO = {};
+  api._reslHistGravar([{ chave: 'a', ts: agora, texto: 'x', detalhe: 'y' }]);
+  checa('guarda o que apareceu', chaves(), ['a']);
 
-    RESPOSTA = { data: [{ id: 9, nome: 'Lucas' }], error: null };
-    await api.atualizarReservas();
-    checa('singular quando é uma só', avisos.pop(), '✓ 1 reserva — lista atualizada.');
+  // O mesmo aviso não entra duas vezes — senão o histórico vira ruído.
+  api._reslHistGravar([{ chave: 'a', ts: agora + 5, texto: 'x', detalhe: 'y' }]);
+  checa('não duplica o mesmo aviso', chaves(), ['a']);
 
-    // Falha: NÃO esvazia a tela. É o ponto todo — lista vazia faria
-    // qualquer um concluir que as reservas sumiram.
-    const antes = CACHE.reservas;
-    RESPOSTA = { data: null, error: { message: 'timeout' } };
-    await api.atualizarReservas();
-    checa('erro não mexe no que já estava na tela', CACHE.reservas, antes);
-    checa('e explica que o atual continua valendo',
-      avisos.pop(), '⚠️ Não consegui atualizar: timeout. O que está na tela continua valendo.');
+  api._reslHistGravar([{ chave: 'b', ts: agora + 10, texto: 'x', detalhe: 'y' }]);
+  checa('mais recente vem na frente', chaves(), ['b', 'a']);
 
-    // O botão volta ao normal mesmo depois de falhar.
-    checa('botão é reabilitado após o erro', botao.disabled, false);
-    checa('e volta ao rótulo original',
-      botao.innerHTML, '<i class="fa-solid fa-rotate"></i> Atualizar');
+  // Some sozinho depois de 7 dias.
+  GUARDADO = {};
+  api._reslHistGravar([{ chave: 'velho', ts: dias(9), texto: 'x', detalhe: 'y' },
+                       { chave: 'novo', ts: agora, texto: 'x', detalhe: 'y' }]);
+  checa('descarta o que passou de 7 dias', chaves(), ['novo']);
 
-    // Dois cliques não viram duas buscas.
-    JANELA._resAtualizando = true;
-    const quantos = avisos.length;
-    await api.atualizarReservas();
-    checa('clique repetido é ignorado enquanto busca', avisos.length, quantos);
-    JANELA._resAtualizando = false;
-  })();
+  // Não cresce para sempre.
+  GUARDADO = {};
+  const muitos = [];
+  for (let i = 0; i < 45; i++) muitos.push({ chave: 'k' + i, ts: agora - i * 1000, texto: 'x', detalhe: 'y' });
+  api._reslHistGravar(muitos);
+  checa('guarda no máximo 30', api._reslHistLer().length, 30);
+  checa('e mantém os mais recentes', chaves()[0], 'k0');
+
+  // Lixo no armazenamento não derruba a tela.
+  GUARDADO = { apvc_res_lembrete_hist: '{isto não é json' };
+  checa('conteúdo inválido vira lista vazia', api._reslHistLer(), []);
+  GUARDADO = { apvc_res_lembrete_hist: '{"a":1}' };
+  checa('objeto em vez de lista também', api._reslHistLer(), []);
+
+  // Como a hora é mostrada.
+  const hoje = new Date(); hoje.setHours(14, 32, 0, 0);
+  checa('hoje mostra a hora', api._reslQuandoFoi(hoje.getTime()), 'hoje 14:32');
+  const ontem = new Date(hoje.getTime() - 86400000);
+  checa('ontem é dito por extenso', api._reslQuandoFoi(ontem.getTime()), 'ontem 14:32');
+  const antes = new Date(hoje.getTime() - 3 * 86400000);
+  const dd = String(antes.getDate()).padStart(2, '0') + '/' + String(antes.getMonth() + 1).padStart(2, '0');
+  checa('mais antigo mostra a data', api._reslQuandoFoi(antes.getTime()), dd + ' 14:32');
 });
 
 Promise.all(_pendentes).then(() => {
