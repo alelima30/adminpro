@@ -9355,7 +9355,25 @@ async function _mudarStatusReserva(id, novo, msg){
                     { template:TPL.reservaMorador, params:_paramsAprov });
   }
 }
+/* WhatsApp da administração, para o morador saber onde mandar o
+   comprovante. Pega o primeiro setor cadastrado nos destinos de alerta —
+   é o mesmo número que já recebe o aviso de reserva nova. */
+function _waAdministracao(){
+  var d=(_getAlertDestinos()||[]).find(function(x){ return (x.whats||'').trim(); });
+  return d ? String(d.whats).trim() : '';
+}
+
 function aprovarReserva(id){
+  var r=(G('reservas')||[]).find(function(x){ return x.id===id; });
+  /* Aprovar com a taxa em aberto é o jeito mais fácil de liberar o espaço
+     sem o dinheiro ter entrado. Avisa — mas não bloqueia: pagamento em
+     dinheiro na portaria, isenção do síndico ou acerto por fora existem, e
+     um bloqueio duro viraria armadilha justamente nesses dias. */
+  if(r && r.taxa>0 && r.pgto==='pendente'){
+    if(!confirm('A taxa de '+fmt(r.taxa)+' ainda não foi confirmada como paga.\n\n'+
+                'Aprovar mesmo assim?\n\n'+
+                'Se o pagamento já entrou, cancele e use "Marcar pago" antes de aprovar.')) return;
+  }
   _mudarStatusReserva(id,'confirmada','✓ Reserva aprovada e confirmada.');
 }
 function recusarReserva(id){
@@ -10227,8 +10245,14 @@ async function salvarRes(){
     // "Pagar com Pix" do card só descobria a taxa por acaso.
     const _faltaPagar = obj.taxa>0 && obj.pgto!=='pago' && obj.pgto!=='isento' && (_cfgN.pix_chave||'').trim();
     if(_faltaPagar){
-      _partes.push('Falta pagar a taxa de '+fmt(obj.taxa)+' via Pix. O código abre a seguir — '+
-        'a administração confirma o recebimento manualmente antes de liberar. '+
+      // Diz onde mandar o comprovante. Sem isso o morador paga, ninguém
+      // fica sabendo, e a reserva trava esperando uma confirmação que a
+      // administração não tem como fazer.
+      var _wa = (typeof _waAdministracao==='function') ? _waAdministracao() : '';
+      _partes.push('Falta pagar a taxa de '+fmt(obj.taxa)+' via Pix. O código abre a seguir.\n\n'+
+        'Depois de pagar, envie o comprovante para o WhatsApp da administração'+
+        (_wa ? (': '+_wa) : '')+'. A reserva só é confirmada depois que o '+
+        'recebimento for conferido.\n\n'+
         'Se preferir pagar depois, o botão "Pagar com Pix" fica na sua reserva.');
     }
     if(_partes.length){
