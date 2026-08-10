@@ -5114,6 +5114,29 @@ async function uploadPDF(file, pasta){
   return caminho;
 }
 
+/* Comprovante de pagamento -> mesmo cofre, pasta propria.
+
+   Separado do uploadPDF porque comprovante quase sempre e FOTO ou print
+   do aplicativo do banco, nao PDF — o uploadPDF forcaria a extensao .pdf
+   e o arquivo abriria quebrado. */
+var _COMPROV_TIPOS = ['image/jpeg','image/png','image/webp','image/heic','application/pdf'];
+var _COMPROV_MAX   = 8 * 1024 * 1024;   // 8 MB
+
+async function uploadComprovante(file, reservaId){
+  if(!SB) throw new Error('Supabase indisponivel');
+  var tipo = (file.type||'').toLowerCase();
+  if(_COMPROV_TIPOS.indexOf(tipo) < 0) throw new Error('Envie uma imagem (JPG, PNG) ou PDF.');
+  if(file.size > _COMPROV_MAX)        throw new Error('Arquivo muito grande (máximo 8 MB).');
+  var ext = tipo==='application/pdf' ? '.pdf'
+          : tipo==='image/png' ? '.png'
+          : tipo==='image/webp' ? '.webp'
+          : tipo==='image/heic' ? '.heic' : '.jpg';
+  var caminho = _condAtual + '/comprovantes/' + reservaId + '_' + Date.now() + ext;
+  var up = await SB.storage.from('privado').upload(caminho, file, { contentType:tipo, upsert:true });
+  if(up.error) throw up.error;
+  return caminho;
+}
+
 /* Caminho do arquivo dentro do bucket, a partir do que esta guardado.
    Documentos novos guardam o caminho direto. Os antigos guardaram um
    link assinado — dele da para recuperar o caminho, e assim continuam
@@ -5338,6 +5361,7 @@ function _resRowToApp(r){
     // pelo app — por isso serve como data/hora do aceite que o navegador
     // do morador nao consegue forjar.
     criadoEm:r.criado_em||'', termoDoc:c.termoDoc||'', termoNome:c.termoNome||'',
+    comprovanteArq:c.comprovanteArq||'', comprovanteNome:c.comprovanteNome||'',
     loteResponsavel:r.unidade||'' };
 }
 function _resAppToRow(o){
@@ -5349,7 +5373,8 @@ function _resAppToRow(o){
     checklist:{ chkTermo:!!o.chkTermo, chkTaxaCampo:!!o.chkTaxaCampo, chkTaxaSalao:!!o.chkTaxaSalao,
       chkCaucaoAceite:!!o.chkCaucaoAceite, chkVPre:!!o.chkVPre, chkVPos:!!o.chkVPos,
       chkCaucaoDev:!!o.chkCaucaoDev, chkRegras:!!o.chkRegras, chkDevolucao:!!o.chkDevolucao,
-      termoDoc:o.termoDoc||'', termoNome:o.termoNome||'' },
+      termoDoc:o.termoDoc||'', termoNome:o.termoNome||'',
+      comprovanteArq:o.comprovanteArq||'', comprovanteNome:o.comprovanteNome||'' },
     obs:o.obs||null, alerta_whatsapp:o.alertaWhatsapp||null, alerta_email:o.alertaEmail||null,
     alertas:o.alertas||[], criado_por:o.criadoPor||null };
 }
@@ -8715,6 +8740,10 @@ function renderReservas(){
           ${(r.taxa>0 && r.pgto!=='pago' && r.pgto!=='isento' && _pixChave)?`<button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="abrirPixReserva(${r.id})"><i class="fa-solid fa-sack-dollar"></i> Pagar com Pix</button>`:''}
           ${(!isMorador && r.taxa>0 && r.pgto==='pendente')?`
           <button class="btn btn-sm" style="background:var(--green-d,#1f7a4d);color:#fff;border:none" onclick="marcarPagoReserva(${r.id},true)"><i class="fa-solid fa-circle-check"></i> Marcar pago</button>`:''}
+          ${r.comprovanteArq?`
+          <button class="btn btn-ghost btn-sm" onclick="verComprovante(${r.id})" title="${escHtml(r.comprovanteNome||'')}"><i class="fa-solid fa-paperclip"></i> Ver comprovante</button>`:''}
+          ${(!isMorador && r.taxa>0)?`
+          <button class="btn btn-ghost btn-sm" onclick="anexarComprovante(${r.id})"><i class="fa-solid fa-paperclip"></i> ${r.comprovanteArq?'Trocar':'Anexar'} comprovante</button>`:''}
           ${(!isMorador && r.taxa>0 && r.pgto==='pago')?`
           <button class="btn btn-ghost btn-sm" onclick="marcarPagoReserva(${r.id},false)" title="Desfazer a confirmação de pagamento"><i class="fa-solid fa-rotate-left"></i> Desmarcar pago</button>`:''}
           ${!isMorador?`<button class="btn btn-ghost btn-sm" onclick="abrirModalRes(${r.id})">Editar</button>`:''}
@@ -9355,6 +9384,64 @@ async function _mudarStatusReserva(id, novo, msg){
                     { template:TPL.reservaMorador, params:_paramsAprov });
   }
 }
+/* Anexa o comprovante na propria reserva.
+
+   Comprovante no WhatsApp se perde: some no meio da conversa, nao da para
+   auditar e, quando o morador diz "eu paguei", nao ha o que mostrar.
+   Preso a reserva, fica.
+
+   Hoje quem anexa e a administracao (o print que o morador mandou). O
+   morador NAO consegue: o gatilho reservas_protege_status so o deixa
+   cancelar a propria reserva, e a policy privado_insert so aceita envio
+   de admin/gestor. As duas travas existem por bons motivos e nao se
+   afrouxam de passagem — mudar isso e decisao separada. */
+function anexarComprovante(id){
+  var inp=document.createElement('input');
+  inp.type='file';
+  inp.accept='image/*,application/pdf';
+  inp.onchange=async function(){
+    var f=inp.files && inp.files[0]; if(!f) return;
+    toast('Enviando comprovante…');
+    try{
+      var caminho=await uploadComprovante(f, id);
+      var all=G('reservas')||[];
+      var i=all.findIndex(function(x){return x.id===id;});
+      if(i<0) return;
+      var antesArq=all[i].comprovanteArq, antesNome=all[i].comprovanteNome;
+      all[i].comprovanteArq=caminho;
+      all[i].comprovanteNome=f.name||'comprovante';
+      DB_CACHE['reservas']=all;
+      try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
+      var g=await _reservaUpsertSB(all[i]);
+      if(g && g.ok===false){
+        all[i].comprovanteArq=antesArq; all[i].comprovanteNome=antesNome;
+        DB_CACHE['reservas']=all;
+        toast('⚠️ O arquivo subiu, mas não foi possível gravar na reserva: '+(g.erro||'erro'));
+        return;
+      }
+      try{ renderReservas(); }catch(_){}
+      toast('✓ Comprovante anexado.');
+    }catch(e){
+      toast('⚠️ '+(e && e.message ? e.message : 'Falha ao enviar o comprovante.'));
+    }
+  };
+  inp.click();
+}
+
+/* Link novo a cada abertura: o guardado e o CAMINHO, nao o link — link
+   assinado vence e faria o comprovante "sumir" com o arquivo intacto. */
+async function verComprovante(id){
+  var r=(G('reservas')||[]).find(function(x){return x.id===id;});
+  if(!r || !r.comprovanteArq){ toast('Esta reserva não tem comprovante anexado.'); return; }
+  try{
+    var url=await _linkTemporario(r.comprovanteArq);
+    if(url) window.open(url,'_blank');
+    else toast('⚠️ Não foi possível abrir o comprovante.');
+  }catch(e){
+    toast('⚠️ Não foi possível abrir o comprovante: '+(e && e.message ? e.message : 'erro'));
+  }
+}
+
 /* WhatsApp da administração, para o morador saber onde mandar o
    comprovante. Pega o primeiro setor cadastrado nos destinos de alerta —
    é o mesmo número que já recebe o aviso de reserva nova. */
@@ -10198,6 +10285,10 @@ async function salvarRes(){
     termoDoc: (_resExistente && _resExistente.termoDoc)
                  ? _resExistente.termoDoc
                  : ((getCfgRes()['termo_'+_chvEsp(espacoRes)]||'').trim()),
+    // Anexo nao esta no formulario: sem isto, editar a reserva apagaria o
+    // comprovante que ja tinha sido anexado. Mesmo cuidado do termoDoc.
+    comprovanteArq:  (_resExistente && _resExistente.comprovanteArq)  || '',
+    comprovanteNome: (_resExistente && _resExistente.comprovanteNome) || '',
     loteResponsavel: $('mres-lote').value.trim(), // ← identificador robusto por lote
   };
   // Guarda o estado anterior para poder desfazer se o servidor recusar.
