@@ -721,6 +721,189 @@ bloco('Carga falha não apaga o banco', () => {
   });
 });
 
+// ── Lembrete das reservas que estão para começar ───────────────────────
+bloco('Lembrete "daqui a X tem a reserva do Fulano"', () => {
+  let RESERVAS = [];
+  const JANELA = { _userNivel: 'admin' };
+  let GUARDADO = {};
+
+  const api = carregar(
+    ['_resComecaEm', '_reslQuando', '_reslVistos', '_reslMarcar', '_reslPendentes', '_reslFrase',
+     'hrIni', 'hrFim', '_minHora'],
+    {
+      window: JANELA,
+      G: () => RESERVAS,
+      localStorage: {
+        getItem: (k) => (GUARDADO[k] === undefined ? null : GUARDADO[k]),
+        setItem: (k, v) => { GUARDADO[k] = v; },
+      },
+      escHtml: (v) => String(v == null ? '' : v),
+      _RESL_JANELA: 60,
+    },
+  );
+
+  // Monta uma reserva que começa daqui a `mins` minutos e dura `dur`.
+  function daquiA(id, nome, mins, dur) {
+    const ini = new Date(Date.now() + mins * 60000);
+    const fim = new Date(ini.getTime() + dur * 60000);
+    const hh = (d) => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    return { id, nome, espaco: 'Quadra', lote: 'D17', status: 'confirmada',
+             data: ini.getFullYear() + '-' + String(ini.getMonth() + 1).padStart(2, '0')
+                   + '-' + String(ini.getDate()).padStart(2, '0'),
+             horario: hh(ini) + '–' + hh(fim) };
+  }
+  const nomes = () => api._reslPendentes().map((x) => x.fase + ':' + x.r.nome);
+
+  // ── A janela ──
+  RESERVAS = [daquiA(1, 'Lucas', 45, 120)];
+  checa('reserva daqui a 45min entra como "breve"', nomes(), ['breve:Lucas']);
+
+  RESERVAS = [daquiA(2, 'Ana', 300, 120)];
+  checa('daqui a 5 horas ainda não avisa', nomes(), []);
+
+  RESERVAS = [daquiA(3, 'Bruno', -10, 120)];
+  checa('começou há 10min e ainda está rolando: "agora"', nomes(), ['agora:Bruno']);
+
+  RESERVAS = [daquiA(4, 'Carla', -180, 120)];
+  checa('já terminou, não avisa mais', nomes(), []);
+
+  // ── O que não deve aparecer ──
+  RESERVAS = [Object.assign(daquiA(5, 'Diego', 30, 60), { status: 'cancelada' })];
+  checa('cancelada não avisa', nomes(), []);
+  RESERVAS = [Object.assign(daquiA(6, 'Elis', 30, 60), { status: 'realizada' })];
+  checa('realizada não avisa', nomes(), []);
+  RESERVAS = [Object.assign(daquiA(7, 'Fabio', 30, 60), { data: '' })];
+  checa('sem data não quebra nem avisa', nomes(), []);
+
+  // ── Só quem administra ──
+  RESERVAS = [daquiA(8, 'Gil', 30, 60)];
+  JANELA._userNivel = 'morador';
+  checa('morador não recebe o lembrete', nomes(), []);
+  JANELA._userNivel = 'supervisor';
+  checa('supervisor recebe', nomes(), ['breve:Gil']);
+  JANELA._userNivel = 'admin';
+
+  // ── Não repetir o mesmo aviso ──
+  RESERVAS = [daquiA(9, 'Helena', 30, 60)];
+  checa('primeira vez avisa', nomes(), ['breve:Helena']);
+  api._reslMarcar(['9|breve']);
+  checa('depois de visto, não repete', nomes(), []);
+
+  // A MESMA reserva volta a avisar quando de fato começa: é outra fase,
+  // e é o segundo aviso que interessa de verdade.
+  RESERVAS = [daquiA(9, 'Helena', -5, 60)];
+  checa('mas volta a avisar quando começa', nomes(), ['agora:Helena']);
+  api._reslMarcar(['9|agora']);
+  checa('e esse também só uma vez', nomes(), []);
+
+  // Marca de ontem não cala o aviso de hoje.
+  GUARDADO['apvc_res_lembrete'] = JSON.stringify({ dia: '2020-01-01', ids: ['9|agora'] });
+  checa('marca de outro dia é descartada', nomes(), ['agora:Helena']);
+
+  // ── Ordem e frase ──
+  RESERVAS = [daquiA(10, 'Ivo', 50, 60), daquiA(11, 'Julia', 10, 60), daquiA(12, 'Kim', -5, 60)];
+  GUARDADO = {};
+  checa('o mais próximo primeiro', api._reslPendentes().map((x) => x.r.nome),
+    ['Kim', 'Julia', 'Ivo']);
+
+  const frase = (mins, fase) => api._reslFrase({ r: { nome: 'Lucas' }, mins, fase });
+  checa('agora', frase(0, 'agora'), 'Agora vai ter a reserva do(a) <b>Lucas</b>');
+  checa('45 minutos', frase(45, 'breve'), 'Daqui a 45 minutos tem a reserva do(a) <b>Lucas</b>');
+  checa('1 minuto no singular', frase(1, 'breve'), 'Daqui a 1 minuto tem a reserva do(a) <b>Lucas</b>');
+  checa('60 minutos vira "1 hora"', frase(60, 'breve'), 'Daqui a 1 hora tem a reserva do(a) <b>Lucas</b>');
+  checa('reserva sem nome não deixa a frase torta',
+    api._reslFrase({ r: { nome: '' }, mins: 0, fase: 'agora' }),
+    'Agora vai ter a reserva do(a) <b>sem nome</b>');
+});
+
+// ── Reservas com pagamento não confirmado ──────────────────────────────
+bloco('Aviso de pagamento pendente', () => {
+  let RESERVAS = [];
+  const JANELA = { _userNivel: 'admin' };
+  let GUARDADO = {};
+
+  const api = carregar(
+    ['_resComecaEm', '_reslVistos', '_reslMarcar', '_reslPagamentos', 'hrIni', 'hrFim', '_minHora'],
+    {
+      window: JANELA,
+      G: () => RESERVAS,
+      localStorage: {
+        getItem: (k) => (GUARDADO[k] === undefined ? null : GUARDADO[k]),
+        setItem: (k, v) => { GUARDADO[k] = v; },
+      },
+      _RESL_ATRASO_MAX: 60,
+      _RESL_AVISO_H: 48,
+    },
+  );
+
+  // Reserva começando daqui a `horas` (negativo = já passou).
+  function em(id, nome, horas, extra) {
+    const ini = new Date(Date.now() + horas * 3600000);
+    const p = (n) => String(n).padStart(2, '0');
+    return Object.assign({
+      id, nome, espaco: 'Salão', lote: 'D17', status: 'confirmada',
+      pgto: 'pendente', taxa: 1500,
+      data: ini.getFullYear() + '-' + p(ini.getMonth() + 1) + '-' + p(ini.getDate()),
+      horario: p(ini.getHours()) + ':' + p(ini.getMinutes()) + '–23:59',
+    }, extra || {});
+  }
+  const fases = () => api._reslPagamentos().map((x) => x.fase + ':' + x.r.nome);
+
+  // ── A janela de cobrança ──
+  RESERVAS = [em(1, 'Lucas', -24)];
+  checa('usou ontem e não pagou: atrasado', fases(), ['atrasado:Lucas']);
+
+  RESERVAS = [em(2, 'Ana', 24)];
+  checa('usa amanhã e não pagou: a receber', fases(), ['areceber:Ana']);
+
+  RESERVAS = [em(3, 'Bruno', 240)];
+  checa('daqui a 10 dias ainda não incomoda', fases(), []);
+
+  RESERVAS = [em(4, 'Carla', -24 * 90)];
+  checa('atraso de 90 dias sai da lista', fases(), []);
+
+  // ── O que não é pendência ──
+  RESERVAS = [em(5, 'Diego', -24, { pgto: 'pago' })];
+  checa('pago não aparece', fases(), []);
+  RESERVAS = [em(6, 'Elis', -24, { pgto: 'isento' })];
+  checa('isento é decisão tomada, não pendência', fases(), []);
+  RESERVAS = [em(7, 'Fabio', -24, { taxa: 0 })];
+  checa('sem taxa não há o que cobrar', fases(), []);
+  RESERVAS = [em(8, 'Gil', -24, { taxa: null })];
+  checa('taxa vazia também não', fases(), []);
+  RESERVAS = [em(9, 'Hugo', -24, { status: 'cancelada' })];
+  checa('cancelada não se cobra', fases(), []);
+  RESERVAS = [em(10, 'Ines', -24, { data: '' })];
+  checa('sem data não quebra', fases(), []);
+
+  // Reserva realizada e não paga CONTINUA sendo cobrada: o serviço foi
+  // prestado, a dívida existe.
+  RESERVAS = [em(11, 'Joao', -24, { status: 'realizada' })];
+  checa('realizada e não paga continua na lista', fases(), ['atrasado:Joao']);
+
+  // ── Quem vê ──
+  RESERVAS = [em(12, 'Kelly', -24)];
+  JANELA._userNivel = 'morador';
+  checa('morador não vê pendência de pagamento', fases(), []);
+  JANELA._userNivel = 'gestor';
+  checa('gestor vê', fases(), ['atrasado:Kelly']);
+  JANELA._userNivel = 'admin';
+
+  // ── Não repetir ──
+  checa('avisa uma vez', fases(), ['atrasado:Kelly']);
+  api._reslMarcar(['12|pgto']);
+  checa('depois de visto, cala', fases(), []);
+
+  // ── Ordem: atrasados na frente, o mais antigo primeiro ──
+  GUARDADO = {};
+  RESERVAS = [em(20, 'Novo', 12), em(21, 'Antigo', -240), em(22, 'Recente', -12)];
+  checa('atrasados antes dos futuros, mais antigo na frente',
+    api._reslPagamentos().map((x) => x.r.nome), ['Antigo', 'Recente', 'Novo']);
+
+  checa('o valor devido acompanha a linha',
+    api._reslPagamentos()[0].taxa, 1500);
+});
+
 Promise.all(_pendentes).then(() => {
   console.log('\n' + '-'.repeat(50));
   console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
