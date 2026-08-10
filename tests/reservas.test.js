@@ -12,7 +12,15 @@ function checa(descricao, obtido, esperado) {
   if (igual) { ok++; console.log('  ✓ ' + descricao); }
   else { falhas++; console.log('  ✗ ' + descricao + '\n      esperado: ' + JSON.stringify(esperado) + '\n      obtido:   ' + JSON.stringify(obtido)); }
 }
-function bloco(titulo, fn) { console.log('\n' + titulo); fn(); }
+// Um bloco pode devolver uma promessa (função async sob teste). Quando
+// devolve, ela entra na fila e o resumo final só sai depois de resolvida —
+// senão o placar seria impresso antes das checagens acontecerem.
+const _pendentes = [];
+function bloco(titulo, fn) {
+  console.log('\n' + titulo);
+  const r = fn();
+  if (r && typeof r.then === 'function') _pendentes.push(r);
+}
 
 // ── Horário: fonte única ───────────────────────────────────────────────
 const { hrIni, hrFim, hrConflita } = carregar(['hrIni', 'hrFim', 'hrConflita']);
@@ -643,6 +651,78 @@ bloco('Conta do app → cadastro do condomínio', () => {
   checa('bloco oculto não escreve', api._musrAplicarCadastro('Ana Nova', '', '', 'L01'), '');
 });
 
-console.log('\n' + '-'.repeat(50));
-console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
-process.exit(falhas === 0 ? 0 : 1);
+// ── Carga que falhou não pode virar gravação destrutiva ────────────────
+// _sincronizarTabela apaga do banco tudo que não estiver no objeto. Certo
+// quando o objeto veio do banco; destruidor quando a leitura falhou e o
+// objeto ficou vazio.
+bloco('Carga falha não apaga o banco', () => {
+  // Nada mutável entra como stub: stub vira argumento e congela. SB e
+  // _CARGA_OK ficam no escopo global para o teste conseguir trocá-los.
+  const api = carregar(['_cargaMarcar', '_cargaConfiavel', '_sincronizarTabela'], {
+    _NORM: {
+      unidades:   { tabela: 'unidades',   pk: 'cod', hasCond: true },
+      condominos: { tabela: 'condominos', pk: 'cod', hasCond: true },
+    },
+    _condAtual: 'APVC',
+    console: { error: () => {} },
+  });
+
+  // ── Quem pode gravar ──
+  global.SB = { fake: true };
+  global._CARGA_OK = {};
+  checa('sem ter carregado, não grava', api._cargaConfiavel('condominos'), false);
+  api._cargaMarcar('condominos', true);
+  checa('depois de carregar, grava', api._cargaConfiavel('condominos'), true);
+  checa('uma chave não libera a outra', api._cargaConfiavel('unidades'), false);
+
+  checa('reservas não dependem disso (vão linha a linha)',
+    api._cargaConfiavel('reservas'), true);
+
+  checa('configurações dependem da carga dos módulos',
+    api._cargaConfiavel('cfg_reservas'), false);
+  api._cargaMarcar('__modulos', true);
+  checa('carregados os módulos, as configurações liberam',
+    api._cargaConfiavel('cfg_reservas'), true);
+
+  api._cargaMarcar('condominos', false);
+  checa('desmarcar volta a bloquear', api._cargaConfiavel('condominos'), false);
+
+  global.SB = null;
+  global._CARGA_OK = {};
+  checa('sem banco não há o que destruir', api._cargaConfiavel('condominos'), true);
+
+  // ── O delete em massa ──
+  function sbFalso(registro) {
+    const q = {
+      eq(){ registro.eq = true; return q; },
+      not(col, op, lista){ registro.not = lista; return q; },
+      then(res){ return Promise.resolve({ error: null }).then(res); },
+    };
+    return { from(){ return {
+      upsert(rows){ registro.upsertou = rows.length; return Promise.resolve({ error: null }); },
+      delete(){ registro.deletou = true; return q; },
+    }; } };
+  }
+  const cfg = { tabela: 'condominos', pk: 'cod', hasCond: true,
+                toRow: (k, v) => ({ cod: k, nome: v.nome }) };
+
+  let reg = {};
+  global.SB = sbFalso(reg);
+  return api._sincronizarTabela(cfg, {}).then(() => {
+    checa('objeto vazio NÃO dispara delete', !!reg.deletou, false);
+    checa('e também não grava nada', reg.upsertou, undefined);
+
+    reg = {}; global.SB = sbFalso(reg);
+    return api._sincronizarTabela(cfg, { '0001': { nome: 'João' }, '0002': { nome: 'Maria' } });
+  }).then(() => {
+    checa('com dados, grava as duas linhas', reg.upsertou, 2);
+    checa('e apaga só o que não está na lista', reg.not, '("0001","0002")');
+    checa('sempre preso ao condomínio atual', reg.eq, true);
+  });
+});
+
+Promise.all(_pendentes).then(() => {
+  console.log('\n' + '-'.repeat(50));
+  console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
+  process.exit(falhas === 0 ? 0 : 1);
+});
