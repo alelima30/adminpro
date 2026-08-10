@@ -1018,6 +1018,113 @@ bloco('Marcar pago / desmarcar', async () => {
   checa('e não cria reserva nenhuma', CACHE.reservas.length, 1);
 });
 
+// ── Aprovar com a taxa em aberto ───────────────────────────────────────
+bloco('Aprovação avisa quando o pagamento não foi confirmado', () => {
+  let RESERVAS = [], perguntas = [], RESPOSTA = true, mudou = [];
+  const api = carregar(['aprovarReserva', '_waAdministracao'], {
+    G: () => RESERVAS,
+    fmt: (v) => 'R$ ' + Number(v).toFixed(2),
+    confirm: (m) => { perguntas.push(m); return RESPOSTA; },
+    _mudarStatusReserva: (id, st) => mudou.push(id + '→' + st),
+    _getAlertDestinos: () => [{ label: 'Portaria', whats: '' },
+                              { label: 'Síndico', whats: '(11) 91234-5678' }],
+  });
+  const r = (extra) => Object.assign({ id: 1, taxa: 1500, pgto: 'pendente' }, extra || {});
+  const reset = () => { perguntas = []; mudou = []; };
+
+  // Taxa pendente → pergunta antes.
+  reset(); RESERVAS = [r()]; RESPOSTA = true;
+  api.aprovarReserva(1);
+  checa('pergunta antes de aprovar', perguntas.length, 1);
+  checa('e diz o valor em aberto', perguntas[0].includes('R$ 1500.00'), true);
+  checa('confirmando, aprova', mudou, ['1→confirmada']);
+
+  // Recusando a pergunta, NÃO aprova — o ponto todo do aviso.
+  reset(); RESERVAS = [r()]; RESPOSTA = false;
+  api.aprovarReserva(1);
+  checa('recusando, não aprova', mudou, []);
+
+  // Já pago, isento ou sem taxa: aprova direto, sem atrapalhar.
+  RESPOSTA = true;
+  reset(); RESERVAS = [r({ pgto: 'pago' })];
+  api.aprovarReserva(1);
+  checa('pago não pergunta', perguntas.length, 0);
+  checa('e aprova', mudou, ['1→confirmada']);
+
+  reset(); RESERVAS = [r({ pgto: 'isento' })];
+  api.aprovarReserva(1);
+  checa('isento não pergunta', perguntas.length, 0);
+
+  reset(); RESERVAS = [r({ taxa: 0 })];
+  api.aprovarReserva(1);
+  checa('sem taxa não pergunta', perguntas.length, 0);
+  checa('e aprova normal', mudou, ['1→confirmada']);
+
+  // Reserva que não existe: aprova sem quebrar (o status cuida do resto).
+  reset(); RESERVAS = [];
+  api.aprovarReserva(99);
+  checa('id inexistente não quebra nem pergunta', perguntas.length, 0);
+
+  // WhatsApp da administração: pula setor sem número.
+  checa('usa o primeiro setor COM número', api._waAdministracao(), '(11) 91234-5678');
+});
+
+// ── Histórico de lembretes ─────────────────────────────────────────────
+bloco('Lembretes recentes', () => {
+  let GUARDADO = {};
+  const api = carregar(['_reslHistLer', '_reslHistGravar', '_reslQuandoFoi'], {
+    localStorage: {
+      getItem: (k) => (GUARDADO[k] === undefined ? null : GUARDADO[k]),
+      setItem: (k, v) => { GUARDADO[k] = v; },
+    },
+    _RESL_HIST_DIAS: 7,
+    _RESL_HIST_MAX: 30,
+  });
+  const agora = Date.now();
+  const dias = (n) => agora - n * 86400000;
+  const chaves = () => api._reslHistLer().map((x) => x.chave);
+
+  GUARDADO = {};
+  api._reslHistGravar([{ chave: 'a', ts: agora, texto: 'x', detalhe: 'y' }]);
+  checa('guarda o que apareceu', chaves(), ['a']);
+
+  // O mesmo aviso não entra duas vezes — senão o histórico vira ruído.
+  api._reslHistGravar([{ chave: 'a', ts: agora + 5, texto: 'x', detalhe: 'y' }]);
+  checa('não duplica o mesmo aviso', chaves(), ['a']);
+
+  api._reslHistGravar([{ chave: 'b', ts: agora + 10, texto: 'x', detalhe: 'y' }]);
+  checa('mais recente vem na frente', chaves(), ['b', 'a']);
+
+  // Some sozinho depois de 7 dias.
+  GUARDADO = {};
+  api._reslHistGravar([{ chave: 'velho', ts: dias(9), texto: 'x', detalhe: 'y' },
+                       { chave: 'novo', ts: agora, texto: 'x', detalhe: 'y' }]);
+  checa('descarta o que passou de 7 dias', chaves(), ['novo']);
+
+  // Não cresce para sempre.
+  GUARDADO = {};
+  const muitos = [];
+  for (let i = 0; i < 45; i++) muitos.push({ chave: 'k' + i, ts: agora - i * 1000, texto: 'x', detalhe: 'y' });
+  api._reslHistGravar(muitos);
+  checa('guarda no máximo 30', api._reslHistLer().length, 30);
+  checa('e mantém os mais recentes', chaves()[0], 'k0');
+
+  // Lixo no armazenamento não derruba a tela.
+  GUARDADO = { apvc_res_lembrete_hist: '{isto não é json' };
+  checa('conteúdo inválido vira lista vazia', api._reslHistLer(), []);
+  GUARDADO = { apvc_res_lembrete_hist: '{"a":1}' };
+  checa('objeto em vez de lista também', api._reslHistLer(), []);
+
+  // Como a hora é mostrada.
+  const hoje = new Date(); hoje.setHours(14, 32, 0, 0);
+  checa('hoje mostra a hora', api._reslQuandoFoi(hoje.getTime()), 'hoje 14:32');
+  const ontem = new Date(hoje.getTime() - 86400000);
+  checa('ontem é dito por extenso', api._reslQuandoFoi(ontem.getTime()), 'ontem 14:32');
+  const antes = new Date(hoje.getTime() - 3 * 86400000);
+  const dd = String(antes.getDate()).padStart(2, '0') + '/' + String(antes.getMonth() + 1).padStart(2, '0');
+  checa('mais antigo mostra a data', api._reslQuandoFoi(antes.getTime()), dd + ' 14:32');
+});
+
 Promise.all(_pendentes).then(() => {
   console.log('\n' + '-'.repeat(50));
   console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);

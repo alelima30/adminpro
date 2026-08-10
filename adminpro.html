@@ -3325,6 +3325,8 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <div class="ph">
           <div><div class="ph-title">Gestão de Reservas</div><div class="ph-sub">Agendamento de espaços e áreas comuns do condomínio</div></div>
           <div class="ph-actions">
+            <button class="btn btn-ghost" id="res-btn-atualizar" onclick="atualizarReservas()" title="Buscar no servidor as reservas mais recentes"><i class="fa-solid fa-rotate"></i> Atualizar</button>
+            <button class="btn btn-ghost" id="res-btn-lembretes" onclick="resLembreteReabrir()" title="Ver de novo os lembretes de hoje"><i class="fa-solid fa-bell"></i> Lembretes</button>
             <button class="btn btn-ghost" id="res-btn-dash" onclick="resToggleDash()" title="Mostrar ou esconder os números no topo desta tela"><i class="fa-solid fa-chart-simple"></i> Ocultar painel</button>
             <button class="btn btn-ghost" id="res-btn-view" onclick="resToggleView()"><i class="fa-solid fa-calendar-days"></i> Ver calendário</button>
             <button class="btn btn-gold" onclick="abrirModalRes(null)">+ Nova Reserva</button>
@@ -9355,7 +9357,25 @@ async function _mudarStatusReserva(id, novo, msg){
                     { template:TPL.reservaMorador, params:_paramsAprov });
   }
 }
+/* WhatsApp da administração, para o morador saber onde mandar o
+   comprovante. Pega o primeiro setor cadastrado nos destinos de alerta —
+   é o mesmo número que já recebe o aviso de reserva nova. */
+function _waAdministracao(){
+  var d=(_getAlertDestinos()||[]).find(function(x){ return (x.whats||'').trim(); });
+  return d ? String(d.whats).trim() : '';
+}
+
 function aprovarReserva(id){
+  var r=(G('reservas')||[]).find(function(x){ return x.id===id; });
+  /* Aprovar com a taxa em aberto é o jeito mais fácil de liberar o espaço
+     sem o dinheiro ter entrado. Avisa — mas não bloqueia: pagamento em
+     dinheiro na portaria, isenção do síndico ou acerto por fora existem, e
+     um bloqueio duro viraria armadilha justamente nesses dias. */
+  if(r && r.taxa>0 && r.pgto==='pendente'){
+    if(!confirm('A taxa de '+fmt(r.taxa)+' ainda não foi confirmada como paga.\n\n'+
+                'Aprovar mesmo assim?\n\n'+
+                'Se o pagamento já entrou, cancele e use "Marcar pago" antes de aprovar.')) return;
+  }
   _mudarStatusReserva(id,'confirmada','✓ Reserva aprovada e confirmada.');
 }
 function recusarReserva(id){
@@ -10227,8 +10247,14 @@ async function salvarRes(){
     // "Pagar com Pix" do card só descobria a taxa por acaso.
     const _faltaPagar = obj.taxa>0 && obj.pgto!=='pago' && obj.pgto!=='isento' && (_cfgN.pix_chave||'').trim();
     if(_faltaPagar){
-      _partes.push('Falta pagar a taxa de '+fmt(obj.taxa)+' via Pix. O código abre a seguir — '+
-        'a administração confirma o recebimento manualmente antes de liberar. '+
+      // Diz onde mandar o comprovante. Sem isso o morador paga, ninguém
+      // fica sabendo, e a reserva trava esperando uma confirmação que a
+      // administração não tem como fazer.
+      var _wa = (typeof _waAdministracao==='function') ? _waAdministracao() : '';
+      _partes.push('Falta pagar a taxa de '+fmt(obj.taxa)+' via Pix. O código abre a seguir.\n\n'+
+        'Depois de pagar, envie o comprovante para o WhatsApp da administração'+
+        (_wa ? (': '+_wa) : '')+'. A reserva só é confirmada depois que o '+
+        'recebimento for conferido.\n\n'+
         'Se preferir pagar depois, o botão "Pagar com Pix" fica na sua reserva.');
     }
     if(_partes.length){
@@ -10696,7 +10722,7 @@ function _reslMarcar(chaves){
   try{ localStorage.setItem('apvc_res_lembrete', JSON.stringify(v)); }catch(_){}
 }
 
-function _reslPendentes(){
+function _reslPendentes(ignorarVistos){
   var nivel = window._userNivel||'morador';
   if(nivel!=='admin' && nivel!=='gestor' && nivel!=='supervisor') return [];
   var agora = Date.now();
@@ -10711,7 +10737,7 @@ function _reslPendentes(){
     else if(minsPara > 0 && minsPara <= _RESL_JANELA)       fase = 'breve';
     else return;
     var chave = r.id + '|' + fase;
-    if(vistos.indexOf(chave) >= 0) return;
+    if(!ignorarVistos && vistos.indexOf(chave) >= 0) return;
     out.push({ r:r, fase:fase, mins:Math.round(minsPara), chave:chave });
   });
   out.sort(function(a,b){ return a.mins - b.mins; });
@@ -10730,7 +10756,7 @@ function _reslPendentes(){
 var _RESL_ATRASO_MAX = 60;   // dias para trás que ainda cobramos
 var _RESL_AVISO_H    = 48;   // horas para frente
 
-function _reslPagamentos(){
+function _reslPagamentos(ignorarVistos){
   var nivel = window._userNivel||'morador';
   if(nivel!=='admin' && nivel!=='gestor' && nivel!=='supervisor') return [];
   var agora = Date.now();
@@ -10751,7 +10777,7 @@ function _reslPagamentos(){
       fase = 'areceber';
     } else return;
     var chave = r.id + '|pgto';
-    if(vistos.indexOf(chave) >= 0) return;
+    if(!ignorarVistos && vistos.indexOf(chave) >= 0) return;
     out.push({ r:r, fase:fase, taxa:taxa, horas:horas, chave:chave });
   });
   // Atrasados primeiro, e entre eles o mais antigo na frente.
@@ -10771,16 +10797,69 @@ function _reslFrase(it){
   return 'Daqui a 1 hora tem a reserva do(a) <b>'+escHtml(quem)+'</b>';
 }
 
-function resLembreteChecar(){
+/* ── Histórico dos lembretes que já apareceram ────────────────────────
+
+   O aviso aparece uma vez e some. Quem estava ocupado no momento perdia —
+   e não tinha como saber o que passou. O histórico guarda o que foi
+   mostrado, para o botão "Lembretes" poder recontar.
+
+   Guarda os CAMPOS, nunca o HTML pronto: texto montado hoje e reinjetado
+   amanhã é como se cria um buraco de segurança sem perceber. */
+var _RESL_HIST_DIAS = 7;
+var _RESL_HIST_MAX  = 30;
+
+function _reslHistLer(){
+  var corte = Date.now() - _RESL_HIST_DIAS*86400000;
+  var lista;
+  try{ lista = JSON.parse(localStorage.getItem('apvc_res_lembrete_hist')||'[]'); }
+  catch(_){ return []; }
+  if(!Array.isArray(lista)) return [];
+  return lista.filter(function(x){ return x && x.ts > corte; });
+}
+
+function _reslHistGravar(novos){
+  if(!novos || !novos.length) return;
+  var lista = _reslHistLer();
+  var tem = {};
+  lista.forEach(function(x){ tem[x.chave] = true; });
+  novos.forEach(function(n){
+    if(tem[n.chave]) return;        // o mesmo aviso não entra duas vezes
+    lista.push(n); tem[n.chave] = true;
+  });
+  lista.sort(function(a,b){ return b.ts - a.ts; });          // recente na frente
+  try{
+    localStorage.setItem('apvc_res_lembrete_hist',
+      JSON.stringify(lista.slice(0, _RESL_HIST_MAX)));
+  }catch(_){}
+}
+
+// "hoje 14:32", "ontem 09:10", "08/08 09:10"
+function _reslQuandoFoi(ts){
+  var d = new Date(ts), ag = new Date();
+  var hh = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  var dia0 = new Date(ag.getFullYear(), ag.getMonth(), ag.getDate()).getTime();
+  if(ts >= dia0)             return 'hoje '+hh;
+  if(ts >= dia0 - 86400000)  return 'ontem '+hh;
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+' '+hh;
+}
+
+function resLembreteChecar(forcado){
   // Só dentro do painel de Reservas. Antes do login currentPanel nem
   // existe, e aí também não é hora de avisar nada.
   if(typeof currentPanel === 'undefined' || currentPanel !== 'reservas') return;
   var el = $('m-res-lembrete'); if(!el) return;
   if(el.classList.contains('open')) return;      // já tem um aberto
-  var itens  = _reslPendentes().slice(0,5);
-  var pagtos = _reslPagamentos();
+  var itens  = _reslPendentes(forcado).slice(0,5);
+  var pagtos = _reslPagamentos(forcado);
   var pagMostra = pagtos.slice(0,5);
-  if(!itens.length && !pagMostra.length) return;
+  /* Aberto a pedido, mostra também o que já passou. Sem isso o botão
+     abriria vazio justamente para quem fechou o aviso sem ler — que é
+     quem mais precisa dele. */
+  var hist = forcado ? _reslHistLer() : [];
+  var atuais = {};
+  itens.concat(pagMostra).forEach(function(x){ atuais[x.chave] = true; });
+  hist = hist.filter(function(h){ return !atuais[h.chave]; });   // não repete
+  if(!itens.length && !pagMostra.length && !hist.length) return;
   var corpo = $('mresl-corpo'); if(!corpo) return;
 
   var linha = function(cor, titulo, detalhe){
@@ -10823,10 +10902,43 @@ function resLembreteChecar(){
             + 'Use o filtro <b>Todas as reservas</b> para ver a lista completa.</div>';
     }
   }
+  if(hist.length){
+    html += titulo('Já apareceram');
+    html += hist.map(function(h){
+      return linha('var(--border-h)',
+        '<span style="color:var(--text-2)">'+escHtml(h.texto||'')+'</span>',
+        escHtml(h.detalhe||'') + ' &nbsp;•&nbsp; ' + escHtml(_reslQuandoFoi(h.ts)));
+    }).join('');
+  }
   corpo.innerHTML = html;
 
   window._reslMostrando = itens.concat(pagMostra).map(function(it){ return it.chave; });
+
+  /* Registra no histórico só o que apareceu SOZINHO. Reabrir a pedido não
+     inventa aviso novo — senão o histórico viraria o registro dos cliques
+     no botão, não dos lembretes. */
+  if(!forcado){
+    var agoraTs = Date.now();
+    _reslHistGravar(itens.map(function(it){
+      return { chave:it.chave, ts:agoraTs,
+               texto:_reslFraseSimples(it), detalhe:_reslDetalhe(it.r) };
+    }).concat(pagMostra.map(function(it){
+      return { chave:it.chave, ts:agoraTs,
+               texto:((it.r.nome||'sem nome')+' — taxa de '+fmt(it.taxa)+' em aberto'),
+               detalhe:_reslDetalhe(it.r) };
+    })));
+  }
   el.classList.add('open');   // sem trava de rolagem: não é modal
+}
+
+// Versões em texto puro, para o histórico guardar campo e não HTML.
+function _reslFraseSimples(it){
+  var quem = (it.r.nome||'').trim() || 'sem nome';
+  if(it.fase==='agora') return 'Começou a reserva de '+quem;
+  return 'Reserva de '+quem+' estava para começar';
+}
+function _reslDetalhe(r){
+  return (r.espaco||'—')+' • '+(r.horario||'—')+(r.lote?(' • Lote '+r.lote):'');
 }
 
 /* Só marca como visto ao FECHAR. Se a página cair com o aviso aberto, ele
@@ -10835,6 +10947,27 @@ function resLembreteFechar(){
   try{ _reslMarcar(window._reslMostrando||[]); }catch(_){}
   window._reslMostrando = [];
   var el=$('m-res-lembrete'); if(el) el.classList.remove('open');
+}
+
+/* Reabre os lembretes a pedido. Ignora o "já vi hoje": o botão É o
+   pedido, e negá-lo por causa de uma marca antiga seria só teimosia.
+   Ao fechar de novo, a marca volta a ser gravada normalmente. */
+function resLembreteReabrir(){
+  var el=$('m-res-lembrete');
+  if(el) el.classList.remove('open');
+  window._reslMostrando=[];
+  resLembreteChecar(true);           // ignora o "já vi hoje" e traz o histórico
+  var depois=$('m-res-lembrete');
+  if(!depois || !depois.classList.contains('open')){
+    toast('Nenhum lembrete nos últimos '+_RESL_HIST_DIAS+' dias.');
+  }
+}
+
+/* Recarrega a pagina. O app le tudo do servidor ao abrir, entao o F5 ja
+   e a atualizacao — o botao so poupa quem esta no celular, onde recarregar
+   nao e obvio. */
+function atualizarReservas(){
+  location.reload();
 }
 
 // De minuto em minuto, e só quando o painel de Reservas está à vista.
