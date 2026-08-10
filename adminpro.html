@@ -1631,6 +1631,66 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 .urgencia-hoje{background:rgba(224,82,82,0.2);color:var(--red);border:1px solid rgba(224,82,82,0.3)}
 .urgencia-4h{background:rgba(240,168,67,0.2);color:var(--amber);border:1px solid rgba(240,168,67,0.3)}
 .urgencia-amanha{background:rgba(232,119,34,0.15);color:var(--gold);border:1px solid rgba(232,119,34,0.3)}
+/* Card da reserva.
+
+   No desktop, conteúdo à esquerda e botões numa coluna à direita. No
+   celular isso desandava: o conteúdo tem min-width:0 e a coluna de botões
+   tem flex-shrink:0, então quem espremia era sempre o texto — e com a
+   reserva pendente são até sete botões, o que reduzia os dados a um
+   fiapo. Abaixo de 720px o card empilha: dados em cima ocupando a
+   largura toda, botões numa fileira embaixo. */
+.res-card{
+  border:1px solid var(--border);border-radius:12px;padding:18px 20px;
+  margin-bottom:12px;background:var(--card);transition:border-color 0.2s;
+}
+.res-card:hover{border-color:var(--border-h)}
+.res-card-row{display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.res-card-main{flex:1;min-width:0}
+.res-card-acoes{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.res-card-info{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:6px 20px;margin-bottom:10px;
+}
+@media(max-width:720px){
+  .res-card{padding:14px 13px}
+  .res-card-row{flex-direction:column;gap:12px}
+  .res-card-main{width:100%}
+  .res-card-acoes{flex-direction:row;flex-wrap:wrap;width:100%}
+  /* Botão ocupa a linha inteira só quando sozinho; senão dividem espaço,
+     sempre com alvo grande o bastante para o dedo. */
+  .res-card-acoes .btn{flex:1 1 auto;min-width:130px;justify-content:center}
+  /* Duas colunas de dados em vez de uma lista comprida. */
+  .res-card-info{grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px 12px}
+}
+
+/* Janelinha de lembrete no canto. Não é modal: sem cortina, sem trava de
+   rolagem, sem bloquear clique — dá para trabalhar com ela aberta. */
+.lembrete-canto{
+  position:fixed;right:18px;bottom:18px;z-index:1400;
+  width:min(360px,calc(100vw - 36px));
+  background:var(--ink-2);border:1px solid var(--border-h);
+  border-radius:12px;box-shadow:0 14px 36px rgba(0,0,0,0.45);
+  display:none;overflow:hidden;
+}
+.lembrete-canto.open{display:block;animation:lembreteSobe 0.28s ease-out}
+@keyframes lembreteSobe{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.lembrete-canto-hd{
+  display:flex;align-items:center;gap:8px;
+  padding:11px 13px;border-bottom:1px solid var(--border);background:var(--ink-3);
+}
+.lembrete-canto-tt{font-size:13px;font-weight:800;color:var(--text);flex:1}
+.lembrete-canto-x{
+  background:none;border:none;color:var(--text-3);cursor:pointer;
+  font-size:15px;line-height:1;padding:3px 5px;border-radius:6px;
+}
+.lembrete-canto-x:hover{color:var(--text);background:rgba(255,255,255,0.07)}
+.lembrete-canto-bd{
+  padding:12px 13px;display:flex;flex-direction:column;gap:9px;
+  max-height:min(58vh,430px);overflow-y:auto;
+}
+@media(max-width:520px){
+  .lembrete-canto{right:10px;left:10px;bottom:10px;width:auto}
+}
 .alert-item-btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .btn-whatsapp{
   background:rgba(37,211,102,0.15);border:1px solid rgba(37,211,102,0.3);
@@ -2004,8 +2064,20 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
   /* ══ SCROLL suave em todo o content mobile ══ */
   .content { -webkit-overflow-scrolling: touch }
 
-  /* ══ SCROLLBAR mobile: mais fina ══ */
-  ::-webkit-scrollbar { width: 4px; height: 4px }
+  /* ══ SCROLLBAR mobile ══
+     Era 4px. Só que o polegar tem "border:2px solid transparent" com
+     "background-clip:padding-box" (regra geral, lá em cima): numa pista de
+     4px sobra 4−2−2 = ZERO pixel pintado, e a barra simplesmente sumia —
+     nas telas longas, como Configurações, ficava impossível saber onde se
+     estava. Agora a pista é maior que a soma das bordas, e o polegar dispensa
+     a borda para não voltar a se anular. */
+  ::-webkit-scrollbar { width: 9px; height: 9px }
+  ::-webkit-scrollbar-thumb{
+    border:none;background:rgba(255,255,255,0.38);background-clip:border-box;
+  }
+  ::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,0.52);background-clip:border-box }
+  html.light ::-webkit-scrollbar-thumb{ background:rgba(27,43,94,0.32);background-clip:border-box }
+  *{ scrollbar-width:thin }
 
   /* ════════════════════════════════════════════
      CADASTRO / ADMINISTRATIVO — formulários novos no celular
@@ -4279,17 +4351,17 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 </div>
 
 <!-- M: Aprovar Usuário -->
-<!-- Lembrete das reservas que estão para começar. Aparece sozinho dentro
-     do painel de Reservas; não tem nada para preencher, só avisar. -->
-<div class="modal-ov" id="m-res-lembrete" onclick="event.stopPropagation()">
-  <div class="modal" style="max-width:440px" onclick="event.stopPropagation()">
-    <button class="modal-close-x" onclick="resLembreteFechar()" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
-    <div class="modal-title"><i class="fa-solid fa-bell" style="color:var(--gold);margin-right:8px"></i>Lembrete</div>
-    <div id="mresl-corpo" style="margin-top:14px;display:flex;flex-direction:column;gap:10px"></div>
-    <div class="modal-foot">
-      <button class="btn btn-gold" onclick="resLembreteFechar()">Entendi</button>
-    </div>
+<!-- Lembrete das reservas. Janelinha no canto, estilo aviso de recado:
+     não escurece a tela, não trava a rolagem e não bloqueia nada — o
+     administrador continua trabalhando com ela aberta. Fecha só no X. -->
+<div class="lembrete-canto" id="m-res-lembrete" role="status" aria-live="polite">
+  <div class="lembrete-canto-hd">
+    <i class="fa-solid fa-bell" style="color:var(--gold);font-size:13px"></i>
+    <span class="lembrete-canto-tt">Lembrete</span>
+    <button class="lembrete-canto-x" onclick="resLembreteFechar()" title="Fechar" aria-label="Fechar">
+      <i class="fa-solid fa-xmark"></i></button>
   </div>
+  <div class="lembrete-canto-bd" id="mresl-corpo"></div>
 </div>
 
 <div class="modal-ov" id="m-usr" onclick="event.stopPropagation()">
@@ -8590,9 +8662,7 @@ function renderReservas(){
 
   its.forEach(r=>{
     const div=document.createElement('div');
-    div.style.cssText='border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:12px;background:var(--card);transition:border-color 0.2s';
-    div.onmouseenter=()=>div.style.borderColor='var(--border-h)';
-    div.onmouseleave=()=>div.style.borderColor='var(--border)';
+    div.className='res-card';   // borda no hover agora e CSS, nao dois handlers
 
     const st=stMap[r.status]||{pill:'pill-amber',label:'Pendente'};
     const dataFmt=r.data?new Date(r.data+'T00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}):'—';
@@ -8616,14 +8686,14 @@ function renderReservas(){
     `).join('');
 
     div.innerHTML=`
-      <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
-        <div style="flex:1;min-width:0">
+      <div class="res-card-row">
+        <div class="res-card-main">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
             <span style="font-size:16px;font-weight:700;color:var(--text)">${escHtml(r.espaco)}</span>
             <span class="pill ${st.pill}" style="font-size:11px">${st.label}</span>
             ${(r.pgto && (r.taxa>0 || r.pgto==='pago'))?`<span title="Situação do pagamento da taxa" style="font-size:11px;color:${r.pgto==='pago'?'var(--green-l)':r.pgto==='isento'?'var(--text-3)':'var(--gold)'};border:1px solid var(--border);border-radius:6px;padding:2px 8px"><i class="fa-solid fa-sack-dollar"></i> Pagamento: ${pgtoMap[r.pgto]||''}</span>`:''}
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 20px;margin-bottom:10px">
+          <div class="res-card-info">
             <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Morador</span><div style="font-size:13px;color:var(--text);font-weight:600">${escHtml(r.nome)||'—'}</div></div>
             <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Unidade</span><div style="font-size:13px;color:var(--text)">${escHtml(r.lote)||'—'}</div></div>
             <div><span style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Telefone</span><div style="font-size:13px;color:var(--text)">${escHtml(r.tel)||'—'}</div></div>
@@ -8638,11 +8708,15 @@ function renderReservas(){
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:${r.obs?'10px':'0'}">${chkHtml}</div>
           ${r.obs?`<div style="font-size:13px;color:var(--text-2);font-style:italic;border-left:2px solid var(--border-h);padding-left:10px;margin-top:4px">${escHtml(r.obs)}</div>`:''}
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+        <div class="res-card-acoes">
           ${(!isMorador && r.status==='pendente')?`
           <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="aprovarReserva(${r.id})"><i class="fa-solid fa-check"></i> Aprovar</button>
           <button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="recusarReserva(${r.id})"><i class="fa-solid fa-xmark"></i> Recusar</button>`:''}
           ${(r.taxa>0 && r.pgto!=='pago' && r.pgto!=='isento' && _pixChave)?`<button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="abrirPixReserva(${r.id})"><i class="fa-solid fa-sack-dollar"></i> Pagar com Pix</button>`:''}
+          ${(!isMorador && r.taxa>0 && r.pgto==='pendente')?`
+          <button class="btn btn-sm" style="background:var(--green-d,#1f7a4d);color:#fff;border:none" onclick="marcarPagoReserva(${r.id},true)"><i class="fa-solid fa-circle-check"></i> Marcar pago</button>`:''}
+          ${(!isMorador && r.taxa>0 && r.pgto==='pago')?`
+          <button class="btn btn-ghost btn-sm" onclick="marcarPagoReserva(${r.id},false)" title="Desfazer a confirmação de pagamento"><i class="fa-solid fa-rotate-left"></i> Desmarcar pago</button>`:''}
           ${!isMorador?`<button class="btn btn-ghost btn-sm" onclick="abrirModalRes(${r.id})">Editar</button>`:''}
           ${!isMorador?`<button class="btn btn-ghost btn-sm" onclick="imprimirComprovante(${r.id})"><i class="fa-solid fa-receipt"></i> Comprovante</button>`:''}
           <button class="btn btn-red btn-sm" onclick="excluirRes(${r.id})">Excluir</button>
@@ -9287,6 +9361,39 @@ function aprovarReserva(id){
 function recusarReserva(id){
   if(!confirm('Recusar (cancelar) esta reserva?')) return;
   _mudarStatusReserva(id,'cancelada','Reserva recusada.');
+}
+
+/* Marca o pagamento como recebido direto no card, sem abrir a reserva.
+   Sem confirmacao: a via rapida tem de ser rapida. Em compensacao, quando
+   esta pago aparece "Desmarcar", entao um toque errado se conserta com
+   outro toque — melhor que um "tem certeza?" em toda cobranca. */
+async function marcarPagoReserva(id, pago){
+  var all=G('reservas')||[];
+  var i=all.findIndex(function(x){return x.id===id;});
+  if(i<0) return;
+  var antesPgto = all[i].pgto, antesData = all[i].dataPgto;
+
+  all[i].pgto = pago ? 'pago' : 'pendente';
+  // Data de hoje ao confirmar; some ao desmarcar, senao fica uma data de
+  // pagamento em reserva que nao foi paga.
+  all[i].dataPgto = pago ? (antesData || new Date().toISOString().slice(0,10)) : '';
+  DB_CACHE['reservas']=all;
+  try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
+  try{ renderReservas(); }catch(_){}
+
+  // Espera o servidor. Sem isso o card dizia "Pago" de algo que o banco
+  // recusou — e a cobranca sumia da tela sem o dinheiro ter entrado.
+  var g = await _reservaUpsertSB(all[i]);
+  if(g && g.ok === false){
+    all[i].pgto = antesPgto; all[i].dataPgto = antesData;   // desfaz
+    DB_CACHE['reservas']=all;
+    try{ localStorage.setItem('apvc_reservas', JSON.stringify(all)); }catch(_){}
+    try{ renderReservas(); }catch(_){}
+    toast('⚠️ Não foi possível alterar o pagamento: '+(g.erro||'erro no servidor'));
+    return;
+  }
+  toast(pago ? '✓ Pagamento confirmado.' : 'Pagamento voltou para pendente.');
+  try{ verificarAlertas(); }catch(_){}
 }
 
 /* ══════════════════════════
@@ -10719,8 +10826,7 @@ function resLembreteChecar(){
   corpo.innerHTML = html;
 
   window._reslMostrando = itens.concat(pagMostra).map(function(it){ return it.chave; });
-  el.classList.add('open');
-  try{ _sincronizarTravaRolagem(); }catch(_){}
+  el.classList.add('open');   // sem trava de rolagem: não é modal
 }
 
 /* Só marca como visto ao FECHAR. Se a página cair com o aviso aberto, ele
@@ -10728,7 +10834,7 @@ function resLembreteChecar(){
 function resLembreteFechar(){
   try{ _reslMarcar(window._reslMostrando||[]); }catch(_){}
   window._reslMostrando = [];
-  closeModal('m-res-lembrete');
+  var el=$('m-res-lembrete'); if(el) el.classList.remove('open');
 }
 
 // De minuto em minuto, e só quando o painel de Reservas está à vista.

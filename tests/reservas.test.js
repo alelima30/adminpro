@@ -952,6 +952,72 @@ bloco('Aviso da reserva encadeia o Pix', () => {
   checa('função é aceita', global._avisoReservaDepois, f);
 });
 
+// ── Confirmar pagamento pelo card ──────────────────────────────────────
+bloco('Marcar pago / desmarcar', async () => {
+  const CACHE = {};
+  let RESPOSTA = { ok: true };
+  const avisos = [];
+  const hoje = new Date().toISOString().slice(0, 10);
+
+  const api = carregar(['marcarPagoReserva'], {
+    G: () => CACHE.reservas,
+    DB_CACHE: CACHE,
+    localStorage: { setItem(){}, getItem: () => null },
+    renderReservas: () => {},
+    verificarAlertas: () => {},
+    toast: (m) => avisos.push(m),
+    _reservaUpsertSB: async () => RESPOSTA,
+  });
+
+  const reserva = (extra) => Object.assign(
+    { id: 1, nome: 'Lucas', taxa: 1500, pgto: 'pendente', dataPgto: '' }, extra || {});
+  const r0 = () => CACHE.reservas[0];
+
+  // Confirmar
+  CACHE.reservas = [reserva()];
+  await api.marcarPagoReserva(1, true);
+  checa('vira pago', r0().pgto, 'pago');
+  checa('grava a data de hoje', r0().dataPgto, hoje);
+  checa('avisa a confirmação', avisos.pop(), '✓ Pagamento confirmado.');
+
+  // Data já existente não é sobrescrita: se o admin registrou que o
+  // dinheiro entrou dia 5, confirmar hoje não muda esse fato.
+  CACHE.reservas = [reserva({ dataPgto: '2026-08-05' })];
+  await api.marcarPagoReserva(1, true);
+  checa('data de pagamento anterior é preservada', r0().dataPgto, '2026-08-05');
+
+  // Desmarcar
+  CACHE.reservas = [reserva({ pgto: 'pago', dataPgto: hoje })];
+  await api.marcarPagoReserva(1, false);
+  checa('volta para pendente', r0().pgto, 'pendente');
+  checa('limpa a data — não fica data de pagamento em reserva não paga',
+    r0().dataPgto, '');
+  checa('avisa que voltou', avisos.pop(), 'Pagamento voltou para pendente.');
+
+  // Servidor recusa: desfaz OS DOIS campos, senão o card diria "Pago"
+  // de algo que o banco não gravou.
+  RESPOSTA = { ok: false, erro: 'RLS' };
+  CACHE.reservas = [reserva()];
+  await api.marcarPagoReserva(1, true);
+  checa('servidor recusou: pgto volta ao que era', r0().pgto, 'pendente');
+  checa('servidor recusou: data volta ao que era', r0().dataPgto, '');
+  checa('e o erro é dito, não engolido',
+    avisos.pop(), '⚠️ Não foi possível alterar o pagamento: RLS');
+
+  // Desfazer também restaura a data anterior, não apaga.
+  CACHE.reservas = [reserva({ pgto: 'pago', dataPgto: '2026-08-05' })];
+  await api.marcarPagoReserva(1, false);
+  checa('desfazer restaura a data que existia', r0().dataPgto, '2026-08-05');
+  checa('e o status também', r0().pgto, 'pago');
+
+  // Id inexistente não quebra nem inventa reserva.
+  RESPOSTA = { ok: true };
+  CACHE.reservas = [reserva()];
+  await api.marcarPagoReserva(999, true);
+  checa('id que não existe é ignorado', r0().pgto, 'pendente');
+  checa('e não cria reserva nenhuma', CACHE.reservas.length, 1);
+});
+
 Promise.all(_pendentes).then(() => {
   console.log('\n' + '-'.repeat(50));
   console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
