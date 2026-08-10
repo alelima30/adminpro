@@ -246,7 +246,8 @@
     $('progressTxt').textContent =
       `${s.lotesRespondidos} de ${s.totalLotes} lotes (${s.percRespondidos.toFixed(1)}%)`;
     $('progressFill').style.width = `${s.percRespondidos}%`;
-    $('legRespondidos').textContent = s.lotesRespondidos;
+    $('legHabitados').textContent = s.lotesComMoradores;
+    $('legTerrenos').textContent = s.totalTerrenos;
     $('legPendentes').textContent = s.lotesPendentes;
   }
 
@@ -268,6 +269,39 @@
 
   function renderGraficos(registros) {
     const s = CensoData.estatisticas(registros);
+
+    // --- Rosca: situação dos lotes (habitados / terrenos / pendentes) ---
+    // Sempre sobre o total geral — os pendentes são de todo o condomínio.
+    destruir('situacao');
+    const geral = CensoData.estatisticas(state.registros);
+    state.charts.situacao = new Chart($('chartSituacao'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Lotes habitados', 'Terrenos', 'Pendentes'],
+        datasets: [{
+          data: [geral.lotesComMoradores, geral.totalTerrenos, geral.lotesPendentes],
+          backgroundColor: ['#2a78d6', '#1e8e5a', '#d7dced'],
+          borderColor: '#fff', borderWidth: 2, hoverOffset: 6
+        }]
+      },
+      options: {
+        ...baseOpts,
+        cutout: '58%',
+        plugins: {
+          ...baseOpts.plugins,
+          legend: { ...baseOpts.plugins.legend, position: 'right' },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const v = ctx.parsed;
+                const perc = geral.totalLotes ? ((v / geral.totalLotes) * 100).toFixed(1) : '0.0';
+                return ` ${ctx.label}: ${v} (${perc}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
 
     // --- Pizza: distribuição por faixa etária ---
     destruir('pizza');
