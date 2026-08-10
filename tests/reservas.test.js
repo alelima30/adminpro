@@ -395,6 +395,254 @@ bloco('Taxa a partir de um horário', () => {
     taxaDoHorario({ [F + 'taxa']: '0' }, 'Campo de Futebol', '08:00–09:00'), 0);
 });
 
+// ── Comprovante: qual documento o morador aceitou ──────────────────────
+// Num processo, o que identifica a peça é o NOME do documento, não o
+// endereço do arquivo. E o endereço pode ser trocado depois por outro PDF:
+// por isso o nome é gravado NA RESERVA, no momento do aceite.
+bloco('Comprovante — documento aceito', () => {
+  const { _blocoAceiteTermo } = carregar(
+    ['_blocoAceiteTermo', '_fmtDataHoraBR', 'escHtml'], {},
+  );
+  const doc = (r) => {
+    const m = _blocoAceiteTermo(r).match(/Documento aceito<\/span><b>([\s\S]*?)<\/b>/);
+    return m ? m[1] : '';
+  };
+  const base = { chkTermo: true, criadoEm: '2026-08-07T14:30:00Z',
+                 criadoPor: 'morador@email.com', lote: 'L01' };
+
+  const completo = doc({ ...base, termoNome: 'Termo de Uso do Salão — 2026',
+                                  termoDoc: 'https://ex.com/t.pdf' });
+  checa('mostra o nome do documento', completo.indexOf('Termo de Uso do Salão — 2026') === 0, true);
+  checa('e o endereço do arquivo abaixo', completo.indexOf('https://ex.com/t.pdf') > 0, true);
+
+  // Reserva feita antes de existir o campo do nome: não se inventa um.
+  const soLink = doc({ ...base, termoDoc: 'https://ex.com/t.pdf' });
+  checa('sem nome gravado, mostra o endereço', soLink.indexOf('https://ex.com/t.pdf') === 0, true);
+  checa('e diz que o nome não foi registrado',
+    soLink.indexOf('não registrado nesta reserva') > 0, true);
+
+  checa('sem nada gravado, diz que não consta',
+    doc({ ...base }).indexOf('não registrado') >= 0, true);
+
+  // Sem aceite não há bloco de evidência nenhum.
+  checa('sem aceite, o comprovante diz que não consta',
+    _blocoAceiteTermo({ chkTermo: false }).indexOf('Não consta aceite registrado') > 0, true);
+
+  // O nome do morador e a data continuam saindo.
+  const bloco1 = _blocoAceiteTermo({ ...base, termoNome: 'X' });
+  checa('quem aceitou aparece', bloco1.indexOf('morador@email.com') > 0, true);
+  checa('a unidade aparece', bloco1.indexOf('L01') > 0, true);
+});
+
+// ── Quem está ligado a uma unidade ─────────────────────────────────────
+// Duas fontes: o cadastro do condomínio (quem RESPONDE pela unidade) e as
+// contas do aplicativo (quem USA o sistema). O cadastro manda; as contas
+// entram marcadas, porque a divergência entre eles é informação — ou o
+// cadastro envelheceu, ou alguém se cadastrou numa unidade que não é dele.
+bloco('Pessoas da unidade: cadastro × contas do app', () => {
+  const UNIDADES = { L01: { proprietario: 'C1', morador: 'C2' } };
+  const CONDOMINOS = {
+    C1: { nome: 'Maria Souza', telefone: '1133334444', email: 'maria@old.com',
+          dependentes: [{ nome: 'Pedro Souza', telefone: '11955556666' }] },
+    C2: { nome: 'João Souza', telefone: '11944443333' },
+  };
+  let CONTAS = [];
+
+  // _usrCache NÃO entra como stub de propósito: stub é passado como
+  // argumento e ficaria congelado no valor do momento da carga. Ficando
+  // fora, é resolvido no escopo global e o teste consegue trocá-lo de
+  // verdade a cada caso.
+  const api = carregar(
+    ['encPessoasDaUnidade', '_soDigitos', '_usrDaUnidade'],
+    {
+      getUnidades: () => UNIDADES,
+      G: (k) => (k === 'condominos' ? CONDOMINOS : null),
+    },
+  );
+  const pessoas = (uni) => { global._usrCache = CONTAS; return api.encPessoasDaUnidade(uni); };
+
+  // Sem nenhuma conta no app: só o cadastro, como antes.
+  CONTAS = [];
+  let p = pessoas('L01');
+  checa('titular, cônjuge e dependente', p.map((x) => x.nome),
+    ['Maria Souza', 'Pedro Souza', 'João Souza']);
+  checa('todos vindos do cadastro', p.every((x) => x.origem === 'cadastro'), true);
+
+  // Mesma pessoa com telefone novo no app.
+  CONTAS = [{ nome: 'Maria Souza', tel: '11988887777', email: 'maria@nova.com',
+              unidade: 'L01', status: 'ativo' }];
+  p = pessoas('L01');
+  checa('não duplica quem já está no cadastro', p.length, 3);
+  checa('guarda o telefone do app como alternativa',
+    p.find((x) => x.nome === 'Maria Souza').telApp, '11988887777');
+  checa('e o do cadastro continua lá',
+    p.find((x) => x.nome === 'Maria Souza').tel, '1133334444');
+  checa('marca que essa pessoa tem conta',
+    p.find((x) => x.nome === 'Maria Souza').temConta, true);
+
+  // Telefone igual, escrito diferente: não é divergência.
+  CONTAS = [{ nome: 'Maria Souza', tel: '(11) 3333-4444', unidade: 'L01', status: 'ativo' }];
+  checa('mesmo número com máscara não vira divergência',
+    pessoas('L01').find((x) => x.nome === 'Maria Souza').telApp, undefined);
+
+  // Alguém com conta para a unidade sem constar no cadastro.
+  CONTAS = [{ nome: 'Carlos Estranho', tel: '11912345678', unidade: 'L01', status: 'ativo' }];
+  p = pessoas('L01');
+  checa('entra na lista, marcado', p.find((x) => x.nome === 'Carlos Estranho').origem, 'app');
+  checa('sem apagar quem estava no cadastro', p.length, 4);
+
+  // Conta bloqueada não deve entrar — o filtro é feito ao carregar.
+  CONTAS = [{ nome: 'Maria Souza', tel: '11988887777', unidade: 'L02', status: 'ativo' }];
+  checa('conta de outra unidade não aparece',
+    pessoas('L01').find((x) => x.telApp), undefined);
+
+  // Unidade que não existe no cadastro, mas tem conta no app.
+  CONTAS = [{ nome: 'Ana Nova', tel: '11911112222', unidade: 'Z99', status: 'ativo' }];
+  checa('unidade fora do cadastro ainda mostra quem tem conta',
+    pessoas('Z99').map((x) => x.nome), ['Ana Nova']);
+
+  checa('unidade sem nada devolve lista vazia', pessoas('X00'), []);
+});
+
+// ── Onde a conta do app entra no cadastro do condomínio ────────────────
+// O formulário público só declara. Quem decide a posição no cadastro é a
+// administração, na aprovação — que é o único momento em que dá para
+// responder "dependente de quem?".
+bloco('Conta do app → cadastro do condomínio', () => {
+  let UNI, CON, SEQ, SALVOU, ESCOLHA, ESCOLHA_DE, CONFIRMOU, MARCA_TEL, CAIXA;
+
+  function reset() {
+    UNI = { L01: { proprietario: '0001', morador: '' }, L02: {} };
+    CON = {
+      '0001': { nome: 'João Silva', telefone: '11911112222',
+                telefones: [{ numero: '11911112222', tipo: 'Celular' }], dependentes: [] },
+    };
+    SEQ = 1; SALVOU = []; ESCOLHA = 'nada'; ESCOLHA_DE = '0001';
+    CONFIRMOU = true; MARCA_TEL = false; CAIXA = '';
+  }
+  reset();
+
+  // Nenhuma variável mutável entra como stub: stub vira argumento e ficaria
+  // congelado. Só entram FUNÇÕES, que leem as variáveis por closure e por
+  // isso enxergam o valor do momento da chamada.
+  const api = carregar(
+    ['_musrNorm', '_musrCondsDaUnidade', '_musrJaNoCadastro', '_musrAplicarCadastro', '_soDigitos'],
+    {
+      getUnidades: () => UNI,
+      getCondominos: () => CON,
+      G: (k) => (k === 'condseq' ? SEQ : null),
+      S: (k, v) => { SALVOU.push(k); if (k === 'condseq') SEQ = v; },
+      conFormatCodigo: (n) => String(n).padStart(4, '0'),
+      conProximoCodigoNum: () => {
+        let m = SEQ;
+        Object.keys(CON).forEach((c) => { const n = parseInt(c, 10); if (!isNaN(n) && n > m) m = n; });
+        return m + 1;
+      },
+      confirm: () => CONFIRMOU,
+      $: (id) => {
+        if (id === 'musr-cad-box') return { style: { display: CAIXA } };
+        if (id === 'musr-cad-de') return { value: ESCOLHA_DE };
+        if (id === 'musr-cad-tel') return MARCA_TEL ? { checked: true } : null;
+        return null;
+      },
+      document: { querySelector: () => ({ value: ESCOLHA }) },
+    },
+  );
+
+  // ── Comparação de nomes ──
+  checa('acento e maiúscula não separam a mesma pessoa',
+    api._musrNorm('JOSÉ  da Silva'), api._musrNorm('jose da silva'));
+
+  // ── Quem pode ter dependente ──
+  checa('só proprietário e morador podem receber dependentes',
+    api._musrCondsDaUnidade('L01').map((c) => c.nome), ['João Silva']);
+  checa('unidade sem ninguém não oferece ninguém',
+    api._musrCondsDaUnidade('L02'), []);
+  UNI.L01.morador = '0009';
+  CON['0009'] = { nome: 'Maria Silva', dependentes: [] };
+  checa('havendo os dois, os dois podem ser o titular do dependente',
+    api._musrCondsDaUnidade('L01').map((c) => c.nome + '/' + c.papel),
+    ['João Silva/Proprietário', 'Maria Silva/Morador']);
+  reset();
+
+  // ── Já está no cadastro? ──
+  checa('acha o proprietário pelo nome',
+    api._musrJaNoCadastro('L01', 'joão silva').papel, 'proprietário');
+  checa('quem não está, não está', api._musrJaNoCadastro('L01', 'Ana Nova'), null);
+
+  // ── "Só liberar o acesso" não pode tocar no cadastro ──
+  reset(); ESCOLHA = 'nada';
+  checa('opção padrão não escreve nada', api._musrAplicarCadastro('Ana Nova', '11933334444', 'a@x.com', 'L01'), '');
+  checa('e nada foi salvo', SALVOU, []);
+
+  // ── Unidade que não existe: não se inventa lote ──
+  reset(); ESCOLHA = 'morador';
+  checa('unidade fora do cadastro não é criada', api._musrAplicarCadastro('Ana Nova', '', '', 'Z99'), '');
+  checa('nem grava nada', SALVOU, []);
+
+  // ── Entrar como morador de uma vaga vazia ──
+  reset(); ESCOLHA = 'morador';
+  let msg = api._musrAplicarCadastro('Ana Nova', '11933334444', 'ana@x.com', 'L01');
+  checa('avisa o que fez', msg, 'Ana Nova entrou no cadastro como morador do L01.');
+  checa('criou o condômino seguinte', Object.keys(CON).sort(), ['0001', '0002']);
+  checa('ligou à unidade', UNI.L01.morador, '0002');
+  checa('sem mexer no proprietário', UNI.L01.proprietario, '0001');
+  checa('telefone do app foi junto', CON['0002'].telefone, '11933334444');
+
+  // ── Dependente: o vínculo é com uma pessoa, não com a unidade ──
+  reset(); ESCOLHA = 'dependente'; ESCOLHA_DE = '0001';
+  msg = api._musrAplicarCadastro('Filho Silva', '11955556666', '', 'L01');
+  checa('diz de quem é dependente', msg, 'Filho Silva entrou no cadastro como dependente de João Silva.');
+  checa('entrou dentro do condômino', CON['0001'].dependentes.map((d) => d.nome), ['Filho Silva']);
+  checa('com código derivado do titular', CON['0001'].dependentes[0].codigo, '0001-01');
+  checa('não virou condômino solto', Object.keys(CON), ['0001']);
+
+  // segundo dependente numera em sequência
+  api._musrAplicarCadastro('Filha Silva', '', '', 'L01');
+  checa('o segundo dependente continua a contagem', CON['0001'].dependentes[1].codigo, '0001-02');
+
+  // ── Trocar o proprietário exige confirmação ──
+  reset(); ESCOLHA = 'proprietario'; CONFIRMOU = false;
+  checa('recusada a troca, nada acontece', api._musrAplicarCadastro('Ana Nova', '', '', 'L01'), '');
+  checa('proprietário continua o mesmo', UNI.L01.proprietario, '0001');
+
+  reset(); ESCOLHA = 'proprietario'; CONFIRMOU = true;
+  api._musrAplicarCadastro('Ana Nova', '', '', 'L01');
+  checa('confirmada, a posição troca', UNI.L01.proprietario, '0002');
+  checa('e o cadastro do anterior NÃO é apagado', CON['0001'].nome, 'João Silva');
+
+  // ── Não duplicar quem já é condômino em outra unidade ──
+  reset(); ESCOLHA = 'morador';
+  CON['0007'] = { nome: 'Ana Nova', telefone: '', dependentes: [] };
+  api._musrAplicarCadastro('Ana Nova', '', '', 'L01');
+  checa('reaproveita o condômino existente', UNI.L01.morador, '0007');
+  checa('sem criar um segundo registro dela', Object.keys(CON).sort(), ['0001', '0007']);
+
+  // Havendo dois com o mesmo nome é ambíguo: cria novo em vez de chutar.
+  reset(); ESCOLHA = 'morador';
+  CON['0007'] = { nome: 'Ana Nova', dependentes: [] };
+  CON['0008'] = { nome: 'ANA NOVA', dependentes: [] };
+  api._musrAplicarCadastro('Ana Nova', '', '', 'L01');
+  checa('nome ambíguo não é resolvido no chute', UNI.L01.morador, '0009');
+
+  // ── Atualizar telefone de quem já está no cadastro ──
+  reset(); MARCA_TEL = false;
+  checa('sem marcar a caixa, telefone não muda',
+    api._musrAplicarCadastro('João Silva', '11999998888', '', 'L01'), '');
+  checa('telefone intacto', CON['0001'].telefone, '11911112222');
+
+  reset(); MARCA_TEL = true;
+  msg = api._musrAplicarCadastro('João Silva', '11999998888', '', 'L01');
+  checa('marcando, atualiza', msg, 'Telefone de João Silva atualizado no cadastro.');
+  checa('no campo simples', CON['0001'].telefone, '11999998888');
+  checa('e na lista de telefones', CON['0001'].telefones[0].numero, '11999998888');
+  checa('não criou condômino nenhum', Object.keys(CON), ['0001']);
+
+  // ── A caixa escondida não age ──
+  reset(); ESCOLHA = 'morador'; CAIXA = 'none';
+  checa('bloco oculto não escreve', api._musrAplicarCadastro('Ana Nova', '', '', 'L01'), '');
+});
+
 console.log('\n' + '-'.repeat(50));
 console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
 process.exit(falhas === 0 ? 0 : 1);
