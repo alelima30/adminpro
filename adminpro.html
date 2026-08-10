@@ -10585,6 +10585,50 @@ function _reslPendentes(){
   return out;
 }
 
+/* Reservas com taxa e pagamento não confirmado.
+
+   Só entram as que pedem ação: as que já começaram e não foram pagas
+   (dinheiro que devia ter entrado) e as que começam nas próximas 48h
+   (dá para cobrar antes de entregar a chave). Uma reserva com taxa para
+   daqui a dois meses não é problema de hoje, e listar tudo faria a lista
+   virar paisagem — que é como um aviso deixa de ser lido.
+
+   "Isento" não é pendência: é uma decisão que já foi tomada. */
+var _RESL_ATRASO_MAX = 60;   // dias para trás que ainda cobramos
+var _RESL_AVISO_H    = 48;   // horas para frente
+
+function _reslPagamentos(){
+  var nivel = window._userNivel||'morador';
+  if(nivel!=='admin' && nivel!=='gestor' && nivel!=='supervisor') return [];
+  var agora = Date.now();
+  var vistos = _reslVistos().ids;
+  var out = [];
+  (G('reservas')||[]).forEach(function(r){
+    if(!r.data || r.status==='cancelada') return;
+    if((r.pgto||'') !== 'pendente') return;
+    var taxa = parseFloat(r.taxa);
+    if(!(taxa > 0)) return;                       // sem taxa, nada a cobrar
+    var ini = _resComecaEm(r); if(!ini) return;
+    var horas = (ini.getTime() - agora)/3600000;
+    var fase;
+    if(horas <= 0){
+      if(horas < -(_RESL_ATRASO_MAX*24)) return;  // velho demais, some da lista
+      fase = 'atrasado';
+    } else if(horas <= _RESL_AVISO_H){
+      fase = 'areceber';
+    } else return;
+    var chave = r.id + '|pgto';
+    if(vistos.indexOf(chave) >= 0) return;
+    out.push({ r:r, fase:fase, taxa:taxa, horas:horas, chave:chave });
+  });
+  // Atrasados primeiro, e entre eles o mais antigo na frente.
+  out.sort(function(a,b){
+    if((a.fase==='atrasado') !== (b.fase==='atrasado')) return a.fase==='atrasado' ? -1 : 1;
+    return a.horas - b.horas;
+  });
+  return out;
+}
+
 function _reslFrase(it){
   var r = it.r;
   var quem = (r.nome||'').trim() || 'sem nome';
@@ -10600,19 +10644,55 @@ function resLembreteChecar(){
   if(typeof currentPanel === 'undefined' || currentPanel !== 'reservas') return;
   var el = $('m-res-lembrete'); if(!el) return;
   if(el.classList.contains('open')) return;      // já tem um aberto
-  var itens = _reslPendentes();
-  if(!itens.length) return;
+  var itens  = _reslPendentes().slice(0,5);
+  var pagtos = _reslPagamentos();
+  var pagMostra = pagtos.slice(0,5);
+  if(!itens.length && !pagMostra.length) return;
   var corpo = $('mresl-corpo'); if(!corpo) return;
-  corpo.innerHTML = itens.slice(0,5).map(function(it){
-    var r = it.r;
-    var cor = it.fase==='agora' ? 'var(--red)' : 'var(--gold)';
+
+  var linha = function(cor, titulo, detalhe){
     return '<div style="border-left:3px solid '+cor+';padding:8px 12px;background:var(--ink-3);border-radius:8px">'
-      + '<div style="font-size:14px;line-height:1.5">'+_reslFrase(it)+'</div>'
-      + '<div style="font-size:12px;color:var(--text-3);margin-top:4px">'
-      +   escHtml(r.espaco||'—') + ' &nbsp;•&nbsp; ' + escHtml(r.horario||'—')
-      +   (r.lote?' &nbsp;•&nbsp; Lote '+escHtml(r.lote):'') + '</div></div>';
-  }).join('');
-  window._reslMostrando = itens.slice(0,5).map(function(it){ return it.chave; });
+      + '<div style="font-size:14px;line-height:1.5">'+titulo+'</div>'
+      + '<div style="font-size:12px;color:var(--text-3);margin-top:4px">'+detalhe+'</div></div>';
+  };
+  var titulo = function(t){
+    return '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;'
+      + 'color:var(--text-3);margin-top:4px">'+t+'</div>';
+  };
+  var doEspaco = function(r){
+    return escHtml(r.espaco||'—') + ' &nbsp;•&nbsp; ' + escHtml(r.horario||'—')
+         + (r.lote?' &nbsp;•&nbsp; Lote '+escHtml(r.lote):'');
+  };
+
+  var html = '';
+  if(itens.length){
+    if(pagMostra.length) html += titulo('Começando');
+    html += itens.map(function(it){
+      return linha(it.fase==='agora' ? 'var(--red)' : 'var(--gold)',
+                   _reslFrase(it), doEspaco(it.r));
+    }).join('');
+  }
+  if(pagMostra.length){
+    html += titulo('Pagamento não confirmado');
+    html += pagMostra.map(function(it){
+      var r = it.r;
+      var quem = (r.nome||'').trim() || 'sem nome';
+      var quando = _fmtDataBRCurta ? _fmtDataBRCurta(r.data) : r.data;
+      var frase = (it.fase==='atrasado')
+        ? '<b>'+escHtml(quem)+'</b> não pagou a reserva de '+escHtml(quando)
+        : '<b>'+escHtml(quem)+'</b> ainda não pagou — reserva de '+escHtml(quando);
+      return linha(it.fase==='atrasado' ? 'var(--red)' : 'var(--amber)',
+                   frase, doEspaco(r) + ' &nbsp;•&nbsp; <b>'+fmt(it.taxa)+'</b>');
+    }).join('');
+    if(pagtos.length > pagMostra.length){
+      html += '<div style="font-size:12px;color:var(--text-3)">'
+            + '+ '+(pagtos.length-pagMostra.length)+' com pagamento pendente. '
+            + 'Use o filtro <b>Todas as reservas</b> para ver a lista completa.</div>';
+    }
+  }
+  corpo.innerHTML = html;
+
+  window._reslMostrando = itens.concat(pagMostra).map(function(it){ return it.chave; });
   el.classList.add('open');
   try{ _sincronizarTravaRolagem(); }catch(_){}
 }
