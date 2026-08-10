@@ -1207,6 +1207,11 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   display:flex;gap:8px;margin-bottom:18px;
   overflow-x:auto;padding-bottom:4px;
   scrollbar-width:none;
+  /* .tabs define width:fit-content — a faixa fica do tamanho do conteudo
+     e estoura o pai, entao o overflow-x:auto acima NUNCA tinha o que
+     rolar (scrollWidth == clientWidth) e as abas passadas da borda
+     ficavam inalcancaveis. max-width devolve o limite. */
+  max-width:100%;
 }
 .ig-tabs::-webkit-scrollbar{display:none}
 .ig-tabs .tab{flex-shrink:0;white-space:nowrap}
@@ -1918,7 +1923,16 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
   .login-card{ width:92%; padding:32px 24px }
 
   /* ── Tabs ── */
-  .tabs{ overflow-x:auto; -webkit-overflow-scrolling:touch }
+  /* Sem o max-width, "overflow-x:auto" era enfeite: com width:fit-content
+     a faixa cresce junto com o conteudo e nunca rola. */
+  .tabs{ overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100% }
+
+  /* Informacoes Gerais tem muitas abas. No celular elas QUEBRAM em duas
+     linhas em vez de rolar: rolagem lateral sem barra visivel e um gesto
+     que ninguem descobre — e foi exatamente o relato ("as abas que nao
+     estao na tela nao consigo acessar"). Duas linhas de chips custam
+     pouca altura e nao escondem nada. */
+  .ig-tabs{ flex-wrap:wrap; overflow-x:visible }
 
   /* ── Toast no topo em mobile ── */
   .toast{
