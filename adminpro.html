@@ -3325,6 +3325,8 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
         <div class="ph">
           <div><div class="ph-title">Gestão de Reservas</div><div class="ph-sub">Agendamento de espaços e áreas comuns do condomínio</div></div>
           <div class="ph-actions">
+            <button class="btn btn-ghost" id="res-btn-atualizar" onclick="atualizarReservas()" title="Buscar no servidor as reservas mais recentes"><i class="fa-solid fa-rotate"></i> Atualizar</button>
+            <button class="btn btn-ghost" id="res-btn-lembretes" onclick="resLembreteReabrir()" title="Ver de novo os lembretes de hoje"><i class="fa-solid fa-bell"></i> Lembretes</button>
             <button class="btn btn-ghost" id="res-btn-dash" onclick="resToggleDash()" title="Mostrar ou esconder os números no topo desta tela"><i class="fa-solid fa-chart-simple"></i> Ocultar painel</button>
             <button class="btn btn-ghost" id="res-btn-view" onclick="resToggleView()"><i class="fa-solid fa-calendar-days"></i> Ver calendário</button>
             <button class="btn btn-gold" onclick="abrirModalRes(null)">+ Nova Reserva</button>
@@ -10859,6 +10861,49 @@ function resLembreteFechar(){
   try{ _reslMarcar(window._reslMostrando||[]); }catch(_){}
   window._reslMostrando = [];
   var el=$('m-res-lembrete'); if(el) el.classList.remove('open');
+}
+
+/* Reabre os lembretes a pedido. Ignora o "já vi hoje": o botão É o
+   pedido, e negá-lo por causa de uma marca antiga seria só teimosia.
+   Ao fechar de novo, a marca volta a ser gravada normalmente. */
+function resLembreteReabrir(){
+  var el=$('m-res-lembrete');
+  if(el) el.classList.remove('open');
+  try{ localStorage.removeItem('apvc_res_lembrete'); }catch(_){}
+  window._reslMostrando=[];
+  resLembreteChecar();
+  var depois=$('m-res-lembrete');
+  if(!depois || !depois.classList.contains('open')){
+    toast('Nenhuma reserva chegando nem pagamento em aberto agora.');
+  }
+}
+
+/* Rebusca as reservas no servidor. Existe porque a tela vive de um cache
+   local: com duas pessoas na administração, ou com o morador reservando
+   pelo celular, o que está aqui pode estar velho e nao ha como saber. */
+async function atualizarReservas(){
+  if(window._resAtualizando) return;            // dois cliques nao viram duas buscas
+  window._resAtualizando=true;
+  var btn=$('res-btn-atualizar');
+  if(btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-rotate fa-spin"></i> Atualizando…'; }
+  try{
+    if(!SB) throw new Error('sem conexão com o servidor');
+    var res=await SB.from('reservas').select('*').eq('condominio_id', _condAtual);
+    if(res.error) throw new Error(res.error.message);
+    /* So substitui o cache DEPOIS de a leitura dar certo. Trocar antes
+       faria uma falha de rede esvaziar a tela — e quem visse a lista vazia
+       concluiria que as reservas sumiram. */
+    var arr=(res.data||[]).map(_resRowToApp);
+    DB_CACHE['reservas']=arr;
+    try{ localStorage.setItem('apvc_reservas', JSON.stringify(arr)); }catch(_){}
+    try{ renderReservas(); verificarAlertas(); atualizarBadgePendentes(); }catch(_){}
+    toast('✓ '+arr.length+(arr.length===1?' reserva':' reservas')+' — lista atualizada.');
+  }catch(e){
+    toast('⚠️ Não consegui atualizar: '+(e&&e.message?e.message:'erro')+'. O que está na tela continua valendo.');
+  }finally{
+    window._resAtualizando=false;
+    if(btn){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-rotate"></i> Atualizar'; }
+  }
 }
 
 // De minuto em minuto, e só quando o painel de Reservas está à vista.
