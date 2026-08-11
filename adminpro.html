@@ -1927,12 +1927,34 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
      a faixa cresce junto com o conteudo e nunca rola. */
   .tabs{ overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100% }
 
-  /* Informacoes Gerais tem muitas abas. No celular elas QUEBRAM em duas
-     linhas em vez de rolar: rolagem lateral sem barra visivel e um gesto
-     que ninguem descobre — e foi exatamente o relato ("as abas que nao
-     estao na tela nao consigo acessar"). Duas linhas de chips custam
-     pouca altura e nao escondem nada. */
-  .ig-tabs{ flex-wrap:wrap; overflow-x:visible }
+  /* Informacoes Gerais tem muitas abas. No celular viram GRADE de duas
+     colunas iguais, em vez de rolarem para o lado (rolagem lateral sem
+     barra visivel e um gesto que ninguem descobre) e em vez de so
+     quebrarem a linha (cada chip com sua largura, colunas que nao batem,
+     aparencia de coisa jogada).
+
+     Colunas iguais alinham as bordas; o icone ganha largura fixa para os
+     rotulos comecarem todos no mesmo ponto, inclusive entre linhas. */
+  .ig-tabs{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:6px;
+    overflow:visible;
+    width:100%;
+  }
+  .ig-tabs .tab{
+    display:flex;align-items:center;gap:9px;
+    width:100%;padding:11px 12px;
+    text-align:left;
+    /* Rotulo longo quebra dentro da propria celula em vez de esticar a
+       coluna e desalinhar a grade. */
+    white-space:normal;line-height:1.3;
+    min-height:44px;      /* alvo de toque confortavel no celular */
+  }
+  .ig-tabs .tab i{ width:17px;flex-shrink:0;text-align:center;font-size:13px }
+  /* "Abas" e configuracao, nao mais um assunto: ocupa a linha inteira no
+     fim, separada das abas de conteudo. */
+  .ig-tabs .ig-tab-gerir{ grid-column:1 / -1;margin-left:0 }
 
   /* ── Toast no topo em mobile ── */
   .toast{
