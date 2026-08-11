@@ -1207,6 +1207,11 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   display:flex;gap:8px;margin-bottom:18px;
   overflow-x:auto;padding-bottom:4px;
   scrollbar-width:none;
+  /* .tabs define width:fit-content — a faixa fica do tamanho do conteudo
+     e estoura o pai, entao o overflow-x:auto acima NUNCA tinha o que
+     rolar (scrollWidth == clientWidth) e as abas passadas da borda
+     ficavam inalcancaveis. max-width devolve o limite. */
+  max-width:100%;
 }
 .ig-tabs::-webkit-scrollbar{display:none}
 .ig-tabs .tab{flex-shrink:0;white-space:nowrap}
@@ -1918,7 +1923,16 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
   .login-card{ width:92%; padding:32px 24px }
 
   /* ── Tabs ── */
-  .tabs{ overflow-x:auto; -webkit-overflow-scrolling:touch }
+  /* Sem o max-width, "overflow-x:auto" era enfeite: com width:fit-content
+     a faixa cresce junto com o conteudo e nunca rola. */
+  .tabs{ overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100% }
+
+  /* Informacoes Gerais tem muitas abas. No celular elas QUEBRAM em duas
+     linhas em vez de rolar: rolagem lateral sem barra visivel e um gesto
+     que ninguem descobre — e foi exatamente o relato ("as abas que nao
+     estao na tela nao consigo acessar"). Duas linhas de chips custam
+     pouca altura e nao escondem nada. */
+  .ig-tabs{ flex-wrap:wrap; overflow-x:visible }
 
   /* ── Toast no topo em mobile ── */
   .toast{
@@ -9264,6 +9278,17 @@ function _resAplicarDash(){
   var kpi = $('res-kpi');   if(kpi)  kpi.style.display  = (mostrar &&  isMorador) ? '' : 'none';
   var dash= $('res-dash');  if(dash) dash.style.display = (mostrar && !isMorador) ? '' : 'none';
 
+  /* Lembretes sao coisa de quem administra: dizem quem nao pagou e o que
+     esta chegando na portaria. O botao nasceu sem essa trava e aparecia
+     para o morador — que abria e nao via nada, porque o conteudo ja era
+     bloqueado por nivel. Botao que nao faz nada e pior do que nenhum:
+     parece defeito. Aqui ele some de vez.
+     Regra propositalmente mais larga que isMorador, para o supervisor
+     tambem ver — assim como ja acontece nos lembretes em si. */
+  var _lembretesPodem = (_nv==='admin' || _nv==='gestor' || _nv==='supervisor');
+  var bLem = $('res-btn-lembretes');
+  if(bLem) bLem.style.display = _lembretesPodem ? '' : 'none';
+
   var btn = $('res-btn-dash');
   if(btn){
     btn.innerHTML = '<i class="fa-solid fa-chart-simple"></i> ' + (ligado ? 'Ocultar painel' : 'Mostrar painel');
@@ -10757,17 +10782,35 @@ function _reslQuando(r){
    então a mesma reserva avisa duas vezes: uma quando está chegando e
    outra quando começa — que é o comportamento útil. Guardado por dia,
    para o histórico não crescer para sempre. */
+/* Cada aviso cala por 15 minutos e volta.
+
+   Antes calava pelo DIA inteiro: fechado uma vez, so no dia seguinte. Isso
+   e bom para nao incomodar e pessimo para cobrar — a taxa em aberto some
+   da vista e ninguem lembra dela de novo. Insistir a cada 15 minutos e o
+   ponto: enquanto houver pendencia, ela volta.
+
+   A marca guarda QUANDO foi visto, nao "se" foi. O dia continua no
+   registro so para o armazenamento nao crescer sem fim. */
+var _RESL_REPETIR_MIN = 15;
+
 function _reslVistos(){
   var hoje = new Date().toISOString().slice(0,10);
   try{
     var o = JSON.parse(localStorage.getItem('apvc_res_lembrete')||'{}');
-    if(o.dia !== hoje) return { dia:hoje, ids:[] };
-    return { dia:hoje, ids:(o.ids||[]) };
-  }catch(_){ return { dia:hoje, ids:[] }; }
+    if(o.dia !== hoje || !o.marcas || typeof o.marcas!=='object') return { dia:hoje, marcas:{} };
+    return { dia:hoje, marcas:o.marcas };
+  }catch(_){ return { dia:hoje, marcas:{} }; }
 }
+
+// Ainda calado? So enquanto os 15 minutos nao passarem.
+function _reslCalado(marcas, chave){
+  var t = marcas[chave];
+  return !!t && (Date.now() - t) < _RESL_REPETIR_MIN*60000;
+}
+
 function _reslMarcar(chaves){
-  var v = _reslVistos();
-  chaves.forEach(function(c){ if(v.ids.indexOf(c)<0) v.ids.push(c); });
+  var v = _reslVistos(), agora = Date.now();
+  chaves.forEach(function(c){ v.marcas[c] = agora; });
   try{ localStorage.setItem('apvc_res_lembrete', JSON.stringify(v)); }catch(_){}
 }
 
@@ -10775,7 +10818,7 @@ function _reslPendentes(ignorarVistos){
   var nivel = window._userNivel||'morador';
   if(nivel!=='admin' && nivel!=='gestor' && nivel!=='supervisor') return [];
   var agora = Date.now();
-  var vistos = _reslVistos().ids;
+  var marcas = _reslVistos().marcas;
   var out = [];
   (G('reservas')||[]).forEach(function(r){
     if(!r.data || r.status==='cancelada' || r.status==='realizada') return;
@@ -10786,7 +10829,7 @@ function _reslPendentes(ignorarVistos){
     else if(minsPara > 0 && minsPara <= _RESL_JANELA)       fase = 'breve';
     else return;
     var chave = r.id + '|' + fase;
-    if(!ignorarVistos && vistos.indexOf(chave) >= 0) return;
+    if(!ignorarVistos && _reslCalado(marcas, chave)) return;
     out.push({ r:r, fase:fase, mins:Math.round(minsPara), chave:chave });
   });
   out.sort(function(a,b){ return a.mins - b.mins; });
@@ -10809,7 +10852,7 @@ function _reslPagamentos(ignorarVistos){
   var nivel = window._userNivel||'morador';
   if(nivel!=='admin' && nivel!=='gestor' && nivel!=='supervisor') return [];
   var agora = Date.now();
-  var vistos = _reslVistos().ids;
+  var marcas = _reslVistos().marcas;
   var out = [];
   (G('reservas')||[]).forEach(function(r){
     if(!r.data || r.status==='cancelada') return;
@@ -10826,7 +10869,7 @@ function _reslPagamentos(ignorarVistos){
       fase = 'areceber';
     } else return;
     var chave = r.id + '|pgto';
-    if(!ignorarVistos && vistos.indexOf(chave) >= 0) return;
+    if(!ignorarVistos && _reslCalado(marcas, chave)) return;
     out.push({ r:r, fase:fase, taxa:taxa, horas:horas, chave:chave });
   });
   // Atrasados primeiro, e entre eles o mais antigo na frente.
