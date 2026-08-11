@@ -728,8 +728,8 @@ bloco('Lembrete "daqui a X tem a reserva do Fulano"', () => {
   let GUARDADO = {};
 
   const api = carregar(
-    ['_resComecaEm', '_reslQuando', '_reslVistos', '_reslMarcar', '_reslPendentes', '_reslFrase',
-     'hrIni', 'hrFim', '_minHora'],
+    ['_resComecaEm', '_reslQuando', '_reslVistos', '_reslMarcar', '_reslCalado', '_reslPendentes',
+     '_reslFrase', 'hrIni', 'hrFim', '_minHora'],
     {
       window: JANELA,
       G: () => RESERVAS,
@@ -739,6 +739,7 @@ bloco('Lembrete "daqui a X tem a reserva do Fulano"', () => {
       },
       escHtml: (v) => String(v == null ? '' : v),
       _RESL_JANELA: 60,
+      _RESL_REPETIR_MIN: 15,
     },
   );
 
@@ -797,8 +798,17 @@ bloco('Lembrete "daqui a X tem a reserva do Fulano"', () => {
   checa('e esse também só uma vez', nomes(), []);
 
   // Marca de ontem não cala o aviso de hoje.
-  GUARDADO['apvc_res_lembrete'] = JSON.stringify({ dia: '2020-01-01', ids: ['9|agora'] });
+  GUARDADO['apvc_res_lembrete'] = JSON.stringify({ dia: '2020-01-01', marcas: { '9|agora': Date.now() } });
   checa('marca de outro dia é descartada', nomes(), ['agora:Helena']);
+
+  // A insistência é o ponto: passados 15 minutos, o aviso VOLTA.
+  const hoje_ = new Date().toISOString().slice(0, 10);
+  GUARDADO['apvc_res_lembrete'] = JSON.stringify(
+    { dia: hoje_, marcas: { '9|agora': Date.now() - 5 * 60000 } });
+  checa('5 minutos depois ainda cala', nomes(), []);
+  GUARDADO['apvc_res_lembrete'] = JSON.stringify(
+    { dia: hoje_, marcas: { '9|agora': Date.now() - 16 * 60000 } });
+  checa('16 minutos depois volta a avisar', nomes(), ['agora:Helena']);
 
   // ── Ordem e frase ──
   RESERVAS = [daquiA(10, 'Ivo', 50, 60), daquiA(11, 'Julia', 10, 60), daquiA(12, 'Kim', -5, 60)];
@@ -823,7 +833,8 @@ bloco('Aviso de pagamento pendente', () => {
   let GUARDADO = {};
 
   const api = carregar(
-    ['_resComecaEm', '_reslVistos', '_reslMarcar', '_reslPagamentos', 'hrIni', 'hrFim', '_minHora'],
+    ['_resComecaEm', '_reslVistos', '_reslMarcar', '_reslCalado', '_reslPagamentos',
+     'hrIni', 'hrFim', '_minHora'],
     {
       window: JANELA,
       G: () => RESERVAS,
@@ -833,6 +844,7 @@ bloco('Aviso de pagamento pendente', () => {
       },
       _RESL_ATRASO_MAX: 60,
       _RESL_AVISO_H: 48,
+      _RESL_REPETIR_MIN: 15,
     },
   );
 
@@ -892,7 +904,12 @@ bloco('Aviso de pagamento pendente', () => {
   // ── Não repetir ──
   checa('avisa uma vez', fases(), ['atrasado:Kelly']);
   api._reslMarcar(['12|pgto']);
-  checa('depois de visto, cala', fases(), []);
+  checa('logo depois, cala', fases(), []);
+  // Cobranca em aberto tem de voltar: some da vista e ninguem lembra dela.
+  const hoje2 = new Date().toISOString().slice(0, 10);
+  GUARDADO['apvc_res_lembrete'] = JSON.stringify(
+    { dia: hoje2, marcas: { '12|pgto': Date.now() - 16 * 60000 } });
+  checa('16 minutos depois a cobranca volta', fases(), ['atrasado:Kelly']);
 
   // ── Ordem: atrasados na frente, o mais antigo primeiro ──
   GUARDADO = {};
