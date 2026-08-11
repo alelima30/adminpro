@@ -3424,7 +3424,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
                 <option>Salão de Festa</option>
                 <option>Cozinha / Espaço Lazer</option>
               </select>
-              <select id="res-f-status" onchange="renderReservas()"
+              <select id="res-f-status" onchange="resFiltroStatusMudou()"
                 style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;">
                 <option value="todas">Todas as reservas</option>
                 <option value="">Ativas (hoje em diante)</option>
@@ -4032,6 +4032,18 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
           </div>
           <div style="font-size:12px;color:var(--text-3);margin-bottom:12px">Texto mostrado ao morador quando a reserva precisa de validação do administrador (espaços com "Exigir confirmação" marcado). Deixe em branco para usar o texto padrão.</div>
           <textarea id="cfg-msg-validacao" rows="3" placeholder="Sua reserva foi registrada e está aguardando validação da administração. Você será avisado assim que for aprovada." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;resize:vertical"></textarea>
+        </div>
+
+        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
+          <div class="card-head">
+            <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-filter"></i></div>Filtro inicial da lista</div>
+            <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:12px">Como a lista de reservas aparece ao abrir a tela. Vale para quem ainda não escolheu um filtro — depois que a pessoa mexe no filtro, o aparelho dela passa a lembrar da escolha dela.</div>
+          <select id="cfg-res-filtro-inicial" style="padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;width:100%;max-width:320px">
+            <option value="todas">Todas as reservas</option>
+            <option value="">Ativas (de hoje em diante)</option>
+          </select>
         </div>
 
         <!-- ▸ Espaços: agora tem tela propria dentro de Reservas -->
@@ -7502,7 +7514,7 @@ function showPanel(id,el){
   // Rede de seguranca: trocar de tela nunca deve herdar trava de rolagem
   // de um modal da tela anterior.
   try{ _sincronizarTravaRolagem(); }catch(_){}
-  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{renderReservas();verificarAlertas();resLembreteChecar();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
+  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{aplicarFiltroInicialRes();renderReservas();verificarAlertas();resLembreteChecar();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
 }
 
 function setTab(t){
@@ -9211,10 +9223,63 @@ function renderEncomendas(){
   });
 }
 
+/* ── Filtro inicial da lista de reservas ──────────────────────────────
+
+   Dois niveis, de proposito:
+
+   1. O CONDOMINIO escolhe como a lista abre para quem nunca mexeu no
+      filtro. Condominio com muita reserva antiga quer "de hoje em
+      diante"; quem consulta historico o tempo todo quer "todas".
+
+   2. A PESSOA manda no proprio aparelho. No instante em que ela mexe no
+      filtro, aquilo vira a preferencia dela e o padrao do condominio
+      para de valer para ela. Ninguem gosta de reescolher a mesma coisa
+      toda vez que abre a tela.
+
+   A chave inclui o condominio: quem administra mais de um nao leva a
+   preferencia de um para o outro. */
+function _resFiltroChave(){
+  return 'apvc_res_filtro_' + (typeof _condAtual!=='undefined' ? _condAtual : 'x');
+}
+
+// Padrao do condominio. String vazia = "de hoje em diante" e e uma
+// escolha legitima, entao so cai no 'todas' quando nao ha nada gravado.
+function _resFiltroDoCondominio(){
+  var c = getCfgRes() || {};
+  return (c.filtro_inicial === '' || c.filtro_inicial === 'todas') ? c.filtro_inicial : 'todas';
+}
+
+function _resFiltroInicial(){
+  try{
+    var meu = localStorage.getItem(_resFiltroChave());
+    if(meu !== null) return meu;          // a escolha da pessoa vence
+  }catch(_){}
+  return _resFiltroDoCondominio();
+}
+
+// Chamado quando a pessoa mexe no filtro: guarda a escolha e redesenha.
+function resFiltroStatusMudou(){
+  var el=$('res-f-status');
+  if(el){ try{ localStorage.setItem(_resFiltroChave(), el.value); }catch(_){} }
+  renderReservas();
+}
+
+// Aplica o filtro inicial ao abrir a tela, sem apagar o que a pessoa
+// acabou de escolher nesta sessao.
+function aplicarFiltroInicialRes(){
+  var el=$('res-f-status');
+  if(!el || window._resFiltroAplicado) return;
+  window._resFiltroAplicado = true;
+  el.value = _resFiltroInicial();
+}
+
 function limparFiltrosRes(){
   $('res-busca').value='';
   $('res-f-espaco').value='';
-  $('res-f-status').value='';
+  // "Limpar" devolve o estado inicial: esquece a preferencia deste
+  // aparelho e volta ao padrao do condominio.
+  try{ localStorage.removeItem(_resFiltroChave()); }catch(_){}
+  $('res-f-status').value=_resFiltroDoCondominio();
   $('res-f-ini').value='';
   $('res-f-fim').value='';
   renderReservas();
@@ -11870,6 +11935,7 @@ function renderCfgReservas(){
 
   // Mensagem pós-reserva
   if($('cfg-msg-validacao')) $('cfg-msg-validacao').value = cfgRes.msg_validacao||'';
+  if($('cfg-res-filtro-inicial')) $('cfg-res-filtro-inicial').value = _resFiltroDoCondominio();
   // Notificações automáticas
   if($('cfg-notif-morador-reserva')) $('cfg-notif-morador-reserva').checked = !!cfgRes.notif_morador_reserva;
   if($('cfg-notif-morador'))     $('cfg-notif-morador').checked     = !!cfgRes.notif_morador_ativo;
@@ -12566,6 +12632,9 @@ function salvarCfgReservas(){
 
   // Mensagem pós-reserva (validação)
   if($('cfg-msg-validacao')) cfgRes.msg_validacao = $('cfg-msg-validacao').value.trim();
+  // Valor vazio e uma escolha valida aqui ("de hoje em diante"), entao
+  // nao da para usar ||'' com padrao — grava o que estiver selecionado.
+  if($('cfg-res-filtro-inicial')) cfgRes.filtro_inicial = $('cfg-res-filtro-inicial').value;
   // Notificações automáticas
   if($('cfg-notif-morador-reserva')) cfgRes.notif_morador_reserva = $('cfg-notif-morador-reserva').checked;
   if($('cfg-notif-morador'))     cfgRes.notif_morador_ativo = $('cfg-notif-morador').checked;
