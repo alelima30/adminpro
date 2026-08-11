@@ -1142,6 +1142,76 @@ bloco('Lembretes recentes', () => {
   checa('mais antigo mostra a data', api._reslQuandoFoi(antes.getTime()), dd + ' 14:32');
 });
 
+// ── Filtro inicial da lista de reservas ────────────────────────────────
+bloco('Filtro inicial: padrão do condomínio + preferência da pessoa', () => {
+  let CFG = {}, GUARDADO = {}, select = { value: 'inicial' }, redesenhou = 0;
+  const JANELA = {};
+  const api = carregar(
+    ['_resFiltroChave', '_resFiltroDoCondominio', '_resFiltroInicial',
+     'resFiltroStatusMudou', 'aplicarFiltroInicialRes'],
+    {
+      getCfgRes: () => CFG,
+      _condAtual: 'APVC',
+      window: JANELA,
+      $: () => select,
+      renderReservas: () => { redesenhou++; },
+      localStorage: {
+        getItem: (k) => (k in GUARDADO ? GUARDADO[k] : null),
+        setItem: (k, v) => { GUARDADO[k] = String(v); },
+        removeItem: (k) => { delete GUARDADO[k]; },
+      },
+    },
+  );
+  const CHAVE = 'apvc_res_filtro_APVC';
+  const reset = () => { CFG = {}; GUARDADO = {}; JANELA._resFiltroAplicado = false; };
+
+  checa('a chave separa por condomínio', api._resFiltroChave(), CHAVE);
+
+  // ── Padrão do condomínio ──
+  reset();
+  checa('sem configuração, abre em "todas"', api._resFiltroDoCondominio(), 'todas');
+  CFG = { filtro_inicial: '' };
+  checa('configurado para "de hoje em diante"', api._resFiltroDoCondominio(), '');
+  CFG = { filtro_inicial: 'todas' };
+  checa('configurado para "todas"', api._resFiltroDoCondominio(), 'todas');
+  // Valor estranho na configuração não pode virar um filtro inválido.
+  CFG = { filtro_inicial: 'bananas' };
+  checa('valor invalido cai no padrão', api._resFiltroDoCondominio(), 'todas');
+  CFG = { filtro_inicial: null };
+  checa('nulo também', api._resFiltroDoCondominio(), 'todas');
+
+  // ── A pessoa manda no próprio aparelho ──
+  reset(); CFG = { filtro_inicial: 'todas' };
+  checa('sem escolha da pessoa, vale o do condomínio', api._resFiltroInicial(), 'todas');
+  GUARDADO[CHAVE] = '';
+  // A pegadinha: "" é uma ESCOLHA (de hoje em diante), não "não escolheu".
+  checa('escolha vazia é respeitada, não confundida com ausência',
+    api._resFiltroInicial(), '');
+  GUARDADO[CHAVE] = 'pendente';
+  checa('e qualquer outra escolha também', api._resFiltroInicial(), 'pendente');
+  delete GUARDADO[CHAVE];
+  checa('apagada a escolha, volta o do condomínio', api._resFiltroInicial(), 'todas');
+
+  // ── Mexer no filtro grava ──
+  reset();
+  select.value = ''; redesenhou = 0;
+  api.resFiltroStatusMudou();
+  checa('mexer no filtro guarda a escolha', GUARDADO[CHAVE], '');
+  checa('e redesenha a lista', redesenhou, 1);
+  select.value = 'cancelada';
+  api.resFiltroStatusMudou();
+  checa('troca de novo, guarda a nova', GUARDADO[CHAVE], 'cancelada');
+
+  // ── Ao abrir a tela ──
+  reset(); CFG = { filtro_inicial: '' }; select.value = 'sujeira';
+  api.aplicarFiltroInicialRes();
+  checa('abrir a tela aplica o inicial', select.value, '');
+  // Não pode reaplicar e apagar o que a pessoa acabou de escolher.
+  select.value = 'pendente';
+  api.aplicarFiltroInicialRes();
+  checa('voltar à tela não desfaz a escolha da sessão', select.value, 'pendente');
+});
+
 Promise.all(_pendentes).then(() => {
   console.log('\n' + '-'.repeat(50));
   console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
