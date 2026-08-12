@@ -1953,6 +1953,47 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 }
 .ticker-sep{color:var(--text-3);font-size:18px;opacity:0.3}
 
+/* ══ Config: tópicos da aba Reservas ══
+   Barra rolável na horizontal para caber no celular sem quebrar em duas
+   linhas. O -webkit-overflow-scrolling e o scroll-snap fazem o arrasto
+   parar em cima de um botão inteiro, em vez de deixar meio botão à mostra
+   — meio botão parece corte de layout, não convite para arrastar. */
+.cfg-subtabs{
+  display:flex;gap:8px;margin-bottom:20px;
+  overflow-x:auto;padding-bottom:4px;scroll-snap-type:x proximity;
+  -webkit-overflow-scrolling:touch;
+}
+.cfg-subtabs::-webkit-scrollbar{height:0}
+.cfg-subtab{
+  scroll-snap-align:start;flex:0 0 auto;
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 15px;border-radius:10px;cursor:pointer;
+  background:var(--ink-2);border:1px solid var(--border);color:var(--text-2);
+  font-size:13px;font-weight:600;white-space:nowrap;transition:all .15s;
+}
+.cfg-subtab i{font-size:12px;opacity:.85}
+.cfg-subtab:hover{border-color:var(--gold);color:var(--text)}
+.cfg-subtab.active{
+  background:rgba(232,119,34,0.12);border-color:rgba(232,119,34,0.45);color:var(--gold);
+}
+.cfg-subtab .curto{display:none}
+@media(max-width:768px){
+  /* No celular os quatro dividem a largura e o rótulo encurta ("Espaços e
+     horários" vira "Espaços"). O texto NAO sai: só o ícone viraria
+     adivinhação para quem entra aqui uma vez por mês. Cabendo os quatro na
+     tela, ninguém precisa descobrir que a barra arrasta. */
+  .cfg-subtabs{gap:6px;overflow-x:visible}
+  .cfg-subtab{flex:1 1 0;min-width:0;justify-content:center;padding:10px 4px;font-size:11.5px;gap:5px}
+  .cfg-subtab i{font-size:13px}
+  .cfg-subtab .longo{display:none}
+  .cfg-subtab .curto{display:inline}
+}
+@media(max-width:420px){
+  /* Telas bem estreitas: o ícone sai e o nome fica, que é o que identifica. */
+  .cfg-subtab i{display:none}
+  .cfg-subtab{padding:10px 3px;font-size:11px}
+}
+
 /* ══ Config: Disponibilidade por Espaço ══ */
 .cfg-disp-card{ background:var(--ink-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px }
 .cfg-disp-head{ display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap }
@@ -4106,6 +4147,17 @@ html.ambiente-ensaio body{padding-top:28px}
           <button class="tab" id="cfgtab-modulos" onclick="cfgSetTab('modulos')"><i class="fa-solid fa-list-check" style="margin-right:6px"></i>Módulos dos Moradores</button>
         </div>
 
+        <!-- Tópicos da Configuração das Reservas.
+             Eram nove cartões numa rolagem só; quem procurava o Pix passava
+             por bloqueio de data, e quem ia mexer em horário passava pelo
+             texto do WhatsApp. Agora um assunto por vez. -->
+        <div class="cfg-subtabs cfg-grp-reservas" id="cfg-subtabs">
+          <button class="cfg-subtab" id="cfgsubtab-espacos"  onclick="cfgSetSub('espacos')"  title="Quais espaços existem, em que dias e horários podem ser reservados"><i class="fa-solid fa-building"></i><span class="longo">Espaços e horários</span><span class="curto">Espaços</span></button>
+          <button class="cfg-subtab" id="cfgsubtab-regras"   onclick="cfgSetSub('regras')"   title="Limites por morador, antecedência e datas bloqueadas"><i class="fa-solid fa-shield-halved"></i><span class="longo">Regras</span><span class="curto">Regras</span></button>
+          <button class="cfg-subtab" id="cfgsubtab-cobranca" onclick="cfgSetSub('cobranca')" title="Taxas, caução, termo de responsabilidade e Pix"><i class="fa-solid fa-sack-dollar"></i><span class="longo">Cobrança</span><span class="curto">Cobrança</span></button>
+          <button class="cfg-subtab" id="cfgsubtab-avisos"   onclick="cfgSetSub('avisos')"   title="WhatsApp, e-mail, mensagem ao morador e filtro inicial da lista"><i class="fa-solid fa-bell"></i><span class="longo">Avisos e tela</span><span class="curto">Avisos</span></button>
+        </div>
+
         <!-- ETAPA 2: o admin do condomínio escolhe quais telas os MORADORES veem
              (apenas dentre as que o sênior liberou para este condomínio) -->
         <div class="cfg-card cfg-grp-modulos card" style="margin-bottom:18px;display:none">
@@ -4210,7 +4262,7 @@ html.ambiente-ensaio body{padding-top:28px}
         </div>
 
         <!-- ▸ Config de Reservas: termos e caução -->
-        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
+        <div class="cfg-card cfg-grp-reservas cfgsub-cobranca card" style="margin-bottom:18px">
           <div class="card-head">
             <div class="card-title"><div class="card-icon"><i class="fa-solid fa-file-pen"></i></div>Termos de Responsabilidade & Valores por Espaço</div>
             <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
@@ -4230,7 +4282,7 @@ html.ambiente-ensaio body{padding-top:28px}
         </div>
 
         <!-- ▸ Disponibilidade: dias da semana + limite de horas por morador -->
-        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
+        <div class="cfg-card cfg-grp-reservas cfgsub-espacos card" style="margin-bottom:18px">
           <div class="card-head">
             <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-calendar-day"></i></div>Disponibilidade por Espaço</div>
             <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
@@ -4240,7 +4292,7 @@ html.ambiente-ensaio body{padding-top:28px}
         </div>
 
         <!-- ▸ Mensagem exibida ao morador após reservar (quando exige validação) -->
-        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
+        <div class="cfg-card cfg-grp-reservas cfgsub-avisos card" style="margin-bottom:18px">
           <div class="card-head">
             <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-regular fa-comment-dots"></i></div>Mensagem após a reserva</div>
             <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
@@ -4249,7 +4301,7 @@ html.ambiente-ensaio body{padding-top:28px}
           <textarea id="cfg-msg-validacao" rows="3" placeholder="Sua reserva foi registrada e está aguardando validação da administração. Você será avisado assim que for aprovada." style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:13px;outline:none;resize:vertical"></textarea>
         </div>
 
-        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
+        <div class="cfg-card cfg-grp-reservas cfgsub-avisos card" style="margin-bottom:18px">
           <div class="card-head">
             <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-filter"></i></div>Filtro inicial da lista</div>
             <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
@@ -4262,7 +4314,7 @@ html.ambiente-ensaio body{padding-top:28px}
         </div>
 
         <!-- ▸ Espaços: agora tem tela propria dentro de Reservas -->
-        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:16px">
+        <div class="cfg-card cfg-grp-reservas cfgsub-espacos card" style="margin-bottom:16px">
           <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-building"></i></div>Espaços do condomínio</div></div>
           <div style="font-size:12.5px;color:var(--text-3);line-height:1.7">
             Criar, renomear e excluir espaços passou para uma tela própria:
@@ -4275,7 +4327,7 @@ html.ambiente-ensaio body{padding-top:28px}
         </div>
 
         <!-- ▸ Pix do condomínio (pagamento da taxa de reserva) -->
-        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:16px">
+        <div class="cfg-card cfg-grp-reservas cfgsub-cobranca card" style="margin-bottom:16px">
           <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(42,157,111,0.14);color:var(--green-l)"><i class="fa-solid fa-sack-dollar"></i></div>Pix para a taxa de reserva</div></div>
           <div style="font-size:12.5px;color:var(--text-3);margin-bottom:12px">
             Informe a chave Pix <b>do condomínio</b>. O morador verá o QR Code e o "copia e cola" já com o valor da taxa.
@@ -4295,7 +4347,7 @@ html.ambiente-ensaio body{padding-top:28px}
         </div>
 
         <!-- ▸ Notificações automáticas de reservas (WhatsApp + e-mail) -->
-        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
+        <div class="cfg-card cfg-grp-reservas cfgsub-avisos card" style="margin-bottom:18px">
           <div class="card-head">
             <div class="card-title"><div class="card-icon" style="background:rgba(42,157,111,0.14);color:var(--green)"><i class="fa-brands fa-whatsapp"></i></div>Notificações automáticas (WhatsApp & e-mail)</div>
             <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
@@ -4347,7 +4399,7 @@ html.ambiente-ensaio body{padding-top:28px}
         </div>
 
         <!-- ▸ Regras gerais de reserva -->
-        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
+        <div class="cfg-card cfg-grp-reservas cfgsub-regras card" style="margin-bottom:18px">
           <div class="card-head">
             <div class="card-title"><div class="card-icon" style="background:rgba(224,82,82,0.14);color:var(--red)"><i class="fa-solid fa-shield-halved"></i></div>Regras gerais de reserva</div>
             <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
@@ -4363,7 +4415,7 @@ html.ambiente-ensaio body{padding-top:28px}
         </div>
 
         <!-- ▸ Bloqueios (manutenção, feriados, etc.) -->
-        <div class="cfg-card cfg-grp-reservas card" style="margin-bottom:18px">
+        <div class="cfg-card cfg-grp-reservas cfgsub-regras card" style="margin-bottom:18px">
           <div class="card-head">
             <div class="card-title"><div class="card-icon" style="background:rgba(224,82,82,0.14);color:var(--red)"><i class="fa-solid fa-ban"></i></div>Bloqueios de Data / Horário</div>
           </div>
@@ -12304,6 +12356,57 @@ function cfgSetTab(t){
   if(s) s.classList.toggle('active', t==='sistema');
   if(mo) mo.classList.toggle('active', t==='modulos');
   if(t==='modulos') renderModulosMorador();
+  // A linha do cfg-grp-reservas acima reacende TODOS os cartoes de reservas.
+  // Sem esta chamada, voltar para a aba Reservas mostraria os nove de uma vez
+  // — exatamente o amontoado que os topicos existem para desfazer.
+  if(t==='reservas') cfgSetSub(_cfgSubAtual);
+}
+
+/* ── Topicos dentro da Configuracao das Reservas ──────────────────────
+
+   Nove cartoes numa rolagem so: quem procurava o Pix passava por bloqueio
+   de data, e quem ia mexer em horario passava pelo texto do WhatsApp. Sao
+   assuntos diferentes que so estavam juntos por ordem de nascimento.
+
+   Quatro topicos, um por vez:
+
+     espacos   quais espacos existem, e quando podem ser reservados
+     regras    limites por morador, antecedencia, datas bloqueadas
+     cobranca  taxa, caucao, termo e Pix
+     avisos    WhatsApp/e-mail, mensagem ao morador, filtro inicial da lista
+
+   "Filtro inicial da lista" e o unico que nao cai redondo: nao e aviso, e
+   o que a tela de Reservas mostra ao abrir. Ficou em "Avisos e tela" por
+   ser tambem uma escolha de exibicao, e porque um quinto topico com um
+   cartao dentro custaria mais atencao do que economiza. */
+var _CFG_SUBS = ['espacos','regras','cobranca','avisos'];
+var _cfgSubAtual = (function(){
+  try{ var s=localStorage.getItem('apvc_cfg_sub');
+       return _CFG_SUBS.indexOf(s)>=0 ? s : 'espacos'; }catch(_){ return 'espacos'; }
+})();
+
+function cfgSetSub(t){
+  if(_CFG_SUBS.indexOf(t) < 0) t = 'espacos';
+  _cfgSubAtual = t;
+  try{ localStorage.setItem('apvc_cfg_sub', t); }catch(_){}
+  _CFG_SUBS.forEach(function(s){
+    document.querySelectorAll('.cfgsub-'+s).forEach(function(e){
+      e.style.display = (s===t) ? '' : 'none';
+    });
+    var b = $('cfgsubtab-'+s);
+    if(b) b.classList.toggle('active', s===t);
+  });
+}
+
+/* Leva a tela ate um cartao que pode estar num topico fechado.
+   Sem isto, "Configurar" no espaco rolava ate um elemento escondido e a
+   tela simplesmente nao saia do lugar — parecia botao quebrado. */
+function cfgAbrirSubDe(el){
+  if(!el) return;
+  var card = el.closest ? el.closest('[class*="cfgsub-"]') : null;
+  if(!card) return;
+  var achou = _CFG_SUBS.filter(function(s){ return card.classList.contains('cfgsub-'+s); })[0];
+  if(achou && achou !== _cfgSubAtual) cfgSetSub(achou);
 }
 
 // Camada 2 — visibilidade de módulos para os moradores (dentro do que o sênior liberou)
@@ -12631,6 +12734,10 @@ function abrirConfigEspaco(nome){
     requestAnimationFrame(function(){
       var alvo = document.querySelector('[data-disp-card="'+chv+'"]');
       if(!alvo){ toast('Não encontrei a configuração de "'+nome+'".'); return; }
+      // O cartao vive no topico "Espaços e horários". Se outro topico estiver
+      // aberto, ele esta escondido — e rolar ate um elemento escondido nao
+      // mexe a tela, o que faz o botao parecer quebrado.
+      try{ cfgAbrirSubDe(alvo); }catch(_){}
       alvo.scrollIntoView({behavior:'smooth', block:'center'});
       var corOrig = alvo.style.boxShadow;
       alvo.style.transition = 'box-shadow .3s ease';
