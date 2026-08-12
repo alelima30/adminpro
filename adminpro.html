@@ -1654,6 +1654,27 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 .urgencia-hoje{background:rgba(224,82,82,0.2);color:var(--red);border:1px solid rgba(224,82,82,0.3)}
 .urgencia-4h{background:rgba(240,168,67,0.2);color:var(--amber);border:1px solid rgba(240,168,67,0.3)}
 .urgencia-amanha{background:rgba(232,119,34,0.15);color:var(--gold);border:1px solid rgba(232,119,34,0.3)}
+/* ══ CONFIGURACOES · FINANCEIRO POR ESPACO ══
+   Um card por espaco: nome + etiqueta PADRAO + "Habilitar financeiro" em
+   cima, campos de taxa embaixo. */
+.cfg-fin-esp{
+  background:var(--ink-2);border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;
+}
+.cfg-fin-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cfg-fin-nome{font-size:13px;font-weight:700;color:var(--text);flex:1;min-width:0}
+.cfg-fin-campos{margin-top:10px;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:768px){
+  /* Nome do espaco ocupa a linha inteira. Espremido entre a etiqueta
+     PADRAO e o "Habilitar financeiro", sobrava-lhe uma tira de ~90px e
+     "Salao de Festa" descia em tres linhas, uma palavra em cada. */
+  .cfg-fin-nome{flex:1 0 100%}
+  /* Uma coluna. Em duas, cada campo ficava com ~165px e o rotulo "Taxa
+     normal — vale o dia todo (R$)" — maiusculas e espacado — ocupava
+     tres linhas, mais alto que o proprio campo. */
+  .cfg-fin-campos{grid-template-columns:1fr}
+}
+
 /* Card da reserva.
 
    No desktop, conteúdo à esquerda e botões numa coluna à direita. No
@@ -12031,9 +12052,9 @@ function renderCfgReservas(){
       const hnoite    = cfgRes['fin_'+chv+'_hnoite']    || '';
       const taxaNoite = cfgRes['fin_'+chv+'_taxanoite'] ?? '';
       const padrao= ESPACOS_FIN_PADRAO.includes(esp);
-      return `<div style="background:var(--ink-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span style="font-size:13px;font-weight:700;color:var(--text);flex:1">${esp}</span>
+      return `<div class="cfg-fin-esp">
+        <div class="cfg-fin-hd">
+          <span class="cfg-fin-nome">${esp}</span>
           ${padrao?`<span title="Vem habilitado por padrão, mas você pode desligar" style="font-size:11px;color:var(--gold);background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.25);border-radius:6px;padding:2px 8px;font-weight:700">PADRÃO</span>`:''}
           ${`<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-2)">
                 <input type="checkbox" data-fin-ativo="${chv}" ${ativo?'checked':''} style="accent-color:var(--gold);width:15px;height:15px" onchange="toggleFinEspaco(this,'${chv}')">
@@ -12041,7 +12062,7 @@ function renderCfgReservas(){
                </label>`
           }
         </div>
-        <div id="cfg-fin-campos-${chv}" style="margin-top:10px;display:${ativo?'grid':'none'};grid-template-columns:1fr 1fr;gap:10px">
+        <div id="cfg-fin-campos-${chv}" class="cfg-fin-campos" style="display:${ativo?'grid':'none'}">
           <div class="fg" style="margin:0"><label>Taxa normal — vale o dia todo (R$)</label>
             <input type="number" data-fin-taxa="${chv}" oninput="_cfgFinPrevia('${chv}')" value="${taxa}" placeholder="0,00" min="0" step="0.01"
               style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;outline:none;width:100%">
