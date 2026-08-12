@@ -33,6 +33,9 @@ jobs:
       - name: Informacoes Gerais (telefones e WhatsApp)
         run: node tests/infogerais.test.js
 
+      - name: Lembretes de reserva (cobranca que ja foi paga)
+        run: node tests/lembretes.test.js
+
   # ────────────────────────────────────────────────────────────────
   # 2) DEPLOY das Edge Functions do Supabase
   #    So roda na branch main e so se os testes passarem.
