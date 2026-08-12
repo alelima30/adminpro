@@ -306,10 +306,18 @@ html.light .chart-card {
   box-shadow: 0 1px 6px rgba(27,43,94,0.08), 0 4px 16px rgba(27,43,94,0.04);
 }
 
-html.light ::-webkit-scrollbar-track { background: rgba(27,43,94,0.04); }
-html.light ::-webkit-scrollbar-thumb { background: rgba(27,43,94,0.18); background-clip: padding-box; }
-html.light ::-webkit-scrollbar-thumb:hover { background: rgba(27,43,94,0.32); background-clip: padding-box; }
-html.light * { scrollbar-color: rgba(27,43,94,0.18) rgba(27,43,94,0.04); }
+/* Tema claro. Mesma historia da barra de rolagem do tema escuro (ver o
+   bloco SCROLLBAR): o `scrollbar-color` fica so para o Firefox, senao ele
+   desliga tudo isto no Chrome. No claro o contraste era ainda pior — 0.18
+   de azul sobre branco e um fantasma. */
+html.light ::-webkit-scrollbar-track { background: rgba(27,43,94,0.07); }
+html.light ::-webkit-scrollbar-thumb { background: rgba(27,43,94,0.34); background-clip: padding-box; }
+html.light ::-webkit-scrollbar-thumb:hover { background: rgba(27,43,94,0.55); background-clip: padding-box; }
+html.light ::-webkit-scrollbar-thumb:active { background: rgba(27,43,94,0.68); background-clip: padding-box; }
+
+@supports not selector(::-webkit-scrollbar){
+  html.light * { scrollbar-color: rgba(27,43,94,0.34) rgba(27,43,94,0.07); }
+}
 
 /* ── Transições suaves ao trocar tema ── */
 body, .sidebar, .main, .topbar,
@@ -367,12 +375,57 @@ body{
   overflow-x:hidden;
 }
 
-/* ══ SCROLLBAR ══ */
+/* ══ SCROLLBAR ══
+
+   A barra sumia, nao respondia ao mouse e mudava de cara sozinha. A causa
+   era uma linha so, e ela nao parecia culpada: o `* { scrollbar-color }`
+   que ficava logo abaixo destas regras.
+
+   `scrollbar-color` e a propriedade padrao (do Firefox). Quando o Chrome
+   encontra ela, ele DESLIGA todo o `::-webkit-scrollbar` da pagina e volta
+   a desenhar a barra dele, so trocando as duas cores. Medido: com a linha
+   a barra vinha com 17px (a nativa do Chrome); sem ela, 14px (a nossa, de
+   12px + 2 de borda). Tudo daqui de cima era ignorado.
+
+   Dai os dois sintomas, que eram o mesmo problema:
+
+   - passar o mouse nao acendia nada, porque `scrollbar-color` NAO tem
+     estado :hover — e a nossa regra de :hover estava desligada junto;
+   - a barra sumia ao rolar, porque a barra nativa do Chrome moderno e
+     flutuante: ela aparece no movimento e apaga sozinha depois.
+
+   Agora o padrao so vale onde o `::-webkit-scrollbar` nao existe — ou
+   seja, no Firefox. Chrome, Edge e Safari usam as regras daqui, com barra
+   fixa, largura constante e o mouse acendendo de novo.
+
+   As cores tambem subiram: 0.25 sobre um fundo azul-escuro era quase
+   invisivel mesmo quando a barra estava la. */
 ::-webkit-scrollbar{width:12px;height:12px}
-::-webkit-scrollbar-track{background:rgba(255,255,255,0.04);border-radius:6px}
-::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.25);border-radius:6px;border:2px solid transparent;background-clip:padding-box}
-::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.42);background-clip:padding-box}
-* { scrollbar-width: auto; scrollbar-color: rgba(255,255,255,0.25) rgba(255,255,255,0.04); }
+::-webkit-scrollbar-track{background:rgba(255,255,255,0.06);border-radius:6px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.38);border-radius:6px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.62);background-clip:padding-box}
+::-webkit-scrollbar-thumb:active{background:rgba(255,255,255,0.75);background-clip:padding-box}
+::-webkit-scrollbar-corner{background:transparent}
+
+@supports not selector(::-webkit-scrollbar){
+  * { scrollbar-width: auto; scrollbar-color: rgba(255,255,255,0.38) rgba(255,255,255,0.06); }
+}
+
+/* A pagina ja reservava o espaco da barra (scrollbar-gutter no <html>), mas
+   as caixas que rolam por dentro nao. Nelas o conteudo ainda pulava uns
+   12px no instante em que a lista passava a caber — ou deixava de caber —
+   e o pulo era lido como "a barra apareceu do nada".
+
+   Reservar sempre custa uma faixa vazia quando nao ha o que rolar. Vale a
+   troca: largura que nao muda e mais facil de usar do que largura que
+   ganha 12px util de vez em quando. */
+.modal,
+.sb-nav,
+.sb-flyout-body,
+.inf-side-col,
+#informativos-lista,
+#ia-conversa,
+.lembrete-canto-bd{ scrollbar-gutter:stable }
 
 /* ══════════════════════════════
    LOGIN — AdminPro Split Screen
@@ -2148,14 +2201,27 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
      4px sobra 4−2−2 = ZERO pixel pintado, e a barra simplesmente sumia —
      nas telas longas, como Configurações, ficava impossível saber onde se
      estava. Agora a pista é maior que a soma das bordas, e o polegar dispensa
-     a borda para não voltar a se anular. */
+     a borda para não voltar a se anular.
+
+     O "scrollbar-width:thin" que ficava aqui era o MESMO problema do
+     "scrollbar-color" lá de cima, escondido numa segunda casa: qualquer uma
+     das duas propriedades padrão faz o Chrome largar o ::-webkit-scrollbar
+     inteiro e desenhar a barra dele. Medido: no celular a barra vinha com
+     10px (a fina do Chrome) e nada daqui valia — nem o 9px, nem a cor, nem
+     o mouse. Por isso o ajuste de 4px→9px acima nunca chegou a ser visto:
+     ele estava certo e desligado. Agora "thin" fica só para o Firefox. */
   ::-webkit-scrollbar { width: 9px; height: 9px }
+  ::-webkit-scrollbar-track{ background:rgba(255,255,255,0.06) }
   ::-webkit-scrollbar-thumb{
     border:none;background:rgba(255,255,255,0.38);background-clip:border-box;
   }
   ::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,0.52);background-clip:border-box }
-  html.light ::-webkit-scrollbar-thumb{ background:rgba(27,43,94,0.32);background-clip:border-box }
-  *{ scrollbar-width:thin }
+  html.light ::-webkit-scrollbar-track{ background:rgba(27,43,94,0.07) }
+  html.light ::-webkit-scrollbar-thumb{ background:rgba(27,43,94,0.34);background-clip:border-box }
+
+  @supports not selector(::-webkit-scrollbar){
+    *{ scrollbar-width:thin }
+  }
 
   /* ════════════════════════════════════════════
      CADASTRO / ADMINISTRATIVO — formulários novos no celular
