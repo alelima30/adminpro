@@ -691,14 +691,16 @@ bloco('Carga falha não apaga o banco', () => {
   global._CARGA_OK = {};
   checa('sem banco não há o que destruir', api._cargaConfiavel('condominos'), true);
 
-  // ── O delete em massa ──
+  // ── Salvar NUNCA apaga ──
+  // Antes o sincronismo mandava a lista inteira e o banco removia o que
+  // nao estivesse nela: um aparelho com a lista velha levava embora o
+  // cadastro que o outro tinha acabado de criar.
   function sbFalso(registro) {
     const q = {
-      eq(){ registro.eq = true; return q; },
-      not(col, op, lista){ registro.not = lista; return q; },
+      eq(col, val){ (registro.eq = registro.eq || []).push(col + '=' + val); return q; },
       then(res){ return Promise.resolve({ error: null }).then(res); },
     };
-    return { from(){ return {
+    return { from(t){ registro.tabela = t; return {
       upsert(rows){ registro.upsertou = rows.length; return Promise.resolve({ error: null }); },
       delete(){ registro.deletou = true; return q; },
     }; } };
@@ -709,15 +711,49 @@ bloco('Carga falha não apaga o banco', () => {
   let reg = {};
   global.SB = sbFalso(reg);
   return api._sincronizarTabela(cfg, {}).then(() => {
-    checa('objeto vazio NÃO dispara delete', !!reg.deletou, false);
-    checa('e também não grava nada', reg.upsertou, undefined);
+    checa('objeto vazio não grava nem apaga', [!!reg.deletou, reg.upsertou], [false, undefined]);
 
     reg = {}; global.SB = sbFalso(reg);
     return api._sincronizarTabela(cfg, { '0001': { nome: 'João' }, '0002': { nome: 'Maria' } });
   }).then(() => {
     checa('com dados, grava as duas linhas', reg.upsertou, 2);
-    checa('e apaga só o que não está na lista', reg.not, '("0001","0002")');
-    checa('sempre preso ao condomínio atual', reg.eq, true);
+    // O CORACAO DA CORRECAO: salvar so acrescenta e atualiza.
+    checa('salvar NUNCA apaga, nem com lista completa', !!reg.deletou, false);
+
+    // ── Apagar virou pedido proprio, de um registro so ──
+    reg = {};
+    const apiEx = carregar(['_excluirLinhaSB'], {
+      _NORM: { condominos: cfg },
+      _condAtual: 'APVC',
+      _isSuper: false,
+      _podeGravarModulo: () => true,
+      SB: sbFalso(reg),          // o stub entra na carga, nao depois
+    });
+    return apiEx._excluirLinhaSB('condominos', '0007').then((r) => {
+      checa('exclusão pede delete de verdade', !!reg.deletou, true);
+      checa('só do registro pedido, e dentro do condomínio',
+        reg.eq, ['cod=0007', 'condominio_id=APVC']);
+      checa('e diz que deu certo', r.ok, true);
+    });
+  }).then(() => {
+    // Modulo em bloco nao tem linha para apagar: nao pode explodir.
+    const apiB = carregar(['_excluirLinhaSB'], {
+      _NORM: {}, _condAtual: 'APVC', _isSuper: false,
+      _podeGravarModulo: () => true, SB: sbFalso({}),
+    });
+    return apiB._excluirLinhaSB('comun', 'x').then((r) => {
+      checa('módulo em bloco é ignorado sem erro', r.ok, true);
+    });
+  }).then(() => {
+    // Sem permissao, nao apaga.
+    let reg2 = {};
+    const apiP = carregar(['_excluirLinhaSB'], {
+      _NORM: { condominos: cfg }, _condAtual: 'APVC', _isSuper: false,
+      _podeGravarModulo: () => false, SB: sbFalso(reg2),
+    });
+    return apiP._excluirLinhaSB('condominos', '0007').then((r) => {
+      checa('sem permissão não apaga nada', [!!reg2.deletou, r.ok], [false, false]);
+    });
   });
 });
 
@@ -1210,6 +1246,70 @@ bloco('Filtro inicial: padrão do condomínio + preferência da pessoa', () => {
   select.value = 'pendente';
   api.aplicarFiltroInicialRes();
   checa('voltar à tela não desfaz a escolha da sessão', select.value, 'pendente');
+});
+
+// ── Dois administradores no mesmo módulo em bloco ──────────────────────
+bloco('Conflito ao gravar módulo em bloco', () => {
+  const LIDO = {};
+  let noServidor, gravou, avisos;
+
+  const api = carregar(['_modBlocoGravar'], {
+    _MOD_LIDO_EM: LIDO,
+    _condAtual: 'APVC',
+    toast: (m) => avisos.push(m),
+    console: { error: () => {} },
+    SB: { from: () => ({
+      select: () => ({
+        eq: function(){ return this; },
+        maybeSingle: async () => ({ data: { atualizado_em: noServidor }, error: null }),
+      }),
+      upsert(row){
+        gravou = row;
+        return { select: () => ({ maybeSingle: async () => ({
+          data: { atualizado_em: '2026-08-12T18:00:00Z' }, error: null }) }) };
+      },
+    }) },
+  });
+
+  const reset = () => { gravou = null; avisos = []; };
+  const AVISO = '⚠️ Outra pessoa alterou isto enquanto você editava. '
+              + 'Nada foi gravado — recarregue a página (F5) e refaça a alteração.';
+
+  return (async () => {
+    // Ninguém mexeu: grava normal.
+    reset(); LIDO.infogerais = '2026-08-12T10:00:00Z'; noServidor = '2026-08-12T10:00:00Z';
+    let r = await api._modBlocoGravar('infogerais', { x: 1 });
+    checa('servidor igual ao que li: grava', r.ok, true);
+    checa('e o conteúdo vai mesmo', gravou.valor, { x: 1 });
+    checa('preso ao condomínio', gravou.condominio_id, 'APVC');
+
+    // A gravação vira a nova base — senão o próprio aparelho acusaria
+    // conflito consigo mesmo no salvar seguinte.
+    checa('o carimbo é atualizado após gravar',
+      LIDO.infogerais, '2026-08-12T18:00:00Z');
+    reset(); noServidor = '2026-08-12T18:00:00Z';
+    r = await api._modBlocoGravar('infogerais', { x: 2 });
+    checa('salvar duas vezes seguidas não acusa conflito falso', r.ok, true);
+
+    // Outra pessoa mexeu no meio: NÃO grava e avisa.
+    reset(); LIDO.comun = '2026-08-12T10:00:00Z'; noServidor = '2026-08-12T11:30:00Z';
+    r = await api._modBlocoGravar('comun', { y: 9 });
+    checa('servidor mais novo: recusa', [r.ok, r.conflito], [false, true]);
+    checa('e NADA foi gravado por cima', gravou, null);
+    checa('a pessoa é avisada, não fica no escuro', avisos[0], AVISO);
+
+    // Sem carimbo conhecido (1ª gravação, ou leitura que falhou): grava.
+    // Travar sem base de comparação seria só atrapalhar.
+    reset(); delete LIDO.novo; noServidor = '2026-08-12T11:30:00Z';
+    r = await api._modBlocoGravar('novo', { z: 1 });
+    checa('sem carimbo conhecido, grava', r.ok, true);
+    checa('e não avisa nada', avisos.length, 0);
+
+    // Módulo que ainda não existe no servidor.
+    reset(); LIDO.zerado = '2026-08-12T10:00:00Z'; noServidor = null;
+    r = await api._modBlocoGravar('zerado', { a: 1 });
+    checa('sem linha no servidor, grava sem reclamar', r.ok, true);
+  })();
 });
 
 Promise.all(_pendentes).then(() => {
