@@ -1,8 +1,18 @@
 # AdminPro · Portal de Gestão
 
-Sistema completo de **gestão para condomínios** — finanças, reservas, manutenção, comunicados e cadastros. Aplicativo web instalável (**PWA**), feito em HTML/CSS/JS puro com backend **Firebase**.
+Sistema completo de **gestão para condomínios** — finanças, reservas, manutenção, comunicados e cadastros. Aplicativo web instalável (**PWA**), feito em HTML/CSS/JS puro com backend **Supabase**.
 
-![PWA](https://img.shields.io/badge/PWA-instal%C3%A1vel-E87722) ![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%7C%20Auth%20%7C%20Storage-FFCA28)
+![PWA](https://img.shields.io/badge/PWA-instal%C3%A1vel-E87722) ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%7C%20Auth%20%7C%20Storage-3ECF8E)
+
+## 📚 Documentação
+
+| Documento | Para quê |
+|---|---|
+| [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md) | Onde as coisas estão e por quê |
+| [`docs/BANCO-ENSAIO.md`](docs/BANCO-ENSAIO.md) | Segundo banco, para testar sem risco |
+| [`docs/CONTRATO.md`](docs/CONTRATO.md) | Minuta de contrato (revisar com advogado) |
+| [`docs/DPA.md`](docs/DPA.md) | Minuta de acordo de dados / LGPD |
+| [`.github/DEPLOY.md`](.github/DEPLOY.md) | Como uma mudança chega no ar |
 
 ---
 

@@ -2239,6 +2239,13 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 .qa-btn{display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:12px;background:var(--card-2);border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;flex:1;min-width:160px}
 .qa-btn:hover{border-color:var(--accent);background:var(--card);transform:translateY(-2px)}
 .qa-ico{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+
+/* Tarja do banco de ensaio. Fica presa no topo, por cima de tudo, para que
+   nao exista duvida sobre em qual banco voce esta mexendo. */
+#tarja-ensaio{position:fixed;top:0;left:0;right:0;z-index:99999;background:#FFC400;color:#241A00;
+  font-weight:700;font-size:12px;letter-spacing:.6px;text-align:center;padding:6px 10px;
+  border-bottom:2px solid #241A00}
+html.ambiente-ensaio body{padding-top:28px}
 </style>
 </head>
 <body>
@@ -5164,8 +5171,59 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 /* ==========================================================================
    SUPABASE - camada de dados (SaaS multi-condominio)
    ========================================================================== */
-const SB_URL = 'https://lusibpbafbkyygxrxvzr.supabase.co';
-const SB_KEY = 'sb_publishable_w0CUYP7hq4okx5cdyL_zZw_JponH6bU';
+/* --------------------------------------------------------------------------
+   Qual banco este acesso vai usar: producao (padrao) ou ensaio.
+   Producao e o normal. Para entrar no ensaio, abra o site com ?db=ensaio
+   no fim do endereco. A escolha vale so para a aba aberta (sessionStorage):
+   fechou a aba, voltou para producao. Isso e de proposito -- ninguem fica
+   preso no ensaio sem perceber, e um link compartilhado por engano nao
+   arrasta ninguem junto.
+   Quando o ensaio esta ligado, uma tarja amarela fica fixa no topo. Se voce
+   nao esta vendo a tarja, voce esta em producao.
+-------------------------------------------------------------------------- */
+const SB_AMBIENTES = {
+  producao: {
+    url: 'https://lusibpbafbkyygxrxvzr.supabase.co',
+    key: 'sb_publishable_w0CUYP7hq4okx5cdyL_zZw_JponH6bU'
+  },
+  // Preencher com o segundo projeto Supabase (gratuito). Enquanto estiver
+  // vazio, ?db=ensaio nao faz nada e o app segue em producao -- e avisa no
+  // console. Passo a passo em docs/BANCO-ENSAIO.md
+  ensaio: {
+    url: '',
+    key: ''
+  }
+};
+
+const SB_AMBIENTE = (() => {
+  let escolha = null;
+  try {
+    const pedido = new URLSearchParams(location.search).get('db');
+    if (pedido) sessionStorage.setItem('adminpro_db', pedido);
+    escolha = sessionStorage.getItem('adminpro_db');
+  } catch (e) { /* navegador sem sessionStorage: segue em producao */ }
+
+  if (escolha === 'ensaio') {
+    if (SB_AMBIENTES.ensaio.url && SB_AMBIENTES.ensaio.key) return 'ensaio';
+    console.warn('Ensaio pedido, mas o projeto de ensaio ainda nao foi ' +
+                 'configurado em SB_AMBIENTES. Seguindo em PRODUCAO.');
+  }
+  return 'producao';
+})();
+
+const SB_URL = SB_AMBIENTES[SB_AMBIENTE].url;
+const SB_KEY = SB_AMBIENTES[SB_AMBIENTE].key;
+
+if (SB_AMBIENTE === 'ensaio') {
+  document.documentElement.classList.add('ambiente-ensaio');
+  addEventListener('DOMContentLoaded', () => {
+    const tarja = document.createElement('div');
+    tarja.id = 'tarja-ensaio';
+    tarja.textContent = 'BANCO DE ENSAIO — estes dados nao sao reais';
+    document.body.prepend(tarja);
+  });
+}
+
 let SB = null;
 try { SB = supabase.createClient(SB_URL, SB_KEY, { auth:{ persistSession:true, autoRefreshToken:true } }); }
 catch(e){ console.error('Supabase nao carregou', e); }
