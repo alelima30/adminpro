@@ -6544,52 +6544,9 @@ function renderUnidades(){
   }
 }
 
-// ── Importação única dos lotes/condôminos do relatório (PDF) ──
-async function importarDadosIniciais(){
-  const D = window.DADOS_INICIAIS;
-  if(!D || !D.unidades){ toast('⚠️ Dados de importação não encontrados.'); return; }
-  const nU = Object.keys(D.unidades).length;
-  const nC = Object.keys(D.condominos||{}).length;
-  const nL = Object.keys(D.localizacoes||{}).length;
-  let nD = 0; Object.values(D.condominos||{}).forEach(c=>nD+=(c.dependentes||[]).length);
-  if(!confirm(`Importar ${nU} lotes, ${nC} condôminos, ${nD} dependentes e ${nL} localizações?\n\nOs registros com o mesmo código serão atualizados.`)) return;
-
-  // Merge (cache + localStorage imediato)
-  const un = getUnidades(); Object.assign(un, D.unidades);
-  const co = getCondominos(); Object.assign(co, D.condominos||{});
-  const lo = getLocalizacoes(); Object.assign(lo, D.localizacoes||{});
-  const seqAtual = parseInt(G('condseq'),10)||0;
-  const novoSeq  = (D.condseq||0) > seqAtual ? D.condseq : seqAtual;
-  S('unidades', un); S('condominos', co); S('condseq', novoSeq);
-  if(nL) S('localizacoes', lo);
-
-  const btn = $('uni-btn-importar');
-  // No Supabase o S() acima já gravou tudo nas tabelas
-  if(SB){
-    toast(`✅ Importado: ${nU} lotes, ${nC} condôminos e ${nL} localizações!`);
-    renderUnidades();
-    return;
-  }
-  if(window._fbOnline && window.db){
-    try{
-      if(btn){ btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Salvando...'; }
-      toast('⏳ Salvando no banco, aguarde...');
-      await window.db.collection('apvc_data').doc('unidades').set({ value: JSON.stringify(un) });
-      await window.db.collection('apvc_data').doc('condominos').set({ value: JSON.stringify(co) });
-      await window.db.collection('apvc_data').doc('condseq').set({ value: JSON.stringify(novoSeq) });
-      if(nL) await window.db.collection('apvc_data').doc('localizacoes').set({ value: JSON.stringify(lo) });
-      toast(`✅ Salvo no banco: ${nU} lotes, ${nC} condôminos e ${nL} localizações!`);
-      setTimeout(()=>location.reload(), 900);
-    }catch(e){
-      if(btn){ btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-file-import"></i> Importar do PDF'; }
-      toast('⚠️ Erro ao salvar no banco: '+(e.message||e)+'. Salvo localmente — tente de novo.');
-      renderUnidades();
-    }
-  } else {
-    toast('⚠️ Sem conexão com o banco — salvo só neste aparelho. Conecte e importe de novo.');
-    renderUnidades();
-  }
-}
+/* importarDadosIniciais() saiu junto com os dados que ela importava.
+   Nenhum botao a chamava — era a rotina de carga inicial de 2026, ja
+   executada. Sem ela e sem o bloco, nada mais depende daquele JSON. */
 
 function salvarUnidade(){
   popUnidadeSelects();
@@ -16353,10 +16310,10 @@ async function excluirUsuario(docId){
   });
 })();
 </script>
-<!-- ===== DADOS INICIAIS (importação única dos lotes do PDF) ===== -->
-<script>
-window.DADOS_INICIAIS = {}; // dados pessoais removidos do historico
-</script>
+<!-- Os dados da importacao inicial (329 unidades, 329 condominos e
+     1.280 dependentes) foram REMOVIDOS daqui: eram nome, telefone e
+     endereco de gente de verdade, num arquivo publico e sem login.
+     Ja estavam no banco desde a importacao, e nenhum botao os usava. -->
 <!-- Modal Pix da reserva -->
 <div id="pix-ov" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:16px">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:380px;width:100%;padding:22px;text-align:center;box-sizing:border-box">
