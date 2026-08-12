@@ -757,6 +757,53 @@ bloco('Carga falha não apaga o banco', () => {
   });
 });
 
+// ── Aprovação da administração conforme o horário ──────────────────────
+// Pedido do síndico: "o campo é livre de dia e pago a partir das 18h; só a
+// reserva paga precisa esperar aprovação". Com o antigo sim/não isso era
+// impossível — uma posição travava o que era livre, a outra liberava o que
+// era pago.
+bloco('Quando a reserva precisa de aprovação', () => {
+  const { exigeAprovacao } = carregar(['exigeAprovacao', 'taxaDoHorario', 'hrIni'], {});
+  const K = 'fin_campo_de_futebol_';
+  const D = 'disp_campo_de_futebol_';
+  const pende = (cfg, hora) => exigeAprovacao(cfg, 'Campo de Futebol', hora);
+
+  // O caso que motivou tudo: grátis de dia, R$ 20 a partir das 18h.
+  const noite = { [K + 'taxa']: '0', [K + 'hnoite']: '18:00', [K + 'taxanoite']: '20',
+                  [D + 'confmodo']: 'taxa' };
+  checa('de manhã, sem taxa: entra confirmada', pende(noite, '08:00–09:00'), false);
+  checa('às 17h ainda é livre', pende(noite, '17:00–18:00'), false);
+  checa('às 18h em ponto passa a pender', pende(noite, '18:00–19:00'), true);
+  checa('à noite pende', pende(noite, '20:00–22:00'), true);
+
+  // Os dois modos diretos ignoram horário e taxa.
+  checa('modo "sempre" pende de manhã',
+        pende({ ...noite, [D + 'confmodo']: 'sempre' }, '08:00–09:00'), true);
+  checa('modo "nunca" não pende nem à noite',
+        pende({ ...noite, [D + 'confmodo']: 'nunca' }, '20:00–22:00'), false);
+
+  // Armadilhas do modo "taxa" — a tela avisa sobre as duas.
+  checa('espaço sem taxa nenhuma: nunca pende',
+        pende({ [K + 'taxa']: '', [D + 'confmodo']: 'taxa' }, '20:00–22:00'), false);
+  checa('espaço que cobra o dia todo: pende sempre',
+        pende({ [K + 'taxa']: '50', [D + 'confmodo']: 'taxa' }, '08:00–09:00'), true);
+
+  // Compatibilidade: quem já tinha o sim/não antigo não muda de regra.
+  checa('antigo marcado vira "sempre"', pende({ [D + 'confirmar']: true }, '08:00–09:00'), true);
+  checa('antigo desmarcado vira "nunca"', pende({ [D + 'confirmar']: false }, '20:00–22:00'), false);
+  checa('sem configuração nenhuma não pende', pende({}, '20:00–22:00'), false);
+  checa('modo novo tem prioridade sobre o antigo',
+        pende({ [D + 'confirmar']: true, [D + 'confmodo']: 'nunca' }, '08:00–09:00'), false);
+
+  // Robustez
+  checa('modo desconhecido não pende', pende({ [D + 'confmodo']: 'talvez' }, '20:00–22:00'), false);
+  checa('modo vazio cai no antigo',
+        pende({ [D + 'confmodo']: '', [D + 'confirmar']: true }, '08:00–09:00'), true);
+  checa('espaço sem nome não quebra', exigeAprovacao({}, '', '20:00–22:00'), false);
+  checa('horário vazio no modo taxa usa a taxa base',
+        pende({ [K + 'taxa']: '30', [D + 'confmodo']: 'taxa' }, ''), true);
+});
+
 // ── Lembrete das reservas que estão para começar ───────────────────────
 bloco('Lembrete "daqui a X tem a reserva do Fulano"', () => {
   let RESERVAS = [];
