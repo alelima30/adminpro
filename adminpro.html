@@ -1274,17 +1274,31 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
 }
 .ig-tel:last-child{border-bottom:none}
 .ig-tel-nome{font-size:14px;color:var(--text);font-weight:600;flex:1;min-width:140px}
-.ig-tel-dir{display:flex;align-items:center;gap:10px;flex-shrink:0}
-.ig-tel-num{font-size:14px;color:var(--text-2);text-decoration:none;font-variant-numeric:tabular-nums}
+/* Cresce para ocupar a linha e o numero empurra os botoes ate a borda
+   direita (margin-right:auto abaixo). Sem isso os botoes ficavam colados
+   no numero — e como cada numero tem sua largura, eles pulavam alguns
+   pixels de uma linha para a outra. Agora ficam em coluna. */
+.ig-tel-dir{display:flex;align-items:center;gap:10px;flex-grow:1;justify-content:flex-end}
+.ig-tel-num{
+  font-size:14px;color:var(--text-2);text-decoration:none;
+  font-variant-numeric:tabular-nums;   /* digitos de largura igual */
+  margin-right:auto;                   /* joga os botoes para a direita */
+}
 a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 .ig-wa{
   display:inline-flex;align-items:center;justify-content:center;
   width:34px;height:34px;border-radius:9px;flex-shrink:0;
-  background:rgba(37,211,102,0.14);border:1px solid rgba(37,211,102,0.42);
-  color:#25d366;font-size:19px;text-decoration:none;
-  transition:background .2s,transform .1s;
+  /* Verde oficial do WhatsApp, com a marca em branco por cima — do jeito
+     que o icone do aplicativo e reconhecido. Botao chapado em vez do
+     translucido de antes: la o simbolo brigava com o fundo. */
+  background:#25D366;border:none;
+  color:#fff;text-decoration:none;
+  transition:filter .2s,transform .1s;
 }
-.ig-wa:hover{background:rgba(37,211,102,0.26)}
+.ig-wa svg{width:19px;height:19px;display:block}
+/* Espaco reservado do botao de WhatsApp, para os fixos nao desalinharem. */
+.ig-wa-vazio{width:34px;height:34px;flex-shrink:0;display:inline-block}
+.ig-wa:hover{filter:brightness(1.08)}
 .ig-wa:active{transform:scale(0.94)}
 
 /* Telefone — edicao */
@@ -1307,11 +1321,15 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 .ig-ligar{
   display:inline-flex;align-items:center;justify-content:center;
   width:34px;height:34px;border-radius:9px;flex-shrink:0;
-  background:rgba(232,119,34,0.14);border:1px solid rgba(232,119,34,0.42);
-  color:var(--gold);font-size:15px;text-decoration:none;
-  transition:background .2s,transform .1s;
+  /* Laranja chapado, do sistema — proposital que NAO seja verde: verde ao
+     lado do verde do WhatsApp faria os dois botoes parecerem a mesma
+     coisa, e um liga e o outro abre conversa. */
+  background:var(--gold);border:none;
+  color:#fff;text-decoration:none;
+  transition:filter .2s,transform .1s;
 }
-.ig-ligar:hover{background:rgba(232,119,34,0.26)}
+.ig-ligar svg{width:17px;height:17px;display:block}
+.ig-ligar:hover{filter:brightness(1.08)}
 .ig-ligar:active{transform:scale(0.94)}
 
 /* Mapa anexado */
@@ -1636,6 +1654,27 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 .urgencia-hoje{background:rgba(224,82,82,0.2);color:var(--red);border:1px solid rgba(224,82,82,0.3)}
 .urgencia-4h{background:rgba(240,168,67,0.2);color:var(--amber);border:1px solid rgba(240,168,67,0.3)}
 .urgencia-amanha{background:rgba(232,119,34,0.15);color:var(--gold);border:1px solid rgba(232,119,34,0.3)}
+/* ══ CONFIGURACOES · FINANCEIRO POR ESPACO ══
+   Um card por espaco: nome + etiqueta PADRAO + "Habilitar financeiro" em
+   cima, campos de taxa embaixo. */
+.cfg-fin-esp{
+  background:var(--ink-2);border:1px solid var(--border);
+  border-radius:10px;padding:12px 14px;
+}
+.cfg-fin-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cfg-fin-nome{font-size:13px;font-weight:700;color:var(--text);flex:1;min-width:0}
+.cfg-fin-campos{margin-top:10px;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:768px){
+  /* Nome do espaco ocupa a linha inteira. Espremido entre a etiqueta
+     PADRAO e o "Habilitar financeiro", sobrava-lhe uma tira de ~90px e
+     "Salao de Festa" descia em tres linhas, uma palavra em cada. */
+  .cfg-fin-nome{flex:1 0 100%}
+  /* Uma coluna. Em duas, cada campo ficava com ~165px e o rotulo "Taxa
+     normal — vale o dia todo (R$)" — maiusculas e espacado — ocupava
+     tres linhas, mais alto que o proprio campo. */
+  .cfg-fin-campos{grid-template-columns:1fr}
+}
+
 /* Card da reserva.
 
    No desktop, conteúdo à esquerda e botões numa coluna à direita. No
@@ -12013,9 +12052,9 @@ function renderCfgReservas(){
       const hnoite    = cfgRes['fin_'+chv+'_hnoite']    || '';
       const taxaNoite = cfgRes['fin_'+chv+'_taxanoite'] ?? '';
       const padrao= ESPACOS_FIN_PADRAO.includes(esp);
-      return `<div style="background:var(--ink-2);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span style="font-size:13px;font-weight:700;color:var(--text);flex:1">${esp}</span>
+      return `<div class="cfg-fin-esp">
+        <div class="cfg-fin-hd">
+          <span class="cfg-fin-nome">${esp}</span>
           ${padrao?`<span title="Vem habilitado por padrão, mas você pode desligar" style="font-size:11px;color:var(--gold);background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.25);border-radius:6px;padding:2px 8px;font-weight:700">PADRÃO</span>`:''}
           ${`<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text-2)">
                 <input type="checkbox" data-fin-ativo="${chv}" ${ativo?'checked':''} style="accent-color:var(--gold);width:15px;height:15px" onchange="toggleFinEspaco(this,'${chv}')">
@@ -12023,7 +12062,7 @@ function renderCfgReservas(){
                </label>`
           }
         </div>
-        <div id="cfg-fin-campos-${chv}" style="margin-top:10px;display:${ativo?'grid':'none'};grid-template-columns:1fr 1fr;gap:10px">
+        <div id="cfg-fin-campos-${chv}" class="cfg-fin-campos" style="display:${ativo?'grid':'none'}">
           <div class="fg" style="margin:0"><label>Taxa normal — vale o dia todo (R$)</label>
             <input type="number" data-fin-taxa="${chv}" oninput="_cfgFinPrevia('${chv}')" value="${taxa}" placeholder="0,00" min="0" step="0.01"
               style="padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;outline:none;width:100%">
@@ -13437,6 +13476,40 @@ function _igTexto(valor, vazio){
   return t ? '<div class="ig-texto">' + escHtml(t) + '</div>' : _igVazio(vazio);
 }
 
+/* Marcas desenhadas no proprio HTML (SVG), nao glifos de fonte.
+
+   Duas razoes. A primeira: e o simbolo de verdade — o balao do WhatsApp
+   com o telefone dentro, e o fone classico —, nao uma aproximacao do
+   conjunto de icones. A segunda: fonte de icone que nao carrega deixa
+   quadradinho vazio ou letra solta no lugar do botao; o desenho embutido
+   aparece sempre, inclusive sem internet.
+
+   fill:currentColor faz a marca herdar a cor do botao, entao a cor mora
+   num lugar so, no CSS. */
+function _icoWhatsapp(){
+  return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+    + '<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15'
+    + '-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475'
+    + '-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52'
+    + '.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207'
+    + '-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372'
+    + '-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487'
+    + '.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413'
+    + '.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004'
+    + 'a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374'
+    + 'a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898'
+    + 'a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297'
+    + 'A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945'
+    + 'L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893'
+    + 'a11.821 11.821 0 00-3.485-8.411"/></svg>';
+}
+function _icoTelefone(){
+  return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+    + '<path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24'
+    + '1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17'
+    + '0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>';
+}
+
 function _igLinhaTelefone(t, i, comWhats){
   var num = String(t.numero||'');
   var wa = comWhats && t.whats ? _igWhatsLink(num) : '';
@@ -13450,9 +13523,13 @@ function _igLinhaTelefone(t, i, comWhats){
     +   (tel ? '<a class="ig-tel-num" href="' + escHtml(tel) + '">' + escHtml(_igFormataTel(num)) + '</a>'
             : '<span class="ig-tel-num">' + escHtml(_igFormataTel(num)) + '</span>')
     +   (tel ? '<a class="ig-ligar" href="' + escHtml(tel) + '" title="Ligar para ' + escHtml(t.nome||num) + '">'
-             + '<i class="fa-solid fa-phone"></i></a>' : '')
+             + _icoTelefone() + '</a>' : '')
+    /* Sem WhatsApp (fixo), entra um vazio do mesmo tamanho: assim o botao
+       de ligar fica sempre na MESMA coluna, linha a linha. Antes ele
+       pulava para a direita nos fixos e a lista ficava desalinhada. */
     +   (wa ? '<a class="ig-wa" href="' + escHtml(wa) + '" target="_blank" rel="noopener" title="Conversar no WhatsApp">'
-             + '<i class="fa-brands fa-whatsapp"></i></a>' : '')
+             + _icoWhatsapp() + '</a>'
+            : '<span class="ig-wa-vazio" aria-hidden="true"></span>')
     + '</div>'
     + '</div>';
 }
