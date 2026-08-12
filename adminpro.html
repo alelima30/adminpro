@@ -1328,7 +1328,10 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
   color:#fff;text-decoration:none;
   transition:filter .2s,transform .1s;
 }
-.ig-ligar svg{width:17px;height:17px;display:block}
+/* 15px, nao 17: o fone macico ocupa a moldura toda, enquanto a marca do
+   WhatsApp tem margem branca embutida no proprio desenho. Igualar o numero
+   deixaria o laranja maior que o verde aos olhos. Os dois batem assim. */
+.ig-ligar svg{width:15px;height:15px;display:block}
 .ig-ligar:hover{filter:brightness(1.08)}
 .ig-ligar:active{transform:scale(0.94)}
 
@@ -9700,6 +9703,8 @@ async function marcarPagoReserva(id, pago){
   }
   toast(pago ? '✓ Pagamento confirmado.' : 'Pagamento voltou para pendente.');
   try{ verificarAlertas(); }catch(_){}
+  // Tira (ou traz de volta) a cobranca da janelinha na mesma hora.
+  try{ _reslRedesenhar(); }catch(_){}
 }
 
 /* ══════════════════════════
@@ -10976,7 +10981,17 @@ function dispensarAlertas(){
    para TODA reserva que está chegando, justamente porque ninguém precisou
    lembrar de ligar. */
 
-var _RESL_JANELA = 60;   // minutos de antecedência do aviso
+var _RESL_JANELA = 60;   // minutos de antecedência do aviso "está chegando"
+
+// Data de hoje no fuso de quem está olhando (YYYY-MM-DD). toISOString() aqui
+// daria errado: ele converte para UTC e, das 21h em diante no Brasil, "hoje"
+// já viraria amanhã.
+function _reslHojeISO(){
+  var d = new Date();
+  return d.getFullYear() + '-' +
+         String(d.getMonth()+1).padStart(2,'0') + '-' +
+         String(d.getDate()).padStart(2,'0');
+}
 
 // Início e fim de uma reserva como instantes de verdade, para dar conta
 // de "já começou e ainda está rolando".
@@ -11039,6 +11054,12 @@ function _reslPendentes(ignorarVistos){
     var fase;
     if(agora >= q.ini.getTime() && agora < q.fim.getTime()) fase = 'agora';
     else if(minsPara > 0 && minsPara <= _RESL_JANELA)       fase = 'breve';
+    /* O resto do dia de hoje tambem conta. Antes o aviso so acordava na
+       ultima hora: uma reserva das 18h nao existia para quem abriu o painel
+       de manha, e a administracao passava o dia sem saber o que ia acontecer.
+       Agora a pergunta que a janelinha responde e "o que tem hoje?", nao "o
+       que comeca ja". */
+    else if(minsPara > 0 && r.data === _reslHojeISO())     fase = 'hoje';
     else return;
     var chave = r.id + '|' + fase;
     if(!ignorarVistos && _reslCalado(marcas, chave)) return;
@@ -11096,6 +11117,7 @@ function _reslFrase(it){
   var r = it.r;
   var quem = (r.nome||'').trim() || 'sem nome';
   if(it.fase === 'agora') return 'Agora vai ter a reserva do(a) <b>'+escHtml(quem)+'</b>';
+  if(it.fase === 'hoje')  return 'Hoje tem a reserva do(a) <b>'+escHtml(quem)+'</b>';
   if(it.mins <= 1)        return 'Daqui a 1 minuto tem a reserva do(a) <b>'+escHtml(quem)+'</b>';
   if(it.mins < 60)        return 'Daqui a '+it.mins+' minutos tem a reserva do(a) <b>'+escHtml(quem)+'</b>';
   return 'Daqui a 1 hora tem a reserva do(a) <b>'+escHtml(quem)+'</b>';
@@ -11112,13 +11134,46 @@ function _reslFrase(it){
 var _RESL_HIST_DIAS = 7;
 var _RESL_HIST_MAX  = 30;
 
+/* O historico guarda uma FRASE congelada no dia em que o aviso apareceu.
+   Para "Comecou a reserva do Fulano" isso esta certo: aconteceu, e continua
+   tendo acontecido. Para "Fulano nao pagou" esta errado — aquilo nao e um
+   fato do passado, e uma afirmacao sobre AGORA, e ela vence no instante em
+   que o pagamento entra.
+
+   O sintoma era perverso: marcar como pago FAZIA a pessoa reaparecer. Ela
+   saia da lista de pendentes, deixava de ser filtrada como "ja esta na tela"
+   e voltava pela porta dos fundos, no "Ja apareceram", ainda dizendo que
+   devia. Quem pagou virava o unico nome que sobrava na tela.
+
+   Entao todo aviso de pagamento e reconferido contra a reserva de verdade
+   antes de aparecer. Se pagou, foi isento, foi cancelada ou sumiu, o aviso
+   nao e mostrado — e sai do armazenamento, para nao voltar amanha. */
+function _reslHistPgtoVencido(h){
+  var chave = String(h && h.chave || '');
+  if(chave.slice(-5) !== '|pgto') return false;        // nao e aviso de pagamento
+  var rid = chave.slice(0, -5);
+  var r = (G('reservas')||[]).find(function(x){ return String(x.id) === rid; });
+  if(!r) return true;                                   // reserva apagada
+  if(r.status === 'cancelada') return true;
+  if((r.pgto||'') !== 'pendente') return true;          // pago ou isento
+  return !(parseFloat(r.taxa) > 0);                     // taxa zerada depois
+}
+
 function _reslHistLer(){
   var corte = Date.now() - _RESL_HIST_DIAS*86400000;
   var lista;
   try{ lista = JSON.parse(localStorage.getItem('apvc_res_lembrete_hist')||'[]'); }
   catch(_){ return []; }
   if(!Array.isArray(lista)) return [];
-  return lista.filter(function(x){ return x && x.ts > corte; });
+
+  var vivos = lista.filter(function(x){ return x && x.ts > corte; });
+  var validos = vivos.filter(function(x){ return !_reslHistPgtoVencido(x); });
+
+  // Faxina: o que venceu nao precisa ocupar espaco ate expirar por idade.
+  if(validos.length !== vivos.length){
+    try{ localStorage.setItem('apvc_res_lembrete_hist', JSON.stringify(validos)); }catch(_){}
+  }
+  return validos;
 }
 
 function _reslHistGravar(novos){
@@ -11184,8 +11239,12 @@ function resLembreteChecar(forcado){
   if(itens.length){
     if(pagMostra.length) html += titulo('Começando');
     html += itens.map(function(it){
-      return linha(it.fase==='agora' ? 'var(--red)' : 'var(--gold)',
-                   _reslFrase(it), doEspaco(it.r));
+      // Vermelho e "acontecendo", dourado e "ja ja". O resto do dia fica em
+      // cinza: e informacao, nao urgencia — e urgencia em tudo nao e urgencia.
+      var cor = it.fase==='agora' ? 'var(--red)'
+              : it.fase==='hoje'  ? 'var(--border-h)'
+              :                     'var(--gold)';
+      return linha(cor, _reslFrase(it), doEspaco(it.r));
     }).join('');
   }
   if(pagMostra.length){
@@ -11239,10 +11298,28 @@ function resLembreteChecar(forcado){
 function _reslFraseSimples(it){
   var quem = (it.r.nome||'').trim() || 'sem nome';
   if(it.fase==='agora') return 'Começou a reserva de '+quem;
+  if(it.fase==='hoje')  return 'Reserva de '+quem+' marcada para hoje';
   return 'Reserva de '+quem+' estava para começar';
 }
 function _reslDetalhe(r){
   return (r.espaco||'—')+' • '+(r.horario||'—')+(r.lote?(' • Lote '+r.lote):'');
+}
+
+/* Redesenha a janelinha que ESTA aberta, sem marcar nada como visto.
+
+   Serve para o caso em que o dado muda com o aviso na tela: marcar a taxa
+   como paga tem de tirar aquela linha na hora. Sem isto, a cobranca de quem
+   acabou de pagar ficava olhando para o operador ate ele fechar a janela na
+   mao — e a duvida ("sera que gravou?") nasce exatamente ai.
+
+   Nao usa resLembreteFechar de proposito: fechar marca como visto, e o que
+   nao foi lido nao pode ser dado por lido. */
+function _reslRedesenhar(){
+  var el = $('m-res-lembrete');
+  if(!el || !el.classList.contains('open')) return;
+  el.classList.remove('open');
+  window._reslMostrando = [];
+  try{ resLembreteChecar(); }catch(_){}   // nao reabre se nao sobrou nada
 }
 
 /* Só marca como visto ao FECHAR. Se a página cair com o aviso aberto, ele
@@ -11276,6 +11353,43 @@ function atualizarReservas(){
 
 // De minuto em minuto, e só quando o painel de Reservas está à vista.
 setInterval(function(){ try{ resLembreteChecar(); }catch(_){} }, 60000);
+
+/* Releitura das reservas no servidor, a cada 15 minutos.
+
+   O aviso de minuto em minuto acima relia a MEMORIA do navegador, nao o
+   banco. Enquanto a aba ficasse aberta, ela nunca ficava sabendo do que
+   outra pessoa fez: o sindico marcava a taxa como paga no celular dele e a
+   tela do escritorio seguia cobrando, com toda a razao do mundo do ponto de
+   vista dela — o dado dela era de horas atras.
+
+   Agora a janelinha olha o banco de verdade. So enquanto o painel de
+   Reservas esta aberto: releitura em tela que ninguem esta vendo e gasto
+   sem dono. */
+var _RESL_RELEITURA_MIN = 15;
+
+async function _reslReler(){
+  if(typeof currentPanel === 'undefined' || currentPanel !== 'reservas') return;
+  if(!window.SB) return;
+  if(document.hidden) return;              // aba em segundo plano: espera voltar
+  try{
+    var res = await SB.from('reservas').select('*').eq('condominio_id', _condAtual);
+    if(res.error || !res.data) return;     // falhou: fica com o que ja tinha
+    var arr = res.data.map(_resRowToApp);
+    DB_CACHE['reservas'] = arr;
+    try{ localStorage.setItem('apvc_reservas', JSON.stringify(arr)); }catch(_){}
+    try{ renderReservas(); }catch(_){}
+    try{ verificarAlertas(); }catch(_){}
+    try{ resLembreteChecar(); }catch(_){}
+  }catch(_){ /* sem rede: a proxima rodada tenta de novo */ }
+}
+
+setInterval(function(){ _reslReler(); }, _RESL_RELEITURA_MIN*60000);
+
+// Voltar para a aba depois de um tempo fora é o momento em que o dado mais
+// provavelmente está velho — relê na hora, sem esperar o ciclo fechar.
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden) _reslReler();
+});
 
 /* ══════════════════════════
    REGULAMENTO
@@ -13589,11 +13703,25 @@ function _icoWhatsapp(){
     + 'L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893'
     + 'a11.821 11.821 0 00-3.485-8.411"/></svg>';
 }
+/* Fone de ouvido do botao "Ligar".
+
+   O desenho anterior era o telefone do Material, que tem um recorte vazado
+   no meio do fone. Em 17px aquele vazio come quase toda a peca: sobrava um
+   risco fino e torto, que ao lado da marca do WhatsApp — cheia e redonda —
+   parecia um icone quebrado. Nao estava torto, estava magro demais para o
+   tamanho em que e usado.
+
+   Este e o fone do Font Awesome, que o app ja carrega para todo o resto:
+   macico, sem vazado, e aguenta ficar pequeno. Fica desenhado aqui em vez
+   de <i class="fa-solid fa-phone"> de proposito: se a fonte de icones
+   demorar ou falhar, o botao de LIGAR e o ultimo que pode virar quadrado
+   em branco. */
 function _icoTelefone(){
-  return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
-    + '<path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24'
-    + '1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17'
-    + '0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>';
+  return '<svg viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">'
+    + '<path d="M164.9 24.6c-7.7-18.6-28-28.5-47.4-23.2l-88 24C12.1 30.2 0 46 0 64'
+    + 'c0 247.4 200.6 448 448 448 18 0 33.8-12.1 38.6-29.5l24-88c5.3-19.4-4.6-39.7-23.2-47.4'
+    + 'l-96-40c-16.3-6.8-35.2-2.1-46.3 11.6L304.7 368C234.3 334.7 177.3 277.7 144 207.3'
+    + 'L193.3 167c13.7-11.2 18.4-30 11.6-46.3l-40-96z"/></svg>';
 }
 
 function _igLinhaTelefone(t, i, comWhats){
