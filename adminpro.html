@@ -1964,6 +1964,31 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 .cfg-disp-fld.num input{ width:76px }
 .cfg-disp-fld.slots{ flex:1;min-width:260px }
 .cfg-disp-fld.slots input{ flex:1;min-width:170px }
+/* Confirmacao do administrador. Ocupa a linha inteira porque o rotulo e
+   as opcoes sao textos, nao numeros de 3 digitos como os campos vizinhos.
+
+   O min-width:0 no select e o que segura tudo: sem ele o campo cresce ate
+   caber a maior opcao inteira, e no celular ele saia pela direita da tela,
+   levando o texto junto. Campo de texto dentro de flex nao encolhe sozinho
+   -- a largura minima dele e o conteudo, a nao ser que se diga o contrario. */
+.cfg-disp-fld.confmodo{ flex:1 1 100%;min-width:0;gap:8px }
+.cfg-disp-fld.confmodo select{
+  flex:1;min-width:0;max-width:100%;
+  padding:6px 8px;border-radius:6px;border:1px solid var(--border);
+  background:var(--card);color:var(--text);font-size:13px;outline:none;cursor:pointer;
+}
+/* A frase que explica o que a opcao faz naquele espaco. */
+.cfg-disp-nota{
+  flex:1 1 100%;min-width:0;
+  font-size:11.5px;color:var(--text-3);line-height:1.6;margin-top:-2px;
+}
+@media(max-width:768px){
+  /* Rotulo em cima, campo embaixo ocupando a largura toda: lado a lado,
+     "Confirmacao do administrador:" quebrava em tres linhas e espremia o
+     select num canto. */
+  .cfg-disp-fld.confmodo{ flex-direction:column;align-items:stretch;gap:5px }
+  .cfg-disp-fld.confmodo select{ width:100% }
+}
 .cfg-disp-check{ display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--text-2);cursor:pointer;margin-top:12px;line-height:1.45 }
 
 /* ══════════════════════════════
@@ -12784,13 +12809,13 @@ function renderCfgDisponibilidade(){
       '<label class="cfg-disp-fld num"><span>Intervalo entre reservas (h):</span><input type="number" min="0" step="0.5" data-disp-interv="'+chv+'" value="'+interv+'" placeholder="0" title="A mesma unidade só reserva este espaço de novo depois de N horas. Ex: 4 = reservou de manhã, só pode à noite. Conta do fim de uma reserva ao início da outra. 0 = sem intervalo."></label>'+
       '<label class="cfg-disp-fld slots"><span>Horários permitidos:</span><input type="text" data-disp-slots="'+chv+'" value="'+slots+'" placeholder="Ex: 07:00–08:00, 08:00–09:00 (vazio = padrão)" title="Somente estes horários aparecem para o morador. Separe por vírgula."></label>'+
       '</div>'+
-      '<label class="cfg-disp-fld" style="grid-column:1/-1;margin-top:2px"><span>Confirmação do administrador:</span>'+
+      '<label class="cfg-disp-fld confmodo"><span>Confirmação do administrador:</span>'+
         '<select data-disp-confmodo="'+chv+'" title="Quando a reserva do morador precisa esperar aprovação. &quot;Só quando houver taxa&quot; usa o horário de virada da taxa, configurado na aba Financeiro deste espaço.">'+
-          '<option value="nunca" '  +(confmodo==='nunca' ?'selected':'')+'>Nunca — a reserva já entra confirmada</option>'+
-          '<option value="sempre" ' +(confmodo==='sempre'?'selected':'')+'>Sempre — toda reserva fica pendente</option>'+
-          '<option value="taxa" '   +(confmodo==='taxa'  ?'selected':'')+'>Só quando houver taxa a pagar</option>'+
+          '<option value="nunca" '  +(confmodo==='nunca' ?'selected':'')+'>Nunca — já entra confirmada</option>'+
+          '<option value="sempre" ' +(confmodo==='sempre'?'selected':'')+'>Sempre — fica pendente</option>'+
+          '<option value="taxa" '   +(confmodo==='taxa'  ?'selected':'')+'>Só quando houver taxa</option>'+
         '</select></label>'+
-      '<div style="grid-column:1/-1;font-size:11.5px;color:var(--text-3);line-height:1.6;margin:-2px 0 2px">'+_confModoExplica(cfg,esp,chv)+'</div>'+
+      '<div class="cfg-disp-nota">'+_confModoExplica(cfg,esp,chv)+'</div>'+
       '</div>';
   }).join('');
 }
