@@ -5322,34 +5322,93 @@ const S = (k, v) => {
     if(cfg.superOnly && !_isSuper) return;   // so super-admin grava condominios
     _sincronizarTabela(cfg, v).catch(e=>console.error('sync '+k, e.message||e));
   } else {
-    SB.from('modulo_dados').upsert({ condominio_id:_condAtual, modulo:k, valor:v }, { onConflict:'condominio_id,modulo' })
-      .then(r=>{ if(r.error) console.error('modulo_dados '+k, r.error.message); });
+    _modBlocoGravar(k, v);
   }
 };
 
-// Sincroniza tabela normalizada com o objeto {cod:{...}} do app (upsert + apaga removidos)
+/* ── Modulos guardados em bloco (Informacoes Gerais, Comunicados,
+      Regulamento, Classificacoes...) ───────────────────────────────────
+
+   Estes nao tem tabela: o modulo inteiro e um unico JSON. Isso significa
+   que gravar sobrescreve TUDO — inclusive o que outra pessoa acabou de
+   escrever e que este aparelho nem chegou a ver. O trabalho dela sumia
+   sem erro e sem aviso.
+
+   A tabela ja carimba "atualizado_em". Entao, antes de gravar, olhamos o
+   carimbo do servidor: se ele mudou desde que este aparelho leu, tem
+   alguem mais mexendo e a gravacao para. Nao tenta fundir os dois textos
+   — fusao automatica de texto erra e vira um estrago pior. Prefere
+   avisar e deixar a pessoa decidir.
+
+   Nao havendo carimbo conhecido (primeira gravacao, leitura falhada),
+   grava normal: sem base de comparacao, travar seria so atrapalhar. */
+var _MOD_LIDO_EM = {};
+
+async function _modBlocoGravar(k, v){
+  try{
+    var lido = _MOD_LIDO_EM[k];
+    if(lido){
+      var atual = await SB.from('modulo_dados')
+        .select('atualizado_em').eq('condominio_id', _condAtual).eq('modulo', k).maybeSingle();
+      var servidor = atual && atual.data && atual.data.atualizado_em;
+      if(servidor && servidor !== lido){
+        toast('⚠️ Outra pessoa alterou isto enquanto você editava. '
+            + 'Nada foi gravado — recarregue a página (F5) e refaça a alteração.');
+        return { ok:false, conflito:true };
+      }
+    }
+    var r = await SB.from('modulo_dados')
+      .upsert({ condominio_id:_condAtual, modulo:k, valor:v }, { onConflict:'condominio_id,modulo' })
+      .select('atualizado_em').maybeSingle();
+    if(r.error){ console.error('modulo_dados '+k, r.error.message); return { ok:false, erro:r.error.message }; }
+    // A gravacao vira a nova base: sem isto, o proximo salvar do mesmo
+    // aparelho acusaria conflito com ele mesmo.
+    if(r.data && r.data.atualizado_em) _MOD_LIDO_EM[k] = r.data.atualizado_em;
+    return { ok:true };
+  }catch(e){
+    console.error('modulo_dados '+k, e && e.message);
+    return { ok:false, erro:e && e.message };
+  }
+}
+
+/* Sincroniza tabela normalizada: SO cria e atualiza. NAO apaga.
+
+   Antes apagava: mandava a lista inteira do aparelho e o banco removia
+   toda linha que nao estivesse nela. Com duas pessoas na administracao,
+   bastava uma estar com a lista velha para levar embora o que a outra
+   tinha acabado de cadastrar — sem aviso, sem erro, sem rastro.
+
+   Nao era hipotese: o app fica aberto no celular a manha inteira com a
+   lista de quando abriu. Editar UM telefone e salvar ja bastava.
+
+   Agora salvar so acrescenta e atualiza. Apagar virou pedido proprio, um
+   registro por vez, em _excluirLinhaSB — so acontece quando alguem clica
+   em excluir. O pior que pode acontecer e um registro excluido reaparecer
+   numa tela desatualizada: chato, e reversivel. */
 async function _sincronizarTabela(cfg, obj){
   const rows = Object.entries(obj||{}).map(function(e){ return cfg.toRow(e[0], e[1]); });
+  if(!rows.length) return;
   const conflict = cfg.hasCond ? ('condominio_id,'+cfg.pk) : cfg.pk;
-  if(rows.length){
-    const up = await SB.from(cfg.tabela).upsert(rows, { onConflict:conflict });
-    if(up.error) throw up.error;
-  }
-  /* Objeto vazio nunca autoriza apagar tudo. Sem lista de códigos a
-     preservar, o delete abaixo varreria a tabela inteira do condomínio —
-     e a única forma de chegar aqui com zero linhas é o cache ter se
-     perdido. Esvaziar de propósito se faz um a um, pela tela. */
-  const keys = rows.map(function(r){ return r[cfg.pk]; });
-  if(!keys.length){
-    console.error('sync '+cfg.tabela+': objeto vazio — nada foi apagado (era o cache que estava vazio, nao a tabela).');
-    return;
-  }
-  let q = SB.from(cfg.tabela).delete();
+  const up = await SB.from(cfg.tabela).upsert(rows, { onConflict:conflict });
+  if(up.error) throw up.error;
+}
+
+/* Apaga UMA linha, a pedido. Contraparte do de cima: exclusao deixou de
+   ser efeito colateral de salvar e passou a ser uma acao com nome. */
+async function _excluirLinhaSB(k, cod){
+  if(!SB) return { ok:true, offline:true };
+  const cfg = _NORM[k];
+  if(!cfg) return { ok:true };                    // modulo em bloco: nao se aplica
+  if(cfg.superOnly && !_isSuper)  return { ok:false, erro:'sem permissao' };
+  if(!_podeGravarModulo(k))       return { ok:false, erro:'sem permissao' };
+  let q = SB.from(cfg.tabela).delete().eq(cfg.pk, cod);
   if(cfg.hasCond) q = q.eq('condominio_id', _condAtual);
-  const lista = '(' + keys.map(function(x){ return '"'+String(x).replace(/"/g,'')+'"'; }).join(',') + ')';
-  q = q.not(cfg.pk, 'in', lista);
-  const del = await q;
-  if(del.error) throw del.error;
+  const r = await q;
+  if(r.error){
+    console.error('excluir '+cfg.tabela, r.error.message);
+    return { ok:false, erro:r.error.message };
+  }
+  return { ok:true };
 }
 
 // Carrega tudo do Supabase para o cache (nome mantido por compatibilidade)
@@ -5380,9 +5439,16 @@ async function loadAllFromFirestore(){
     _cargaMarcar('saas_condominios', true);
   }catch(_){ _falhou.push('condomínios'); }
   try{
-    const res = await SB.from('modulo_dados').select('modulo,valor').eq('condominio_id', _condAtual);
+    const res = await SB.from('modulo_dados')
+      .select('modulo,valor,atualizado_em').eq('condominio_id', _condAtual);
     if(res.error) throw res.error;
-    (res.data||[]).forEach(function(r){ DB_CACHE[r.modulo]=r.valor; try{ localStorage.setItem('apvc_'+r.modulo, JSON.stringify(r.valor)); }catch(_){} });
+    (res.data||[]).forEach(function(r){
+      DB_CACHE[r.modulo]=r.valor;
+      // Guarda QUANDO esta versao foi lida, para saber depois se alguem
+      // mexeu enquanto a pessoa editava (ver _modBlocoGravar).
+      _MOD_LIDO_EM[r.modulo] = r.atualizado_em || '';
+      try{ localStorage.setItem('apvc_'+r.modulo, JSON.stringify(r.valor)); }catch(_){}
+    });
     _cargaMarcar('__modulos', true);
   }catch(_){ _falhou.push('configurações'); }
 
@@ -5866,6 +5932,7 @@ function saasExcluir(){
   if(cod==='APVC'){ toast('⚠️ O condomínio principal não pode ser excluído.'); return; }
   if(!confirm('Excluir o condomínio '+cod+'?')) return;
   const cs=getSaasCondominios(); delete cs[cod];
+  _excluirLinhaSB('saas_condominios', cod);
   S('saas_condominios',cs);
   saasFecharForm(); renderSaas();
 }
@@ -6578,6 +6645,7 @@ function excluirUnidade(cod){
   const dados = getUnidades();
   delete dados[cod];
   S('unidades', dados);
+  _excluirLinhaSB('unidades', cod);   // salvar nao apaga mais: o pedido e este
   toast('🗑️ Dados da unidade '+cod+' removidos.');
   renderUnidades();
 }
@@ -6727,6 +6795,7 @@ function excluirLocalizacao(cod){
   const dados = getLocalizacoes();
   delete dados[cod];
   S('localizacoes', dados);
+  _excluirLinhaSB('localizacoes', cod);
   toast('\ud83d\uddd1\ufe0f Localiza\u00e7\u00e3o removida.');
   renderLocalizacoes();
 }
@@ -7060,7 +7129,9 @@ function conExcluirForm(){
   if(!cod || !getCondominos()[cod]){ toast('\u26a0\ufe0f Pesquise um cond\u00f4mino para excluir.'); return; }
   if(!confirm('Remover o cond\u00f4mino '+cod+'?')) return;
   const dados=getCondominos(); delete dados[cod];
-  S('condominos',dados); toast('\ud83d\uddd1\ufe0f Cond\u00f4mino removido.');
+  S('condominos',dados);
+  _excluirLinhaSB('condominos', cod);
+  toast('\ud83d\uddd1\ufe0f Cond\u00f4mino removido.');
   conNovoCondomino(); renderCondominos();
 }
 
