@@ -765,7 +765,7 @@ bloco('Lembrete "daqui a X tem a reserva do Fulano"', () => {
 
   const api = carregar(
     ['_resComecaEm', '_reslQuando', '_reslVistos', '_reslMarcar', '_reslCalado', '_reslPendentes',
-     '_reslFrase', 'hrIni', 'hrFim', '_minHora'],
+     '_reslFrase', '_reslHojeISO', 'hrIni', 'hrFim', '_minHora'],
     {
       window: JANELA,
       G: () => RESERVAS,
@@ -795,8 +795,21 @@ bloco('Lembrete "daqui a X tem a reserva do Fulano"', () => {
   RESERVAS = [daquiA(1, 'Lucas', 45, 120)];
   checa('reserva daqui a 45min entra como "breve"', nomes(), ['breve:Lucas']);
 
-  RESERVAS = [daquiA(2, 'Ana', 300, 120)];
-  checa('daqui a 5 horas ainda não avisa', nomes(), []);
+  /* Antes o aviso só acordava na última hora, e uma reserva das 18h não
+     existia para quem abriu o painel de manhã. Agora o resto do dia de HOJE
+     também entra, numa fase mais calma ("hoje"). Amanhã continua fora: a
+     janelinha responde "o que tem hoje?", não "o que tem essa semana?".
+
+     A expectativa depende de a soma ainda cair no mesmo dia — rodando o
+     teste às 22h, "daqui a 5 horas" já é amanhã, e aí o certo é não avisar. */
+  const cincoHoras = daquiA(2, 'Ana', 300, 120);
+  RESERVAS = [cincoHoras];
+  checa('daqui a 5 horas, ainda hoje: entra como "hoje"',
+        nomes(), cincoHoras.data === api._reslHojeISO() ? ['hoje:Ana'] : []);
+
+  const amanha = daquiA(21, 'Íris', 26 * 60, 120);   // 26h: sempre outro dia
+  RESERVAS = [amanha];
+  checa('reserva de amanhã não avisa hoje', nomes(), []);
 
   RESERVAS = [daquiA(3, 'Bruno', -10, 120)];
   checa('começou há 10min e ainda está rolando: "agora"', nomes(), ['agora:Bruno']);
@@ -1125,14 +1138,19 @@ bloco('Aprovação avisa quando o pagamento não foi confirmado', () => {
 // ── Histórico de lembretes ─────────────────────────────────────────────
 bloco('Lembretes recentes', () => {
   let GUARDADO = {};
-  const api = carregar(['_reslHistLer', '_reslHistGravar', '_reslQuandoFoi'], {
-    localStorage: {
-      getItem: (k) => (GUARDADO[k] === undefined ? null : GUARDADO[k]),
-      setItem: (k, v) => { GUARDADO[k] = v; },
-    },
-    _RESL_HIST_DIAS: 7,
-    _RESL_HIST_MAX: 30,
-  });
+  const api = carregar(
+    ['_reslHistLer', '_reslHistGravar', '_reslQuandoFoi', '_reslHistPgtoVencido'], {
+      localStorage: {
+        getItem: (k) => (GUARDADO[k] === undefined ? null : GUARDADO[k]),
+        setItem: (k, v) => { GUARDADO[k] = v; },
+      },
+      // As chaves deste bloco não são de pagamento ("a", "b"...), então a
+      // reconferência de cobrança nem chega a consultar as reservas. Ela é
+      // testada com dado de verdade em tests/lembretes.test.js.
+      G: () => [],
+      _RESL_HIST_DIAS: 7,
+      _RESL_HIST_MAX: 30,
+    });
   const agora = Date.now();
   const dias = (n) => agora - n * 86400000;
   const chaves = () => api._reslHistLer().map((x) => x.chave);
