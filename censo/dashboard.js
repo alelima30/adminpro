@@ -31,8 +31,11 @@
    * Inicialização
    * ======================================================================== */
   async function init() {
+    let erroLeitura = null;
+    let totalRecebido = 0;
     try {
       const registros = await CensoData.listar();
+      totalRecebido = registros.length;
       // Inclui lotes com moradores e terrenos marcados (ignora linhas vazias
       // sem marcação, que não representam resposta)
       state.registros = registros.filter(
@@ -40,12 +43,27 @@
       );
     } catch (e) {
       console.error('Falha ao carregar dados:', e);
+      erroLeitura = e && e.message ? e.message : String(e);
       state.registros = [];
     }
 
     if (state.registros.length === 0) {
       $('conteudo').classList.add('hidden');
       $('semDados').classList.remove('hidden');
+      // Diferencia "erro de leitura" de "banco realmente vazio"
+      const box = $('semDadosDetalhe');
+      if (box) {
+        if (erroLeitura) {
+          box.className = 'diag-erro';
+          box.textContent = `Não foi possível ler os dados: ${erroLeitura}`;
+        } else if (totalRecebido > 0) {
+          box.className = 'diag-aviso';
+          box.textContent = `O banco retornou ${totalRecebido} registro(s), mas nenhum tem morador ou marcação de terreno.`;
+        } else {
+          box.className = 'diag-aviso';
+          box.textContent = 'O banco de dados respondeu, mas está sem registros.';
+        }
+      }
       if (window.lucide) lucide.createIcons();
       return;
     }
