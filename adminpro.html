@@ -1562,7 +1562,23 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
   width:100vw!important;max-width:none!important;
   z-index:10050;border:none;border-radius:0;
   padding:16px 16px 64px;cursor:default;
+  display:flex;
 }
+/* A pagina e ajustada pela LARGURA — e o certo para ler, porque deixa o
+   texto no maior tamanho possivel sem obrigar a arrastar de lado. Mas
+   folha A4 e tela de celular tem formatos bem diferentes (0,71 contra
+   0,47), entao sobra altura: a pagina ocupa a largura toda e ainda fica
+   mais baixa que a tela.
+
+   Essa sobra e inevitavel. O que estava errado era o lugar dela: sem
+   nada centralizando na vertical, a pagina grudava no topo e a sobra
+   inteira caia embaixo, num bloco cinza que parecia a tela ter carregado
+   pela metade.
+
+   `margin:auto` num item flex centraliza nos dois eixos E, diferente de
+   `align-items:center`, nao corta o topo quando a pagina e mais alta que
+   a caixa e precisa rolar — que e o caso do zoom. */
+#inf-canvas-wrap.inf-tela-cheia #inf-pdf-canvas{ margin:auto }
 #inf-tela-cheia-barra{
   display:none;position:fixed;left:0;right:0;bottom:0;z-index:10051;
   align-items:center;justify-content:center;gap:14px;
