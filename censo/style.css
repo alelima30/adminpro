@@ -240,6 +240,16 @@ a { color: var(--accent); }
 .terreno-check input { width: 18px; height: 18px; accent-color: var(--brand); margin: 0; }
 .terreno-check:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); font-weight: 600; }
 
+/* Mensagens de diagnóstico (tela "sem dados" do dashboard) */
+.diag-aviso, .diag-erro {
+  margin: 0 auto 16px; max-width: 560px;
+  padding: 10px 14px; border-radius: var(--radius-sm);
+  font-size: 13px; line-height: 1.45; word-break: break-word;
+}
+.diag-aviso:empty, .diag-erro:empty { display: none; }
+.diag-aviso { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
+.diag-erro  { background: #fdeeee; color: #a3282a; border: 1px solid #f3d3d3; font-weight: 600; }
+
 /* Badge "Terreno" no relatório */
 .terreno-badge {
   display: inline-block; padding: 2px 10px; border-radius: 999px;
