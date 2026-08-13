@@ -69,8 +69,28 @@ bloco('Outros jeitos de a cobrança deixar de existir', () => {
   cenario([{ id: 99, status: 'confirmada', pgto: 'pendente', taxa: 0 }], [AVISO_FABRICIO]);
   checa('taxa zerada depois não cobra', _reslHistLer().length, 0);
 
-  cenario([], [AVISO_FABRICIO]);
+  // Lista NÃO vazia e sem o id 99: aí dá para concluir que a reserva sumiu.
+  cenario([{ id: 7, status: 'confirmada', pgto: 'pendente', taxa: 10 }], [AVISO_FABRICIO]);
   checa('reserva apagada não cobra', _reslHistLer().length, 0);
+});
+
+// Lista vazia é ambígua: pode ser "apagaram tudo" ou "ainda não carregou".
+// Como _reslHistLer REGRAVA o armazenamento sem o que considerou vencido,
+// tratar as duas igual apagaria de vez as cobranças dos últimos 7 dias por
+// causa de uma leitura feita no momento errado.
+bloco('Reservas ainda não carregadas não apagam o histórico', () => {
+  cenario([], [AVISO_FABRICIO]);
+  checa('com a lista vazia, o aviso permanece', _reslHistLer().length, 1);
+  checa('e continua no armazenamento',
+        JSON.parse(STORE['apvc_res_lembrete_hist']).length, 1);
+
+  RESERVAS = null;
+  STORE['apvc_res_lembrete_hist'] = JSON.stringify([AVISO_FABRICIO]);
+  checa('cache nulo também não apaga', _reslHistLer().length, 1);
+
+  // Assim que os dados chegam, a regra volta a valer normalmente.
+  cenario([{ id: 99, status: 'confirmada', pgto: 'pago', taxa: 150 }], [AVISO_FABRICIO]);
+  checa('com os dados na mão, o pago some', _reslHistLer().length, 0);
 });
 
 // ── O que o histórico deve preservar ───────────────────────────────────

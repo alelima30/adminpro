@@ -11349,8 +11349,22 @@ var _RESL_HIST_MAX  = 30;
 function _reslHistPgtoVencido(h){
   var chave = String(h && h.chave || '');
   if(chave.slice(-5) !== '|pgto') return false;        // nao e aviso de pagamento
+
+  /* Lista vazia nao quer dizer "as reservas sumiram", quer dizer "ainda nao
+     sei". E a mesma cara de um cache que nao carregou — logo depois de
+     entrar, com a rede lenta, ou na troca de condominio.
+
+     Isso importa porque _reslHistLer nao so esconde o aviso vencido: ele
+     REGRAVA o armazenamento sem ele. Com a lista vazia tratada como
+     "apagaram tudo", uma aberta dos Lembretes no momento errado limparia de
+     vez as cobrancas dos ultimos 7 dias — dado do usuario perdido por uma
+     leitura. Na duvida, nao mexe: o aviso continua e some sozinho na
+     proxima passada, ja com os dados na mao. */
+  var todas = G('reservas');
+  if(!Array.isArray(todas) || !todas.length) return false;
+
   var rid = chave.slice(0, -5);
-  var r = (G('reservas')||[]).find(function(x){ return String(x.id) === rid; });
+  var r = todas.find(function(x){ return String(x.id) === rid; });
   if(!r) return true;                                   // reserva apagada
   if(r.status === 'cancelada') return true;
   if((r.pgto||'') !== 'pendente') return true;          // pago ou isento
@@ -13290,9 +13304,10 @@ function salvarCfgReservas(){
     // junto em vez de ficar toda em "nunca".
     cfgRes['disp_'+c+'_confirmar'] = (sel.value === 'sempre');
   });
-  document.querySelectorAll('#cfg-disp-espacos [data-disp-confirmar]').forEach(function(cb){
-    cfgRes['disp_'+cb.dataset.dispConfirmar+'_confirmar'] = cb.checked;
-  });
+  /* Aqui existia um laco lendo [data-disp-confirmar], a caixinha de sim/nao
+     que o seletor de tres modos substituiu. Sem a caixinha na tela ele nao
+     encontrava nada e rodava a toa a cada salvamento. Quem grava o campo
+     antigo agora e o laco acima, a partir do modo escolhido. */
   document.querySelectorAll('#cfg-disp-espacos [data-disp-ativo]').forEach(function(cb){
     cfgRes['disp_'+cb.dataset.dispAtivo+'_ativo'] = cb.checked;
   });
