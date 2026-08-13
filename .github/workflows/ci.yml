@@ -101,45 +101,29 @@ jobs:
         run: echo "Funcoes publicadas. Confira em Supabase -> Edge Functions."
 
   # ────────────────────────────────────────────────────────────────
-  # 3) MIGRATIONS do banco (supabase/migrations/)
-  #    Roda DEPOIS das funcoes: a migration do cron aponta para a
-  #    funcao "lembrete", entao ela precisa existir antes.
-  #    Requer mais um segredo:
-  #      SUPABASE_DB_URL  (Supabase -> Project Settings -> Database
-  #                        -> Connection string -> URI, com a senha)
-  #    So aplica arquivo novo: o que ja foi aplicado fica registrado
-  #    em supabase_migrations.schema_migrations e nao roda de novo.
+  # NAO EXISTE JOB DE MIGRATIONS AQUI, e e de proposito.
+  #
+  #    Existiu um, que rodava "supabase db push" a cada envio para a main.
+  #    Ele nunca funcionou: exigia o segredo SUPABASE_DB_URL, que nunca foi
+  #    cadastrado, entao FALHAVA no primeiro passo em toda execucao.
+  #
+  #    Um CI que fica sempre vermelho e pior do que CI nenhum: ele ensina a
+  #    ignorar o X. Foi mais ou menos assim que, em 13/08, dois commits com
+  #    erro de sintaxe passaram -- o vermelho ja era paisagem.
+  #
+  #    E o job tambem contrariava a politica escrita em DEPLOY.md: mudanca
+  #    de banco e rodada A MAO no SQL Editor, de proposito, porque merece
+  #    revisao antes. Os arquivos em supabase/*.sql sao a fonte para isso.
+  #
+  #    Se um dia quiser automatizar: recrie o job, cadastre o segredo
+  #    SUPABASE_DB_URL (Supabase -> Project Settings -> Database ->
+  #    Connection string -> URI, com a senha) e resolva a duplicidade entre
+  #    supabase/*.sql e supabase/migrations/, que hoje descrevem as mesmas
+  #    mudancas em dois lugares.
   # ────────────────────────────────────────────────────────────────
-  migrar-banco:
-    needs: deploy-funcoes
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Conferir o segredo do banco
-        env:
-          DB: ${{ secrets.SUPABASE_DB_URL }}
-        run: |
-          if [ -z "$DB" ]; then
-            echo "::error::Nenhuma migration aplicada. Falta o segredo SUPABASE_DB_URL."
-            echo "Pegue em: Supabase -> Project Settings -> Database -> Connection string -> URI"
-            echo "Crie em:  Settings -> Secrets and variables -> Actions -> New repository secret"
-            exit 1
-          fi
-          echo "Segredo encontrado. Seguindo para as migrations."
-
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Aplicar migrations
-        env:
-          DB: ${{ secrets.SUPABASE_DB_URL }}
-        run: supabase db push --db-url "$DB" --include-all
 
   # ────────────────────────────────────────────────────────────────
-  # 4) PUBLICACAO DO SITE (adminprogestao.com.br)
+  # 3) PUBLICACAO DO SITE (adminprogestao.com.br)
   #
   #    Antes o GitHub Pages publicava direto da branch main, SEM esperar
   #    os testes. Em 13/08 isso custou caro: dois commits com erro de
@@ -150,11 +134,15 @@ jobs:
   #    Agora a publicacao e um passo daqui, com "needs: testes". Teste
   #    vermelho, site nao sobe: fica no ar a ultima versao que passou.
   #
-  #    EXIGE, uma vez so, em Settings -> Pages -> Build and deployment:
-  #      Source: GitHub Actions   (em vez de "Deploy from a branch")
-  #    Enquanto isso nao for feito, este job FALHA dizendo o que fazer --
-  #    de proposito. Pular calado deixaria o check verde mentir de novo,
-  #    que e exatamente o erro que este job existe para corrigir.
+  #    A origem do Pages precisa estar em "GitHub Actions" (Settings ->
+  #    Pages -> Build and deployment -> Source). Na primeira execucao o
+  #    proprio actions/configure-pages fez essa troca sozinho, porque este
+  #    job tem permissao pages:write -- nao foi preciso clicar em nada.
+  #
+  #    O passo de aviso abaixo ficou como rede: se alguem trocar a origem
+  #    de volta para "Deploy from a branch", ou se a permissao mudar, o job
+  #    FALHA dizendo o que fazer em vez de pular calado. Pular calado
+  #    deixaria o check verde mentir, que e o erro que este job corrige.
   # ────────────────────────────────────────────────────────────────
   publicar-site:
     needs: testes
