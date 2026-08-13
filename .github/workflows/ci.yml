@@ -36,6 +36,9 @@ jobs:
       - name: Lembretes de reserva (cobranca que ja foi paga)
         run: node tests/lembretes.test.js
 
+      - name: Assinaturas (a conta que vira nota fiscal)
+        run: node tests/assinaturas.test.js
+
   # ────────────────────────────────────────────────────────────────
   # 2) DEPLOY das Edge Functions do Supabase
   #    So roda na branch main e so se os testes passarem.
