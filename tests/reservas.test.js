@@ -4,7 +4,7 @@
 // As funções são lidas do próprio adminpro.html (ver tests/extrair.js),
 // então o teste valida exatamente o código que vai para o ar.
 
-const { carregar } = require('./extrair');
+const { carregar, lerFonte } = require('./extrair');
 
 let ok = 0, falhas = 0;
 function checa(descricao, obtido, esperado) {
@@ -204,6 +204,37 @@ bloco('Espaços de cada condomínio', () => {
 // ── Segurança: escape de HTML ──────────────────────────────────────────
 const seg = carregar(['escHtml']);
 
+/* Nome de espaco vira CHAVE de configuracao trocando tudo que nao e letra
+   ou numero por "_". Dois nomes diferentes podiam cair na mesma chave, e a
+   checagem que existia era so de nome: "Quadra 1" e "Quadra-1" passavam as
+   duas e viravam quadra_1.
+
+   O estrago nao aparecia na hora. Os dois espacos passavam a dividir dias,
+   horarios, taxa e aprovacao — mexer num mudava o outro — e excluir um
+   apagava as chaves dos dois, deixando o que sobrou sem taxa nenhuma. */
+bloco('Nomes diferentes não podem virar a mesma configuração', () => {
+  const { _chvEsp } = carregar(['_chvEsp']);
+
+  checa('espaço e hífen colidem',   _chvEsp('Quadra 1'), _chvEsp('Quadra-1'));
+  checa('ponto também',             _chvEsp('Salao de Festa'), _chvEsp('Salao.de.Festa'));
+  checa('barra também',             _chvEsp('Churrasqueira 2'), _chvEsp('Churrasqueira/2'));
+  checa('acento continua separando', _chvEsp('Salão') === _chvEsp('Salao'), false);
+  checa('nomes distintos seguem distintos',
+    _chvEsp('Piscina') === _chvEsp('Quiosque'), false);
+
+  // A recusa está escrita em criarEspaco e em renomearEspaco.
+  const src = lerFonte();
+  const criar = src.slice(src.indexOf('async function criarEspaco'),
+                          src.indexOf('async function excluirEspaco'));
+  checa('criar recusa nome que colide na chave',
+    /_chvEsp\(nome\)[\s\S]*se confunde com/.test(criar), true);
+  const renom = src.slice(src.indexOf('async function renomearEspaco'));
+  checa('renomear recusa nome que colide na chave',
+    /_chvEsp\(para\)[\s\S]{0,400}se confunde com/.test(renom), true);
+  checa('renomear não se acusa de colidir consigo mesmo',
+    /e !== de && _chvEsp\(e\) === _chvPara/.test(renom), true);
+});
+
 bloco('Escape de texto do usuário (XSS)', () => {
   checa('script vira texto inofensivo',
     seg.escHtml('<script>alert(1)</script>'),
@@ -220,6 +251,33 @@ bloco('Escape de texto do usuário (XSS)', () => {
   checa('indefinido vira string vazia', seg.escHtml(undefined), '');
   checa('texto normal não é alterado', seg.escHtml('Salão de Festa'), 'Salão de Festa');
   checa('número funciona', seg.escHtml(20), '20');
+});
+
+/* Onde o escape TEM de estar.
+   escHtml existir nao adianta se a linha que desenha esquecer de chamar.
+   Aqui a verificacao e sobre o codigo-fonte, porque o defeito nao esta na
+   funcao — esta em quem nao a usou. Foram encontrados assim: nome de espaco
+   e MOTIVO do bloqueio, os dois texto livre digitado pela administracao,
+   indo crus para innerHTML. Um motivo de bloqueio com <img onerror> rodava
+   script na tela de quem abrisse as Configuracoes. */
+bloco('Quem desenha texto do usuário chama o escape', () => {
+  const src = lerFonte();
+  const linha = (marca) => {
+    const i = src.indexOf(marca);
+    if (i < 0) return '(trecho não encontrado — o teste precisa ser atualizado)';
+    return src.slice(i, src.indexOf('\n', i));
+  };
+
+  checa('motivo do bloqueio',
+    /escHtml\(b\.motivo\)/.test(linha("'<td>'+(b.motivo")), true);
+  checa('espaço do bloqueio',
+    /escHtml\(b\.espaco\)/.test(linha("return '<tr><td>'+(b.espaco")), true);
+  checa('nome do espaço no cartão de disponibilidade',
+    src.includes("'+escHtml(esp)+'</span>'"), true);
+  checa('nome do espaço no seletor da reserva (valor e rótulo)',
+    src.includes(`html+='<option value="'+escHtml(esp)+'">'+escHtml(rotulo)+'</option>';`), true);
+  checa('nenhum <option> de espaço monta o nome sem escapar',
+    src.includes("return '<option>'+e+'</option>'"), false);
 });
 
 // ── Resultado ──────────────────────────────────────────────────────────

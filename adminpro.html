@@ -9737,7 +9737,7 @@ function resToggleView(){
 }
 function _resCalPopularEspacos(){
   var sel=$('res-cal-espaco'); if(!sel||sel._filled||typeof ESPACOS_CFG==='undefined') return;
-  sel.innerHTML='<option value="">Todos os espaços</option>'+ESPACOS_CFG.map(function(e){return '<option>'+e+'</option>';}).join('');
+  sel.innerHTML='<option value="">Todos os espaços</option>'+ESPACOS_CFG.map(function(e){return '<option>'+escHtml(e)+'</option>';}).join('');
   sel._filled=true;
 }
 function resCalNav(delta){ if(!_resCalRef) _resCalRef=new Date(); _resCalRef=new Date(_resCalRef.getFullYear(),_resCalRef.getMonth()+delta,1); renderCalendario(); }
@@ -9939,7 +9939,7 @@ function renderRelatorios(){
   // popula seletor de espaços uma vez
   var sel=$('rel-espaco');
   if(sel && !sel._filled && typeof ESPACOS_CFG!=='undefined'){
-    sel.innerHTML='<option value="">Todos os espaços</option>'+ESPACOS_CFG.map(function(e){return '<option>'+e+'</option>';}).join('');
+    sel.innerHTML='<option value="">Todos os espaços</option>'+ESPACOS_CFG.map(function(e){return '<option>'+escHtml(e)+'</option>';}).join('');
     sel._filled=true;
   }
   var lista=_relFiltradas();
@@ -10244,7 +10244,7 @@ function mresPopularEspacos(incluirEspaco){
     var ativo=(cfg['disp_'+_chvEsp(esp)+'_ativo']===false)?false:true;
     if(!ativo && !isAdm && esp!==incluirEspaco) return; // morador não vê espaço desativado
     var rotulo=esp+((!ativo&&isAdm)?' (desativado)':'');
-    html+='<option value="'+esp+'">'+rotulo+'</option>';
+    html+='<option value="'+escHtml(esp)+'">'+escHtml(rotulo)+'</option>';
   });
   sel.innerHTML=html;
 }
@@ -12641,6 +12641,17 @@ async function renomearEspaco(deArg, paraArg){
   var lista = espacosDoCondominio();
   if(lista.indexOf(para) >= 0){ toast('Já existe um espaço com esse nome.'); return; }
 
+  // Mesma armadilha da criacao: nome diferente, chave igual (ver criarEspaco).
+  // Aqui o estrago seria imediato — as chaves do espaco renomeado passariam
+  // por cima das do outro.
+  var _chvPara = _chvEsp(para);
+  var _choque = lista.filter(function(e){ return e !== de && _chvEsp(e) === _chvPara; })[0];
+  if(_choque){
+    toast('"'+para+'" se confunde com "'+_choque+'" na configuração '+
+          '(os dois viram "'+_chvPara+'"). Escolha um nome mais diferente.');
+    return;
+  }
+
   var qtd = (G('reservas')||[]).filter(function(r){ return r.espaco===de; }).length;
   if(!confirm('Renomear "'+de+'" para "'+para+'"?\n\n'+
               qtd+' reserva(s) serão atualizadas, junto com as regras e o financeiro do espaço.')) return;
@@ -12731,6 +12742,26 @@ async function criarEspaco(){
   var lista = espacosDoCondominio();
   var existe = lista.some(function(e){ return e.toLowerCase() === nome.toLowerCase(); });
   if(existe){ toast('Já existe um espaço com esse nome.'); return; }
+
+  /* Dois nomes DIFERENTES podem virar a mesma chave de configuracao.
+     A chave troca tudo que nao e letra ou numero por "_", entao "Quadra 1"
+     e "Quadra-1" viram os dois quadra_1 — e a checagem de nome acima deixa
+     os dois existirem.
+
+     Se isso passar, os dois espacos passam a dividir dias, horarios, taxa e
+     aprovacao sem que nada na tela diga isso: mexer num muda o outro. Pior,
+     excluir um apaga as chaves disp_*/fin_* dos dois, e o que sobrou fica
+     sem taxa nenhuma — um espaco pago virando gratuito sem ninguem ter
+     encostado nele.
+
+     Melhor recusar na criacao, dizendo com qual espaco o nome se choca. */
+  var chvNovo = _chvEsp(nome);
+  var choque = lista.filter(function(e){ return _chvEsp(e) === chvNovo; })[0];
+  if(choque){
+    toast('"'+nome+'" se confunde com "'+choque+'" na configuração '+
+          '(os dois viram "'+chvNovo+'"). Escolha um nome mais diferente.');
+    return;
+  }
 
   var cfg = getCfgRes();
   cfg.espacos = lista.concat([nome]);
@@ -12875,7 +12906,7 @@ function renderEspacos(){
 function preencherSelRenomear(){
   var sel=$('cfg-ren-de'); if(!sel) return;
   sel.innerHTML = espacosDoCondominio().map(function(e){
-    return '<option>'+e+'</option>';
+    return '<option>'+escHtml(e)+'</option>';
   }).join('');
 }
 
@@ -12981,7 +13012,7 @@ function renderCfgDisponibilidade(){
     }).join('');
     return '<div data-disp-card="'+chv+'" class="cfg-disp-card" style="border-color:'+(ativo?'var(--border)':'rgba(224,82,82,0.4)')+';opacity:'+(ativo?'1':'0.6')+'">'+
       '<div class="cfg-disp-head">'+
-      '<span style="font-size:13px;font-weight:700;color:var(--text)">'+esp+'</span>'+
+      '<span style="font-size:13px;font-weight:700;color:var(--text)">'+escHtml(esp)+'</span>'+
       (ativo?'':'<span style="font-size:10px;font-weight:700;color:var(--red);background:rgba(224,82,82,0.12);border:1px solid rgba(224,82,82,0.3);border-radius:6px;padding:2px 7px">DESATIVADO</span>')+
       '<label class="cfg-disp-ativo"><input type="checkbox" data-disp-ativo="'+chv+'" '+(ativo?'checked':'')+' onchange="renderCfgDisponibilidade&&this.closest(\'[data-disp-card]\')&&(this.closest(\'[data-disp-card]\').style.opacity=this.checked?1:0.6)" style="width:34px;height:18px;accent-color:var(--gold);cursor:pointer"><span>Espaço ativo (aparece para o morador)</span></label>'+
       '</div>'+
@@ -13008,7 +13039,7 @@ function renderCfgDisponibilidade(){
 function renderCfgBloqueios(){
   var sel=$('blq-espaco');
   if(sel && !sel._filled){
-    sel.innerHTML='<option value="">Todos os espaços</option>'+ESPACOS_CFG.map(function(e){return '<option>'+e+'</option>';}).join('');
+    sel.innerHTML='<option value="">Todos os espaços</option>'+ESPACOS_CFG.map(function(e){return '<option>'+escHtml(e)+'</option>';}).join('');
     sel._filled=true;
   }
   var el=$('cfg-bloqueios'); if(!el) return;
@@ -13017,10 +13048,10 @@ function renderCfgBloqueios(){
   var fmt=function(d){ return d?new Date(d+'T00:00').toLocaleDateString('pt-BR'):''; };
   el.innerHTML='<div class="tbl-wrap"><table style="font-size:12.5px"><thead><tr><th>Espaço</th><th>Período</th><th>Horário</th><th>Motivo</th><th></th></tr></thead><tbody>'+
     lista.map(function(b){
-      return '<tr><td>'+(b.espaco||'<span style="color:var(--gold)">Todos</span>')+'</td>'+
+      return '<tr><td>'+(b.espaco?escHtml(b.espaco):'<span style="color:var(--gold)">Todos</span>')+'</td>'+
         '<td>'+fmt(b.ini)+(b.fim&&b.fim!==b.ini?' a '+fmt(b.fim):'')+'</td>'+
         '<td>'+((b.h1&&b.h2)?b.h1+'–'+b.h2:'<span style="color:var(--text-3)">dia todo</span>')+'</td>'+
-        '<td>'+(b.motivo||'—')+'</td>'+
+        '<td>'+(b.motivo?escHtml(b.motivo):'—')+'</td>'+
         '<td style="text-align:right"><button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="bloqueioRemove('+b.id+')"><i class="fa-solid fa-trash"></i></button></td></tr>';
     }).join('')+'</tbody></table></div>';
 }
