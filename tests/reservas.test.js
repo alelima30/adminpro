@@ -235,6 +235,33 @@ bloco('Nomes diferentes não podem virar a mesma configuração', () => {
     /e !== de && _chvEsp\(e\) === _chvPara/.test(renom), true);
 });
 
+/* CSV que o sindico abre no Excel.
+   Aspas duplicadas protegem a estrutura do arquivo; nao protegem quem abre.
+   Excel trata celula comecando por = + - @ como FORMULA, e a finalidade da
+   reserva e digitada por quem reserva. */
+bloco('CSV: texto do morador não vira fórmula no Excel', () => {
+  const { _csvCelula, _csvFormula } = carregar(['_csvCelula', '_csvFormula']);
+
+  checa('fórmula com = é neutralizada',
+    _csvCelula('=HYPERLINK("http://x";"Clique")').startsWith('"\''), true);
+  checa('@ também', _csvCelula('@SUM(A1)').startsWith('"\''), true);
+  checa('barra vertical (DDE) também', _csvCelula('|cmd').startsWith('"\''), true);
+  checa('+ seguido de comando é neutralizado', _csvFormula('+cmd|\' /C calc\'!A0'), true);
+  checa('- seguido de comando também', _csvFormula('-2+3+cmd|x!A0'), true);
+
+  // O que NÃO pode ser enfeitado: o caso comum.
+  checa('telefone internacional passa limpo', _csvFormula('+55 11 91234-5678'), false);
+  checa('e sai sem apóstrofo', _csvCelula('+55 11 91234-5678'), '"+55 11 91234-5678"');
+  checa('valor negativo passa limpo', _csvFormula('-150,00'), false);
+  checa('texto normal passa limpo', _csvFormula('Aniversário do Lucas'), false);
+
+  // Estrutura do CSV continua protegida.
+  checa('aspas continuam duplicadas', _csvCelula('diz "oi"'), '"diz ""oi"""');
+  checa('ponto e vírgula não quebra coluna', _csvCelula('a;b'), '"a;b"');
+  checa('nulo vira célula vazia', _csvCelula(null), '""');
+  checa('número funciona', _csvCelula(20), '"20"');
+});
+
 bloco('Escape de texto do usuário (XSS)', () => {
   checa('script vira texto inofensivo',
     seg.escHtml('<script>alert(1)</script>'),
