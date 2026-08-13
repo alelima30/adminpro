@@ -3583,6 +3583,97 @@ html.ambiente-ensaio body{padding-top:28px}
             </table>
           </div>
         </div>
+
+        <!-- ══ ASSINATURAS — quem é cliente, quanto paga, quem está em dia ══
+             O sistema sabia o nome do condomínio e não sabia quem pagava por
+             ele. A resposta para "quem pagou este mês?" vivia num caderno. -->
+        <div class="card" id="saas-assin-card" style="margin-top:18px">
+          <div class="card-head">
+            <div class="card-title"><div class="card-icon" style="background:rgba(42,157,111,0.14);color:var(--green)"><i class="fa-solid fa-file-invoice-dollar"></i></div>Assinaturas e cobranças</div>
+            <span id="assin-resumo" style="margin-left:auto;font-size:12px;color:var(--text-3)"></span>
+          </div>
+
+          <div id="assin-aviso" style="display:none;font-size:12.5px;line-height:1.6;background:rgba(232,119,34,0.10);border-left:3px solid var(--gold);padding:10px 12px;border-radius:0 8px 8px 0;margin-bottom:14px"></div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+            <label class="cfg-disp-fld num" style="margin:0"><span>Mês:</span>
+              <input type="month" id="assin-mes" onchange="renderAssinaturas()" style="width:auto"></label>
+            <button class="btn btn-gold btn-sm" onclick="assinGerarMes()"
+              title="Cria a cobrança deste mês para cada assinatura ativa que ainda não tem. Não cria duplicada.">
+              <i class="fa-solid fa-file-circle-plus"></i> Gerar cobranças do mês</button>
+            <button class="btn btn-ghost btn-sm" onclick="renderAssinaturas()"><i class="fa-solid fa-rotate"></i> Atualizar</button>
+          </div>
+
+          <div class="tbl-wrap">
+            <table style="font-size:12.5px">
+              <thead><tr>
+                <th>Condomínio</th><th>Situação</th><th style="text-align:right">Unid.</th>
+                <th style="text-align:right">R$/unid.</th><th style="text-align:right">Valor do mês</th>
+                <th>Vencimento</th><th>Pagamento</th><th style="text-align:center">Ações</th>
+              </tr></thead>
+              <tbody id="assin-tbody"></tbody>
+            </table>
+          </div>
+
+          <div style="font-size:11.5px;color:var(--text-3);margin-top:12px;line-height:1.6">
+            <b>Situação</b> é a relação comercial (teste, ativo, inadimplente, cancelado) e não mexe no
+            acesso — desligar o acesso continua sendo pelo <b>Status</b> da tabela acima. São decisões
+            diferentes: dá para estar devendo e seguir usando enquanto vocês negociam.
+            Nada é cobrado automaticamente: a baixa do pagamento é feita aqui, por você.
+          </div>
+        </div>
+
+        <!-- Ficha da assinatura -->
+        <div class="modal-ov" id="m-assin" onclick="if(event.target===this)closeModal('m-assin')">
+          <div class="modal" style="max-width:640px" onclick="event.stopPropagation()">
+            <button class="modal-close-x" onclick="closeModal('m-assin')" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
+            <div class="modal-title" id="massin-t">Assinatura</div>
+            <div class="modal-sub">O combinado com este cliente. Muda pouco; o que muda todo mês são as cobranças.</div>
+            <input type="hidden" id="massin-cond">
+            <div class="form-grid">
+              <div class="fg full" style="grid-column:1/-1;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:4px">
+                <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold)">▸ Para a nota</span>
+              </div>
+              <div class="fg"><label>Razão social</label><input type="text" id="massin-razao" placeholder="Condomínio ... / Associação ..."></div>
+              <div class="fg"><label>CNPJ</label><input type="text" id="massin-cnpj" placeholder="00.000.000/0000-00"></div>
+              <div class="fg full"><label>Endereço</label><input type="text" id="massin-endereco" placeholder="Rua, número, bairro, cidade/UF"></div>
+
+              <div class="fg full" style="grid-column:1/-1;border-bottom:1px solid var(--border);padding-bottom:14px;margin:10px 0 4px">
+                <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold)">▸ Quem fala sobre dinheiro</span>
+              </div>
+              <div class="fg full" style="grid-column:1/-1;font-size:11.5px;color:var(--text-3);line-height:1.6;margin-top:-8px">
+                Quase nunca é o mesmo do sistema. Síndico troca; quem paga costuma ficar.
+              </div>
+              <div class="fg"><label>Nome</label><input type="text" id="massin-resp"></div>
+              <div class="fg"><label>E-mail</label><input type="email" id="massin-email"></div>
+              <div class="fg"><label>WhatsApp</label><input type="text" id="massin-tel" placeholder="(11) 99999-9999"></div>
+
+              <div class="fg full" style="grid-column:1/-1;border-bottom:1px solid var(--border);padding-bottom:14px;margin:10px 0 4px">
+                <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold)">▸ O preço</span>
+              </div>
+              <div class="fg"><label>Valor por unidade (R$)</label><input type="number" step="0.01" min="0" id="massin-vunid" placeholder="0,00" oninput="massinPrevia()"></div>
+              <div class="fg"><label>Valor mínimo (R$)</label><input type="number" step="0.01" min="0" id="massin-vmin" placeholder="em branco = sem piso" oninput="massinPrevia()"></div>
+              <div class="fg"><label>Dia do vencimento</label><input type="number" min="1" max="28" id="massin-dia" value="10"></div>
+              <div class="fg"><label>Situação</label>
+                <select id="massin-situacao">
+                  <option value="teste">Teste</option>
+                  <option value="ativo">Ativo</option>
+                  <option value="inadimplente">Inadimplente</option>
+                  <option value="cancelado">Cancelado</option>
+                </select></div>
+              <div class="fg"><label>Início</label><input type="date" id="massin-inicio"></div>
+              <div class="fg"><label>Fim <span style="color:var(--text-3)">(em branco = vigente)</span></label><input type="date" id="massin-fim"></div>
+              <div class="fg full" id="massin-previa" style="grid-column:1/-1;font-size:12.5px;color:var(--text-2);background:var(--ink-2);border-radius:8px;padding:10px 12px"></div>
+
+              <div class="fg full"><label>Observações <span style="color:var(--text-3)">(só você vê)</span></label>
+                <textarea id="massin-obs" rows="2" placeholder="Desconto combinado, histórico de atraso, quem indicou..."></textarea></div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-ghost" onclick="closeModal('m-assin')">Cancelar</button>
+              <button class="btn btn-gold" onclick="assinSalvar()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ████ P7: RESERVAS ████ -->
@@ -6027,6 +6118,71 @@ function aplicarLogoCondominio(){
 /* ── Painel SaaS: CRUD de condomínios ── */
 let _saasLogo='';
 
+/* ══════════════════════════
+   ASSINATURAS — o controle de quem é cliente
+
+   O sistema guardava sete campos sobre um condomínio: código, nome, logo,
+   e-mail do admin, status, módulos e data de criação. Sabia o NOME do
+   condomínio e não sabia quem PAGAVA por ele. "Quais pagaram este mês?"
+   não tinha resposta dentro do sistema.
+
+   Duas tabelas novas, visíveis só para o super-admin (ver
+   supabase/09_assinaturas.sql):
+     assinaturas  o combinado, que muda pouco
+     cobrancas    o que aconteceu mês a mês, que só cresce
+
+   Nada é cobrado automaticamente. A geração da cobrança e a baixa do
+   pagamento são feitas aqui, na mão. Foi a escolha consciente: com poucos
+   clientes, saber vale mais do que automatizar.
+   ══════════════════════════ */
+
+/* O valor do mês. Função pura, separada da tela, porque é a conta que
+   ninguém pode errar — e a única aqui que dá para testar de verdade.
+
+   Preço é por unidade, com piso opcional: condomínio pequeno costuma ter um
+   mínimo, senão a mensalidade não paga o trabalho de atender. */
+function assinValorMes(valorUnidade, unidades, valorMinimo){
+  var vu = parseFloat(valorUnidade);  if(!(vu > 0)) vu = 0;
+  var qt = parseInt(unidades, 10);    if(!(qt > 0)) qt = 0;
+  var piso = parseFloat(valorMinimo); if(!(piso > 0)) piso = 0;
+
+  /* A conta e feita em CENTAVOS INTEIROS, e nao em reais.
+
+     Multiplicar reais direto erra: 0,07 x 3 da 0.21000000000000002 em ponto
+     flutuante, e 1,005 x 3 da 3.0149999999999997 -- que arredondado vira 3,01
+     quando a conta de papel diz 3,02. Um centavo perdido por cliente ninguem
+     nota; a nota fiscal que nao bate com o sistema, sim.
+
+     Arredondar o preco unitario para centavos ANTES de multiplicar tambem e o
+     que o banco faz: a coluna e numeric(10,2). Assim a conta aqui e a conta la
+     dao o mesmo numero, sempre. */
+  var centavosUnidade = Math.round(vu * 100);
+  var centavosPiso    = Math.round(piso * 100);
+  return Math.max(centavosUnidade * qt, centavosPiso) / 100;
+}
+
+/* Situação da cobrança de um mês, do ponto de vista de quem cobra.
+   Devolve a chave e a frase, para a tela não repetir a regra. */
+function assinSituacaoCobranca(cobranca, hojeISO){
+  var hoje = hojeISO || _reslHojeISO();
+  if(!cobranca)            return { chave:'sem',      texto:'Sem cobrança',  cor:'var(--text-3)' };
+  if(cobranca.pago_em)     return { chave:'pago',     texto:'Pago',          cor:'var(--green-l)' };
+  if(cobranca.vencimento < hoje)
+                           return { chave:'vencido',  texto:'Vencido',       cor:'var(--red)' };
+  return                          { chave:'aberto',   texto:'Em aberto',     cor:'var(--amber)' };
+}
+
+// Dia do vencimento dentro do mês, sem estourar para o mês seguinte.
+function assinVencimento(competencia, dia){
+  var p = String(competencia||'').split('-');
+  var ano = parseInt(p[0],10), mes = parseInt(p[1],10);
+  if(!ano || !mes) return '';
+  var d = parseInt(dia,10); if(!(d >= 1)) d = 10;
+  var ultimo = new Date(ano, mes, 0).getDate();   // dia 0 do mês seguinte
+  if(d > ultimo) d = ultimo;
+  return ano + '-' + String(mes).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+}
+
 function renderSaas(){
   const cs=getSaasCondominios();
   const tb=$('saas-tbody'); if(!tb) return;
@@ -6051,6 +6207,214 @@ function renderSaas(){
       <td>${c.status==='ativo'?'<span class="pill pill-green">Ativo</span>':'<span class="pill pill-red">Suspenso</span>'}</td>
       <td style="text-align:center"><button class="btn btn-ghost btn-sm" onclick="saasEditar('${escU(cod)}')"><i class="fa-solid fa-pen-to-square"></i> Editar</button></td>
     </tr>`;}).join('');
+}
+
+/* ── Tela das assinaturas ──────────────────────────────────────────────── */
+var _assinCache = { linhas: [], cobrancas: {}, mes: '' };
+
+function _assinMesAtual(){
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+
+async function renderAssinaturas(){
+  var tb = $('assin-tbody'); if(!tb) return;
+  if(!isSuperAdmin()){ var cd=$('saas-assin-card'); if(cd) cd.style.display='none'; return; }
+
+  var inpMes = $('assin-mes');
+  if(inpMes && !inpMes.value) inpMes.value = _assinMesAtual();
+  var mes = inpMes ? inpMes.value : _assinMesAtual();
+  _assinCache.mes = mes;
+
+  var aviso = $('assin-aviso');
+  tb.innerHTML = '<tr><td colspan="8" style="color:var(--text-3);padding:10px">Carregando…</td></tr>';
+  if(!window.SB){ tb.innerHTML='<tr><td colspan="8" style="color:var(--text-3);padding:10px">Sem conexão com o banco.</td></tr>'; return; }
+
+  var linhas, cobr;
+  try{
+    var r1 = await SB.from('painel_assinaturas').select('*').order('nome');
+    if(r1.error) throw r1.error;
+    linhas = r1.data || [];
+    var r2 = await SB.from('cobrancas').select('*').eq('competencia', mes);
+    if(r2.error) throw r2.error;
+    cobr = {}; (r2.data||[]).forEach(function(x){ cobr[x.condominio_id] = x; });
+  }catch(e){
+    /* A causa mais provável é o SQL nunca ter sido rodado. Dizer isso é mais
+       útil do que repetir a mensagem crua do Postgres. */
+    var falta = /painel_assinaturas|relation|does not exist/i.test(e.message||'');
+    tb.innerHTML = '<tr><td colspan="8" style="padding:10px;color:var(--red)">'
+      + escHtml(falta ? 'As tabelas de assinatura ainda não existem no banco.'
+                      : ('Não consegui ler: ' + (e.message||'erro'))) + '</td></tr>';
+    if(aviso && falta){
+      aviso.style.display='block';
+      aviso.innerHTML = 'Rode uma vez o arquivo <b>supabase/09_assinaturas.sql</b> no SQL Editor do '
+        + 'Supabase. Ele cria as duas tabelas e libera esta tela só para você.';
+    }
+    return;
+  }
+  if(aviso) aviso.style.display='none';
+  _assinCache.linhas = linhas; _assinCache.cobrancas = cobr;
+
+  var hoje = _reslHojeISO();
+  var totalMes = 0, emAberto = 0, vencidas = 0;
+
+  tb.innerHTML = linhas.map(function(l){
+    var cb  = cobr[l.codigo];
+    var sit = assinSituacaoCobranca(cb, hoje);
+    var valor = cb ? parseFloat(cb.valor)
+                   : assinValorMes(l.valor_unidade, l.unidades, l.valor_minimo);
+    if(l.situacao === 'ativo' || l.situacao === 'inadimplente'){
+      totalMes += valor;
+      if(sit.chave === 'aberto')  emAberto += valor;
+      if(sit.chave === 'vencido') vencidas += valor;
+    }
+    var selo = {
+      teste:        ['Teste',        'var(--text-3)'],
+      ativo:        ['Ativo',        'var(--green-l)'],
+      inadimplente: ['Inadimplente', 'var(--red)'],
+      cancelado:    ['Cancelado',    'var(--text-3)']
+    }[l.situacao || ''] || ['— sem assinatura —', 'var(--gold)'];
+    var venc = cb ? cb.vencimento : assinVencimento(mes, l.dia_vencimento);
+    var qcod = JSON.stringify(l.codigo).replace(/"/g,'&quot;');
+    var qid  = cb ? JSON.stringify(cb.id).replace(/"/g,'&quot;') : '';
+
+    return '<tr>'
+      + '<td><b>'+escHtml(l.nome||l.codigo)+'</b><div style="font-size:11px;color:var(--text-3)">'+escHtml(l.codigo)+'</div></td>'
+      + '<td><span style="color:'+selo[1]+'">'+selo[0]+'</span></td>'
+      + '<td style="text-align:right">'+(l.unidades||0)+'</td>'
+      + '<td style="text-align:right">'+(parseFloat(l.valor_unidade)>0?fmt(l.valor_unidade):'—')+'</td>'
+      + '<td style="text-align:right"><b>'+(valor>0?fmt(valor):'—')+'</b></td>'
+      + '<td>'+(venc?_fmtDataBRCurta(venc):'—')+'</td>'
+      + '<td><span style="color:'+sit.cor+'">'+sit.texto+'</span>'
+        + (cb && cb.pago_em ? '<div style="font-size:11px;color:var(--text-3)">'+_fmtDataBRCurta(cb.pago_em)+'</div>' : '')
+      + '</td>'
+      + '<td style="text-align:center;white-space:nowrap">'
+        + '<button class="btn btn-ghost btn-sm" onclick="assinAbrir('+qcod+')" title="Ficha da assinatura"><i class="fa-solid fa-pen"></i></button> '
+        + (cb
+            ? (cb.pago_em
+                ? '<button class="btn btn-ghost btn-sm" onclick="assinBaixar('+qid+',false)" title="Desmarcar pagamento">Desmarcar</button>'
+                : '<button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="assinBaixar('+qid+',true)">Marcar pago</button>')
+            : '<span style="font-size:11px;color:var(--text-3)">gerar o mês</span>')
+      + '</td></tr>';
+  }).join('') || '<tr><td colspan="8" style="color:var(--text-3);padding:10px">Nenhum condomínio cadastrado.</td></tr>';
+
+  var res = $('assin-resumo');
+  if(res) res.innerHTML = 'Previsto no mês: <b>'+fmt(totalMes)+'</b>'
+    + (emAberto>0 ? ' · em aberto '+fmt(emAberto) : '')
+    + (vencidas>0 ? ' · <span style="color:var(--red)">vencido '+fmt(vencidas)+'</span>' : '');
+}
+
+/* Gera a cobrança do mês para quem ainda não tem.
+
+   Só para assinatura ativa ou inadimplente: quem está em teste ou cancelado
+   não deve receber cobrança, e gerar "para organizar" é como nasce a cobrança
+   errada. A chave única (condomínio + competência) no banco impede duplicata
+   se o botão for clicado duas vezes. */
+async function assinGerarMes(){
+  if(!window.SB) return;
+  var mes = $('assin-mes') ? $('assin-mes').value : _assinMesAtual();
+  if(!mes){ toast('Escolha o mês.'); return; }
+
+  var alvos = _assinCache.linhas.filter(function(l){
+    if(_assinCache.cobrancas[l.codigo]) return false;
+    if(l.situacao !== 'ativo' && l.situacao !== 'inadimplente') return false;
+    return assinValorMes(l.valor_unidade, l.unidades, l.valor_minimo) > 0;
+  });
+  if(!alvos.length){ toast('Nada a gerar: todos já têm cobrança neste mês, ou não há assinatura ativa com valor.'); return; }
+
+  if(!confirm('Gerar '+alvos.length+' cobrança(s) de '+mes+'?\n\n'+
+              alvos.map(function(l){ return '· '+(l.nome||l.codigo)+' — '
+                + fmt(assinValorMes(l.valor_unidade,l.unidades,l.valor_minimo)); }).join('\n'))) return;
+
+  var novas = alvos.map(function(l){
+    return { condominio_id: l.codigo, competencia: mes,
+             qtd_unidades: l.unidades || 0, valor_unidade: l.valor_unidade || 0,
+             valor: assinValorMes(l.valor_unidade, l.unidades, l.valor_minimo),
+             vencimento: assinVencimento(mes, l.dia_vencimento) };
+  });
+  var r = await SB.from('cobrancas').insert(novas);
+  if(r.error){ toast('⚠️ Não consegui gerar: '+r.error.message); return; }
+  toast('✓ '+novas.length+' cobrança(s) gerada(s).');
+  renderAssinaturas();
+}
+
+async function assinBaixar(id, pago){
+  if(!window.SB) return;
+  var r = await SB.from('cobrancas').update({ pago_em: pago ? _reslHojeISO() : null }).eq('id', id);
+  if(r.error){ toast('⚠️ Não consegui gravar: '+r.error.message); return; }
+  toast(pago ? '✓ Pagamento confirmado.' : 'Pagamento voltou para em aberto.');
+  renderAssinaturas();
+}
+
+// Prévia da conta dentro da ficha, para o valor não ser surpresa depois.
+function massinPrevia(){
+  var el = $('massin-previa'); if(!el) return;
+  var cod = $('massin-cond') ? $('massin-cond').value : '';
+  var linha = _assinCache.linhas.filter(function(l){ return l.codigo === cod; })[0];
+  var un = linha ? (linha.unidades||0) : 0;
+  var vu = $('massin-vunid').value, vm = $('massin-vmin').value;
+  var v  = assinValorMes(vu, un, vm);
+  if(!(v > 0)){ el.textContent = 'Sem valor definido — este cliente não entra na geração do mês.'; return; }
+  var conta = (parseFloat(vu)||0) * un;
+  el.innerHTML = un + ' unidade(s) × ' + fmt(vu||0) + ' = <b>' + fmt(conta) + '</b>'
+    + ((parseFloat(vm)>0 && conta < parseFloat(vm)) ? ' — abaixo do mínimo, cobra <b>'+fmt(vm)+'</b>' : '')
+    + '<br><span style="color:var(--text-3)">A quantidade de unidades é lida do cadastro e congela na hora de gerar a cobrança.</span>';
+}
+
+async function assinAbrir(codigo){
+  if(!window.SB) return;
+  var r = await SB.from('assinaturas').select('*').eq('condominio_id', codigo).maybeSingle();
+  var a = (r && r.data) || {};
+  var linha = _assinCache.linhas.filter(function(l){ return l.codigo === codigo; })[0] || {};
+  $('massin-cond').value     = codigo;
+  $('massin-t').textContent  = 'Assinatura · ' + (linha.nome || codigo);
+  $('massin-razao').value    = a.razao_social || linha.nome || '';
+  $('massin-cnpj').value     = a.cnpj || '';
+  $('massin-endereco').value = a.endereco || '';
+  $('massin-resp').value     = a.resp_nome || '';
+  $('massin-email').value    = a.resp_email || '';
+  $('massin-tel').value      = a.resp_tel || '';
+  $('massin-vunid').value    = a.valor_unidade || '';
+  $('massin-vmin').value     = a.valor_minimo || '';
+  $('massin-dia').value      = a.dia_vencimento || 10;
+  $('massin-situacao').value = a.situacao || 'teste';
+  $('massin-inicio').value   = a.inicio || _reslHojeISO();
+  $('massin-fim').value      = a.fim || '';
+  $('massin-obs').value      = a.obs || '';
+  massinPrevia();
+  $('m-assin').classList.add('open'); _sincronizarTravaRolagem();
+}
+
+async function assinSalvar(){
+  if(!window.SB) return;
+  var cod = $('massin-cond').value;
+  var dia = parseInt($('massin-dia').value,10);
+  if(!(dia >= 1 && dia <= 28)){
+    toast('⚠️ Dia do vencimento deve ficar entre 1 e 28 — assim o mês curto não muda a data sozinho.');
+    return;
+  }
+  var linha = {
+    condominio_id: cod,
+    razao_social:  $('massin-razao').value.trim() || null,
+    cnpj:          $('massin-cnpj').value.trim() || null,
+    endereco:      $('massin-endereco').value.trim() || null,
+    resp_nome:     $('massin-resp').value.trim() || null,
+    resp_email:    $('massin-email').value.trim() || null,
+    resp_tel:      $('massin-tel').value.trim() || null,
+    valor_unidade: parseFloat($('massin-vunid').value) || 0,
+    valor_minimo:  $('massin-vmin').value === '' ? null : (parseFloat($('massin-vmin').value) || 0),
+    dia_vencimento: dia,
+    situacao:      $('massin-situacao').value,
+    inicio:        $('massin-inicio').value || null,
+    fim:           $('massin-fim').value || null,
+    obs:           $('massin-obs').value.trim() || null,
+    atualizado_em: new Date().toISOString()
+  };
+  var r = await SB.from('assinaturas').upsert(linha, { onConflict:'condominio_id' });
+  if(r.error){ toast('⚠️ Não consegui salvar: '+r.error.message); return; }
+  closeModal('m-assin');
+  toast('✓ Assinatura salva.');
+  renderAssinaturas();
 }
 
 function saasMontarModulos(sel){
@@ -7869,7 +8233,7 @@ function showPanel(id,el){
   // Rede de seguranca: trocar de tela nunca deve herdar trava de rolagem
   // de um modal da tela anterior.
   try{ _sincronizarTravaRolagem(); }catch(_){}
-  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{aplicarFiltroInicialRes();renderReservas();verificarAlertas();resLembreteChecar();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:renderSaas,inicio:renderInicio})[id]?.();
+  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{aplicarFiltroInicialRes();renderReservas();verificarAlertas();resLembreteChecar();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:()=>{ renderSaas(); try{ renderAssinaturas(); }catch(_){} },inicio:renderInicio})[id]?.();
 }
 
 function setTab(t){
