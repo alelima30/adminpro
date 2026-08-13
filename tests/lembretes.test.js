@@ -123,6 +123,39 @@ bloco('Armazenamento corrompido não derruba a tela', () => {
   checa('objeto no lugar de lista vira lista vazia', _reslHistLer(), []);
 });
 
+// ── Redesenho da janela aberta ────────────────────────────────────────
+// Marcar um pagamento com a janela aberta tem de apagar SÓ aquela linha.
+// Como a janela tem dois modos (sozinha, filtrando o que já foi visto; ou
+// a pedido do botão "Lembretes", mostrando tudo), o redesenho precisa
+// manter o modo em que ela foi aberta — senão dar baixa numa cobrança
+// levava junto as outras linhas e o bloco "Já apareceram".
+bloco('O redesenho mantém o modo em que a janela abriu', () => {
+  const { lerFonte } = require('./extrair');
+  const src = lerFonte();
+  const corpo = src.slice(src.indexOf('function _reslRedesenhar'),
+                          src.indexOf('function _reslRedesenhar') + 900);
+  checa('redesenha com o modo guardado, não com o padrão',
+        /resLembreteChecar\(\s*!!window\._reslForcado\s*\)/.test(corpo), true);
+  checa('o modo é gravado ao montar a janela',
+        /window\._reslForcado\s*=\s*!!forcado/.test(src), true);
+});
+
+// ── Troca de condomínio ───────────────────────────────────────────────
+// O histórico guarda id de reserva, e id só significa algo dentro do
+// condomínio onde nasceu. Ficando para trás, mostrava cobrança de outro
+// condomínio e — pior — era apagado em silêncio pela reconferência, que
+// tomava aqueles ids por reservas excluídas.
+bloco('Trocar de condomínio limpa os lembretes', () => {
+  const { recortarFuncao, lerFonte } = require('./extrair');
+  const fn = recortarFuncao(lerFonte(), '_limparCacheDados');
+  checa('limpa o histórico "Já apareceram"',
+        fn.includes("removeItem('apvc_res_lembrete_hist')"), true);
+  checa('limpa as marcas de "já vi este aviso"',
+        fn.includes("removeItem('apvc_res_lembrete')"), true);
+  checa('continua limpando as reservas',
+        fn.includes("removeItem('apvc_reservas')"), true);
+});
+
 // ── A data de hoje, do ponto de vista de quem olha ─────────────────────
 bloco('Data de hoje', () => {
   const d = new Date();
