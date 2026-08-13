@@ -4,7 +4,8 @@ Uma página sobre onde as coisas estão e por quê. Escrita para o Alessandro de
 daqui a seis meses, que não vai lembrar, e para qualquer pessoa que precise
 mexer nisso sem ter participado.
 
-Última revisão: agosto de 2026. Números conferidos no código, não estimados.
+Última revisão: 13/08/2026. Números conferidos no código naquela data, não
+estimados — se você está lendo bem depois, vale remedir antes de citar.
 
 ---
 
@@ -24,14 +25,14 @@ dela.
 
 | Peça | O que é | Onde vive |
 |---|---|---|
-| `adminpro.html` | O aplicativo inteiro — 853 KB, HTML/CSS/JS puro, sem build | GitHub Pages → `adminprogestao.com.br` |
+| `adminpro.html` | O aplicativo inteiro — 884 KB, HTML/CSS/JS puro, sem build | GitHub Pages → `adminprogestao.com.br` |
 | `index.html` | Só redireciona para o app | mesmo lugar |
 | `cadastro.html` | Pedido de acesso, sem login | mesmo lugar |
 | `sw.js` | Service worker — instalação como app e abertura offline | mesmo lugar |
 | `supabase/schema.sql` | Tabelas, funções e regras de segurança | rodado à mão no painel |
 | `supabase/functions/` | 3 funções que rodam no servidor | publicadas pelo CI |
 | `censo/` | Módulo separado, ainda em `localStorage` | mesmo host, pasta própria |
-| `tests/` | 4 arquivos de teste, rodam sem instalar nada | GitHub Actions |
+| `tests/` | 4 suítes + verificador de sintaxe, rodam sem instalar nada | GitHub Actions |
 
 **Não tem `node_modules`. Não tem build. Não tem framework.** Abrir o arquivo no
 navegador é rodar o sistema. Essa escolha custa organização e devolve
@@ -46,7 +47,7 @@ Herança, não projeto. O sistema nasceu como página única e cresceu ali dentr
 O que isso **dá**: publicar é enviar um arquivo. Não existe versão de biblioteca
 para desencontrar, nem build para falhar às 23h.
 
-O que isso **cobra**: 853 KB é grande demais para achar as coisas por leitura.
+O que isso **cobra**: 884 KB é grande demais para achar as coisas por leitura.
 Duas pessoas mexendo ao mesmo tempo colidem no mesmo arquivo. E o navegador
 baixa tudo — o sistema inteiro — para mostrar a primeira tela.
 
@@ -71,7 +72,7 @@ modulo_dados
 ```
 
 Essa é a divisão real do sistema, e ela não aparece na tela. Reservas tem
-colunas, índice, regra de negócio no banco e 1.319 linhas de teste. Financeiro
+colunas, índice, regra de negócio no banco e 1.431 linhas de teste. Financeiro
 é um bloco de texto que o navegador lê inteiro, altera na memória e grava
 inteiro de volta.
 
@@ -176,20 +177,26 @@ aplica essa pasta — se um dia a automação voltar, é o primeiro nó a desata
 
 ## O que os testes cobrem — e o que não cobrem
 
-**26 funções testadas de 544 no total: 5%.**
+**83 funções testadas de 556 no total: 15%.** Eram 26 de 544 (5%) na manhã de
+13/08; o resto do dia foi gasto em correções, e cada uma virou teste.
 
-Onde estão os 5%: regras de reserva (1.319 linhas), assistente, informações
-gerais, e uma verificação de sintaxe das páginas. Não é pouco pelo tamanho —
-é bem escolhido. Reservas é a parte com regra de negócio de verdade, e é
-justamente a parte testada.
+Onde estão os 15%: regras de reserva (1.431 linhas), lembretes, assistente,
+informações gerais, e um verificador de sintaxe das páginas. Concentrado onde
+mexe em dinheiro e em acesso, que é onde errar custa caro.
 
-O que não tem teste: praticamente tudo que vive em `modulo_dados`. Ou seja, o
-financeiro não tem teste porque não tem forma — não dá para testar bem um bloco
-JSON que o navegador reescreve inteiro.
+O que não tem teste: praticamente tudo que vive em `modulo_dados`. O financeiro
+não tem teste porque não tem forma — não dá para testar bem um bloco JSON que o
+navegador reescreve inteiro. É a mesma dívida descrita lá em cima, vista pelo
+outro lado.
 
-Outro número honesto: **88 lugares onde o erro é engolido em silêncio**
-(`catch` que não conta nada a ninguém). Quando algo falha para um síndico, não
-sobra rastro para descobrir o quê.
+**Um teste pode passar pelo motivo errado.** Aconteceu aqui: o caso "reserva
+apagada não cobra" usava uma lista vazia e passava justamente por causa do bug
+que deveria pegar — lista vazia não quer dizer "apagaram", quer dizer "ainda não
+carregou". Verde não é prova; é ausência de uma prova em contrário.
+
+Outro número honesto: **95 lugares onde o erro é engolido em silêncio**
+(`catch` com corpo vazio, de 168 `catch` no total). Quando algo falha para um
+síndico, não sobra rastro para descobrir o quê.
 
 ---
 
