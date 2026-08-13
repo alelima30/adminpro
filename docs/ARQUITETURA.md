@@ -142,8 +142,7 @@ git push main
    └─ GitHub Actions
         ├─ 1. testes            → se falhar, PARA AQUI e nada sobe
         ├─ 2. site (Pages)      → só com os testes verdes
-        ├─ 3. edge functions    → só na main
-        └─ 4. migrations        → depois das funções (o cron aponta pra elas)
+        └─ 3. edge functions    → só na main
 ```
 
 **Tudo passa pelo mesmo portão, inclusive a página.** Nem sempre foi assim: até
@@ -157,11 +156,21 @@ vermelho, site não sobe: fica no ar a última versão que passou.
 
 Isso depende de um ajuste que mora **fora** do repositório: em Settings → Pages
 → Build and deployment, a origem precisa ser **GitHub Actions**, não "Deploy
-from a branch". Se alguém trocar de volta, o portão sai do caminho de novo e
-nada no código avisa.
+from a branch". A troca aconteceu sozinha na primeira execução — o job tem
+permissão `pages: write` e o `configure-pages` a aplicou. Mas se alguém mudar de
+volta, o portão sai do caminho e o job passa a falhar avisando (era o que se
+queria: falhar alto, não publicar calado).
 
-Já o SQL em `supabase/*.sql` é rodado **à mão**, de propósito: mudança de banco
-merece revisão antes.
+**Não existe job de migrations, e é de propósito.** Existiu um, que nunca
+funcionou: exigia um segredo que nunca foi cadastrado, então falhava em toda
+execução. Um CI sempre vermelho é pior que CI nenhum — ensina a ignorar o X, e
+foi assim que os dois commits quebrados de 13/08 passaram, com o vermelho já
+virado paisagem.
+
+O SQL em `supabase/*.sql` é rodado **à mão**, de propósito: mudança de banco
+merece revisão antes. Fica uma ponta solta: `supabase/migrations/` descreve as
+mesmas mudanças de três desses arquivos, em formato de migration. Hoje ninguém
+aplica essa pasta — se um dia a automação voltar, é o primeiro nó a desatar.
 
 ---
 

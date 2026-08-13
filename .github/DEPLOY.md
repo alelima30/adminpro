@@ -37,7 +37,15 @@ normalmente, nada quebra.
 
 - **Secrets do Supabase** (`WHATSAPP_TOKEN`, `WA_PROVIDER`...) — ficam no painel
 - **Scripts SQL** (`supabase/*.sql`) — rodados à mão no SQL Editor, de propósito:
-  mudança de banco merece revisão antes
+  mudança de banco merece revisão antes.
+
+  Houve um job que aplicava `supabase/migrations/` sozinho a cada envio. Ele
+  contrariava esta política e, além disso, nunca funcionou: dependia do segredo
+  `SUPABASE_DB_URL`, que nunca foi cadastrado, então falhava sempre. Um CI
+  permanentemente vermelho ensina a ignorar o vermelho, então o job saiu.
+  A pasta `supabase/migrations/` continua no repositório, mas **não é aplicada
+  por ninguém** — as mudanças dela já foram rodadas à mão pelos arquivos
+  numerados.
 
 ## Como acompanhar
 
