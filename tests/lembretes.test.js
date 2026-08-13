@@ -5,9 +5,12 @@
 // então o teste valida exatamente o código que vai para o ar.
 //
 // O que motivou este arquivo: marcar uma reserva como PAGA fazia a cobrança
-// REAPARECER. O aviso saía da lista de pendências, deixava de ser filtrado
-// como "já está na tela" e voltava pelo histórico, ainda dizendo que a
-// pessoa devia. Quem pagava virava o único nome na tela.
+// REAPARECER. O histórico guardava a frase pronta, congelada no dia — ela
+// não tinha como saber que o dinheiro entrou depois.
+//
+// Hoje a janelinha guarda só CHAVE + HORA, e a frase é remontada da reserva
+// a cada desenho. Os testes abaixo cobrem essa promessa: nada que dependa
+// de estado atual (pagamento, cancelamento) pode sobreviver congelado.
 
 const { carregar } = require('./extrair');
 
@@ -19,151 +22,194 @@ function checa(descricao, obtido, esperado) {
 }
 function bloco(titulo, fn) { console.log('\n' + titulo); fn(); }
 
-// ── Ambiente mínimo: as reservas e o armazenamento do navegador ────────
+// ── Ambiente mínimo ───────────────────────────────────────────────────
 let RESERVAS = [];
-const STORE = {};
+let STORE = {};
+let COND = 'APVC';
+
 const stubs = {
   G: (k) => (k === 'reservas' ? RESERVAS : []),
   localStorage: {
     getItem: (k) => (k in STORE ? STORE[k] : null),
     setItem: (k, v) => { STORE[k] = v; },
   },
+  // O código lê _condAtual direto; aqui ele muda entre os blocos.
+  get _condAtual() { return COND; },
+  fmt: (v) => 'R$ ' + Number(v || 0).toFixed(2),
+  escHtml: (v) => String(v == null ? '' : v),
   _RESL_HIST_DIAS: 7,
+  _RESL_HIST_MAX: 30,
+  _RESL_REPETIR_MIN: 15,
 };
 
-const { _reslHistLer, _reslHistPgtoVencido, _reslHojeISO } =
-  carregar(['_reslHistLer', '_reslHistPgtoVencido', '_reslHojeISO'], stubs);
+const api = carregar(
+  ['_reslChaveLS', '_reslStore', '_reslStoreSalvar', '_reslCalado', '_reslMarcar',
+   '_reslRegistrar', '_reslHistLinha', '_reslHistorico', '_reslFraseSimples',
+   '_reslDetalhe', '_reslHojeISO'],
+  stubs,
+);
 
 const AGORA = Date.now();
-const AVISO_FABRICIO = {
-  chave: '99|pgto', ts: AGORA,
-  texto: 'Fabricio — taxa de R$ 150,00 em aberto',
-  detalhe: 'Salão de Festas • 14:00–18:00',
-};
+const FABRICIO = { id: 99, nome: 'Fabricio', espaco: 'Salão', horario: '14:00–18:00',
+                   lote: 'A1', status: 'confirmada', pgto: 'pendente', taxa: 150 };
 
-function cenario(reservas, historico) {
+function zera(reservas = [], apareceu = {}, vistos = {}) {
   RESERVAS = reservas;
-  STORE['apvc_res_lembrete_hist'] = JSON.stringify(historico);
+  STORE = {};
+  STORE['apvc_resl_' + COND] = JSON.stringify({ apareceu, vistos });
 }
+const chaves = () => api._reslHistorico().map((x) => x.chave);
 
-// ── A cobrança que já foi paga ─────────────────────────────────────────
+// ── A cobrança que já foi paga ────────────────────────────────────────
 bloco('Cobrança em aberto continua cobrando', () => {
-  cenario([{ id: 99, status: 'confirmada', pgto: 'pendente', taxa: 150 }], [AVISO_FABRICIO]);
-  checa('quem não pagou aparece', _reslHistLer().length, 1);
+  zera([FABRICIO], { '99|pgto': AGORA });
+  checa('quem não pagou aparece', chaves(), ['99|pgto']);
+  checa('e a frase é montada com o valor de agora',
+        api._reslHistorico()[0].texto, 'Fabricio — taxa de R$ 150.00 em aberto');
 });
 
-bloco('Pagou: a cobrança tem de sumir (era o bug)', () => {
-  cenario([{ id: 99, status: 'confirmada', pgto: 'pago', taxa: 150 }], [AVISO_FABRICIO]);
-  checa('não aparece mais', _reslHistLer().length, 0);
-  checa('e sai do armazenamento, não volta amanhã',
-        JSON.parse(STORE['apvc_res_lembrete_hist']).length, 0);
+bloco('Pagou: a cobrança some (era o bug)', () => {
+  zera([{ ...FABRICIO, pgto: 'pago' }], { '99|pgto': AGORA });
+  checa('não aparece mais', chaves(), []);
+  // A chave continua guardada — não é preciso apagar nada para ela sumir
+  // da tela, e é isso que impede a leitura de destruir dado.
+  checa('e o armazenamento não foi mexido',
+        Object.keys(JSON.parse(STORE['apvc_resl_' + COND]).apareceu), ['99|pgto']);
 });
 
 bloco('Outros jeitos de a cobrança deixar de existir', () => {
-  cenario([{ id: 99, status: 'confirmada', pgto: 'isento', taxa: 150 }], [AVISO_FABRICIO]);
-  checa('isento não é pendência', _reslHistLer().length, 0);
+  zera([{ ...FABRICIO, pgto: 'isento' }], { '99|pgto': AGORA });
+  checa('isento não é pendência', chaves(), []);
 
-  cenario([{ id: 99, status: 'cancelada', pgto: 'pendente', taxa: 150 }], [AVISO_FABRICIO]);
-  checa('reserva cancelada não cobra', _reslHistLer().length, 0);
+  zera([{ ...FABRICIO, status: 'cancelada' }], { '99|pgto': AGORA });
+  checa('reserva cancelada não cobra', chaves(), []);
 
-  cenario([{ id: 99, status: 'confirmada', pgto: 'pendente', taxa: 0 }], [AVISO_FABRICIO]);
-  checa('taxa zerada depois não cobra', _reslHistLer().length, 0);
+  zera([{ ...FABRICIO, taxa: 0 }], { '99|pgto': AGORA });
+  checa('taxa zerada depois não cobra', chaves(), []);
 
-  // Lista NÃO vazia e sem o id 99: aí dá para concluir que a reserva sumiu.
-  cenario([{ id: 7, status: 'confirmada', pgto: 'pendente', taxa: 10 }], [AVISO_FABRICIO]);
-  checa('reserva apagada não cobra', _reslHistLer().length, 0);
+  zera([{ id: 7, nome: 'Outra', status: 'confirmada', pgto: 'pendente', taxa: 10 }],
+       { '99|pgto': AGORA });
+  checa('reserva apagada não cobra', chaves(), []);
 });
 
-// Lista vazia é ambígua: pode ser "apagaram tudo" ou "ainda não carregou".
-// Como _reslHistLer REGRAVA o armazenamento sem o que considerou vencido,
-// tratar as duas igual apagaria de vez as cobranças dos últimos 7 dias por
-// causa de uma leitura feita no momento errado.
-bloco('Reservas ainda não carregadas não apagam o histórico', () => {
-  cenario([], [AVISO_FABRICIO]);
-  checa('com a lista vazia, o aviso permanece', _reslHistLer().length, 1);
-  checa('e continua no armazenamento',
-        JSON.parse(STORE['apvc_res_lembrete_hist']).length, 1);
+// ── O caso que destruía dado ──────────────────────────────────────────
+bloco('Reservas ainda não carregadas não apagam nada', () => {
+  zera([], { '99|pgto': AGORA });
+  checa('com a lista vazia, não mostra', chaves(), []);
+  checa('mas também não apaga',
+        Object.keys(JSON.parse(STORE['apvc_resl_' + COND]).apareceu), ['99|pgto']);
 
   RESERVAS = null;
-  STORE['apvc_res_lembrete_hist'] = JSON.stringify([AVISO_FABRICIO]);
-  checa('cache nulo também não apaga', _reslHistLer().length, 1);
+  checa('cache nulo não quebra nem apaga', chaves(), []);
 
-  // Assim que os dados chegam, a regra volta a valer normalmente.
-  cenario([{ id: 99, status: 'confirmada', pgto: 'pago', taxa: 150 }], [AVISO_FABRICIO]);
-  checa('com os dados na mão, o pago some', _reslHistLer().length, 0);
+  // Chegaram os dados: a linha volta sozinha, sem nada ter sido perdido.
+  RESERVAS = [FABRICIO];
+  checa('com os dados na mão, a cobrança reaparece', chaves(), ['99|pgto']);
 });
 
-// ── O que o histórico deve preservar ───────────────────────────────────
+// ── O que o histórico deve preservar ──────────────────────────────────
 bloco('Fato do passado continua sendo fato', () => {
-  cenario([{ id: 99, status: 'confirmada', pgto: 'pago', taxa: 150 }],
-          [{ chave: '99|agora', ts: AGORA, texto: 'Começou a reserva de Fabricio' }]);
-  checa('"a reserva começou" não vence com o pagamento', _reslHistLer().length, 1);
+  zera([{ ...FABRICIO, pgto: 'pago' }], { '99|agora': AGORA });
+  const h = api._reslHistorico();
+  checa('"a reserva começou" não vence com o pagamento', h.length, 1);
+  checa('e o texto é remontado da reserva', h[0].texto, 'Começou a reserva de Fabricio');
 });
 
 bloco('Ids parecidos não se confundem', () => {
-  cenario([{ id: '9',  status: 'confirmada', pgto: 'pendente', taxa: 50 },
-           { id: '99', status: 'confirmada', pgto: 'pago',     taxa: 150 }],
-          [{ chave: '9|pgto', ts: AGORA }, { chave: '99|pgto', ts: AGORA }]);
-  const r = _reslHistLer();
-  checa('só o devedor de verdade sobra', r.map((x) => x.chave), ['9|pgto']);
+  zera([{ id: '9',  nome: 'Nove',    status: 'confirmada', pgto: 'pendente', taxa: 50 },
+        { id: '99', nome: 'Noventa', status: 'confirmada', pgto: 'pago',     taxa: 150 }],
+       { '9|pgto': AGORA, '99|pgto': AGORA });
+  checa('só o devedor de verdade sobra', chaves(), ['9|pgto']);
 });
 
 bloco('Avisos velhos saem por idade', () => {
-  const velho = AGORA - 8 * 86400000;   // 8 dias: passou dos 7
-  cenario([{ id: 99, status: 'confirmada', pgto: 'pendente', taxa: 150 }],
-          [{ chave: '99|pgto', ts: velho }]);
-  checa('mais de 7 dias não aparece', _reslHistLer().length, 0);
+  zera([FABRICIO], { '99|pgto': AGORA - 8 * 86400000 });
+  checa('mais de 7 dias não aparece', chaves(), []);
 });
 
 bloco('Armazenamento corrompido não derruba a tela', () => {
-  RESERVAS = [];
-  STORE['apvc_res_lembrete_hist'] = '{isto não é json';
-  checa('lixo vira lista vazia', _reslHistLer(), []);
-  STORE['apvc_res_lembrete_hist'] = '{"nao":"array"}';
-  checa('objeto no lugar de lista vira lista vazia', _reslHistLer(), []);
+  RESERVAS = [FABRICIO];
+  STORE['apvc_resl_' + COND] = '{isto não é json';
+  checa('lixo vira histórico vazio', chaves(), []);
+  STORE['apvc_resl_' + COND] = '{"apareceu":"nao é objeto"}';
+  checa('campo com tipo errado vira vazio', chaves(), []);
+  checa('chave sem fase não quebra', api._reslHistLinha('semfase', AGORA), null);
 });
 
-// ── Redesenho da janela aberta ────────────────────────────────────────
-// Marcar um pagamento com a janela aberta tem de apagar SÓ aquela linha.
-// Como a janela tem dois modos (sozinha, filtrando o que já foi visto; ou
-// a pedido do botão "Lembretes", mostrando tudo), o redesenho precisa
-// manter o modo em que ela foi aberta — senão dar baixa numa cobrança
-// levava junto as outras linhas e o bloco "Já apareceram".
-bloco('O redesenho mantém o modo em que a janela abriu', () => {
-  const { lerFonte } = require('./extrair');
-  const src = lerFonte();
-  const corpo = src.slice(src.indexOf('function _reslRedesenhar'),
-                          src.indexOf('function _reslRedesenhar') + 900);
-  checa('redesenha com o modo guardado, não com o padrão',
-        /resLembreteChecar\(\s*!!window\._reslForcado\s*\)/.test(corpo), true);
-  checa('o modo é gravado ao montar a janela',
-        /window\._reslForcado\s*=\s*!!forcado/.test(src), true);
+// ── Silêncio de 15 minutos ────────────────────────────────────────────
+bloco('Aviso dispensado cala por 15 minutos', () => {
+  zera([FABRICIO]);
+  api._reslMarcar(['99|pgto']);
+  const vistos = api._reslStore().vistos;
+  checa('logo depois de dispensar, está calado', api._reslCalado(vistos, '99|pgto'), true);
+  checa('16 minutos depois, volta',
+        api._reslCalado({ '99|pgto': AGORA - 16 * 60000 }, '99|pgto'), false);
+  checa('o que nunca foi dispensado não está calado',
+        api._reslCalado(vistos, '77|pgto'), false);
 });
 
-// ── Troca de condomínio ───────────────────────────────────────────────
+// ── Isolamento entre condomínios ──────────────────────────────────────
 // O histórico guarda id de reserva, e id só significa algo dentro do
-// condomínio onde nasceu. Ficando para trás, mostrava cobrança de outro
-// condomínio e — pior — era apagado em silêncio pela reconferência, que
-// tomava aqueles ids por reservas excluídas.
-bloco('Trocar de condomínio limpa os lembretes', () => {
-  const { recortarFuncao, lerFonte } = require('./extrair');
-  const fn = recortarFuncao(lerFonte(), '_limparCacheDados');
-  checa('limpa o histórico "Já apareceram"',
-        fn.includes("removeItem('apvc_res_lembrete_hist')"), true);
-  checa('limpa as marcas de "já vi este aviso"',
-        fn.includes("removeItem('apvc_res_lembrete')"), true);
-  checa('continua limpando as reservas',
-        fn.includes("removeItem('apvc_reservas')"), true);
+// condomínio onde nasceu. Antes as chaves eram únicas do navegador:
+// trocar de condomínio mostrava cobrança do outro e, pior, apagava o
+// histórico do primeiro ao tomar aqueles ids por reservas excluídas.
+bloco('Cada condomínio tem o seu registro', () => {
+  // O código lê _condAtual direto da variável, e o carregador do teste
+  // fixa o valor no momento em que monta as funções. Então cada condomínio
+  // precisa da sua própria cópia — é o mais perto que dá de simular a troca
+  // sem subir a página inteira.
+  const paraCond = (cond) => carregar(
+    ['_reslChaveLS', '_reslStore', '_reslStoreSalvar', '_reslRegistrar',
+     '_reslHistLinha', '_reslHistorico', '_reslFraseSimples', '_reslDetalhe'],
+    { ...stubs, _condAtual: cond },
+  );
+  const apvc = paraCond('APVC');
+  const outro = paraCond('OUTRO');
+
+  checa('cada um usa a sua chave de armazenamento',
+        [apvc._reslChaveLS(), outro._reslChaveLS()],
+        ['apvc_resl_APVC', 'apvc_resl_OUTRO']);
+
+  STORE = {};
+  RESERVAS = [FABRICIO];
+  apvc._reslRegistrar(['99|pgto']);
+  checa('gravou no registro do APVC',
+        apvc._reslHistorico().map((x) => x.chave), ['99|pgto']);
+
+  // Mesmo com a MESMA reserva à vista, o outro condomínio não enxerga o
+  // registro do primeiro — é o que impedia a cobrança de vazar de um para
+  // o outro, e o que impedia o segundo de apagar o histórico do primeiro.
+  checa('o outro condomínio não vê nada disso',
+        outro._reslHistorico().map((x) => x.chave), []);
+
+  outro._reslRegistrar(['99|pgto']);
+  checa('e ao gravar, não sobrescreve o do primeiro',
+        Object.keys(JSON.parse(STORE['apvc_resl_APVC']).apareceu), ['99|pgto']);
+  checa('cada chave guarda o seu',
+        Object.keys(STORE).sort(), ['apvc_resl_APVC', 'apvc_resl_OUTRO']);
 });
 
-// ── A data de hoje, do ponto de vista de quem olha ─────────────────────
+// ── Poda na gravação ──────────────────────────────────────────────────
+bloco('O registro não cresce para sempre', () => {
+  COND = 'APVC';
+  STORE = {};
+  const muitos = {};
+  for (let i = 0; i < 50; i++) muitos[i + '|pgto'] = AGORA - i * 1000;
+  muitos['velho|pgto'] = AGORA - 30 * 86400000;
+  api._reslStoreSalvar({ apareceu: muitos, vistos: {} });
+  const salvos = Object.keys(JSON.parse(STORE['apvc_resl_APVC']).apareceu);
+  checa('corta no teto de 30', salvos.length, 30);
+  checa('e o que passou do prazo não entra', salvos.includes('velho|pgto'), false);
+  checa('ficam os mais recentes', salvos.includes('0|pgto'), true);
+});
+
+// ── A data de hoje ────────────────────────────────────────────────────
 bloco('Data de hoje', () => {
   const d = new Date();
   const esperado = d.getFullYear() + '-' +
     String(d.getMonth() + 1).padStart(2, '0') + '-' +
     String(d.getDate()).padStart(2, '0');
-  checa('usa o fuso de quem está olhando, não UTC', _reslHojeISO(), esperado);
-  checa('formato aceito pelo campo de data', /^\d{4}-\d{2}-\d{2}$/.test(_reslHojeISO()), true);
+  checa('usa o fuso de quem está olhando, não UTC', api._reslHojeISO(), esperado);
 });
 
 console.log('\n' + '-'.repeat(50));
