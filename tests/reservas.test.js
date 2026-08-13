@@ -811,11 +811,15 @@ bloco('Lembrete "daqui a X tem a reserva do Fulano"', () => {
   let GUARDADO = {};
 
   const api = carregar(
-    ['_resComecaEm', '_reslQuando', '_reslVistos', '_reslMarcar', '_reslCalado', '_reslPendentes',
+    ['_resComecaEm', '_reslQuando', '_reslChaveLS', '_reslStore', '_reslStoreSalvar',
+     '_reslMarcar', '_reslCalado', '_reslPendentes',
      '_reslFrase', '_reslHojeISO', 'hrIni', 'hrFim', '_minHora'],
     {
       window: JANELA,
       G: () => RESERVAS,
+      _condAtual: 'APVC',
+      _RESL_HIST_DIAS: 7,
+      _RESL_HIST_MAX: 30,
       localStorage: {
         getItem: (k) => (GUARDADO[k] === undefined ? null : GUARDADO[k]),
         setItem: (k, v) => { GUARDADO[k] = v; },
@@ -893,17 +897,17 @@ bloco('Lembrete "daqui a X tem a reserva do Fulano"', () => {
   api._reslMarcar(['9|agora']);
   checa('e esse também só uma vez', nomes(), []);
 
-  // Marca de ontem não cala o aviso de hoje.
-  GUARDADO['apvc_res_lembrete'] = JSON.stringify({ dia: '2020-01-01', marcas: { '9|agora': Date.now() } });
-  checa('marca de outro dia é descartada', nomes(), ['agora:Helena']);
+  // O silêncio é por TEMPO, não por dia: marca velha não cala nada.
+  const visto = (ms) => { GUARDADO['apvc_resl_APVC'] =
+    JSON.stringify({ vistos: { '9|agora': Date.now() - ms }, apareceu: {} }); };
+
+  visto(24 * 60 * 60000);
+  checa('marca de ontem não cala o aviso de hoje', nomes(), ['agora:Helena']);
 
   // A insistência é o ponto: passados 15 minutos, o aviso VOLTA.
-  const hoje_ = new Date().toISOString().slice(0, 10);
-  GUARDADO['apvc_res_lembrete'] = JSON.stringify(
-    { dia: hoje_, marcas: { '9|agora': Date.now() - 5 * 60000 } });
+  visto(5 * 60000);
   checa('5 minutos depois ainda cala', nomes(), []);
-  GUARDADO['apvc_res_lembrete'] = JSON.stringify(
-    { dia: hoje_, marcas: { '9|agora': Date.now() - 16 * 60000 } });
+  visto(16 * 60000);
   checa('16 minutos depois volta a avisar', nomes(), ['agora:Helena']);
 
   // ── Ordem e frase ──
@@ -929,7 +933,7 @@ bloco('Aviso de pagamento pendente', () => {
   let GUARDADO = {};
 
   const api = carregar(
-    ['_resComecaEm', '_reslVistos', '_reslMarcar', '_reslCalado', '_reslPagamentos',
+    ['_resComecaEm', '_reslChaveLS', '_reslStore', '_reslStoreSalvar', '_reslMarcar', '_reslCalado', '_reslPagamentos',
      'hrIni', 'hrFim', '_minHora'],
     {
       window: JANELA,
@@ -938,9 +942,12 @@ bloco('Aviso de pagamento pendente', () => {
         getItem: (k) => (GUARDADO[k] === undefined ? null : GUARDADO[k]),
         setItem: (k, v) => { GUARDADO[k] = v; },
       },
+      _condAtual: 'APVC',
       _RESL_ATRASO_MAX: 60,
       _RESL_AVISO_H: 48,
       _RESL_REPETIR_MIN: 15,
+      _RESL_HIST_DIAS: 7,
+      _RESL_HIST_MAX: 30,
     },
   );
 
@@ -1002,9 +1009,8 @@ bloco('Aviso de pagamento pendente', () => {
   api._reslMarcar(['12|pgto']);
   checa('logo depois, cala', fases(), []);
   // Cobranca em aberto tem de voltar: some da vista e ninguem lembra dela.
-  const hoje2 = new Date().toISOString().slice(0, 10);
-  GUARDADO['apvc_res_lembrete'] = JSON.stringify(
-    { dia: hoje2, marcas: { '12|pgto': Date.now() - 16 * 60000 } });
+  GUARDADO['apvc_resl_APVC'] = JSON.stringify(
+    { vistos: { '12|pgto': Date.now() - 16 * 60000 }, apareceu: {} });
   checa('16 minutos depois a cobranca volta', fases(), ['atrasado:Kelly']);
 
   // ── Ordem: atrasados na frente, o mais antigo primeiro ──
@@ -1183,55 +1189,11 @@ bloco('Aprovação avisa quando o pagamento não foi confirmado', () => {
 });
 
 // ── Histórico de lembretes ─────────────────────────────────────────────
-bloco('Lembretes recentes', () => {
-  let GUARDADO = {};
-  const api = carregar(
-    ['_reslHistLer', '_reslHistGravar', '_reslQuandoFoi', '_reslHistPgtoVencido'], {
-      localStorage: {
-        getItem: (k) => (GUARDADO[k] === undefined ? null : GUARDADO[k]),
-        setItem: (k, v) => { GUARDADO[k] = v; },
-      },
-      // As chaves deste bloco não são de pagamento ("a", "b"...), então a
-      // reconferência de cobrança nem chega a consultar as reservas. Ela é
-      // testada com dado de verdade em tests/lembretes.test.js.
-      G: () => [],
-      _RESL_HIST_DIAS: 7,
-      _RESL_HIST_MAX: 30,
-    });
-  const agora = Date.now();
-  const dias = (n) => agora - n * 86400000;
-  const chaves = () => api._reslHistLer().map((x) => x.chave);
-
-  GUARDADO = {};
-  api._reslHistGravar([{ chave: 'a', ts: agora, texto: 'x', detalhe: 'y' }]);
-  checa('guarda o que apareceu', chaves(), ['a']);
-
-  // O mesmo aviso não entra duas vezes — senão o histórico vira ruído.
-  api._reslHistGravar([{ chave: 'a', ts: agora + 5, texto: 'x', detalhe: 'y' }]);
-  checa('não duplica o mesmo aviso', chaves(), ['a']);
-
-  api._reslHistGravar([{ chave: 'b', ts: agora + 10, texto: 'x', detalhe: 'y' }]);
-  checa('mais recente vem na frente', chaves(), ['b', 'a']);
-
-  // Some sozinho depois de 7 dias.
-  GUARDADO = {};
-  api._reslHistGravar([{ chave: 'velho', ts: dias(9), texto: 'x', detalhe: 'y' },
-                       { chave: 'novo', ts: agora, texto: 'x', detalhe: 'y' }]);
-  checa('descarta o que passou de 7 dias', chaves(), ['novo']);
-
-  // Não cresce para sempre.
-  GUARDADO = {};
-  const muitos = [];
-  for (let i = 0; i < 45; i++) muitos.push({ chave: 'k' + i, ts: agora - i * 1000, texto: 'x', detalhe: 'y' });
-  api._reslHistGravar(muitos);
-  checa('guarda no máximo 30', api._reslHistLer().length, 30);
-  checa('e mantém os mais recentes', chaves()[0], 'k0');
-
-  // Lixo no armazenamento não derruba a tela.
-  GUARDADO = { apvc_res_lembrete_hist: '{isto não é json' };
-  checa('conteúdo inválido vira lista vazia', api._reslHistLer(), []);
-  GUARDADO = { apvc_res_lembrete_hist: '{"a":1}' };
-  checa('objeto em vez de lista também', api._reslHistLer(), []);
+// O histórico em si (o que entra, o que vence, isolamento por condomínio)
+// é testado em tests/lembretes.test.js, junto do resto do novo modelo.
+// Aqui fica só como a hora é escrita para o olho.
+bloco('Como a hora do lembrete é escrita', () => {
+  const api = carregar(['_reslQuandoFoi'], {});
 
   // Como a hora é mostrada.
   const hoje = new Date(); hoje.setHours(14, 32, 0, 0);

@@ -6251,17 +6251,13 @@ function _limparCacheDados(){
     localStorage.removeItem('apvc_informativos_cache');
     localStorage.removeItem('apvc_cfg_reservas');
     localStorage.removeItem('apvc_last_panel');
-    /* Lembretes de reserva: o historico ("Ja apareceram") e as marcas de
-       "ja vi este aviso" guardam id de reserva, e id so quer dizer alguma
-       coisa dentro do condominio onde foi criado.
+    /* Lembretes de reserva: hoje o registro ja nasce com o condominio na
+       chave (apvc_resl_<CODIGO>), entao trocar de condominio nao mistura
+       mais nada e nao ha o que limpar aqui.
 
-       Ficando para tras na troca, davam dois problemas de uma vez. O
-       primeiro e que o supervisor via, no condominio novo, uma cobranca
-       do anterior — nome de morador que nao e dali. O segundo e pior e
-       silencioso: aqueles ids nao existem na lista nova, entao a
-       reconferencia os tomava por reservas apagadas e os REMOVIA do
-       armazenamento. Voltar para o primeiro condominio encontrava o
-       historico dele vazio, sem nada explicando por que. */
+       Estas duas linhas sao das chaves ANTIGAS, unicas para o navegador
+       inteiro. Ficam so para tirar do caminho o que sobrou de antes da
+       mudanca — dali saia cobranca de um condominio aparecendo no outro. */
     localStorage.removeItem('apvc_res_lembrete');
     localStorage.removeItem('apvc_res_lembrete_hist');
     localStorage.removeItem('vc_hero');
@@ -11231,32 +11227,91 @@ function _reslQuando(r){
    registro so para o armazenamento nao crescer sem fim. */
 var _RESL_REPETIR_MIN = 15;
 
-function _reslVistos(){
-  var hoje = new Date().toISOString().slice(0,10);
+/* ── O que a janelinha guarda, e o que ela NAO guarda ─────────────────
+
+   Fonte de verdade e uma so: a lista de reservas. Tudo que aparece na
+   tela e montado a partir dela, na hora.
+
+   O armazenamento guarda apenas DUAS coisas, e as duas sao carimbos de
+   tempo por chave de aviso — nunca texto, nunca valor, nunca nome:
+
+     vistos    quando aquele aviso foi dispensado (silencia por 15 min)
+     apareceu  quando aquele aviso surgiu (alimenta o "Ja apareceram")
+
+   Isso resolve de uma vez a familia de defeitos que apareceu aqui:
+
+   - o historico guardava a FRASE pronta ("Fulano nao pagou"), congelada
+     no dia. Ela nao tinha como saber que o dinheiro entrou depois, e
+     marcar como pago fazia o nome REAPARECER. Agora a frase e remontada
+     da reserva de verdade a cada desenho: pagou, some, sem ninguem
+     precisar limpar nada;
+
+   - ler o historico REGRAVAVA o armazenamento, jogando fora o que
+     julgasse vencido. Com a lista de reservas ainda carregando, isso
+     apagava cobranca de verdade. Agora ler e so ler; o que nao se resolve
+     numa reserva simplesmente nao e desenhado, e continua guardado caso a
+     lista chegue depois;
+
+   - as duas chaves antigas eram unicas para o navegador inteiro, entao
+     trocar de condominio misturava id de um com reserva de outro. Agora a
+     chave carrega o condominio.
+
+   O que nao se apaga sozinho e podado por idade e por quantidade, no
+   momento de gravar. */
+function _reslChaveLS(){ return 'apvc_resl_' + (typeof _condAtual!=='undefined' ? _condAtual : 'x'); }
+
+function _reslStore(){
   try{
-    var o = JSON.parse(localStorage.getItem('apvc_res_lembrete')||'{}');
-    if(o.dia !== hoje || !o.marcas || typeof o.marcas!=='object') return { dia:hoje, marcas:{} };
-    return { dia:hoje, marcas:o.marcas };
-  }catch(_){ return { dia:hoje, marcas:{} }; }
+    var o = JSON.parse(localStorage.getItem(_reslChaveLS())||'{}');
+    return { vistos:   (o && typeof o.vistos==='object'   && o.vistos)   || {},
+             apareceu: (o && typeof o.apareceu==='object' && o.apareceu) || {} };
+  }catch(_){ return { vistos:{}, apareceu:{} }; }
+}
+
+/* Poda na gravacao: sem isto o registro cresceria para sempre, porque
+   nada mais o limpa. Fora do prazo sai; passando do teto, ficam os mais
+   recentes. */
+function _reslStoreSalvar(s){
+  var corte = Date.now() - _RESL_HIST_DIAS*86400000;
+  ['vistos','apareceu'].forEach(function(campo){
+    var e = Object.keys(s[campo])
+      .filter(function(k){ return s[campo][k] > corte; })
+      .sort(function(a,b){ return s[campo][b] - s[campo][a]; })
+      .slice(0, _RESL_HIST_MAX);
+    var novo = {};
+    e.forEach(function(k){ novo[k] = s[campo][k]; });
+    s[campo] = novo;
+  });
+  try{ localStorage.setItem(_reslChaveLS(), JSON.stringify(s)); }catch(_){}
 }
 
 // Ainda calado? So enquanto os 15 minutos nao passarem.
-function _reslCalado(marcas, chave){
-  var t = marcas[chave];
+function _reslCalado(vistos, chave){
+  var t = vistos[chave];
   return !!t && (Date.now() - t) < _RESL_REPETIR_MIN*60000;
 }
 
+// Dispensado agora: silencia por 15 minutos.
 function _reslMarcar(chaves){
-  var v = _reslVistos(), agora = Date.now();
-  chaves.forEach(function(c){ v.marcas[c] = agora; });
-  try{ localStorage.setItem('apvc_res_lembrete', JSON.stringify(v)); }catch(_){}
+  if(!chaves || !chaves.length) return;
+  var s = _reslStore(), agora = Date.now();
+  chaves.forEach(function(c){ s.vistos[c] = agora; });
+  _reslStoreSalvar(s);
+}
+
+// Apareceu sozinho na tela: entra no "Ja apareceram", uma vez so.
+function _reslRegistrar(chaves){
+  if(!chaves || !chaves.length) return;
+  var s = _reslStore(), agora = Date.now(), mudou = false;
+  chaves.forEach(function(c){ if(!s.apareceu[c]){ s.apareceu[c] = agora; mudou = true; } });
+  if(mudou) _reslStoreSalvar(s);
 }
 
 function _reslPendentes(ignorarVistos){
   var nivel = window._userNivel||'morador';
   if(nivel!=='admin' && nivel!=='gestor' && nivel!=='supervisor') return [];
   var agora = Date.now();
-  var marcas = _reslVistos().marcas;
+  var vistos = _reslStore().vistos;
   var out = [];
   (G('reservas')||[]).forEach(function(r){
     if(!r.data || r.status==='cancelada' || r.status==='realizada') return;
@@ -11273,7 +11328,7 @@ function _reslPendentes(ignorarVistos){
     else if(minsPara > 0 && r.data === _reslHojeISO())     fase = 'hoje';
     else return;
     var chave = r.id + '|' + fase;
-    if(!ignorarVistos && _reslCalado(marcas, chave)) return;
+    if(!ignorarVistos && _reslCalado(vistos, chave)) return;
     out.push({ r:r, fase:fase, mins:Math.round(minsPara), chave:chave });
   });
   out.sort(function(a,b){ return a.mins - b.mins; });
@@ -11296,7 +11351,7 @@ function _reslPagamentos(ignorarVistos){
   var nivel = window._userNivel||'morador';
   if(nivel!=='admin' && nivel!=='gestor' && nivel!=='supervisor') return [];
   var agora = Date.now();
-  var marcas = _reslVistos().marcas;
+  var vistos = _reslStore().vistos;
   var out = [];
   (G('reservas')||[]).forEach(function(r){
     if(!r.data || r.status==='cancelada') return;
@@ -11313,7 +11368,7 @@ function _reslPagamentos(ignorarVistos){
       fase = 'areceber';
     } else return;
     var chave = r.id + '|pgto';
-    if(!ignorarVistos && _reslCalado(marcas, chave)) return;
+    if(!ignorarVistos && _reslCalado(vistos, chave)) return;
     out.push({ r:r, fase:fase, taxa:taxa, horas:horas, chave:chave });
   });
   // Atrasados primeiro, e entre eles o mais antigo na frente.
@@ -11334,87 +11389,77 @@ function _reslFrase(it){
   return 'Daqui a 1 hora tem a reserva do(a) <b>'+escHtml(quem)+'</b>';
 }
 
-/* ── Histórico dos lembretes que já apareceram ────────────────────────
+/* ── Histórico: o que já apareceu nos últimos dias ────────────────────
 
-   O aviso aparece uma vez e some. Quem estava ocupado no momento perdia —
-   e não tinha como saber o que passou. O histórico guarda o que foi
-   mostrado, para o botão "Lembretes" poder recontar.
+   O aviso aparece uma vez e some. Quem estava ocupado no momento perdia,
+   e não tinha como saber o que passou. O botão "Lembretes" recontа.
 
-   Guarda os CAMPOS, nunca o HTML pronto: texto montado hoje e reinjetado
+   O que fica guardado é só a CHAVE do aviso e a hora em que ele surgiu.
+   A frase é remontada da reserva de verdade a cada desenho — por isso
+   nada aqui envelhece: quando a taxa é paga, a linha some sozinha, sem
+   precisar de faxina.
+
+   Guarda campos, nunca HTML pronto: texto montado hoje e reinjetado
    amanhã é como se cria um buraco de segurança sem perceber. */
 var _RESL_HIST_DIAS = 7;
 var _RESL_HIST_MAX  = 30;
 
-/* O historico guarda uma FRASE congelada no dia em que o aviso apareceu.
-   Para "Comecou a reserva do Fulano" isso esta certo: aconteceu, e continua
-   tendo acontecido. Para "Fulano nao pagou" esta errado — aquilo nao e um
-   fato do passado, e uma afirmacao sobre AGORA, e ela vence no instante em
-   que o pagamento entra.
+/* Resolve uma chave guardada de volta numa linha para a tela.
 
-   O sintoma era perverso: marcar como pago FAZIA a pessoa reaparecer. Ela
-   saia da lista de pendentes, deixava de ser filtrada como "ja esta na tela"
-   e voltava pela porta dos fundos, no "Ja apareceram", ainda dizendo que
-   devia. Quem pagou virava o unico nome que sobrava na tela.
+   Devolve null quando a chave não descreve mais nada que valha mostrar —
+   e as duas razões para isso são bem diferentes:
 
-   Entao todo aviso de pagamento e reconferido contra a reserva de verdade
-   antes de aparecer. Se pagou, foi isento, foi cancelada ou sumiu, o aviso
-   nao e mostrado — e sai do armazenamento, para nao voltar amanha. */
-function _reslHistPgtoVencido(h){
-  var chave = String(h && h.chave || '');
-  if(chave.slice(-5) !== '|pgto') return false;        // nao e aviso de pagamento
+   - a reserva não está na lista. Pode ter sido apagada, mas também pode
+     ser que a lista ainda não carregou. Não dá para distinguir, então
+     não se mostra E não se apaga: some da tela agora e volta sozinha se
+     era só demora;
 
-  /* Lista vazia nao quer dizer "as reservas sumiram", quer dizer "ainda nao
-     sei". E a mesma cara de um cache que nao carregou — logo depois de
-     entrar, com a rede lenta, ou na troca de condominio.
+   - é cobrança de algo que já foi pago, isentado ou cancelado. Aí a
+     afirmação venceu de fato, e ela não volta.
 
-     Isso importa porque _reslHistLer nao so esconde o aviso vencido: ele
-     REGRAVA o armazenamento sem ele. Com a lista vazia tratada como
-     "apagaram tudo", uma aberta dos Lembretes no momento errado limparia de
-     vez as cobrancas dos ultimos 7 dias — dado do usuario perdido por uma
-     leitura. Na duvida, nao mexe: o aviso continua e some sozinho na
-     proxima passada, ja com os dados na mao. */
+   Aviso de reserva ("Começou a reserva do Fulano") é fato do passado e
+   continua valendo — só precisa da reserva para remontar o texto. */
+function _reslHistLinha(chave, ts){
   var todas = G('reservas');
-  if(!Array.isArray(todas) || !todas.length) return false;
+  if(!Array.isArray(todas)) return null;
 
-  var rid = chave.slice(0, -5);
+  var corte = chave.lastIndexOf('|');
+  if(corte < 0) return null;
+  var rid  = chave.slice(0, corte);
+  var fase = chave.slice(corte + 1);
+
   var r = todas.find(function(x){ return String(x.id) === rid; });
-  if(!r) return true;                                   // reserva apagada
-  if(r.status === 'cancelada') return true;
-  if((r.pgto||'') !== 'pendente') return true;          // pago ou isento
-  return !(parseFloat(r.taxa) > 0);                     // taxa zerada depois
-}
+  if(!r) return null;
 
-function _reslHistLer(){
-  var corte = Date.now() - _RESL_HIST_DIAS*86400000;
-  var lista;
-  try{ lista = JSON.parse(localStorage.getItem('apvc_res_lembrete_hist')||'[]'); }
-  catch(_){ return []; }
-  if(!Array.isArray(lista)) return [];
-
-  var vivos = lista.filter(function(x){ return x && x.ts > corte; });
-  var validos = vivos.filter(function(x){ return !_reslHistPgtoVencido(x); });
-
-  // Faxina: o que venceu nao precisa ocupar espaco ate expirar por idade.
-  if(validos.length !== vivos.length){
-    try{ localStorage.setItem('apvc_res_lembrete_hist', JSON.stringify(validos)); }catch(_){}
+  if(fase === 'pgto'){
+    if(r.status === 'cancelada') return null;
+    if((r.pgto||'') !== 'pendente') return null;       // pago ou isento
+    var taxa = parseFloat(r.taxa);
+    if(!(taxa > 0)) return null;
+    return { chave:chave, ts:ts,
+             texto:((r.nome||'sem nome')+' — taxa de '+fmt(taxa)+' em aberto'),
+             detalhe:_reslDetalhe(r) };
   }
-  return validos;
+
+  if(r.status === 'cancelada') return null;
+  return { chave:chave, ts:ts,
+           texto:_reslFraseSimples({ r:r, fase:fase }),
+           detalhe:_reslDetalhe(r) };
 }
 
-function _reslHistGravar(novos){
-  if(!novos || !novos.length) return;
-  var lista = _reslHistLer();
-  var tem = {};
-  lista.forEach(function(x){ tem[x.chave] = true; });
-  novos.forEach(function(n){
-    if(tem[n.chave]) return;        // o mesmo aviso não entra duas vezes
-    lista.push(n); tem[n.chave] = true;
-  });
-  lista.sort(function(a,b){ return b.ts - a.ts; });          // recente na frente
-  try{
-    localStorage.setItem('apvc_res_lembrete_hist',
-      JSON.stringify(lista.slice(0, _RESL_HIST_MAX)));
-  }catch(_){}
+/* Ler é só ler. A versão anterior regravava o armazenamento aqui,
+   descartando o que julgasse vencido — e com a lista de reservas ainda
+   carregando isso apagava cobrança de verdade, sem volta. A poda agora
+   acontece só na gravação, por idade e quantidade. */
+function _reslHistorico(){
+  var ap = _reslStore().apareceu;
+  var corte = Date.now() - _RESL_HIST_DIAS*86400000;
+  return Object.keys(ap)
+    .filter(function(k){ return ap[k] > corte; })
+    .map(function(k){ return _reslHistLinha(k, ap[k]); })
+    .filter(Boolean)
+    .sort(function(a,b){ return b.ts - a.ts; })
+    .slice(0, _RESL_HIST_MAX);
 }
 
 // "hoje 14:32", "ontem 09:10", "08/08 09:10"
@@ -11439,7 +11484,7 @@ function resLembreteChecar(forcado){
   /* Aberto a pedido, mostra também o que já passou. Sem isso o botão
      abriria vazio justamente para quem fechou o aviso sem ler — que é
      quem mais precisa dele. */
-  var hist = forcado ? _reslHistLer() : [];
+  var hist = forcado ? _reslHistorico() : [];
   var atuais = {};
   itens.concat(pagMostra).forEach(function(x){ atuais[x.chave] = true; });
   hist = hist.filter(function(h){ return !atuais[h.chave]; });   // não repete
@@ -11509,15 +11554,9 @@ function resLembreteChecar(forcado){
      inventa aviso novo — senão o histórico viraria o registro dos cliques
      no botão, não dos lembretes. */
   if(!forcado){
-    var agoraTs = Date.now();
-    _reslHistGravar(itens.map(function(it){
-      return { chave:it.chave, ts:agoraTs,
-               texto:_reslFraseSimples(it), detalhe:_reslDetalhe(it.r) };
-    }).concat(pagMostra.map(function(it){
-      return { chave:it.chave, ts:agoraTs,
-               texto:((it.r.nome||'sem nome')+' — taxa de '+fmt(it.taxa)+' em aberto'),
-               detalhe:_reslDetalhe(it.r) };
-    })));
+    // Só a chave e a hora. A frase é remontada na hora de mostrar, a partir
+    // da reserva — é o que faz uma cobrança paga sumir do histórico sozinha.
+    _reslRegistrar(itens.concat(pagMostra).map(function(it){ return it.chave; }));
   }
   el.classList.add('open');   // sem trava de rolagem: não é modal
 }
