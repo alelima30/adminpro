@@ -9441,7 +9441,7 @@ function exportarEncomendasCSV(){
   });
   if(!lista.length){ toast('Nenhuma encomenda para exportar.'); return; }
   var cols=['Numero','Unidade','Destinatario','Remetente','Tipo','Registrada','NumeroRegistro','Status','RecebidaEm','RecebidaPor','RetiradaEm','RetiradaPor','ComCodigo','Observacao'];
-  var esc=function(v){ v=(v==null?'':String(v)).replace(/"/g,'""'); return '"'+v+'"'; };
+  var esc=_csvCelula;
   var linhas=[cols.join(';')];
   lista.forEach(function(e){
     linhas.push([e.numero||'', e.unidade||'', e.destinatario||'', e.remetente||'', e.tipo||'', e.registrado?'Sim':'Nao', e.numeroRegistro||'',
@@ -10002,11 +10002,36 @@ function _abrirImpressao(titulo, corpoHtml){
   w.document.close();
 }
 
+/* Uma celula de CSV, pronta para o Excel.
+
+   Aspas duplicadas protegem a ESTRUTURA do arquivo, e era so isso que
+   existia aqui. Nao protegiam quem ABRE: Excel e LibreOffice tratam celula
+   comecando por = + - @ como FORMULA, e varios desses campos sao digitados
+   por quem reserva. Uma finalidade escrita como
+   =HYPERLINK("http://...";"Clique aqui") vira link ativo na planilha do
+   sindico, e ha variantes que chamam programa externo.
+
+   O apostrofo na frente manda a planilha ler como texto, e so entra quando
+   precisa. Telefone internacional comeca com "+" e e legitimo -- enfeitar
+   todo telefone com apostrofo seria estragar o caso comum para tratar o
+   raro. Entao + e - so sao neutralizados quando o valor tem algo que
+   telefone nao tem: letra, parentese ou barra vertical. */
+function _csvFormula(v){
+  if(/^[=@|\t\r]/.test(v)) return true;
+  if(!/^[+\-]/.test(v))     return false;
+  return /[A-Za-z!|(]/.test(v);      // "+55 11 91234-5678" passa; "+cmd|..." nao
+}
+function _csvCelula(v){
+  v = (v==null ? '' : String(v));
+  if(_csvFormula(v)) v = "'" + v;
+  return '"' + v.replace(/"/g,'""') + '"';
+}
+
 function exportarReservasCSV(){
   var lista=_relFiltradas();
   if(!lista.length){ toast('Nenhuma reserva no filtro para exportar.'); return; }
   var cols=['Data','Horario','Espaco','Morador','Unidade','Telefone','Finalidade','Status','Taxa','Caucao','Pagamento','Observacao'];
-  var esc=function(v){ v=(v==null?'':String(v)).replace(/"/g,'""'); return '"'+v+'"'; };
+  var esc=_csvCelula;
   var linhas=[cols.join(';')];
   lista.forEach(function(r){
     linhas.push([
