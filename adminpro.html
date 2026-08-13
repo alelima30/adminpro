@@ -6252,8 +6252,24 @@ async function renderAssinaturas(){
     }
     return;
   }
-  if(aviso) aviso.style.display='none';
   _assinCache.linhas = linhas; _assinCache.cobrancas = cobr;
+
+  /* Cliente sem assinatura definida nao entra na geracao do mes -- ou seja,
+     usa de graca sem nada acusar. Ele ja aparece em laranja na lista, mas uma
+     linha no meio de outras nao e um aviso: e paisagem. Aqui vira uma frase
+     no topo, que some sozinha quando nao houver nenhum. */
+  var semAssin = linhas.filter(function(l){ return !l.situacao; });
+  if(aviso){
+    if(semAssin.length){
+      aviso.style.display = 'block';
+      aviso.innerHTML = '<b>'+semAssin.length+' condomínio(s) sem assinatura definida</b> — '
+        + 'eles não entram na geração da cobrança e usam sem cobrar: '
+        + semAssin.map(function(l){ return escHtml(l.nome||l.codigo); }).join(', ')
+        + '.<br>Clique no lápis na linha de cada um para dizer quanto ele paga.';
+    } else {
+      aviso.style.display = 'none';
+    }
+  }
 
   var hoje = _reslHojeISO();
   var totalMes = 0, emAberto = 0, vencidas = 0;
@@ -6510,12 +6526,28 @@ function saasSalvar(){
   const modulos={};
   document.querySelectorAll('.saas-mod').forEach(c=>{ modulos[c.value]=c.checked; });
   const cs=getSaasCondominios();
+  const eraNovo = !cs[cod];
   cs[cod]={ nome, logo:_saasLogo, adminEmail,
     status:$('saas-status').value||'ativo', modulos };
   S('saas_condominios',cs);
   if(senha){ _saasCriarAdmin(cod, nome, adminEmail, senha); }
   else { toast('✓ Condomínio '+cod+' salvo!'); }
   saasFecharForm(); renderSaas(); aplicarSaas();
+
+  /* Condominio novo: abre a ficha da assinatura na sequencia.
+
+     Antes ele nascia sem assinatura nenhuma e so aparecia em laranja no meio
+     da lista, e voce precisava LEMBRAR de voltar la. Esquecer significa o
+     cliente usando de graca sem nada acusar -- que e justamente o buraco que
+     esta tela veio tapar.
+
+     Nada e forcado: fechar sem preencher deixa o cliente como "teste", que e
+     o estado certo para quem acabou de entrar. */
+  if(eraNovo){
+    setTimeout(function(){
+      try{ assinAbrir(cod); }catch(_){}
+    }, 400);
+  }
 }
 
 // Cria a conta de acesso do administrador do condomínio (sem derrubar a
