@@ -6251,6 +6251,19 @@ function _limparCacheDados(){
     localStorage.removeItem('apvc_informativos_cache');
     localStorage.removeItem('apvc_cfg_reservas');
     localStorage.removeItem('apvc_last_panel');
+    /* Lembretes de reserva: o historico ("Ja apareceram") e as marcas de
+       "ja vi este aviso" guardam id de reserva, e id so quer dizer alguma
+       coisa dentro do condominio onde foi criado.
+
+       Ficando para tras na troca, davam dois problemas de uma vez. O
+       primeiro e que o supervisor via, no condominio novo, uma cobranca
+       do anterior — nome de morador que nao e dali. O segundo e pior e
+       silencioso: aqueles ids nao existem na lista nova, entao a
+       reconferencia os tomava por reservas apagadas e os REMOVIA do
+       armazenamento. Voltar para o primeiro condominio encontrava o
+       historico dele vazio, sem nada explicando por que. */
+    localStorage.removeItem('apvc_res_lembrete');
+    localStorage.removeItem('apvc_res_lembrete_hist');
     localStorage.removeItem('vc_hero');
     for(var i=0;i<12;i++) localStorage.removeItem('vc_gallery_'+i);
     for(var j=0;j<4;j++) localStorage.removeItem('vc_sobre_'+j);
@@ -11488,6 +11501,9 @@ function resLembreteChecar(forcado){
   corpo.innerHTML = html;
 
   window._reslMostrando = itens.concat(pagMostra).map(function(it){ return it.chave; });
+  // Guarda COMO esta janela foi aberta, para um redesenho manter o mesmo
+  // modo em vez de trocar a lista completa pela filtrada (ver _reslRedesenhar).
+  window._reslForcado = !!forcado;
 
   /* Registra no histórico só o que apareceu SOZINHO. Reabrir a pedido não
      inventa aviso novo — senão o histórico viraria o registro dos cliques
@@ -11531,7 +11547,15 @@ function _reslRedesenhar(){
   if(!el || !el.classList.contains('open')) return;
   el.classList.remove('open');
   window._reslMostrando = [];
-  try{ resLembreteChecar(); }catch(_){}   // nao reabre se nao sobrou nada
+  /* Redesenha do MESMO jeito que a janela foi aberta.
+
+     Aberta pelo botao "Lembretes", ela mostra tambem o que ja foi visto e o
+     historico. Redesenhar sem esse "a pedido" aplicava o filtro de
+     nao-repetir por cima: marcar um pagamento la dentro nao apagava so
+     aquela linha — levava junto todas as outras ja vistas e o bloco "Ja
+     apareceram", e a janela sumia inteira. Quem so queria dar baixa numa
+     cobranca perdia a lista da qual estava dando baixa. */
+  try{ resLembreteChecar(!!window._reslForcado); }catch(_){}
 }
 
 /* Só marca como visto ao FECHAR. Se a página cair com o aviso aberto, ele
