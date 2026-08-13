@@ -100,5 +100,105 @@ jobs:
       - name: Resumo
         run: echo "Funcoes publicadas. Confira em Supabase -> Edge Functions."
 
-# O site (adminprogestao.com.br) ja e publicado automaticamente pelo
-# GitHub Pages a partir da branch main — nao precisa de passo aqui.
+  # ────────────────────────────────────────────────────────────────
+  # 3) MIGRATIONS do banco (supabase/migrations/)
+  #    Roda DEPOIS das funcoes: a migration do cron aponta para a
+  #    funcao "lembrete", entao ela precisa existir antes.
+  #    Requer mais um segredo:
+  #      SUPABASE_DB_URL  (Supabase -> Project Settings -> Database
+  #                        -> Connection string -> URI, com a senha)
+  #    So aplica arquivo novo: o que ja foi aplicado fica registrado
+  #    em supabase_migrations.schema_migrations e nao roda de novo.
+  # ────────────────────────────────────────────────────────────────
+  migrar-banco:
+    needs: deploy-funcoes
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Conferir o segredo do banco
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB" ]; then
+            echo "::error::Nenhuma migration aplicada. Falta o segredo SUPABASE_DB_URL."
+            echo "Pegue em: Supabase -> Project Settings -> Database -> Connection string -> URI"
+            echo "Crie em:  Settings -> Secrets and variables -> Actions -> New repository secret"
+            exit 1
+          fi
+          echo "Segredo encontrado. Seguindo para as migrations."
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Aplicar migrations
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: supabase db push --db-url "$DB" --include-all
+
+  # ────────────────────────────────────────────────────────────────
+  # 4) PUBLICACAO DO SITE (adminprogestao.com.br)
+  #
+  #    Antes o GitHub Pages publicava direto da branch main, SEM esperar
+  #    os testes. Em 13/08 isso custou caro: dois commits com erro de
+  #    sintaxe foram para o ar, o CI marcou vermelho nos dois, e o site
+  #    ficou sem login mesmo assim — o portao existia e nao estava no
+  #    caminho da porta.
+  #
+  #    Agora a publicacao e um passo daqui, com "needs: testes". Teste
+  #    vermelho, site nao sobe: fica no ar a ultima versao que passou.
+  #
+  #    EXIGE, uma vez so, em Settings -> Pages -> Build and deployment:
+  #      Source: GitHub Actions   (em vez de "Deploy from a branch")
+  #    Enquanto isso nao for feito, este job FALHA dizendo o que fazer --
+  #    de proposito. Pular calado deixaria o check verde mentir de novo,
+  #    que e exatamente o erro que este job existe para corrigir.
+  # ────────────────────────────────────────────────────────────────
+  publicar-site:
+    needs: testes
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    # Uma publicacao por vez, e sem cancelar a que ja esta em andamento:
+    # deploy pela metade e pior do que deploy em fila.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.publicar.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar o Pages
+        id: preparar
+        continue-on-error: true
+        uses: actions/configure-pages@v5
+
+      - name: Explicar se o Pages ainda nao esta no modo Actions
+        if: steps.preparar.outcome != 'success'
+        run: |
+          echo "::error::O site NAO foi publicado. Falta trocar a origem do GitHub Pages."
+          echo "Va em: Settings -> Pages -> Build and deployment -> Source"
+          echo "Troque de 'Deploy from a branch' para 'GitHub Actions' e rode este workflow de novo."
+          echo "Ate la o site continua no ar pela publicacao antiga, direto da main."
+          exit 1
+
+      # Sobe o repositorio inteiro, igual ao que a publicacao por branch
+      # ja fazia. Mudar o que e servido nao e assunto deste commit.
+      - name: Empacotar o site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Publicar
+        id: publicar
+        uses: actions/deploy-pages@v4
+
+      - name: Resumo
+        run: echo "Site publicado em ${{ steps.publicar.outputs.page_url }}"

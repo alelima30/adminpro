@@ -139,17 +139,26 @@ pegadinha esperando alguém: renomear a pasta quebra o deploy silenciosamente.
 ```
 git push main
    │
-   ├─ GitHub Pages publica o site        (imediato, NÃO espera os testes)
-   │
    └─ GitHub Actions
-        ├─ 1. testes            → se falhar, para aqui
-        ├─ 2. edge functions    → só na main
-        └─ 3. migrations        → depois das funções (o cron aponta pra elas)
+        ├─ 1. testes            → se falhar, PARA AQUI e nada sobe
+        ├─ 2. site (Pages)      → só com os testes verdes
+        ├─ 3. edge functions    → só na main
+        └─ 4. migrations        → depois das funções (o cron aponta pra elas)
 ```
 
-**Repare no galho de cima.** O site vai ao ar mesmo se o teste falhar — o Pages
-publica direto da `main`, sem passar pelo workflow. O portão dos testes protege
-as funções e o banco, não a página. É bom saber antes de descobrir no susto.
+**Tudo passa pelo mesmo portão, inclusive a página.** Nem sempre foi assim: até
+13/08/2026 o GitHub Pages publicava direto da `main`, sem esperar o workflow.
+Naquele dia dois commits com erro de sintaxe foram ao ar, o CI marcou vermelho
+nos dois, e o site ficou sem login mesmo assim — o portão existia e não estava
+no caminho da porta.
+
+Hoje a publicação é um job (`publicar-site`, com `needs: testes`). Teste
+vermelho, site não sobe: fica no ar a última versão que passou.
+
+Isso depende de um ajuste que mora **fora** do repositório: em Settings → Pages
+→ Build and deployment, a origem precisa ser **GitHub Actions**, não "Deploy
+from a branch". Se alguém trocar de volta, o portão sai do caminho de novo e
+nada no código avisa.
 
 Já o SQL em `supabase/*.sql` é rodado **à mão**, de propósito: mudança de banco
 merece revisão antes.
@@ -208,5 +217,6 @@ você está em produção.
 2. **`modulo_dados` é metade do sistema e não tem forma.** Se for mexer ali,
    assuma que grava o documento inteiro e que outra pessoa pode estar gravando
    junto.
-3. **O site publica sem esperar os testes.** O verde do Actions não é permissão
-   para o ar — o ar já aconteceu.
+3. **O portão dos testes agora vale para o site também** — mas ele depende de
+   uma configuração fora do código (Settings → Pages → Source: GitHub Actions).
+   Se o site parar de atualizar, é o primeiro lugar para olhar.
