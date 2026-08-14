@@ -2799,11 +2799,14 @@ html.ambiente-ensaio body{padding-top:28px}
             <div class="fg"><label>UF</label><select id="uni-estado"></select></div>
           </div>
 
-          <!-- Divisor Condôminos / Vínculos -->
-          <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;display:flex;align-items:center;gap:10px">
+          <!-- Divisor Condôminos / Vínculos
+               Some inteiro quando o módulo Condôminos não está liberado para
+               o condomínio: sem ele não há quem escolher, e o botão "Novo"
+               levaria a uma tela que a pessoa não pode abrir. -->
+          <div id="uni-cond-titulo" style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;display:flex;align-items:center;gap:10px">
             <i class="fa-solid fa-user-tag" style="color:var(--blue);opacity:0.8"></i> Condôminos da Unidade
           </div>
-          <div style="background:var(--ink-2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px">
+          <div id="uni-cond-box" style="background:var(--ink-2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px">
             <!-- Proprietário -->
             <div style="display:flex;gap:12px;align-items:end;margin-bottom:14px">
               <div class="fg" style="margin:0;flex:1">
@@ -7116,21 +7119,71 @@ function popUnidadeSelects(){
   // Atualiza datalist de rua com localizações cadastradas
   popLocRuaDl();
   // Atualiza selects de proprietário/morador com os condôminos cadastrados
+  uniAplicarModuloCondominos();
   popUnidadeCondominos();
+}
+
+// O módulo Condôminos está liberado para quem está usando?
+// Um condomínio novo pode estar com só Unidades e Localizações ligados —
+// e aí não existe condômino para vincular.
+function uniTemModuloCondominos(){
+  try{ return modulosVisiveis().indexOf('condominos') !== -1; }catch(_){ return true; }
+}
+
+// Mostra ou esconde o bloco "Condôminos da Unidade" conforme o módulo.
+// Esconder, e não desabilitar: campo cinza sem explicação faz a pessoa achar
+// que o sistema quebrou. Os <select> continuam no HTML de propósito — assim,
+// se o módulo for religado depois, o vínculo que já estava gravado volta a
+// aparecer em vez de ter sido apagado por uma edição feita enquanto sumido.
+function uniAplicarModuloCondominos(){
+  var mostrar = uniTemModuloCondominos();
+  ['uni-cond-titulo','uni-cond-box'].forEach(function(id){
+    var e=$(id); if(e) e.style.display = mostrar ? '' : 'none';
+  });
+  return mostrar;
 }
 
 // Popula os selects de Proprietário e Morador com os condôminos cadastrados
 function popUnidadeCondominos(){
   const cs = getCondominos();
-  const ops = '<option value="">— Nenhum —</option>' +
-    Object.entries(cs)
+  const lista = Object.entries(cs)
       .sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||'','pt-BR'))
       .map(([cod,d])=>`<option value="${escU(cod)}">${escU(cod)} — ${escU(d.nome||'(sem nome)')}</option>`)
       .join('');
+  const ops = '<option value="">— Nenhum —</option>' + lista;
   ['uni-proprietario','uni-morador'].forEach(id=>{
     const s=$(id);
-    if(s){ const v=s.value; s.innerHTML=ops; s.value=v; }
+    if(!s) return;
+    const v = s.value;
+    s.innerHTML = ops;
+    // Se o vínculo gravado não está na lista (condômino excluído, ou a lista
+    // ainda não terminou de carregar), o navegador descarta o valor em
+    // silêncio — e o Salvar seguinte gravaria vazio por cima, apagando o
+    // proprietário de uma unidade que estava certa. Por isso o valor atual
+    // vira uma opção própria, marcada, em vez de sumir.
+    if(v && s.value !== v){
+      const o = document.createElement('option');
+      o.value = v;
+      o.textContent = v + ' — (não encontrado na lista)';
+      s.appendChild(o);
+      s.value = v;
+    }
   });
+  // Aviso do condomínio que ainda não cadastrou ninguém: sem isto a tela
+  // mostra "— Nenhum —" duas vezes e não diz o que fazer.
+  const box = $('uni-cond-box');
+  if(box){
+    let av = $('uni-cond-vazio');
+    if(!lista){
+      if(!av){
+        av = document.createElement('div');
+        av.id = 'uni-cond-vazio';
+        av.style.cssText = 'margin-top:12px;font-size:12px;color:var(--text-3);line-height:1.5';
+        av.textContent = 'Nenhum condômino cadastrado ainda. Você pode salvar a unidade sem vínculo agora e voltar aqui depois — ou usar o botão "Novo", que guarda o que já foi digitado.';
+        box.appendChild(av);
+      }
+    } else if(av){ av.remove(); }
+  }
 }
 
 function condominoNome(cod){
@@ -7139,9 +7192,60 @@ function condominoNome(cod){
   return d ? (d.nome||cod) : cod;
 }
 
-// Atalho: cria um novo condômino direto da unidade
+/* Atalho: cria um novo condômino direto da unidade.
+
+   Antes esta função trocava de tela e pronto — e o formulário de unidade,
+   com tudo o que já tinha sido digitado, era destruído. Justamente no caso
+   em que o atalho existe para ajudar: condomínio novo, lista vazia, a pessoa
+   preenche o lote inteiro, clica em "Novo" para criar o dono, e volta para
+   um formulário em branco.
+
+   Agora o que está na tela vira um rascunho antes de sair, e volta sozinho
+   quando a tela de unidades reaparece. */
+var _UNI_RASCUNHO = 'apvc_uni_rascunho';
+var _UNI_CAMPOS = ['uni-cod','uni-tipo','uni-rua','uni-numero','uni-bairro',
+                   'uni-cidade','uni-estado','uni-proprietario','uni-morador'];
+
+function _uniRascunhoChave(){ return _UNI_RASCUNHO + '_' + (_condAtual||''); }
+
+function uniGuardarRascunho(){
+  var d = {};
+  _UNI_CAMPOS.forEach(function(id){ var e=$(id); if(e) d[id]=e.value; });
+  var bex = $('uni-btn-excluir');
+  d._editando = !!(bex && bex.style.display !== 'none');
+  d._cod = bex ? (bex.dataset.cod||'') : '';
+  try{ sessionStorage.setItem(_uniRascunhoChave(), JSON.stringify(d)); }catch(_){}
+}
+
+function uniRestaurarRascunho(){
+  var d;
+  try{ d = JSON.parse(sessionStorage.getItem(_uniRascunhoChave())||'null'); }catch(_){ d=null; }
+  if(!d) return false;
+  try{ sessionStorage.removeItem(_uniRascunhoChave()); }catch(_){}
+  var fc = $('uni-form-card');
+  if(!fc) return false;
+  popUnidadeSelects();
+  _UNI_CAMPOS.forEach(function(id){ var e=$(id); if(e && d[id]!==undefined) e.value=d[id]; });
+  fc.style.display='';
+  var btn=$('uni-btn-novo'); if(btn) btn.style.display='none';
+  var bex=$('uni-btn-excluir');
+  if(bex){
+    bex.style.display = d._editando ? '' : 'none';
+    if(d._editando) bex.dataset.cod = d._cod||'';
+  }
+  var t=$('uni-form-title');
+  if(t) t.textContent = d._editando ? ('Editar Unidade — '+(d._cod||'')) : 'Nova Unidade';
+  try{ fc.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(_){}
+  return true;
+}
+
 function uniNovoCondomino(){
-  toast('➡️ Cadastre o condômino e volte para vinculá-lo à unidade.');
+  if(!uniTemModuloCondominos()){
+    toast('⚠️ O módulo Condôminos não está liberado para este condomínio.');
+    return;
+  }
+  uniGuardarRascunho();
+  toast('➡️ Cadastre o condômino e volte: o que você digitou ficou guardado.');
   showPanel('condominos');
   setTimeout(()=>{ if(typeof conNovoCondomino==='function') conNovoCondomino(); }, 150);
 }
@@ -7216,6 +7320,8 @@ function uniExcluirForm(){
 
 function renderUnidades(){
   popUnidadeSelects();
+  // Voltando do atalho "Novo condômino": devolve o formulário como estava.
+  try{ uniRestaurarRascunho(); }catch(_){}
   const dados = getUnidades();
   const busca = semAcento($('uni-busca')?.value || '');
   const fTipo = $('uni-filtro-tipo')?.value || '';
