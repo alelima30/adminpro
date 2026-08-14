@@ -39,6 +39,9 @@ jobs:
       - name: Assinaturas (a conta que vira nota fiscal)
         run: node tests/assinaturas.test.js
 
+      - name: Unidades (vinculo com o condomino)
+        run: node tests/unidades.test.js
+
   # ────────────────────────────────────────────────────────────────
   # 2) DEPLOY das Edge Functions do Supabase
   #    So roda na branch main e so se os testes passarem.
