@@ -2906,7 +2906,8 @@ html.ambiente-ensaio body{padding-top:28px}
           <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:16px;margin-bottom:20px">
             <div class="fg">
               <label>Código</label>
-              <input type="text" id="loc-cod" placeholder="Ex: 001" style="text-transform:uppercase">
+              <input type="text" id="loc-cod" placeholder="Ex: 001" style="text-transform:uppercase"
+                title="Preenchido automaticamente com o próximo número livre. Você pode trocar.">
             </div>
             <div class="fg">
               <label>Tipo</label>
@@ -7410,8 +7411,44 @@ function locAtualizarCompleto(){
   if(c) c.value = locNomeCompleto(tipo, nome);
 }
 
+/* Próximo código livre da sequência: 1, 2, 3...
+
+   Antes o campo vinha vazio e a pessoa inventava o número. Cadastrando trinta
+   ruas de um condomínio novo, isso é trinta chances de repetir um código —
+   e repetir código, aqui, apagava a rua anterior sem avisar.
+
+   O formato acompanha o que o condomínio JÁ usa, em vez de impor o meu: se
+   os códigos existentes são "001", "002", o próximo sai "003"; se são "1",
+   "2", sai "3". Quem chegou primeiro define o padrão da casa.
+
+   Códigos que não são número (alguém usou "AV-CENTRAL") são ignorados na
+   conta, mas continuam valendo: o campo segue livre para digitar. */
+function _locProximoCodigo(dados){
+  var cods = Object.keys(dados || {});
+  var maior = 0, largura = 0, numericos = 0;
+  cods.forEach(function(c){
+    var t = String(c).trim();
+    if(!/^\d+$/.test(t)) return;
+    numericos++;
+    var n = parseInt(t, 10);
+    if(n > maior) maior = n;
+    // A largura vem do MAIOR número já usado, não do mais comprido: com
+    // "001".."010", o padrão da casa são três dígitos.
+    if(t.length > largura) largura = t.length;
+  });
+  var prox = String(maior + 1);
+  // Sem nenhum código numérico ainda, começa em 1 — cru, sem zeros que
+  // ninguém pediu.
+  if(!numericos) return '1';
+  // Só mantém o zero à esquerda enquanto o número couber na largura antiga.
+  // Passando de "999" para 1000, o número cresce em vez de ser truncado.
+  return prox.length >= largura ? prox : prox.padStart(largura, '0');
+}
+
 function locNovaLocalizacao(){
   limparFormLocalizacao();
+  var cCod = $('loc-cod');
+  if(cCod) cCod.value = _locProximoCodigo(getLocalizacoes());
   const fc = $('loc-form-card');
   if(fc){ fc.style.display=''; fc.scrollIntoView({behavior:'smooth',block:'nearest'}); }
   const btn = $('loc-btn-novo');
@@ -7486,6 +7523,14 @@ function salvarLocalizacao(){
   if(!nome){ toast('\u26a0\ufe0f Informe o nome/descri\u00e7\u00e3o.'); return; }
   const reg = { tipo, nome, cep: ($('loc-cep')?.value||'').trim() };
   const dados = getLocalizacoes();
+  // Mesma protecao que o cadastro de unidades ja tinha e esta tela nao:
+  // salvar com um codigo que ja existe substituia a rua anterior em silencio.
+  const _editandoLoc = ($('loc-btn-excluir') && $('loc-btn-excluir').style.display !== 'none');
+  if(!_editandoLoc && dados[cod]){
+    const _antes = dados[cod] || {};
+    const _qual = locNomeCompleto(_antes.tipo, _antes.nome) || 'outra localização';
+    if(!confirm('O código ' + cod + ' já é de "' + _qual + '".\n\nSalvar vai SUBSTITUIR os dados dela. Continuar?')) return;
+  }
   dados[cod] = reg;
   S('localizacoes', dados);
   toast('\u2705 Localiza\u00e7\u00e3o salva! J\u00e1 dispon\u00edvel no campo Rua/Logradouro das Unidades.');
