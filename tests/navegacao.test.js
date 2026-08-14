@@ -82,8 +82,7 @@ bloco('Módulo desligado avisa e não muda de tela', () => {
     let avisado = '', foiPara = null, redirecionou = null;
     const api = carregar(['showPanel'], {
       ...RENDERS,
-      ...RENDERS,
-    window: { _userNivel: 'admin' },
+      window: { _userNivel: 'admin' },
       currentPanel: o.telaAberta === undefined ? 'unidades' : o.telaAberta,
       paineisPermitidos: () => ['unidades', 'localizacoes', 'comunicados', 'inicio'],
       isSuperAdmin: () => false,
