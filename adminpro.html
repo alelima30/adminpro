@@ -14597,8 +14597,43 @@ function _igPodeEditar(){
   return n === 'admin' || n === 'gestor';
 }
 
+/* Quem mexe na ESTRUTURA das abas: criar, renomear, reordenar, esconder.
+
+   Passou a valer para o administrador de cada condomínio, e não só para o
+   gestor sênior. O motivo é prático: "quero uma aba de Achados e Perdidos"
+   é um pedido trivial, e fazer ele passar por quem cuida da plataforma
+   transforma cada condomínio novo em mais uma fila. Do lado do morador não
+   se perde padrão nenhum — ele só enxerga o próprio condomínio, e nunca
+   compara com outro. */
 function _igPodeGerirAbas(){
+  try{ if(isSuperAdmin()) return true; }catch(_){}
+  var n = window._userNivel || '';
+  return n === 'admin' || n === 'gestor';
+}
+
+/* Excluir, porém, continua só com o gestor sênior.
+
+   É o único movimento sem volta: apaga a aba E o conteúdo dela junto, e o
+   texto de "Informações Gerais" costuma ser trabalho de horas. Para o caso
+   comum — "não quero mais essa aba na tela" — existe o Visível, que esconde
+   dos moradores sem apagar e dá para desfazer a qualquer momento. */
+function _igPodeExcluirAba(){
   try{ return isSuperAdmin(); }catch(_){ return false; }
+}
+
+/* Teto de abas ATIVAS. Não é limitação técnica: é a barra de abas, que a
+   partir daí vira um paredão que ninguém lê — no celular ainda mais. As
+   escondidas não contam, porque não ocupam espaço na tela de ninguém. */
+var _IG_MAX_ABAS = 10;
+
+function _igAtivasNaTela(){
+  var box = document.getElementById('ig-gerir-lista');
+  if(!box) return 0;
+  var n = 0;
+  box.querySelectorAll('.ig-gerir-linha').forEach(function(l){
+    if((l.querySelector('.ig-g-chk')||{}).checked) n++;
+  });
+  return n;
 }
 
 // Só o Village Castelo (APVC) tem esta história; os demais começam vazio
@@ -15054,7 +15089,7 @@ function _igConteudoAba(a){
 
 function igGerenciarAbas(){
   if(!_igPodeGerirAbas()){
-    toast('⚠️ Criar e renomear abas é do gestor sênior. Você edita o conteúdo das abas existentes.');
+    toast('⚠️ Criar e renomear abas é da administração do condomínio. Você edita o conteúdo das abas existentes.');
     return;
   }
   if(_igEditando && !confirm('Você está editando. Sair desta aba descarta o que não foi salvo. Continuar?')) return;
@@ -15080,16 +15115,22 @@ function _igLinhaGerir(a, i, total){
     + '<select class="ig-input ig-g-icone">' + opcIcone + '</select>'
     + '<label class="ig-g-ativa" title="Desmarque para esconder esta aba sem apagar o conteúdo">'
     +   '<input type="checkbox" class="ig-g-chk"' + (a.ativa!==false?' checked':'') + '> Visível</label>'
-    + '<button class="btn btn-ghost btn-sm ig-g-del" onclick="igAbaRemover(this)" title="Excluir esta aba e o conteúdo dela">'
-    +   '<i class="fa-solid fa-trash-can"></i></button>'
+    + (_igPodeExcluirAba()
+        ? '<button class="btn btn-ghost btn-sm ig-g-del" onclick="igAbaRemover(this)" title="Excluir esta aba e o conteúdo dela">'
+          + '<i class="fa-solid fa-trash-can"></i></button>'
+        : '')
     + '</div>';
 }
 
 function _igTelaGerir(d){
   var abas = d.abas||[];
+  var ativas = abas.filter(function(a){ return a.ativa !== false; }).length;
   var corpo = '<div class="ig-dica" style="margin-bottom:14px">'
     + 'Desmarcar <strong>Visível</strong> esconde a aba dos moradores sem apagar nada. '
-    + 'Excluir apaga a aba <strong>e o conteúdo dela</strong>.</div>'
+    + (_igPodeExcluirAba()
+        ? 'Excluir apaga a aba <strong>e o conteúdo dela</strong>. '
+        : 'Para tirar uma aba da tela, use <strong>Visível</strong>: dá para voltar atrás a qualquer momento. ')
+    + 'Até <strong>' + _IG_MAX_ABAS + '</strong> abas visíveis — hoje são ' + ativas + '.</div>'
     + '<div id="ig-gerir-lista">'
     + abas.map(function(a,i){ return _igLinhaGerir(a,i,abas.length); }).join('')
     + '</div>'
@@ -15105,6 +15146,10 @@ function _igTelaGerir(d){
 
 function igAbaAdd(){
   var box = $('ig-gerir-lista'); if(!box) return;
+  if(_igAtivasNaTela() >= _IG_MAX_ABAS){
+    toast('⚠️ São no máximo ' + _IG_MAX_ABAS + ' abas visíveis. Esconda uma (desmarque "Visível") para abrir espaço.');
+    return;
+  }
   var nova = { id:_igNovoId(), nome:'', tipo:'texto', icone:'fa-circle-info', ativa:true, texto:'' };
   box.insertAdjacentHTML('beforeend', _igLinhaGerir(nova, box.children.length, box.children.length+1));
   _igAtualizaSetas();
@@ -15113,6 +15158,10 @@ function igAbaAdd(){
 }
 
 function igAbaRemover(btn){
+  if(!_igPodeExcluirAba()){
+    toast('⚠️ Excluir aba é do gestor sênior. Para tirá-la da tela, desmarque "Visível" — o conteúdo fica guardado.');
+    return;
+  }
   var linha = btn.closest('.ig-gerir-linha'); if(!linha) return;
   var nome = (linha.querySelector('.ig-g-nome')||{}).value || 'esta aba';
   if(!confirm('Excluir "' + nome + '" e todo o conteúdo dela?\n\nPara apenas escondê-la dos moradores, desmarque "Visível" em vez de excluir.')) return;
@@ -15173,6 +15222,27 @@ function igAbasSalvar(){
   if(semNome){ toast('⚠️ Dê um nome a todas as abas antes de salvar.'); semNome.querySelector('.ig-g-nome').focus(); return; }
   if(!novas.length){ toast('⚠️ Deixe pelo menos uma aba.'); return; }
   if(!novas.some(function(a){ return a.ativa; })){ toast('⚠️ Pelo menos uma aba precisa ficar visível.'); return; }
+
+  // O teto também é conferido AQUI, e não só no botão "Nova aba": dá para
+  // passar dele marcando "Visível" em abas escondidas, sem criar nenhuma.
+  var ativas = novas.filter(function(a){ return a.ativa; }).length;
+  if(ativas > _IG_MAX_ABAS){
+    toast('⚠️ São no máximo ' + _IG_MAX_ABAS + ' abas visíveis, e você deixou ' + ativas + '. Esconda ' + (ativas - _IG_MAX_ABAS) + '.');
+    return;
+  }
+
+  /* Quem não pode excluir não pode perder aba por caminho torto: se alguma
+     sumiu da lista sem passar pelo botão de excluir (que nem existe para
+     ele), o salvamento para em vez de gravar a perda. */
+  if(!_igPodeExcluirAba()){
+    var sumiram = (d.abas||[]).filter(function(a){
+      return !novas.some(function(n){ return n.id === a.id; });
+    });
+    if(sumiram.length){
+      toast('⛔ Não foi possível salvar: ' + sumiram.length + ' aba(s) sumiram da lista. Excluir aba é do gestor sênior — use "Visível" para esconder.');
+      return;
+    }
+  }
 
   d.abas = novas;
   _igSalvar(d, function(ok){
