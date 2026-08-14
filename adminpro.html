@@ -6109,10 +6109,23 @@ function saasTrocarCondominio(cod){
   setTimeout(function(){ location.reload(); }, 300);
 }
 
-// Aplica o logotipo do condomínio na sidebar (se houver)
+/* O menu lateral fica com o AdminPro, sempre.
+
+   Antes ele trocava pelo logotipo do condomínio, e o efeito era o app
+   desaparecer: quem abria o menu via a marca do Village Castelo e nada
+   dizendo em que sistema estava. Num produto de um cliente só isso não
+   incomoda; num SaaS, a plataforma some atrás do cliente.
+
+   O logotipo do condomínio continua onde faz sentido — na tela de Início,
+   que é a "casa" dele (renderInicio, com fonte própria: se o condomínio não
+   tiver logo, aí sim cai no do AdminPro). Um lugar para cada marca. */
 function aplicarLogoCondominio(){
-  const c=getSaasCondominios()[getCondominioAtual()]||{};
-  if(c.logo){ const img=document.querySelector('.sb-logo-img'); if(img) img.src=c.logo; }
+  var img = document.querySelector('.sb-logo-img');
+  if(img && !/logo-adminpro\.png$/.test(img.getAttribute('src')||'')){
+    // Volta ao padrão se alguma versão anterior tiver deixado o logo trocado
+    // no cache do navegador.
+    img.src = 'logo-adminpro.png';
+  }
 }
 
 /* ── Painel SaaS: CRUD de condomínios ── */
