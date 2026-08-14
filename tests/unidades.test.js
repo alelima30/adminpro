@@ -50,7 +50,7 @@ function montar(condominos, valores) {
     'uni-morador': selectFalso(),
     'uni-cond-box': null,
   };
-  const api = carregar(['popUnidadeCondominos'], {
+  const api = carregar(['popUnidadeCondominos', 'uniDefinirVinculo'], {
     $: (id) => els[id],
     getCondominos: () => condominos,
     escU: (t) => String(t == null ? '' : t),
@@ -83,6 +83,62 @@ bloco('Proprietário gravado sobrevive a recarregar a lista', () => {
 
   const semNada = montar(cs, { 'uni-proprietario': '', 'uni-morador': '' });
   checa('unidade sem dono continua sem dono', semNada['uni-proprietario'].value, '');
+});
+
+// ── O caminho de verdade: abrir a unidade para editar ─────────────────
+// O bloco acima testava popUnidadeCondominos() sozinho, com o valor já no
+// campo. Só que editarUnidade() faz o contrário — monta a lista e SÓ ENTÃO
+// escreve o proprietário. A primeira versão da correção não cobria isso, e o
+// bug continuava vivo exatamente no caminho mais usado. Este bloco testa por
+// onde a pessoa realmente passa.
+bloco('Abrir unidade para editar não perde o proprietário', () => {
+  function abrir(condominos, unidade) {
+    const els = {
+      'uni-proprietario': selectFalso(),
+      'uni-morador': selectFalso(),
+      'uni-cod': { value: '' }, 'uni-tipo': { value: '' }, 'uni-rua': { value: '' },
+      'uni-numero': { value: '' }, 'uni-bairro': { value: '' }, 'uni-cidade': { value: '' },
+      'uni-estado': { value: '' }, 'uni-form-title': { textContent: '' },
+      'uni-form-card': { style: {}, scrollIntoView(){} },
+      'uni-btn-novo': { style: {} },
+      'uni-btn-excluir': { style: {}, dataset: {} },
+      'uni-cond-titulo': { style: {} },
+      'uni-cond-box': null,
+    };
+    const api = carregar(
+      ['editarUnidade', 'uniDefinirVinculo', 'popUnidadeCondominos', 'uniAplicarModuloCondominos',
+       'uniTemModuloCondominos'],
+      {
+        $: (id) => els[id],
+        getUnidades: () => ({ '15': unidade }),
+        getCondominos: () => condominos,
+        escU: (t) => String(t == null ? '' : t),
+        modulosVisiveis: () => ['unidades', 'condominos'],
+        popUnidadeSelects: () => {}, // o datalist de rua/UF não interessa aqui
+        document: { createElement: () => ({ value: '', textContent: '', style: {} }) },
+      });
+    api.popUnidadeCondominos();      // como a tela faz ao abrir
+    api.editarUnidade('15');
+    return els;
+  }
+
+  const cs = { C001: { nome: 'Ana' } };
+
+  const normal = abrir(cs, { proprietario: 'C001', morador: 'C001' });
+  checa('dono conhecido aparece marcado', normal['uni-proprietario'].value, 'C001');
+
+  // O caso que apagava dado: a lista de condôminos ainda não chegou do
+  // servidor. Antes o campo abria vazio e o Salvar gravava vazio por cima.
+  const carregando = abrir({}, { proprietario: 'C001', morador: '' });
+  checa('lista vazia não apaga o dono ao abrir', carregando['uni-proprietario'].value, 'C001');
+
+  // Condômino excluído: o vínculo continua visível em vez de sumir calado.
+  const excluido = abrir(cs, { proprietario: 'C777', morador: 'C001' });
+  checa('dono excluído continua no campo', excluido['uni-proprietario'].value, 'C777');
+  checa('e o morador válido não é afetado', excluido['uni-morador'].value, 'C001');
+
+  const semDono = abrir(cs, { proprietario: '', morador: '' });
+  checa('unidade sem dono abre sem dono', semDono['uni-proprietario'].value, '');
 });
 
 // ── O módulo Condôminos pode estar desligado ──────────────────────────

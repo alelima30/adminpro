@@ -7143,6 +7143,31 @@ function uniAplicarModuloCondominos(){
   return mostrar;
 }
 
+/* Marca um vínculo (proprietário ou morador) num <select>, SEM perdê-lo.
+
+   Atribuir a um <select> um value que não existe entre as <option> não pega:
+   o navegador descarta em silêncio e o campo fica vazio. Como o Salvar lê o
+   campo de volta, isso apagava o proprietário de uma unidade que estava
+   correta — bastava abrir para editar enquanto a lista de condôminos ainda
+   carregava, ou depois de o condômino ter sido excluído.
+
+   Toda escrita nesses dois campos passa por aqui de propósito. A primeira
+   versão desta correção protegia só quem já estava no campo ANTES de a lista
+   ser montada — e o caminho mais comum, editarUnidade(), faz o contrário:
+   monta a lista e só então escreve o valor. Continuava apagando. */
+function uniDefinirVinculo(sel, cod){
+  if(!sel) return;
+  var v = cod || '';
+  sel.value = v;
+  if(v && sel.value !== v){
+    var o = document.createElement('option');
+    o.value = v;
+    o.textContent = v + ' — (não encontrado na lista)';
+    sel.appendChild(o);
+    sel.value = v;
+  }
+}
+
 // Popula os selects de Proprietário e Morador com os condôminos cadastrados
 function popUnidadeCondominos(){
   const cs = getCondominos();
@@ -7156,18 +7181,7 @@ function popUnidadeCondominos(){
     if(!s) return;
     const v = s.value;
     s.innerHTML = ops;
-    // Se o vínculo gravado não está na lista (condômino excluído, ou a lista
-    // ainda não terminou de carregar), o navegador descarta o valor em
-    // silêncio — e o Salvar seguinte gravaria vazio por cima, apagando o
-    // proprietário de uma unidade que estava certa. Por isso o valor atual
-    // vira uma opção própria, marcada, em vez de sumir.
-    if(v && s.value !== v){
-      const o = document.createElement('option');
-      o.value = v;
-      o.textContent = v + ' — (não encontrado na lista)';
-      s.appendChild(o);
-      s.value = v;
-    }
+    uniDefinirVinculo(s, v);
   });
   // Aviso do condomínio que ainda não cadastrou ninguém: sem isto a tela
   // mostra "— Nenhum —" duas vezes e não diz o que fazer.
@@ -7221,11 +7235,19 @@ function uniRestaurarRascunho(){
   var d;
   try{ d = JSON.parse(sessionStorage.getItem(_uniRascunhoChave())||'null'); }catch(_){ d=null; }
   if(!d) return false;
-  try{ sessionStorage.removeItem(_uniRascunhoChave()); }catch(_){}
   var fc = $('uni-form-card');
+  // Só descarta o rascunho depois de saber que dá para devolvê-lo. Apagar
+  // antes perdia o que a pessoa digitou justamente quando algo deu errado.
   if(!fc) return false;
+  try{ sessionStorage.removeItem(_uniRascunhoChave()); }catch(_){}
   popUnidadeSelects();
-  _UNI_CAMPOS.forEach(function(id){ var e=$(id); if(e && d[id]!==undefined) e.value=d[id]; });
+  _UNI_CAMPOS.forEach(function(id){
+    var e=$(id); if(!e || d[id]===undefined) return;
+    // Os dois vínculos são <select> e precisam da rede acima; os demais são
+    // campos de texto e aceitam qualquer valor.
+    if(id==='uni-proprietario' || id==='uni-morador') uniDefinirVinculo(e, d[id]);
+    else e.value = d[id];
+  });
   fc.style.display='';
   var btn=$('uni-btn-novo'); if(btn) btn.style.display='none';
   var bex=$('uni-btn-excluir');
@@ -7432,8 +7454,8 @@ function editarUnidade(cod){
   $('uni-bairro').value = d.bairro||'';
   $('uni-cidade').value = d.cidade||'';
   $('uni-estado').value = d.estado||'';
-  if($('uni-proprietario')) $('uni-proprietario').value = d.proprietario||'';
-  if($('uni-morador'))      $('uni-morador').value      = d.morador||'';
+  uniDefinirVinculo($('uni-proprietario'), d.proprietario);
+  uniDefinirVinculo($('uni-morador'),      d.morador);
   $('uni-form-title').textContent = 'Editar Unidade — '+cod;
   const fc = $('uni-form-card');
   if(fc){ fc.style.display=''; fc.scrollIntoView({behavior:'smooth',block:'nearest'}); }
