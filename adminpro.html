@@ -8392,8 +8392,24 @@ function showPanel(id,el){
   const permitidos = paineisPermitidos(nivel);
   if(!permitidos.includes(id)){ toast('\u26a0\ufe0f Acesso restrito ao seu perfil.'); return; }
   if(id==='saas' && !isSuperAdmin()){ toast('\u26a0\ufe0f Painel exclusivo do administrador da plataforma.'); return; }
+  /* Modulo desligado para este condominio.
+
+     Antes daqui saia um redirecionamento CALADO para painelInicial(), cuja
+     ordem comeca em 'comunicados'. Efeito na pratica: clicar na aba
+     "Localizacoes (ruas)" dentro do Cadastro de Unidades levava a pessoa para
+     a tela de Comunicacao, sem uma palavra. Parecia bug de link trocado, e
+     era o sistema escondendo que o modulo estava desligado.
+
+     Agora, quando existe uma tela aberta, ele FICA onde esta e explica. O
+     redirecionamento so vale quando nao ha tela nenhuma no ar (primeira
+     carga), onde parar seria pior do que escolher um lugar. */
   const _mod = painelModulo(id);
   if(_mod && !modulosVisiveis().includes(_mod)){
+    const _nome = (MODULOS_SAAS[_mod]||{}).label || panelNames[id] || id;
+    if(currentPanel){
+      toast('⚠️ O módulo ' + _nome + ' não está liberado para este condomínio.');
+      return;
+    }
     const _alt = painelInicial();
     if(_alt && _alt !== id) return showPanel(_alt);
     return;
@@ -8409,7 +8425,26 @@ function showPanel(id,el){
   // Rede de seguranca: trocar de tela nunca deve herdar trava de rolagem
   // de um modal da tela anterior.
   try{ _sincronizarTravaRolagem(); }catch(_){}
+  try{ _ocultarAbasBloqueadas(); }catch(_){}
   ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{aplicarFiltroInicialRes();renderReservas();verificarAlertas();resLembreteChecar();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:()=>{ renderSaas(); try{ renderAssinaturas(); }catch(_){} },inicio:renderInicio})[id]?.();
+}
+
+/* Esconde as abas que levam a uma tela bloqueada.
+
+   As telas que andam em par — Unidades <-> Localizações, Condôminos <->
+   Classificação, e as de Reservas — têm abas que chamam showPanel direto.
+   A aba não sabia se o destino estava liberado, então continuava lá, clicável
+   e sem efeito útil. Avisar depois do clique é melhor do que teleportar
+   calado, mas melhor ainda é a aba não existir quando não leva a lugar
+   nenhum. */
+function _ocultarAbasBloqueadas(){
+  var visiveis = modulosVisiveis();
+  document.querySelectorAll('.tab[onclick]').forEach(function(b){
+    var m = String(b.getAttribute('onclick')||'').match(/showPanel\(\s*['"]([\w-]+)['"]/);
+    if(!m) return;
+    var mod = painelModulo(m[1]);
+    b.style.display = (mod && visiveis.indexOf(mod) < 0) ? 'none' : '';
+  });
 }
 
 function setTab(t){

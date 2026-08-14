@@ -45,6 +45,9 @@ jobs:
       - name: Graficos (CDN fora do ar nao derruba a tela)
         run: node tests/graficos.test.js
 
+      - name: Navegacao (modulo desligado nao teleporta calado)
+        run: node tests/navegacao.test.js
+
   # ────────────────────────────────────────────────────────────────
   # 2) DEPLOY das Edge Functions do Supabase
   #    So roda na branch main e so se os testes passarem.
