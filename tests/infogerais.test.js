@@ -216,6 +216,59 @@ bloco('Migração: campo que nunca existiu herda o ponto de partida', () => {
     mig2._igMigrar({ coleta: '' }).abas.find((a) => a.id === 'coleta').texto, '');
 });
 
+
+/* ══════════════════════════════════════════════════════════════════════
+   ABAS: quem pode mexer na estrutura, e o teto de 10
+
+   A partir de 14/08/2026 o administrador de cada condomínio cria, renomeia,
+   reordena e esconde aba — antes era só o gestor sênior. EXCLUIR continua
+   sendo só dele: é o único movimento sem volta, porque apaga o conteúdo da
+   aba junto. Para o caso comum ("não quero essa aba na tela") existe o
+   Visível, que esconde sem apagar.
+   ══════════════════════════════════════════════════════════════════════ */
+
+function _igPermissoes(nivel, ehSuper) {
+  return carregar(['_igPodeGerirAbas', '_igPodeExcluirAba'], {
+    isSuperAdmin: () => !!ehSuper,
+    window: { _userNivel: nivel },
+  });
+}
+
+bloco('Abas: quem mexe na estrutura', () => {
+  const casos = [
+    ['gestor sênior (você)', 'admin', true,  true,  true],
+    ['admin do condomínio',  'admin', false, true,  false],
+    ['gestor do condomínio', 'gestor', false, true, false],
+    ['supervisor',           'supervisor', false, false, false],
+    ['morador',              'morador', false, false, false],
+  ];
+  casos.forEach(([rotulo, nivel, ehSuper, podeGerir, podeExcluir]) => {
+    const p = _igPermissoes(nivel, ehSuper);
+    checa(rotulo + ' — cria e renomeia?', p._igPodeGerirAbas(), podeGerir);
+    checa(rotulo + ' — exclui?', p._igPodeExcluirAba(), podeExcluir);
+  });
+});
+
+bloco('Abas: o teto conta só as visíveis', () => {
+  // Esconder uma aba libera espaço na barra sem apagar nada — é justamente
+  // por isso que o teto olha 'ativa', e não o total cadastrado.
+  const api = carregar(['_igAtivasNaTela'], {
+    document: {
+      getElementById: () => ({
+        querySelectorAll: () => ([
+          { querySelector: () => ({ checked: true }) },
+          { querySelector: () => ({ checked: true }) },
+          { querySelector: () => ({ checked: false }) },
+        ]),
+      }),
+    },
+  });
+  checa('duas visíveis entre três abas', api._igAtivasNaTela(), 2);
+
+  const semTela = carregar(['_igAtivasNaTela'], { document: { getElementById: () => null } });
+  checa('sem a tela aberta, conta zero', semTela._igAtivasNaTela(), 0);
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.log(`FALHOU: ${falhas} de ${ok + falhas}`); process.exit(1); }
 console.log(`TODOS OS TESTES PASSARAM (${ok})`);
