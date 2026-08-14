@@ -2305,8 +2305,7 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
   }
 
   /* ══ REGULAMENTO — iframe full height ══ */
-  #panel-regulamento iframe,
-  #admfotos-iframe {
+  #panel-regulamento iframe {
     height: calc(100vh - 110px) !important;
     border-radius: 10px !important;
   }
@@ -4576,115 +4575,6 @@ html.ambiente-ensaio body{padding-top:28px}
         </div>
       </div>
 
-      <!-- ████ ADMFOTOS: GERENCIAR FOTOS ████ -->
-      <div class="panel" id="panel-admfotos">
-
-        <!-- CSS do painel de fotos -->
-        <style>
-        .af-banner{background:rgba(201,160,48,.07);border:1px solid rgba(201,160,48,.18);border-radius:12px;padding:16px 20px;display:flex;gap:14px;align-items:flex-start;margin-bottom:32px}
-        .af-banner-icon{font-size:20px;flex-shrink:0;margin-top:1px}
-        .af-banner-text{font-size:13px;line-height:1.7;color:var(--text-2)}
-        .af-banner-text strong{color:var(--text);font-weight:500}
-        .af-sec-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid var(--border)}
-        .af-sec-head h2{font-size:22px;font-weight:600;color:var(--text)}
-        .af-sec-head p{font-size:13px;color:var(--text-3);margin-top:3px}
-        .af-sec-tag{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gold);border:1px solid var(--border);padding:4px 12px;border-radius:20px}
-        .af-hero-card{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:40px}
-        .af-hero-img{width:100%;height:200px;object-fit:cover;display:block;background:var(--ink-3)}
-        .af-hero-body{padding:24px 28px}
-        .af-hero-ttl{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px}
-        .af-hero-sub{font-size:13px;color:var(--text-3);margin-bottom:20px}
-        .af-gal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:40px}
-        @media(max-width:900px){.af-gal-grid{grid-template-columns:repeat(2,1fr)}}
-        @media(max-width:500px){.af-gal-grid{grid-template-columns:1fr}}
-        .af-gal-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .25s,transform .25s,box-shadow .25s}
-        .af-gal-card:hover{border-color:rgba(201,160,48,.35);transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,.4)}
-        .af-gal-thumb{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--ink-3)}
-        .af-gal-body{padding:14px 14px 16px}
-        .af-slot-num{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text-3);margin-bottom:8px}
-        .af-lbl-field{width:100%;background:var(--ink-2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--text);outline:none;transition:border-color .2s;margin-bottom:8px}
-        .af-lbl-field:focus{border-color:rgba(201,160,48,.4)}
-        .af-lbl-field::placeholder{color:var(--text-3)}
-        .af-up-area{border:1.5px dashed rgba(201,160,48,.3);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(201,160,48,.03);position:relative}
-        .af-up-area:hover{border-color:var(--gold);background:rgba(201,160,48,.07)}
-        .af-up-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-        .af-up-icon{font-size:18px;margin-bottom:3px}
-        .af-up-txt{font-size:12px;color:var(--text-3);pointer-events:none}
-        .af-or-div{text-align:center;font-size:11px;color:var(--text-3);margin:6px 0;letter-spacing:1px;text-transform:uppercase}
-        .af-url-field{width:100%;background:var(--ink-2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;color:var(--text);outline:none;transition:border-color .2s}
-        .af-url-field:focus{border-color:rgba(201,160,48,.4)}
-        .af-url-field::placeholder{color:var(--text-3)}
-        .af-slot-acts{display:flex;gap:8px;margin-top:8px}
-        .af-btn-save{flex:1;padding:9px 0;background:linear-gradient(135deg,var(--gold),var(--gold-d, #9A7818));border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;color:var(--ink);cursor:pointer;transition:opacity .2s,transform .2s}
-        .af-btn-save:hover{opacity:.9;transform:translateY(-1px)}
-        .af-btn-save.saved{background:linear-gradient(135deg,#4BAC6E,#2d8050);color:#fff}
-        .af-btn-save:disabled{opacity:.5;cursor:not-allowed;transform:none}
-        .af-btn-reset{padding:9px 12px;background:transparent;border:1px solid rgba(200,75,75,.3);border-radius:8px;font-size:12px;color:#f87171;cursor:pointer;transition:all .2s}
-        .af-btn-reset:hover{background:rgba(200,75,75,.12)}
-        .af-save-bar{background:var(--card-2);border:1px solid var(--border);border-radius:14px;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;margin-top:8px;position:sticky;bottom:16px;z-index:10}
-        .af-save-bar-msg{font-size:13px;color:var(--text-2)}
-        .af-save-bar-msg strong{color:var(--text)}
-        .af-btn-save-all{padding:12px 28px;background:linear-gradient(135deg,var(--gold),var(--gold-d, #9A7818));border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;box-shadow:0 4px 20px rgba(201,160,48,.35);transition:all .2s}
-        .af-btn-save-all:hover{opacity:.9;transform:translateY(-1px)}
-        .af-btn-save-all:disabled{opacity:.5;cursor:not-allowed;transform:none}
-        </style>
-
-        <!-- Banner info -->
-        <div class="af-banner">
-          <div class="af-banner-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-          <div class="af-banner-text">
-            As fotos são salvas no <strong>banco de dados do condomínio</strong> e ficam visíveis para todos os usuários,
-            em qualquer dispositivo, imediatamente após salvar. Faça upload de um arquivo <em>ou</em> cole uma URL.
-            Tamanho máximo: <strong>20 MB por foto</strong>.
-          </div>
-        </div>
-
-        <!-- HERO -->
-        <div class="af-sec-head" style="margin-top:8px">
-          <div><h2>Foto de Capa (Hero)</h2><p>Imagem principal exibida no topo da página</p></div>
-          <div class="af-sec-tag">1 FOTO</div>
-        </div>
-        <div class="af-hero-card">
-          <img id="af-hero-preview-img" src="https://www.villagecastelo.com.br/wp-content/uploads/2020/10/village-castelo-capa-lago.jpg" alt="Hero" class="af-hero-img">
-          <div class="af-hero-body">
-            <div class="af-hero-ttl">Imagem de Fundo Principal</div>
-            <div class="af-hero-sub">Aparece como plano de fundo da seção de entrada do site</div>
-            <div class="af-up-area">
-              <div class="af-up-icon"><i class="fa-solid fa-folder-open"></i></div>
-              <div class="af-up-txt">Clique para anexar uma foto</div>
-              <input type="file" accept="image/*" onchange="afHandleFile(this,'hero')">
-            </div>
-            <div class="af-or-div">— ou cole uma URL —</div>
-            <input type="text" class="af-url-field" id="af-hero-url" placeholder="https://exemplo.com/imagem.jpg" oninput="afPreviewUrl(this.value,'hero')">
-            <div class="af-slot-acts" style="margin-top:14px">
-              <button class="af-btn-save" id="af-hero-save-btn" onclick="afSaveSlot('hero')"><i class="fa-solid fa-floppy-disk"></i> Salvar Capa</button>
-              <button class="af-btn-reset" onclick="afResetSlot('hero')"><i class="fa-solid fa-rotate-left"></i> Padrão</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- SLIDESHOW SOBRE -->
-        <div class="af-sec-head">
-          <div><h2>Slideshow "O Condomínio"</h2><p>4 fotos que aparecem em slide na seção sobre</p></div>
-          <div class="af-sec-tag">4 FOTOS</div>
-        </div>
-        <div class="af-gal-grid" id="af-sobre-grid"></div>
-
-        <!-- GALERIA -->
-        <div class="af-sec-head">
-          <div><h2>Galeria de Fotos</h2><p>12 slots — foto e legenda personalizadas</p></div>
-          <div class="af-sec-tag">12 FOTOS</div>
-        </div>
-        <div class="af-gal-grid" id="af-gal-grid"></div>
-
-        <!-- BARRA SALVAR TUDO -->
-        <div class="af-save-bar">
-          <div class="af-save-bar-msg"><strong>Dica:</strong> Salve individualmente ou use o botão para salvar tudo de uma vez.</div>
-          <button class="af-btn-save-all" id="af-save-all-btn" onclick="afSaveAll()"><i class="fa-solid fa-floppy-disk"></i> Salvar Tudo</button>
-        </div>
-
-      </div><!-- /panel-admfotos -->
-
     </div><!-- /content -->
   </div><!-- /main -->
 </div><!-- /app -->
@@ -6737,6 +6627,10 @@ function _limparCacheDados(){
        mudanca — dali saia cobranca de um condominio aparecendo no outro. */
     localStorage.removeItem('apvc_res_lembrete');
     localStorage.removeItem('apvc_res_lembrete_hist');
+    /* Sobras do painel "Fotos dos Condôminos", removido em 14/08/2026 por
+       estar inalcançável. Ninguém grava mais estas chaves; a limpeza fica
+       para varrer o que já está no navegador de quem usava o sistema antes.
+       Pode sair daqui a alguns meses, quando não houver mais resquício. */
     localStorage.removeItem('vc_hero');
     for(var i=0;i<12;i++) localStorage.removeItem('vc_gallery_'+i);
     for(var j=0;j<4;j++) localStorage.removeItem('vc_sobre_'+j);
@@ -7085,7 +6979,7 @@ function closeSidebar(){
 }
 
 /* ══ NAVIGATION ══ */
-const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',infogerais:'Informações Gerais',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas',espacos:'Criar Espaços',admfotos:'Fotos dos Condôminos'};
+const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',infogerais:'Informações Gerais',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas',espacos:'Criar Espaços'};
 const ACESSO_PAINEIS = {
   admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','usuarios','configuracoes','procedimentos'],
   gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','procedimentos'],
@@ -17352,260 +17246,6 @@ async function excluirUsuario(docId){
   window.showPanel = function(name, el){
     origShow2(name, el);
     if(name === 'procedimentos') renderProcedimentos();
-  };
-})();
-</script>
-
-<!-- ══ ADMFOTOS — painel inline, sem iframe, sem login duplo ══ -->
-<script>
-(function(){
-  var AF_DEFAULTS = [
-    {src:'https://www.villagecastelo.com.br/wp-content/uploads/2018/05/condominio-village-castelo-capa-imagem-05.jpg',label:'Área de Lazer'},
-    {src:'https://www.villagecastelo.com.br/wp-content/uploads/2018/05/condominio-village-castelo-capa-imagem-06.jpg',label:'Natureza Preservada'},
-    {src:'https://www.villagecastelo.com.br/wp-content/uploads/2018/05/condominio-village-castelo-capa-imagem-02.jpg',label:'Verde e Paisagem'},
-    {src:'https://www.villagecastelo.com.br/wp-content/uploads/2018/05/condominio-village-castelo-capa-imagem-03.jpg',label:'Infraestrutura'},
-    {src:'https://www.villagecastelo.com.br/wp-content/uploads/2018/05/condominio-village-castelo-capa-imagem-04.jpg',label:'Espaços Exclusivos'},
-    {src:'https://www.villagecastelo.com.br/wp-content/uploads/2018/05/condominio-village-castelo-capa-imagem-01.jpg',label:'Condomínio'},
-    {src:'https://www.villagecastelo.com.br/wp-content/uploads/2018/06/condominio-village-castelo-capa-imagem-10.jpg',label:'Lago'},
-    {src:'https://www.villagecastelo.com.br/wp-content/uploads/2018/06/village-castelo-academia-001.jpg',label:'Academia'},
-    {src:'https://www.villagecastelo.com.br/wp-content/uploads/2018/05/condominio-village-castelo-capa-imagem-05.jpg',label:'Salão de Festa'},
-    {src:'https://www.villagecastelo.com.br/wp-content/uploads/2018/05/condominio-village-castelo-capa-imagem-06.jpg',label:'Sala Coworking'},
-    {src:'https://www.villagecastelo.com.br/wp-content/uploads/2018/05/condominio-village-castelo-capa-imagem-02.jpg',label:'Sala de Reunião'},
-    {src:'https://www.villagecastelo.com.br/wp-content/uploads/2018/05/condominio-village-castelo-capa-imagem-03.jpg',label:'Cozinha do Salão'}
-  ];
-  var AF_SOBRE_DEFAULTS = [
-    'https://www.villagecastelo.com.br/wp-content/uploads/2020/10/village-castelo-capa-parque.jpg',
-    'https://www.villagecastelo.com.br/wp-content/uploads/2018/05/condominio-village-castelo-capa-imagem-05.jpg',
-    'https://www.villagecastelo.com.br/wp-content/uploads/2018/05/condominio-village-castelo-capa-imagem-06.jpg',
-    'https://www.villagecastelo.com.br/wp-content/uploads/2018/06/condominio-village-castelo-capa-imagem-10.jpg'
-  ];
-  var AF_HERO_DEFAULT = 'https://www.villagecastelo.com.br/wp-content/uploads/2020/10/village-castelo-capa-lago.jpg';
-  var afPending = {};
-  var afBuilt = false;
-
-  /* Constrói os grids de galeria e slideshow */
-  function afBuildGrids(){
-    // Galeria 12 fotos
-    var g = document.getElementById('af-gal-grid'); g.innerHTML='';
-    for(var i=0;i<12;i++){
-      (function(idx){
-        var c=document.createElement('div'); c.className='af-gal-card';
-        c.innerHTML=
-          '<img id="af-gimg-'+idx+'" src="'+AF_DEFAULTS[idx].src+'" class="af-gal-thumb" alt="Foto '+(idx+1)+'">'+
-          '<div class="af-gal-body">'+
-            '<div class="af-slot-num">Foto '+(idx+1)+' de 12</div>'+
-            '<input type="text" class="af-lbl-field" id="af-glbl-'+idx+'" placeholder="Legenda" value="'+AF_DEFAULTS[idx].label+'">'+
-            '<div class="af-up-area"><div class="af-up-icon"><i class="fa-solid fa-folder-open"></i></div><div class="af-up-txt">Anexar foto</div>'+
-              '<input type="file" accept="image/*" onchange="afHandleFile(this,\''+idx+'\')">'+
-            '</div>'+
-            '<div class="af-or-div">— ou URL —</div>'+
-            '<input type="text" class="af-url-field" id="af-gurl-'+idx+'" placeholder="https://..." oninput="afPreviewUrl(this.value,\''+idx+'\')">'+
-            '<div class="af-slot-acts">'+
-              '<button class="af-btn-save" id="af-gsave-'+idx+'" onclick="afSaveSlot(\''+idx+'\')"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>'+
-              '<button class="af-btn-reset" onclick="afResetSlot(\''+idx+'\')"><i class="fa-solid fa-rotate-left"></i></button>'+
-            '</div>'+
-          '</div>';
-        g.appendChild(c);
-      })(i);
-    }
-    // Slideshow sobre 4 fotos
-    var s = document.getElementById('af-sobre-grid'); s.innerHTML='';
-    for(var j=0;j<4;j++){
-      (function(idx){
-        var c=document.createElement('div'); c.className='af-gal-card';
-        c.innerHTML=
-          '<img id="af-sobre-gimg-'+idx+'" src="'+AF_SOBRE_DEFAULTS[idx]+'" class="af-gal-thumb" alt="Slide '+(idx+1)+'">'+
-          '<div class="af-gal-body">'+
-            '<div class="af-slot-num">Slide '+(idx+1)+' de 4</div>'+
-            '<div class="af-up-area"><div class="af-up-icon"><i class="fa-solid fa-folder-open"></i></div><div class="af-up-txt">Anexar foto</div>'+
-              '<input type="file" accept="image/*" onchange="afHandleFile(this,\'sobre_'+idx+'\')">'+
-            '</div>'+
-            '<div class="af-or-div">— ou URL —</div>'+
-            '<input type="text" class="af-url-field" id="af-sobre-gurl-'+idx+'" placeholder="https://..." oninput="afPreviewUrl(this.value,\'sobre_'+idx+'\')">'+
-            '<div class="af-slot-acts">'+
-              '<button class="af-btn-save" id="af-sobre-gsave-'+idx+'" onclick="afSaveSlot(\'sobre_'+idx+'\')"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>'+
-              '<button class="af-btn-reset" onclick="afResetSlot(\'sobre_'+idx+'\')"><i class="fa-solid fa-rotate-left"></i></button>'+
-            '</div>'+
-          '</div>';
-        s.appendChild(c);
-      })(j);
-    }
-  }
-
-  /* Fotos no Supabase: mapa {docKey: payload} em modulo_dados/fotos */
-  async function _afMapa(){
-    if(!window.SB) return null;
-    var r=await window.SB.from('modulo_dados').select('valor').eq('condominio_id',_condAtual).eq('modulo','fotos').maybeSingle();
-    return (r.data && r.data.valor) || {};
-  }
-  async function _afMapaSalvar(mapa){
-    var r=await window.SB.from('modulo_dados').upsert({condominio_id:_condAtual,modulo:'fotos',valor:mapa},{onConflict:'condominio_id,modulo'});
-    if(r.error) throw r.error;
-  }
-
-  async function afLoadAll(){
-    toast('⏳ Carregando fotos do banco…');
-    try{
-      var mapa=await _afMapa();
-      if(mapa){
-        var h=mapa['hero'];
-        if(h && h.src){
-          document.getElementById('af-hero-preview-img').src=h.src;
-          if(!h.src.startsWith('data:')) document.getElementById('af-hero-url').value=h.src;
-        }
-        for(var i=0;i<12;i++){
-          var d=mapa['gallery_'+i];
-          if(d){
-            if(d.src){ document.getElementById('af-gimg-'+i).src=d.src; if(!d.src.startsWith('data:')) document.getElementById('af-gurl-'+i).value=d.src; }
-            if(d.label) document.getElementById('af-glbl-'+i).value=d.label;
-          }
-        }
-        for(var j=0;j<4;j++){
-          var sd=mapa['sobre_'+j];
-          if(sd && sd.src){
-            document.getElementById('af-sobre-gimg-'+j).src=sd.src;
-            if(!sd.src.startsWith('data:')) document.getElementById('af-sobre-gurl-'+j).value=sd.src;
-          }
-        }
-        toast('✅ Fotos carregadas do banco de dados.');
-        return;
-      }
-    }catch(e){ console.warn('Erro ao carregar fotos:', e); }
-    // Fallback localStorage
-    afLoadLocalStorage();
-    toast('⚠️ Modo offline — exibindo dados locais.');
-  }
-
-  function afLoadLocalStorage(){
-    try{ var h=JSON.parse(localStorage.getItem('vc_hero')||'{}'); if(h.src) document.getElementById('af-hero-preview-img').src=h.src; }catch(e){}
-    for(var i=0;i<12;i++){
-      try{ var d=JSON.parse(localStorage.getItem('vc_gallery_'+i)||'{}'); if(d.src) document.getElementById('af-gimg-'+i).src=d.src; if(d.label) document.getElementById('af-glbl-'+i).value=d.label; }catch(e){}
-    }
-    for(var j=0;j<4;j++){
-      try{ var sd=JSON.parse(localStorage.getItem('vc_sobre_'+j)||'{}'); if(sd.src) document.getElementById('af-sobre-gimg-'+j).src=sd.src; }catch(e){}
-    }
-  }
-
-  /* Upload com compressão */
-  window.afHandleFile = function(input, slotKey){
-    var file=input.files[0]; if(!file) return;
-    if(file.size>20*1024*1024){ toast('⚠️ Imagem muito grande. Máximo: 20 MB.'); return; }
-    var reader=new FileReader();
-    reader.onload=function(e){
-      var img=new Image();
-      img.onload=function(){
-        var MAX=1400, w=img.width, h=img.height;
-        if(w>MAX||h>MAX){ if(w>=h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
-        var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
-        cv.getContext('2d').drawImage(img,0,0,w,h);
-        var comp=cv.toDataURL('image/jpeg',0.82);
-        afPending[slotKey]=comp;
-        if(slotKey==='hero') document.getElementById('af-hero-preview-img').src=comp;
-        else if(slotKey.startsWith('sobre_')) document.getElementById('af-sobre-gimg-'+slotKey.split('_')[1]).src=comp;
-        else document.getElementById('af-gimg-'+slotKey).src=comp;
-        toast('📷 Foto carregada ('+ Math.round(comp.length*0.75/1024) +' KB) — clique Salvar.');
-      };
-      img.src=e.target.result;
-    };
-    reader.readAsDataURL(file);
-  };
-
-  /* Preview por URL */
-  window.afPreviewUrl = function(url, slotKey){
-    if(!url||!url.startsWith('http')) return;
-    afPending[slotKey]=url;
-    if(slotKey==='hero') document.getElementById('af-hero-preview-img').src=url;
-    else if(slotKey.startsWith('sobre_')) document.getElementById('af-sobre-gimg-'+slotKey.split('_')[1]).src=url;
-    else document.getElementById('af-gimg-'+slotKey).src=url;
-  };
-
-  /* Salvar slot */
-  window.afSaveSlot = async function(slotKey){
-    var btnId = slotKey==='hero' ? 'af-hero-save-btn' : (slotKey.startsWith('sobre_') ? 'af-sobre-gsave-'+slotKey.split('_')[1] : 'af-gsave-'+slotKey);
-    var btn = document.getElementById(btnId);
-    var origTxt = btn ? btn.textContent : '';
-    var src, label='';
-    if(slotKey==='hero'){
-      src = afPending['hero'] || document.getElementById('af-hero-preview-img').src;
-    } else if(slotKey.startsWith('sobre_')){
-      var sidx=parseInt(slotKey.split('_')[1]);
-      src = afPending[slotKey] || document.getElementById('af-sobre-gimg-'+sidx).src;
-    } else {
-      var idx=parseInt(slotKey);
-      src = afPending[slotKey] || document.getElementById('af-gimg-'+idx).src;
-      label = document.getElementById('af-glbl-'+idx).value || AF_DEFAULTS[idx].label;
-    }
-    if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
-    var docKey = slotKey==='hero' ? 'hero' : (slotKey.startsWith('sobre_') ? slotKey : 'gallery_'+slotKey);
-    var payload = {src:src, label:label, updatedAt:new Date().toISOString()};
-    var lsKey = 'vc_'+(slotKey==='hero'?'hero':(slotKey.startsWith('sobre_')?slotKey:'gallery_'+slotKey));
-    try{
-      if(window.SB){
-        var mapa=await _afMapa()||{};
-        mapa[docKey]=payload;
-        await _afMapaSalvar(mapa);
-        try{ localStorage.setItem(lsKey, JSON.stringify(payload)); }catch(e){}
-        toast('✅ Foto salva no banco de dados!');
-      } else {
-        localStorage.setItem(lsKey, JSON.stringify(payload));
-        toast('💾 Salvo localmente (sem conexão).');
-      }
-      if(btn){ btn.textContent='✓ Salvo!'; btn.classList.add('saved'); btn.disabled=false; }
-      setTimeout(function(){ if(btn){btn.textContent=origTxt;btn.classList.remove('saved');} },2500);
-      delete afPending[slotKey];
-    }catch(e){
-      toast('❌ Erro: '+e.message);
-      if(btn){ btn.disabled=false; btn.textContent=origTxt; }
-    }
-  };
-
-  /* Salvar tudo */
-  window.afSaveAll = async function(){
-    var btn=document.getElementById('af-save-all-btn');
-    if(btn){ btn.disabled=true; btn.textContent='Salvando…'; }
-    await afSaveSlot('hero');
-    for(var i=0;i<4;i++) await window.afSaveSlot('sobre_'+i);
-    for(var i=0;i<12;i++) await window.afSaveSlot(String(i));
-    toast('✅ Todas as fotos foram salvas!');
-    if(btn){ btn.disabled=false; btn.textContent='Salvar Tudo'; }
-  };
-
-  /* Reset slot */
-  window.afResetSlot = async function(slotKey){
-    if(!confirm('Restaurar foto padrão? Isto vai apagar a foto atual.')) return;
-    var docKey = slotKey==='hero' ? 'hero' : (slotKey.startsWith('sobre_') ? slotKey : 'gallery_'+slotKey);
-    try{ if(window.SB){ var mapaR=await _afMapa()||{}; delete mapaR[docKey]; await _afMapaSalvar(mapaR); } }catch(e){}
-    try{ localStorage.removeItem('vc_'+(slotKey==='hero'?'hero':(slotKey.startsWith('sobre_')?slotKey:'gallery_'+slotKey))); }catch(e){}
-    if(slotKey==='hero'){
-      document.getElementById('af-hero-preview-img').src=AF_HERO_DEFAULT;
-      document.getElementById('af-hero-url').value='';
-      delete afPending['hero'];
-      toast('↺ Capa restaurada ao padrão.');
-    } else if(slotKey.startsWith('sobre_')){
-      var sidx=parseInt(slotKey.split('_')[1]);
-      document.getElementById('af-sobre-gimg-'+sidx).src=AF_SOBRE_DEFAULTS[sidx];
-      document.getElementById('af-sobre-gurl-'+sidx).value='';
-      delete afPending[slotKey];
-      toast('↺ Slide '+(sidx+1)+' restaurado ao padrão.');
-    } else {
-      var idx=parseInt(slotKey);
-      document.getElementById('af-gimg-'+idx).src=AF_DEFAULTS[idx].src;
-      document.getElementById('af-glbl-'+idx).value=AF_DEFAULTS[idx].label;
-      document.getElementById('af-gurl-'+idx).value='';
-      delete afPending[slotKey];
-      toast('↺ Foto '+(idx+1)+' restaurada ao padrão.');
-    }
-  };
-
-  /* Inicializa o painel quando aberto pela primeira vez */
-  var origShowPanel = window.showPanel;
-  window.showPanel = function(name, el){
-    origShowPanel(name, el);
-    if(name === 'admfotos' && !afBuilt){
-      afBuilt = true;
-      afBuildGrids();
-      afLoadAll();
-    }
   };
 })();
 </script>
