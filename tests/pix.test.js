@@ -97,6 +97,42 @@ bloco('A reserva é identificada no extrato', () => {
   checa('espaço é removido do txid', codigo(150, 'RES R1').includes('RESR1'), true);
 });
 
+// ── Passo 2: mandar o comprovante ─────────────────────────────────────
+// O raciocínio do fluxo: o morador paga e manda o comprovante. Se ele tiver
+// de sair do sistema para procurar o telefone da administração, muita gente
+// não manda — e aí a reserva fica pendente sem ninguém saber por quê.
+bloco('Botão de comprovante no WhatsApp', () => {
+  const { _pixWhatsLink } = carregar(['_pixWhatsLink', '_igWhatsLink', '_igDigitos']);
+  const reserva = { espaco: 'Campo de Futebol', data: '2026-08-14' };
+  const link = (num, r, v) => _pixWhatsLink(num, r === undefined ? reserva : r, v === undefined ? 20 : v);
+  const texto = (l) => decodeURIComponent((l.split('text=')[1] || ''));
+
+  const l = link('(11) 99999-9999');
+  checa('vira link do WhatsApp com DDI', l.indexOf('https://wa.me/5511999999999') === 0, true);
+  checa('a mensagem já vem escrita', /Segue o comprovante/i.test(texto(l)), true);
+  checa('diz qual espaço', texto(l).includes('Campo de Futebol'), true);
+  checa('diz a data em português', texto(l).includes('14/08/2026'), true);
+  checa('e o valor pago', /R\$.?20,00/.test(texto(l)), true);
+
+  // Taxa "a combinar" não pode virar "R$ 0,00" na mensagem: seria uma
+  // informação errada chegando na administração.
+  checa('taxa zero vira "a combinar"', /valor a combinar/i.test(texto(link('11999999999', undefined, 0))), true);
+  checa('e não manda R$ 0,00', texto(link('11999999999', undefined, 0)).includes('0,00'), false);
+
+  // Sem número utilizável o botão não aparece — abrir uma aba em branco na
+  // mão de quem está tentando pagar é pior do que não ter botão.
+  checa('sem número não há link', link(''), '');
+  checa('número nulo não há link', link(null), '');
+  checa('número curto (190) não há link', link('190'), '');
+  checa('número sem DDD não há link', link('99999999'), '');
+
+  // Reserva incompleta não pode gerar "em Invalid Date".
+  const semData = link('11999999999', { espaco: 'Salão' });
+  checa('sem data não escreve data inválida', /invalid/i.test(texto(semData)), false);
+  checa('mas ainda cita o espaço', texto(semData).includes('Salão'), true);
+  checa('sem reserva nenhuma ainda gera link', link('11999999999', null).indexOf('https://wa.me/') === 0, true);
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }
 console.log('TODOS OS TESTES PASSARAM (' + ok + ')');

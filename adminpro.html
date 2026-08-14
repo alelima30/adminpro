@@ -132,7 +132,44 @@ function abrirPixReserva(id){
     : 'Valor a combinar';
   $('pix-info').textContent = r.espaco+' \u2022 '+(r.data?new Date(r.data+'T00:00').toLocaleDateString('pt-BR'):'');
   $('pix-codigo').value = codigo;
+
+  /* Passo 2 — enviar o comprovante.
+
+     O link ja vai com a reserva escrita na mensagem: sem isso, chega na
+     administracao um "segue o comprovante" solto, e alguem tem de descobrir
+     de qual reserva se trata. O morador so anexa a foto.
+
+     Sem WhatsApp configurado o bloco inteiro some, em vez de mostrar um
+     botao que nao leva a lugar nenhum. */
+  var p2 = $('pix-passo2'), aWa = $('pix-whats');
+  var linkWa = _pixWhatsLink(cfg.pix_whats, r, valor);
+  if(p2 && aWa && linkWa){
+    aWa.href = linkWa;
+    p2.style.display = '';
+  } else if(p2){
+    p2.style.display = 'none';
+  }
+
   ov.style.display='flex';
+}
+
+/* Monta o link do WhatsApp da administracao com a mensagem ja pronta.
+
+   Reaproveita a validacao de numero de Informacoes Gerais: numero curto
+   (ramal, 190) ou sem DDD nao vira link, e ai o botao nem aparece -- melhor
+   do que abrir uma aba em branco na mao de quem esta tentando pagar. */
+function _pixWhatsLink(numero, r, valor){
+  var base = (typeof _igWhatsLink === 'function') ? _igWhatsLink(numero) : '';
+  if(!base) return '';
+  var data = r && r.data ? new Date(r.data+'T00:00').toLocaleDateString('pt-BR') : '';
+  var vTxt = valor > 0
+    ? valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
+    : 'valor a combinar';
+  var msg = 'Olá! Segue o comprovante do Pix da reserva'
+          + (r && r.espaco ? ' de ' + r.espaco : '')
+          + (data ? ' em ' + data : '')
+          + ' (' + vTxt + ').';
+  return base + '?text=' + encodeURIComponent(msg);
 }
 function fecharPix(){ var o=$('pix-ov'); if(o) o.style.display='none'; }
 function copiarPix(){
@@ -4456,7 +4493,7 @@ html.ambiente-ensaio body{padding-top:28px}
         <div class="cfg-card cfg-grp-reservas cfgsub-cobranca card" style="margin-bottom:16px">
           <div class="card-head"><div class="card-title"><div class="card-icon" style="background:rgba(42,157,111,0.14);color:var(--green-l)"><i class="fa-solid fa-sack-dollar"></i></div>Pix para a taxa de reserva</div></div>
           <div style="font-size:12.5px;color:var(--text-3);margin-bottom:12px">
-            Informe a chave Pix <b>do condomínio</b>. O morador verá o QR Code e o "copia e cola" já com o valor da taxa.
+            Informe a chave Pix <b>do condomínio</b>. O morador verá o "copia e cola" já com o valor da taxa.
             O dinheiro cai direto na conta do condomínio — o AdminPro não intermedia o pagamento.
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
@@ -4466,6 +4503,13 @@ html.ambiente-ensaio body{padding-top:28px}
               <input type="text" id="cfg-pix-nome" placeholder="Ex: Associacao Parque Village" maxlength="25"></div>
             <div class="fg"><label>Cidade</label>
               <input type="text" id="cfg-pix-cidade" placeholder="Ex: SAO PAULO" maxlength="15"></div>
+            <div class="fg"><label><i class="fa-brands fa-whatsapp" style="color:var(--green-l)"></i> WhatsApp para receber o comprovante</label>
+              <input type="text" id="cfg-pix-whats" placeholder="(11) 99999-9999">
+              <div style="font-size:11.5px;color:var(--text-3);margin-top:4px;line-height:1.5">
+                Vira um botão na tela de pagamento, <b>depois</b> do código Pix. O morador toca e já cai
+                na conversa com a administração, com a reserva escrita na mensagem — só anexar o comprovante.
+              </div>
+            </div>
           </div>
           <div style="font-size:12px;color:var(--text-3);margin-top:8px">
             Deixe a chave em branco para desativar o Pix nas reservas.
@@ -13215,6 +13259,7 @@ function renderCfgReservas(){
   if($('cfg-pix-chave'))  $('cfg-pix-chave').value  = cfgRes.pix_chave  || '';
   if($('cfg-pix-nome'))   $('cfg-pix-nome').value   = cfgRes.pix_nome   || '';
   if($('cfg-pix-cidade')) $('cfg-pix-cidade').value = cfgRes.pix_cidade || '';
+  if($('cfg-pix-whats'))  $('cfg-pix-whats').value  = cfgRes.pix_whats  || '';
   renderAlertDestinos();
   if($('cfg-bloq-inad'))         $('cfg-bloq-inad').checked         = !!cfgRes.bloquear_inadimplente;
   if($('cfg-max-reservas'))      $('cfg-max-reservas').value        = cfgRes.max_reservas_morador||'';
@@ -13996,6 +14041,7 @@ function salvarCfgReservas(){
   if($('cfg-pix-chave'))  cfgRes.pix_chave  = $('cfg-pix-chave').value.trim();
   if($('cfg-pix-nome'))   cfgRes.pix_nome   = $('cfg-pix-nome').value.trim();
   if($('cfg-pix-cidade')) cfgRes.pix_cidade = $('cfg-pix-cidade').value.trim();
+  if($('cfg-pix-whats'))  cfgRes.pix_whats  = $('cfg-pix-whats').value.trim();
   cfgRes.alert_destinos = Array.isArray(cfgRes.alert_destinos) ? cfgRes.alert_destinos : (window._alertDestinos||[]);
   if($('cfg-bloq-inad'))         cfgRes.bloquear_inadimplente = $('cfg-bloq-inad').checked;
   if($('cfg-max-reservas'))      cfgRes.max_reservas_morador = parseInt($('cfg-max-reservas').value,10)||0;
@@ -17501,11 +17547,31 @@ async function excluirUsuario(docId){
          caminho único, e ele é gerado aqui dentro, sem depender de nada
          externo para aparecer. -->
     <div style="font-size:12.5px;color:var(--text-2);margin-bottom:6px">Copie o código abaixo e cole no aplicativo do seu banco, em <b>Pix copia e cola</b>:</div>
-    <textarea id="pix-codigo" readonly rows="3" style="width:100%;box-sizing:border-box;font-size:11px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text-2);resize:none"></textarea>
+    <!-- 4 linhas, e nao 3: o BR Code tem ~140 caracteres e em 3 linhas ficava
+         cortado no meio da ultima, com cara de defeito bem no unico caminho
+         de pagamento que existe. -->
+    <textarea id="pix-codigo" readonly rows="4" style="width:100%;box-sizing:border-box;font-size:11px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text-2);resize:none;overflow:auto"></textarea>
     <div style="display:flex;gap:8px;margin-top:12px">
       <button class="btn" style="flex:1;background:var(--green);color:#fff;border:none" onclick="copiarPix()">Copiar código</button>
       <button class="btn btn-ghost" style="flex:1" onclick="fecharPix()">Fechar</button>
     </div>
+
+    <!-- Passo 2: mandar o comprovante.
+         Fica DEPOIS do código de propósito, e o número não aparece em lugar
+         nenhum antes — quem chega aqui vem para pagar, e um telefone no
+         caminho só dá a chance de pular o pagamento e ir conversar. -->
+    <div id="pix-passo2" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:8px;line-height:1.5">
+        Depois de pagar, envie o comprovante para a administração:
+      </div>
+      <a id="pix-whats" href="#" target="_blank" rel="noopener"
+         style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;
+                background:#25D366;color:#fff;font-weight:600;font-size:14px;
+                padding:12px 16px;border-radius:10px;min-height:44px;box-sizing:border-box">
+        <i class="fa-brands fa-whatsapp" style="font-size:18px"></i> Enviar comprovante no WhatsApp
+      </a>
+    </div>
+
     <div style="font-size:11px;color:var(--text-3);margin-top:10px;line-height:1.5">
       O pagamento vai direto para a conta do condomínio.<br>
       A administração confirma o recebimento no sistema.
