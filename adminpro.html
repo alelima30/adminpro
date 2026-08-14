@@ -87,7 +87,15 @@ function pixCopiaECola(chave, nome, cidade, valor, txid){
   if(!chave) return '';
   var mai = _pixCampo('00','br.gov.bcb.pix') + _pixCampo('01', String(chave).trim());
   var v   = (parseFloat(valor)||0);
-  var id  = _pixTexto(txid||'***', 25).replace(/ /g,'') || '***';
+  /* Identificador do pagamento. Quando nao ha um, o padrao do BR Code manda
+     enviar o coringa "***".
+
+     Nao da para passar "***" por _pixTexto: ela remove tudo que nao seja
+     letra, numero, ponto ou hifen -- os asteriscos sumiam, sobrava vazio, e
+     o fallback dela devolvia "N/A", que ainda leva uma barra, caractere que
+     ela propria considera invalido. Por isso o coringa e decidido AQUI. */
+  var _lim = txid ? _pixTexto(txid, 25).replace(/ /g,'') : '';
+  var id  = (!_lim || _lim === 'N/A') ? '***' : _lim;
   var p =
     _pixCampo('00','01') +
     _pixCampo('26', mai) +
@@ -102,7 +110,13 @@ function pixCopiaECola(chave, nome, cidade, valor, txid){
   return p + _pixCRC(p);
 }
 
-/* Abre o QR Code Pix da reserva (valor da taxa ja embutido) */
+/* Abre o Pix da reserva — "copia e cola", com o valor da taxa ja embutido.
+
+   Nao ha imagem de QR Code, por decisao de 14/08/2026. O codigo abaixo e o
+   BR Code do Banco Central, montado AQUI DENTRO: qualquer banco aceita ele
+   colado, e ele nao depende de biblioteca externa para existir. A imagem
+   dependia, e era mais uma coisa que podia nao carregar bem na hora em que o
+   morador precisava pagar. */
 function abrirPixReserva(id){
   var r=(G('reservas')||[]).find(function(x){return x.id===id;});
   if(!r) return;
@@ -119,24 +133,6 @@ function abrirPixReserva(id){
   $('pix-info').textContent = r.espaco+' \u2022 '+(r.data?new Date(r.data+'T00:00').toLocaleDateString('pt-BR'):'');
   $('pix-codigo').value = codigo;
   ov.style.display='flex';
-
-  // Se a biblioteca do QR nao carregou (sem internet, por exemplo), avisa
-  // e deixa o "copia e cola" como caminho — ele funciona sozinho.
-  var cv=$('pix-qr'), aviso=$('pix-semqr');
-  if(cv && window.QRCode && QRCode.toCanvas){
-    if(aviso) aviso.style.display='none';
-    cv.style.display='';
-    QRCode.toCanvas(cv, codigo, {width:220, margin:1}, function(err){
-      if(err){
-        console.error('qr', err);
-        cv.style.display='none';
-        if(aviso) aviso.style.display='';
-      }
-    });
-  } else {
-    cv && (cv.style.display='none');
-    if(aviso) aviso.style.display='';
-  }
 }
 function fecharPix(){ var o=$('pix-ov'); if(o) o.style.display='none'; }
 function copiarPix(){
@@ -5382,7 +5378,9 @@ html.ambiente-ensaio body{padding-top:28px}
 <div class="toast" id="toast"></div>
 
 <script>window.emailjs={init:function(){},send:function(){return Promise.reject(new Error('emailjs desativado'));}};</script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<!-- A biblioteca de QR Code saiu em 14/08/2026, junto com a imagem do QR no
+     Pix da reserva: era o unico lugar que a usava. Menos uma coisa vinda de
+     fora para carregar em toda abertura do sistema. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ══════════════════════════
@@ -17499,13 +17497,10 @@ async function excluirUsuario(docId){
     <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">Pagar com Pix</div>
     <div id="pix-info" style="font-size:12.5px;color:var(--text-3);margin-bottom:10px"></div>
     <div id="pix-valor" style="font-size:24px;font-weight:700;color:var(--green-l);margin-bottom:14px"></div>
-    <div style="background:#fff;display:inline-block;padding:10px;border-radius:10px;margin-bottom:14px">
-      <canvas id="pix-qr"></canvas>
-      <div id="pix-semqr" style="display:none;font-size:12px;color:#666;max-width:200px;padding:16px 8px;line-height:1.5">
-        Não foi possível desenhar o QR Code agora.<br>Use o código "copia e cola" abaixo.
-      </div>
-    </div>
-    <div style="font-size:12px;color:var(--text-3);margin-bottom:6px">Ou use o código abaixo no seu banco:</div>
+    <!-- Sem imagem de QR Code, por decisão: o "copia e cola" abaixo é o
+         caminho único, e ele é gerado aqui dentro, sem depender de nada
+         externo para aparecer. -->
+    <div style="font-size:12.5px;color:var(--text-2);margin-bottom:6px">Copie o código abaixo e cole no aplicativo do seu banco, em <b>Pix copia e cola</b>:</div>
     <textarea id="pix-codigo" readonly rows="3" style="width:100%;box-sizing:border-box;font-size:11px;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text-2);resize:none"></textarea>
     <div style="display:flex;gap:8px;margin-top:12px">
       <button class="btn" style="flex:1;background:var(--green);color:#fff;border:none" onclick="copiarPix()">Copiar código</button>
