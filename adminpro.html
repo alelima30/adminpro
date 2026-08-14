@@ -14324,6 +14324,59 @@ async function perguntarAssistente(){
 
 var _igEditando = '';   // qual seção está aberta para edição ('' = nenhuma)
 
+/* ── Rascunho: o que foi digitado e ainda nao foi salvo ───────────────
+
+   A tela de Informacoes Gerais se redesenha inteira a partir do que esta
+   GRAVADO. Isso e certo para exibir e errado no meio da digitacao: sair
+   para outra tela e voltar redesenhava o formulario com o texto antigo, e
+   o que a pessoa tinha escrito -- que so existia dentro da caixa -- sumia
+   sem aviso. Quem escreve um regulamento de vinte linhas perde os vinte.
+
+   O rascunho guarda o texto em andamento por aba, fora do DOM. Ele vale
+   ate salvar (vira definitivo) ou cancelar (e descartado de proposito).
+
+   Guardado tambem no navegador, com o condominio na chave: fechar a aba
+   sem querer, ou o celular matar a pagina em segundo plano, deixa de ser
+   perda total. Uma semana e o limite -- rascunho velho demais confunde
+   mais do que ajuda. */
+var _IG_RASCUNHO_DIAS = 7;
+function _igRascunhoChave(){
+  return 'apvc_ig_rascunho_' + (typeof _condAtual !== 'undefined' ? _condAtual : 'x');
+}
+function _igRascunhos(){
+  try{
+    var o = JSON.parse(localStorage.getItem(_igRascunhoChave()) || '{}');
+    var corte = Date.now() - _IG_RASCUNHO_DIAS*86400000;
+    var vivos = {};
+    Object.keys(o).forEach(function(k){
+      if(o[k] && o[k].ts > corte) vivos[k] = o[k];
+    });
+    return vivos;
+  }catch(_){ return {}; }
+}
+function _igRascunhoLer(abaId){
+  var r = _igRascunhos()[abaId];
+  return r ? r.texto : null;
+}
+function _igRascunhoGravar(abaId, texto){
+  var o = _igRascunhos();
+  o[abaId] = { texto: texto, ts: Date.now() };
+  try{ localStorage.setItem(_igRascunhoChave(), JSON.stringify(o)); }catch(_){}
+}
+function _igRascunhoApagar(abaId){
+  var o = _igRascunhos();
+  delete o[abaId];
+  try{ localStorage.setItem(_igRascunhoChave(), JSON.stringify(o)); }catch(_){}
+}
+
+// Chamado a cada tecla na caixa de texto.
+function igDigitando(abaId, el){
+  if(!el) return;
+  _igRascunhoGravar(abaId, el.value);
+  var av = $('ig-rascunho-aviso');
+  if(av) av.style.display = '';
+}
+
 /* Dois niveis de poder em Informacoes Gerais.
 
    _igPodeEditar    — sindico e gestor do condominio. Preenchem o CONTEUDO
@@ -14736,8 +14789,18 @@ function _igBarraAbas(d){
 
 function _igCorpoTexto(a){
   if(_igEditando === a.id){
-    return '<textarea id="ig-in-texto" class="ig-input" rows="12" placeholder="Escreva aqui…">'
-      + escHtml(a.texto||'') + '</textarea>' + _igBotoesEdicao('igSalvarTexto()');
+    /* Se houver rascunho, ele vence o texto gravado: e o mais recente, e
+       redesenhar por cima dele era justamente o defeito. */
+    var rascunho = _igRascunhoLer(a.id);
+    var valor = (rascunho === null) ? (a.texto||'') : rascunho;
+    var mudou = (rascunho !== null && rascunho !== (a.texto||''));
+    return '<div id="ig-rascunho-aviso" style="display:' + (mudou?'':'none')
+      +   ';font-size:12px;color:var(--amber);margin-bottom:8px">'
+      +   '<i class="fa-solid fa-pen"></i> Alterações não salvas — clique em Salvar para gravar.'
+      + '</div>'
+      + '<textarea id="ig-in-texto" class="ig-input" rows="12" placeholder="Escreva aqui…"'
+      +   ' oninput="igDigitando(' + JSON.stringify(a.id).replace(/"/g,'&quot;') + ', this)">'
+      + escHtml(valor) + '</textarea>' + _igBotoesEdicao('igSalvarTexto()');
   }
   return _igTexto(a.texto, 'Nada escrito ainda.');
 }
@@ -14952,7 +15015,26 @@ function renderInfoGerais(){
 /* ── Edição do conteúdo ── */
 
 function igEditar(secao){ _igEditando = secao; renderInfoGerais(); }
-function igCancelar(){ _igEditando = ''; _igGerenciando = false; renderInfoGerais(); }
+function igCancelar(){
+  /* Cancelar e o unico lugar onde o rascunho e jogado fora de proposito --
+     e por isso pergunta antes. Quem escreveu vinte linhas e clicou em
+     Cancelar por engano nao pode perder tudo em silencio; quem clicou de
+     verdade responde "sim" e segue. */
+  var aba = _igEditando;
+  if(aba){
+    var rascunho = _igRascunhoLer(aba);
+    if(rascunho !== null){
+      var d = _igDados(), atual = null;
+      (d.abas||[]).forEach(function(x){ if(x.id === aba) atual = x; });
+      var gravado = (atual && atual.texto) || '';
+      if(rascunho !== gravado){
+        if(!confirm('Descartar as alterações não salvas desta aba?')) return;
+      }
+      _igRascunhoApagar(aba);
+    }
+  }
+  _igEditando = ''; _igGerenciando = false; renderInfoGerais();
+}
 
 // Localiza a aba em edicao dentro do registro que sera gravado.
 function _igAbaEmEdicao(d){
@@ -14966,7 +15048,10 @@ function igSalvarTexto(){
   var d = _igDados(); var a = _igAbaEmEdicao(d);
   if(!a){ toast('⚠️ Aba não encontrada.'); return; }
   a.texto = el.value.trim();
+  var idAba = a.id;
   _igConcluir(d, 'Salvo.');
+  // O rascunho virou o texto oficial; guardar os dois so criaria divergencia.
+  _igRascunhoApagar(idAba);
 }
 
 function igSalvarTelefones(){
