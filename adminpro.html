@@ -7811,6 +7811,35 @@ function conFormatCodigo(n){ return String(n).padStart(4,'0'); } // 0001, 0002..
 let _depFoto = ''; // foto (base64) do dependente em edição no mini-form
 let _conFoto = ''; // foto (base64) do condômino titular
 
+/* Preenche a miniatura da foto (condômino ou dependente).
+
+   A foto é gravada no banco como texto. Ao reabrir a ficha ela volta de lá —
+   ou seja, é conteúdo que veio de fora, não o arquivo que a pessoa acabou de
+   escolher. Colado dentro de src="..." por template, um valor com aspas
+   fecharia o atributo e injetaria HTML na página, que roda com a sessão de
+   quem estiver olhando.
+
+   Aqui o endereço entra pela propriedade .src, que guarda texto e não
+   interpreta marcação nenhuma. */
+function _conPreencherFoto(alvo, foto, tamIcone){
+  if(!alvo) return;
+  alvo.innerHTML='';
+  if(foto){
+    const img=document.createElement('img');
+    img.src = foto;
+    img.style.cssText='width:100%;height:100%;object-fit:cover';
+    alvo.appendChild(img);
+    return;
+  }
+  const i=document.createElement('i');
+  i.className='fa-solid fa-camera';
+  i.style.fontSize=(tamIcone||28)+'px';
+  const s=document.createElement('span');
+  s.style.fontSize='11px';
+  s.textContent='Enviar foto';
+  alvo.appendChild(i); alvo.appendChild(s);
+}
+
 function conFotoSelecionada(input){
   const f = input.files && input.files[0];
   if(!f) return;
@@ -7996,8 +8025,11 @@ function conEditarDependente(idx){
   if($('dep-rg'))     $('dep-rg').value=d.rg||'';
   if($('dep-nasc'))   $('dep-nasc').value=d.nascimento||'';
   _depFoto=d.foto||'';
-  const pv=$('dep-foto-preview');
-  if(pv) pv.innerHTML=_depFoto?`<img src="${_depFoto}" style="width:100%;height:100%;object-fit:cover">`:'<i class="fa-solid fa-camera" style="font-size:28px"></i><span style="font-size:11px">Enviar foto</span>';
+  // A foto aqui vem do BANCO, não do arquivo que a pessoa acabou de escolher.
+  // Colada dentro de src="..." por template, um valor com aspas fecharia o
+  // atributo e injetaria HTML na página. Vai pela propriedade src, que não
+  // interpreta marcação.
+  _conPreencherFoto($('dep-foto-preview'), _depFoto);
   conDepFormModo();
   conRenderDependentes();
   const el=$('dep-nome'); if(el){ el.focus(); el.scrollIntoView({behavior:'smooth',block:'center'}); }
@@ -8111,10 +8143,7 @@ function editarCondomino(cod){
   if($('con-nome'))       $('con-nome').value=d.nome||'';
   // foto
   _conFoto=d.foto||'';
-  const fpv=$('con-foto-preview');
-  if(fpv) fpv.innerHTML = _conFoto
-    ? `<img src="${_conFoto}" style="width:100%;height:100%;object-fit:cover">`
-    : '<i class="fa-solid fa-camera" style="font-size:32px"></i><span style="font-size:11px">Enviar foto</span>';
+  _conPreencherFoto($('con-foto-preview'), _conFoto, 32);
   // tipo pessoa
   const isPJ=d.tipoPessoa==='juridica';
   if($('con-pj'))  $('con-pj').checked=isPJ;
@@ -8497,10 +8526,46 @@ function setTab(t){
   if(t==='fkpi') renderFKpi();
 }
 
+/* Desenha um gráfico — sem poder derrubar a tela junto.
+
+   O Chart.js vem de um CDN externo. Quando ele não carrega (internet do
+   condomínio bloqueando o domínio, CDN fora do ar, ou o app aberto offline,
+   que o service worker promete), "new Chart" estourava e a exceção subia,
+   ABORTANDO o resto da função de desenho.
+
+   Isso não custava só o gráfico. Em Inadimplência o gráfico é montado antes
+   da tabela de devedores; em Censo de Lotes, antes do histórico; em
+   Financeiro, antes das listas de receitas e despesas. Sem o CDN, essas
+   telas apareciam pela metade, sem nada explicando.
+
+   Agora a falha morre aqui dentro: o espaço do gráfico avisa o que houve e
+   o resto da tela — que é onde estão os dados — desenha normalmente. */
 function mkChart(id,cfg){
-  if(charts[id]) charts[id].destroy();
   const ctx=$(id); if(!ctx) return;
-  charts[id]=new Chart(ctx,cfg);
+  try{ if(charts[id]) charts[id].destroy(); }catch(_){}
+  if(typeof Chart === 'undefined'){ _chartIndisponivel(ctx); return; }
+  try{
+    charts[id]=new Chart(ctx,cfg);
+  }catch(e){
+    try{ console.error('Gráfico '+id+' falhou:', e); }catch(_){}
+    _chartIndisponivel(ctx);
+  }
+}
+
+// Recado no lugar do gráfico. Texto por textContent, nunca por HTML.
+function _chartIndisponivel(ctx){
+  try{
+    const pai = ctx.parentNode; if(!pai) return;
+    if(pai.querySelector('.chart-falhou')) return;
+    ctx.style.display='none';
+    const av=document.createElement('div');
+    av.className='chart-falhou';
+    av.style.cssText='display:flex;align-items:center;justify-content:center;gap:8px;'+
+      'min-height:120px;padding:16px;text-align:center;font-size:12.5px;'+
+      'color:var(--text-3);line-height:1.5';
+    av.textContent='Não foi possível carregar o gráfico (sem conexão com a internet). Os dados abaixo continuam corretos.';
+    pai.appendChild(av);
+  }catch(_){}
 }
 
 function nowM(){const d=new Date();return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
