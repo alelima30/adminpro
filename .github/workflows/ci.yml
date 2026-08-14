@@ -42,6 +42,9 @@ jobs:
       - name: Unidades (vinculo com o condomino)
         run: node tests/unidades.test.js
 
+      - name: Graficos (CDN fora do ar nao derruba a tela)
+        run: node tests/graficos.test.js
+
   # ────────────────────────────────────────────────────────────────
   # 2) DEPLOY das Edge Functions do Supabase
   #    So roda na branch main e so se os testes passarem.
