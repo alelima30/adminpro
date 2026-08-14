@@ -51,6 +51,9 @@ jobs:
       - name: Localizacoes (codigo da rua em sequencia)
         run: node tests/localizacoes.test.js
 
+      - name: Pix (o copia e cola que o morador usa para pagar)
+        run: node tests/pix.test.js
+
   # ────────────────────────────────────────────────────────────────
   # 2) DEPLOY das Edge Functions do Supabase
   #    So roda na branch main e so se os testes passarem.
