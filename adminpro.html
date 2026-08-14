@@ -1291,23 +1291,30 @@ tbody tr:hover td{background:rgba(255,255,255,0.025);color:var(--text)}
   .reg-trecho{font-size:13px;line-height:1.7;padding:11px 13px}
 }
 /* ══ INFORMACOES GERAIS ══ */
-/* Abas: no celular deslizam na horizontal em vez de empilhar e empurrar
-   o conteudo para baixo da dobra. */
-.ig-tabs{
-  display:flex;gap:8px;margin-bottom:18px;
-  overflow-x:auto;padding-bottom:4px;
-  scrollbar-width:none;
-  /* .tabs define width:fit-content — a faixa fica do tamanho do conteudo
-     e estoura o pai, entao o overflow-x:auto acima NUNCA tinha o que
-     rolar (scrollWidth == clientWidth) e as abas passadas da borda
-     ficavam inalcancaveis. max-width devolve o limite. */
-  max-width:100%;
+/* As abas QUEBRAM em varias linhas, e nao deslizam na horizontal.
+
+   Deslizar parecia melhor: economiza altura. So que a faixa rolava com a
+   barra de rolagem ESCONDIDA (scrollbar-width:none), e no computador, com
+   mouse, nao existe gesto obvio para rolar de lado. Com oito abas as
+   ultimas ficavam alem da borda direita, sem nada indicando que havia mais
+   -- e junto com elas ia o botao "Abas", que e por onde se cria, renomeia e
+   esconde. Perder o acesso a configuracao das abas por causa da quantidade
+   de abas e o tipo de defeito que se agrava sozinho.
+
+   Quebrando em linhas, nada pode se esconder. Custa altura no celular e
+   devolve a garantia de que tudo esta alcancavel. */
+.ig-tabs-linha{
+  display:flex;gap:8px;align-items:flex-start;
+  margin-bottom:18px;
 }
-.ig-tabs::-webkit-scrollbar{display:none}
-.ig-tabs .tab{flex-shrink:0;white-space:nowrap}
-/* Botao de gerenciar abas: fica no fim da fila e visualmente separado das
-   abas de conteudo — e configuracao, nao mais um assunto. */
-.ig-tab-gerir{margin-left:auto;opacity:.75}
+.ig-tabs{
+  display:flex;flex-wrap:wrap;gap:8px;
+  flex:1;min-width:0;max-width:100%;margin-bottom:0;
+}
+.ig-tabs .tab{white-space:nowrap}
+/* O botao de gerenciar sai da faixa das abas e fica preso na direita:
+   assim ele nao depende de quantas abas existem para ser alcancavel. */
+.ig-tab-gerir{flex-shrink:0;opacity:.75}
 .ig-tab-gerir.active{opacity:1}
 
 /* Gerenciar abas */
@@ -2166,9 +2173,14 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
     min-height:44px;      /* alvo de toque confortavel no celular */
   }
   .ig-tabs .tab i{ width:17px;flex-shrink:0;text-align:center;font-size:13px }
-  /* "Abas" e configuracao, nao mais um assunto: ocupa a linha inteira no
-     fim, separada das abas de conteudo. */
-  .ig-tabs .ig-tab-gerir{ grid-column:1 / -1;margin-left:0 }
+  /* No celular a linha vira coluna: a grade de abas em cima, o botao "Abas"
+     embaixo ocupando a largura toda. Lado a lado ele espremeria a grade.
+
+     (A regra antiga mirava .ig-tabs .ig-tab-gerir, quando o botao ainda
+     ficava DENTRO da faixa. Ele saiu de la justamente para nao depender da
+     quantidade de abas — de dentro, com abas demais, ficava inalcancavel.) */
+  .ig-tabs-linha{ flex-direction:column;gap:6px }
+  .ig-tab-gerir{ width:100% }
 
   /* ── Toast no topo em mobile ── */
   .toast{
@@ -14782,7 +14794,10 @@ function _igBarraAbas(d){
       + 'title="Criar, renomear, reordenar e desligar abas"><i class="fa-solid fa-sliders"></i> Abas</button>'
     : '';
 
-  return '<div class="tabs ig-tabs">' + botoes + gerir + '</div>';
+  return '<div class="ig-tabs-linha">'
+       +   '<div class="tabs ig-tabs">' + botoes + '</div>'
+       +   gerir
+       + '</div>';
 }
 
 /* ── Conteúdo de uma aba, conforme o tipo ── */
