@@ -6268,7 +6268,13 @@ function _assinMesAtual(){
 
 async function renderAssinaturas(){
   var tb = $('assin-tbody'); if(!tb) return;
-  if(!isSuperAdmin()){ var cd=$('saas-assin-card'); if(cd) cd.style.display='none'; return; }
+  /* Esconder tem de ter volta. Antes so existia o ramo que apagava o
+     cartao; uma renderizacao feita antes de o nivel do usuario ficar
+     conhecido escondia a aba PARA SEMPRE naquela sessao, mesmo depois de o
+     super-admin ser reconhecido e os dados carregarem por tras. */
+  var cd = $('saas-assin-card');
+  if(!isSuperAdmin()){ if(cd) cd.style.display='none'; return; }
+  if(cd) cd.style.display='';
 
   var inpMes = $('assin-mes');
   if(inpMes && !inpMes.value) inpMes.value = _assinMesAtual();
@@ -6420,15 +6426,38 @@ function massinPrevia(){
   var vu = $('massin-vunid').value, vm = $('massin-vmin').value;
   var v  = assinValorMes(vu, un, vm);
   if(!(v > 0)){ el.textContent = 'Sem valor definido — este cliente não entra na geração do mês.'; return; }
-  var conta = (parseFloat(vu)||0) * un;
+  /* A previa usa assinValorMes, a MESMA funcao que gera a cobranca.
+
+     Antes ela refazia a conta em reais aqui (vu * un), que e exatamente o
+     erro de ponto flutuante que aquela funcao existe para evitar. O
+     resultado seria pior do que um centavo errado: a tela prometeria um
+     valor e a cobranca gravaria outro, e a divergencia so apareceria na
+     nota. Conta que vira dinheiro mora num lugar so. */
+  var conta = assinValorMes(vu, un, null);
+  var piso  = parseFloat(vm);
   el.innerHTML = un + ' unidade(s) × ' + fmt(vu||0) + ' = <b>' + fmt(conta) + '</b>'
-    + ((parseFloat(vm)>0 && conta < parseFloat(vm)) ? ' — abaixo do mínimo, cobra <b>'+fmt(vm)+'</b>' : '')
+    + ((piso > 0 && conta < piso) ? ' — abaixo do mínimo, cobra <b>'+fmt(v)+'</b>' : '')
     + '<br><span style="color:var(--text-3)">A quantidade de unidades é lida do cadastro e congela na hora de gerar a cobrança.</span>';
 }
 
 async function assinAbrir(codigo){
   if(!window.SB) return;
   var r = await SB.from('assinaturas').select('*').eq('condominio_id', codigo).maybeSingle();
+
+  /* Leitura que falhou NAO pode virar formulario em branco.
+
+     Sem esta checagem, uma queda de rede fazia r.data vir nulo, a ficha
+     abria com os campos vazios e a situacao em "teste" -- e o Salvar
+     seguinte gravava isso POR CIMA da linha real, apagando razao social,
+     CNPJ e valor de um cliente que estava tudo certo. O usuario nao teria
+     como desconfiar: a tela abriu normalmente.
+
+     Falhar aqui e barato. Perder o cadastro do cliente, nao. */
+  if(r && r.error){
+    toast('⚠️ Não consegui ler a assinatura: ' + (r.error.message || 'erro') +
+          '. Tente de novo — nada foi alterado.');
+    return;
+  }
   var a = (r && r.data) || {};
   var linha = _assinCache.linhas.filter(function(l){ return l.codigo === codigo; })[0] || {};
   $('massin-cond').value     = codigo;

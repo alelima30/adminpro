@@ -15,7 +15,16 @@ function checa(descricao, obtido, esperado) {
   if (igual) { ok++; console.log('  ✓ ' + descricao); }
   else { falhas++; console.log('  ✗ ' + descricao + '\n      esperado: ' + JSON.stringify(esperado) + '\n      obtido:   ' + JSON.stringify(obtido)); }
 }
-function bloco(titulo, fn) { console.log('\n' + titulo); fn(); }
+// Um bloco pode ser assíncrono (quando testa função que espera o banco). Se a
+// promessa não for guardada, o resultado chega DEPOIS da contagem final — o
+// teste até imprime, mas não muda o total nem o código de saída, ou seja, não
+// segura nada no CI. Por isso as promessas ficam aqui e são esperadas no fim.
+const _pendentes = [];
+function bloco(titulo, fn) {
+  console.log('\n' + titulo);
+  const r = fn();
+  if (r && typeof r.then === 'function') _pendentes.push(r);
+}
 
 const { assinValorMes, assinSituacaoCobranca, assinVencimento } =
   carregar(['assinValorMes', 'assinSituacaoCobranca', 'assinVencimento'],
@@ -91,7 +100,49 @@ bloco('Situação do pagamento', () => {
         ['sem', 'pago', 'aberto']);
 });
 
-console.log('\n' + '-'.repeat(50));
-if (falhas) { console.log('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }
-console.log('TODOS OS TESTES PASSARAM (' + ok + ')');
-console.log('-'.repeat(50));
+// ── Leitura que falha não pode virar formulário em branco ─────────────
+// Sem checar o erro, uma queda de rede fazia a ficha abrir vazia e o Salvar
+// seguinte gravava isso POR CIMA da linha real — apagando razão social,
+// CNPJ e valor de um cliente que estava correto, sem nada denunciando.
+bloco('Falha ao ler a assinatura não abre a ficha', () => {
+  let abriu = false, avisado = '';
+  const campos = {};
+  const elemento = (id) => ({
+    set value(v){ campos[id] = v; }, get value(){ return campos[id] || ''; },
+    set textContent(v){ campos[id] = v; },
+    classList: { add(){ abriu = true; } },
+  });
+
+  const stubs = {
+    window: { SB: {} },
+    $: elemento,
+    toast: (m) => { avisado = String(m); },
+    _assinCache: { linhas: [{ codigo: 'APVC', nome: 'Village' }] },
+    massinPrevia: () => {},
+    _reslHojeISO: () => '2026-08-13',
+    _sincronizarTravaRolagem: () => {},
+    SB: { from: () => ({ select: () => ({ eq: () => ({
+      maybeSingle: async () => ({ data: null, error: { message: 'rede caiu' } })
+    }) }) }) },
+  };
+  const { assinAbrir } = carregar(['assinAbrir'], stubs);
+
+  return assinAbrir('APVC').then(() => {
+    checa('a ficha não abre', abriu, false);
+    checa('e a pessoa é avisada', /não consegui ler/i.test(avisado), true);
+    checa('dizendo que nada foi alterado', /nada foi alterado/i.test(avisado), true);
+  });
+});
+
+Promise.all(_pendentes).then(() => {
+  console.log('\n' + '-'.repeat(50));
+  if (falhas) {
+    console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas));
+    process.exit(1);
+  }
+  console.log('TODOS OS TESTES PASSARAM (' + ok + ')');
+  console.log('-'.repeat(50));
+}).catch((e) => {
+  console.error('ERRO AO RODAR OS TESTES: ' + (e && e.stack || e));
+  process.exit(1);
+});
