@@ -59,6 +59,9 @@ function montar(cfg, nivel, reservas) {
   );
 }
 const viola = (api, ...args) => !!api.reservaViolaRegra(...args);
+// Mesma chamada, mas devolvendo a MENSAGEM: quando a regra acusa, o texto é o
+// que a pessoa lê antes de decidir — precisa dizer o que está errado.
+const reservaViolaRegraCom = (api, ...args) => api.reservaViolaRegra(...args);
 
 function dataDaqui(dias) {
   const d = new Date();
@@ -72,7 +75,32 @@ bloco('Antecedência mínima (ex.: salão exige 15 dias)', () => {
   const admin = montar(cfg, 'admin');
   checa('morador não reserva para daqui a 2 dias', viola(morador, 'Salão de Festa', dataDaqui(2), '14:00–15:00', 'A01', ''), true);
   checa('morador reserva para daqui a 20 dias', viola(morador, 'Salão de Festa', dataDaqui(20), '14:00–15:00', 'A01', ''), false);
-  checa('admin não é barrado pela antecedência', viola(admin, 'Salão de Festa', dataDaqui(2), '14:00–15:00', 'A01', ''), false);
+  /* Desde 14/08/2026 a regra vale TAMBÉM para o administrador.
+
+     Antes ele passava direto e nem ficava sabendo que estava furando a
+     antecedência. Agora a regra "acusa" para os dois — a diferença está em
+     quem chama: salvarRes barra o morador e PERGUNTA ao administrador,
+     dizendo qual regra está sendo furada. Ele continua podendo; o que mudou
+     é que a decisão passou a ser consciente. */
+  checa('agora o admin também é avisado', viola(admin, 'Salão de Festa', dataDaqui(2), '14:00–15:00', 'A01', ''), true);
+  checa('e no prazo ninguém é incomodado', viola(admin, 'Salão de Festa', dataDaqui(20), '14:00–15:00', 'A01', ''), false);
+});
+
+bloco('Data que já passou', () => {
+  // Regra que não existia: o sistema só olhava o horário de HOJE, e uma data
+  // de ontem passava batido para todo mundo. O caso real do administrador é
+  // lançar uma reserva que aconteceu e não foi anotada na hora — por isso ela
+  // acusa, e quem salva é que decide.
+  const morador = montar({}, 'morador');
+  const admin = montar({}, 'admin');
+  checa('ontem acusa para o morador', viola(morador, 'Quadra', dataDaqui(-1), '14:00–15:00', 'A01', ''), true);
+  checa('ontem acusa também para o admin', viola(admin, 'Quadra', dataDaqui(-1), '14:00–15:00', 'A01', ''), true);
+  checa('semana passada também', viola(admin, 'Quadra', dataDaqui(-7), '14:00–15:00', 'A01', ''), true);
+  checa('amanhã não acusa', viola(admin, 'Quadra', dataDaqui(1), '14:00–15:00', 'A01', ''), false);
+
+  // A mensagem precisa dizer a data, senão vira "alguma coisa está errada".
+  const msg = reservaViolaRegraCom(admin, 'Quadra', dataDaqui(-1), '14:00–15:00', 'A01', '');
+  checa('a mensagem diz que a data passou', /data j[aá] passou/i.test(String(msg)), true);
 });
 
 bloco('Antecedência máxima', () => {
@@ -1425,7 +1453,66 @@ bloco('Conflito ao gravar módulo em bloco', () => {
 });
 
 Promise.all(_pendentes).then(() => {
-  console.log('\n' + '-'.repeat(50));
+  /* ══════════════════════════════════════════════════════════════════════
+   PAGAMENTO AO SALVAR — a proteção contra apagar o que já foi pago
+
+   Os campos de forma, status e data de pagamento e comprovante saíram do
+   formulário. Sem cuidado, salvar passaria a gravar vazio por cima deles, e
+   editar uma reserva só para corrigir o telefone desfaria um "Marcar pago"
+   feito ontem — sem nada avisando. É o tipo de perda que só aparece na
+   cobrança do mês seguinte.
+   ══════════════════════════════════════════════════════════════════════ */
+bloco('Salvar não desfaz pagamento', () => {
+  const { resPagamentoAoSalvar } = carregar(['resPagamentoAoSalvar']);
+  const pago = { pgto: 'pago', dataPgto: '2026-08-10', formaPgto: 'pix', comprovante: 'E12345' };
+
+  const depois = resPagamentoAoSalvar(pago, 150, true);
+  checa('continua pago', depois.pgto, 'pago');
+  checa('a data do pagamento fica', depois.dataPgto, '2026-08-10');
+  checa('a forma fica', depois.formaPgto, 'pix');
+  checa('o comprovante fica', depois.comprovante, 'E12345');
+
+  // Editar sem mexer em valor nenhum não pode mudar nada do pagamento.
+  checa('editar de novo não muda nada',
+        resPagamentoAoSalvar(depois, 150, true), depois);
+
+  const isenta = resPagamentoAoSalvar({ pgto: 'isento' }, 0, true);
+  checa('isento continua isento', isenta.pgto, 'isento');
+});
+
+bloco('Reserva nova entra com o pagamento certo', () => {
+  const { resPagamentoAoSalvar } = carregar(['resPagamentoAoSalvar']);
+
+  checa('com taxa, entra pendente', resPagamentoAoSalvar(null, 150, true).pgto, 'pendente');
+  checa('sem taxa, entra isenta', resPagamentoAoSalvar(null, 0, true).pgto, 'isento');
+  checa('sem bloco financeiro, isenta', resPagamentoAoSalvar(null, 150, false).pgto, 'isento');
+  checa('nova não inventa comprovante', resPagamentoAoSalvar(null, 150, true).comprovante, '');
+  checa('nem data de pagamento', resPagamentoAoSalvar(null, 150, true).dataPgto, '');
+});
+
+bloco('Reserva que deixou de ter taxa', () => {
+  const { resPagamentoAoSalvar } = carregar(['resPagamentoAoSalvar']);
+
+  // Ninguém vai pagar zero: deixar "pendente" faria a reserva aparecer como
+  // devedora para sempre, e o lembrete cobrar todo dia.
+  checa('pendente com taxa zerada vira isenta',
+        resPagamentoAoSalvar({ pgto: 'pendente' }, 0, true).pgto, 'isento');
+
+  // Mas um pagamento JÁ confirmado nunca é desfeito por esse caminho —
+  // apagaria o registro de dinheiro que entrou de verdade.
+  checa('pago com taxa zerada continua pago',
+        resPagamentoAoSalvar({ pgto: 'pago', dataPgto: '2026-08-10' }, 0, true).pgto, 'pago');
+  checa('e mantém a data',
+        resPagamentoAoSalvar({ pgto: 'pago', dataPgto: '2026-08-10' }, 0, true).dataPgto, '2026-08-10');
+
+  // Taxa em texto (vem de um input) não pode ser lida como "tem taxa".
+  checa('taxa vazia conta como sem taxa',
+        resPagamentoAoSalvar({ pgto: 'pendente' }, '', true).pgto, 'isento');
+  checa('taxa em texto conta certo',
+        resPagamentoAoSalvar({ pgto: 'pendente' }, '150', true).pgto, 'pendente');
+});
+
+console.log('\n' + '-'.repeat(50));
   console.log(falhas === 0 ? `TODOS OS TESTES PASSARAM (${ok})` : `${ok} passaram, ${falhas} FALHARAM`);
   process.exit(falhas === 0 ? 0 : 1);
 });
