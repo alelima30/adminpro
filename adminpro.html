@@ -4947,25 +4947,14 @@ html.ambiente-ensaio body{padding-top:28px}
             <button type="button" id="mres-fin-destravar" class="btn btn-ghost btn-sm" style="margin-top:6px"
               onclick="mresDestravarValores()"><i class="fa-solid fa-pen"></i> Alterar valor manualmente</button>
           </div>
-          <div class="fg"><label>Forma de Pagamento</label>
-            <select id="mres-forma-pgto">
-              <option value="">Selecione...</option>
-              <option value="pix">PIX</option>
-              <option value="dinheiro">Dinheiro</option>
-              <option value="cartao_credito">Cartão de Crédito</option>
-              <option value="cartao_debito">Cartão de Débito</option>
-              <option value="transferencia">Transferência / TED</option>
-            </select>
-          </div>
-          <div class="fg"><label>Status do Pagamento</label>
-            <select id="mres-pgto">
-              <option value="pendente">Pendente</option>
-              <option value="pago">Pago</option>
-              <option value="isento">Isento</option>
-            </select>
-          </div>
-          <div class="fg"><label>Data do Pagamento</label><input type="date" id="mres-data-pgto"></div>
-          <div class="fg"><label>Comprovante</label><input type="text" id="mres-comprovante" placeholder="N° ou referência"></div>
+          <!-- Forma, status e data de pagamento e comprovante saíram daqui em
+               14/08/2026. Eram quatro campos que ninguém preenchia na hora de
+               criar a reserva — o pagamento acontece depois — e que duplicavam
+               o botão "Marcar pago" da própria lista, que é um clique só.
+
+               O que já estiver gravado nesses campos NÃO se perde: salvarRes
+               copia os valores da reserva existente em vez de gravar vazio
+               por cima (ver "Pagamento" mais abaixo). -->
         </div>
         <!-- campos hidden legados (compatibilidade com salvarRes) -->
         <input type="hidden" id="mres-chk-taxa-salao" value="false">
@@ -11062,13 +11051,8 @@ function onEspacoChange(reservaExistente){
       $('mres-fin-aceite-caucao-txt').textContent =
         'Estou ciente e aceito o caução de '+fmtR(caucaoVal)+' como garantia, a ser devolvido após vistoria sem danos.';
 
-    // Restaura pgto/forma se for edição
-    if(reservaExistente){
-      if($('mres-pgto'))       selVal($('mres-pgto'),       reservaExistente.pgto||'pendente');
-      if($('mres-forma-pgto')) selVal($('mres-forma-pgto'), reservaExistente.formaPgto||'');
-      if($('mres-data-pgto'))  $('mres-data-pgto').value  = reservaExistente.dataPgto||'';
-      if($('mres-comprovante'))$('mres-comprovante').value = reservaExistente.comprovante||'';
-    }
+    // Os campos de pagamento saíram do formulário; não há mais o que restaurar
+    // aqui. O que estava gravado continua na reserva e é preservado no salvar.
   }
 
   // Termo de responsabilidade
@@ -11098,11 +11082,9 @@ function onEspacoChange(reservaExistente){
   }
   if($('mres-status')) $('mres-status').closest('.fg').style.display = isAdmin ? '' : 'none';
 
-  // Financeiro: morador NÃO edita valores nem status de pagamento (definido pelo admin)
-  //  - Taxa e Caução: apenas leitura (valor vem da configuração)
-  //  - Forma/Status/Data de pagamento e Comprovante: só admin
-  const soAdminPgto = ['mres-forma-pgto','mres-pgto','mres-data-pgto','mres-comprovante'];
-  soAdminPgto.forEach(function(cid){ var el=$(cid); if(el&&el.closest('.fg')) el.closest('.fg').style.display = isAdmin ? '' : 'none'; });
+  // Financeiro: Taxa e Caução são apenas leitura (o valor vem da configuração).
+  // Os campos de forma/status/data de pagamento e comprovante não existem mais
+  // neste formulário — quem confirma pagamento é o botão "Marcar pago" da lista.
   /* Valores vem da configuracao — inclusive para o admin.
 
      Antes o admin digitava a taxa a mao. O efeito colateral era grave: uma
@@ -11311,8 +11293,17 @@ async function salvarRes(){
   const _viol = reservaViolaRegra(espacoRes, dataRes, hr, ($('mres-lote').value||'').trim(), id?+id:null);
   if(_viol){
     if(_isAdminRes){
-      // Admin pode reservar mesmo assim, mas confirma antes (ex: fim de semana bloqueado)
-      if(!confirm('⚠️ '+_viol+'\n\nVocê é administrador e pode reservar assim mesmo.\nTem certeza que deseja fazer esta reserva?')) return;
+      /* O administrador segue as mesmas regras do morador — mas pode passar
+         por cima delas de propósito, e aí a tela diz exatamente qual regra
+         está sendo furada antes de gravar. É o caso de lançar uma reserva
+         que já aconteceu e não foi anotada na hora.
+
+         Antes, várias dessas regras nem eram avaliadas para ele: passava
+         direto, sem aviso nenhum, e a configuração do espaço virava enfeite
+         para quem mais mexe no sistema. */
+      if(!confirm('⚠️ FORA DA REGRA\n\n' + _viol +
+                  '\n\nVocê é da administração e pode registrar assim mesmo.' +
+                  '\nConfirma que quer gravar esta reserva fora da regra?')) return;
     } else {
       toast('⛔ '+_viol); return;
     }
@@ -11348,22 +11339,31 @@ async function salvarRes(){
     }
   }
 
-  // ── Coleta dados financeiros do bloco unificado ──
-  let taxa=0, caucao=0, pgto='isento', dataPgto='', formaPgto='', comprovante='';
+  /* ── Coleta dados financeiros do bloco unificado ──
+
+     Pagamento: os campos saíram do formulário, então NÃO se lê nada da tela.
+     Editar uma reserva (mudar o horário, corrigir o telefone) não pode
+     desfazer um "Marcar pago" feito ontem — era exatamente o que aconteceria
+     se estes campos virassem string vazia por não existirem mais na tela.
+     Por isso o que vale é o que já está gravado na reserva.
+
+     Reserva nova entra como 'pendente' quando há taxa a pagar, e 'isento'
+     quando não há — que é o mesmo que o formulário fazia por padrão. */
+  var _resAnterior = id ? (all.find(function(x){ return x.id===+id; }) || null) : null;
+  let taxa=0, caucao=0;
   if(finBlocoAtivo){
     taxa      = parseFloat($('mres-taxa-val')?.value)||0;
     caucao    = parseFloat($('mres-caucao-val')?.value)||0;
-    pgto      = $('mres-pgto')       ? $('mres-pgto').value       : 'isento';
-    dataPgto  = $('mres-data-pgto')  ? $('mres-data-pgto').value  : '';
-    formaPgto = $('mres-forma-pgto') ? $('mres-forma-pgto').value  : '';
-    comprovante= $('mres-comprovante')? $('mres-comprovante').value.trim(): '';
   }
+  var _pag = resPagamentoAoSalvar(_resAnterior, taxa, finBlocoAtivo);
+  let pgto = _pag.pgto, dataPgto = _pag.dataPgto,
+      formaPgto = _pag.formaPgto, comprovante = _pag.comprovante;
 
   // Status:
   //  - admin/gestor: usa o valor escolhido no formulário
   //  - morador: se o espaço exigir confirmação do admin -> 'pendente'; senão já entra 'confirmada'
   const nivel2 = window._userNivel||'morador';
-  const _resExistente = id ? all.find(x=>x.id===+id) : null;
+  const _resExistente = _resAnterior;   // mesma reserva, ja procurada acima
   let statusVal;
   if(nivel2==='admin'||nivel2==='gestor'){
     statusVal = $('mres-status')?$('mres-status').value:'pendente';
@@ -13825,6 +13825,32 @@ function reservaRegrasMorador(unidade, idAtual){
 }
 
 // Verifica se uma reserva fere alguma regra (dia, bloqueio, limite). Retorna msg ou null.
+/* O que acontece com o PAGAMENTO quando a reserva e salva.
+
+   Os campos de forma, status e data de pagamento e comprovante sairam do
+   formulario em 14/08/2026. Sem esta funcao, salvar passaria a gravar string
+   vazia por cima deles -- e editar uma reserva so para corrigir o telefone
+   desfaria um "Marcar pago" feito ontem, sem nada avisando. Perda de dado
+   silenciosa, do tipo que so aparece na cobranca do mes seguinte.
+
+   Entao: reserva que ja existe MANTEM o que estava gravado. Reserva nova
+   entra pendente quando ha taxa e isenta quando nao ha.
+
+   A unica correcao automatica: reserva que deixou de ter taxa nao pode ficar
+   "pendente" para sempre, porque ninguem vai pagar zero -- vira isenta. Um
+   pagamento ja confirmado nunca e desfeito aqui. */
+function resPagamentoAoSalvar(resAnterior, taxa, finBlocoAtivo){
+  var temTaxa = !!finBlocoAtivo && (parseFloat(taxa)||0) > 0;
+  var out = {
+    pgto:        resAnterior ? (resAnterior.pgto || 'pendente') : (temTaxa ? 'pendente' : 'isento'),
+    dataPgto:    resAnterior ? (resAnterior.dataPgto    || '') : '',
+    formaPgto:   resAnterior ? (resAnterior.formaPgto   || '') : '',
+    comprovante: resAnterior ? (resAnterior.comprovante || '') : ''
+  };
+  if(!temTaxa && out.pgto === 'pendente') out.pgto = 'isento';
+  return out;
+}
+
 function reservaViolaRegra(espaco, data, horario, lote, idAtual){
   var cfg=getCfgRes(); var chv=_chvEsp(espaco);
   // 1) dia da semana
@@ -13834,9 +13860,14 @@ function reservaViolaRegra(espaco, data, horario, lote, idAtual){
     if(dias.indexOf(dw)<0) return espaco+' não aceita reservas em '+_DIAS_SEM[dw].toLowerCase()+'.';
   }
   // 1b) antecedência máxima (morador só reserva até N dias à frente; admin/gestor livre)
+  /* As regras abaixo valiam so para o morador: admin e gestor passavam direto,
+     sem nem saber que estavam furando alguma. Agora elas sao avaliadas para
+     TODO MUNDO, e quem decide o que fazer com a violacao e quem chama esta
+     funcao -- salvarRes barra o morador e PERGUNTA ao administrador, dizendo
+     qual regra esta sendo furada. Continua podendo, mas de olho aberto. */
   var antec=parseInt(cfg['disp_'+chv+'_antec'],10);
   var _nivelR = window._userNivel||'morador';
-  if(antec>0 && _nivelR!=='admin' && _nivelR!=='gestor' && data){
+  if(antec>0 && data){
     var hojeD=new Date(); hojeD.setHours(0,0,0,0);
     var lim=new Date(hojeD); lim.setDate(lim.getDate()+antec);
     var dRes=new Date(data+'T00:00');
@@ -13844,11 +13875,25 @@ function reservaViolaRegra(espaco, data, horario, lote, idAtual){
   }
   // 1c) antecedência mínima (ex: salão precisa de preparo — só reserva N+ dias à frente)
   var antmin=parseInt(cfg['disp_'+chv+'_antmin'],10);
-  if(antmin>0 && _nivelR!=='admin' && _nivelR!=='gestor' && data){
+  if(antmin>0 && data){
     var hoje2=new Date(); hoje2.setHours(0,0,0,0);
     var minD=new Date(hoje2); minD.setDate(minD.getDate()+antmin);
     if(new Date(data+'T00:00') < minD)
       return espaco+' exige reserva com pelo menos '+antmin+' dia(s) de antecedência (a partir de '+minD.toLocaleDateString('pt-BR')+').';
+  }
+  /* 1c-ante) A DATA JA PASSOU.
+
+     Esta regra nao existia. O sistema so olhava o horario de HOJE; ontem
+     passava batido, para morador e para admin. Agora ela existe e vale para
+     os dois -- com a diferenca de que o administrador recebe a pergunta e
+     pode registrar assim mesmo, que e o caso real de lancar uma reserva que
+     aconteceu e nao foi anotada na hora. */
+  if(data){
+    var _hoje0=new Date(); _hoje0.setHours(0,0,0,0);
+    var _hojeISO0=_hoje0.getFullYear()+'-'+String(_hoje0.getMonth()+1).padStart(2,'0')+'-'+String(_hoje0.getDate()).padStart(2,'0');
+    if(data < _hojeISO0){
+      return 'Esta data ja passou ('+new Date(data+'T00:00').toLocaleDateString('pt-BR')+').';
+    }
   }
   // 1c-bis) horario ja encerrado: ninguem reserva um horario que ja passou hoje.
   if(data){
@@ -13861,7 +13906,7 @@ function reservaViolaRegra(espaco, data, horario, lote, idAtual){
   }
   // 1d) horários permitidos (morador só usa os horários configurados)
   var rawSlots=(cfg['disp_'+chv+'_slots']||'').trim();
-  if(rawSlots && _nivelR!=='admin' && _nivelR!=='gestor' && horario){
+  if(rawSlots && horario){
     var okSlots=rawSlots.split(',').map(function(x){return x.trim().replace(/-/g,'–');});
     var hNorm=String(horario).trim().replace(/-/g,'–');
     if(okSlots.indexOf(hNorm)<0)
