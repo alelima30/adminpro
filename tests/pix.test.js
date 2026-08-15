@@ -133,6 +133,52 @@ bloco('Botão de comprovante no WhatsApp', () => {
   checa('sem reserva nenhuma ainda gera link', link('11999999999', null).indexOf('https://wa.me/') === 0, true);
 });
 
+// ── Caução: um segundo pagamento, não uma soma ────────────────────────
+// A taxa é do condomínio e fica. O caução é garantia: volta para o morador
+// depois da vistoria. Somar os dois num Pix só pouparia um clique e cobraria
+// caro depois — na hora de devolver, ninguém saberia quanto do que entrou era
+// caução, e a conferência viraria arqueologia no extrato.
+bloco('Taxa e caução são pagamentos separados', () => {
+  const taxa   = pixCopiaECola(CHAVE, 'ASSOC VILLAGE', 'ITU', 150, 'RES7');
+  const caucao = pixCopiaECola(CHAVE, 'ASSOC VILLAGE', 'ITU', 300, 'CAU7');
+
+  checa('a taxa leva RES no extrato', taxa.includes('RES7'), true);
+  checa('o caução leva CAU', caucao.includes('CAU7'), true);
+  checa('e um não leva o prefixo do outro', caucao.includes('RES7'), false);
+
+  checa('cada um com o seu valor', taxa.includes('5406150.00'), true);
+  checa('o caução com o dele', caucao.includes('5406300.00'), true);
+
+  // Se os dois códigos fossem iguais, o banco veria um pagamento só e a
+  // separação existiria apenas na tela — que é o mesmo que não existir.
+  checa('são códigos diferentes', taxa === caucao, false);
+  checa('os dois fecham o CRC',
+        [_pixCRC(taxa.slice(0, -4)), _pixCRC(caucao.slice(0, -4))],
+        [taxa.slice(-4), caucao.slice(-4)]);
+
+  // A soma NÃO pode aparecer em lugar nenhum: 450 seria o valor de um Pix
+  // único, que é justamente o que se decidiu não fazer.
+  checa('ninguém manda a soma', taxa.includes('450.00') || caucao.includes('450.00'), false);
+});
+
+bloco('O comprovante diz o que foi pago', () => {
+  const { _pixWhatsLink } = carregar(['_pixWhatsLink', '_igWhatsLink', '_igDigitos']);
+  const r = { espaco: 'Salão de Festas', data: '2026-09-05' };
+  const texto = (tipo, v) => decodeURIComponent(_pixWhatsLink('11999999999', r, v, tipo).split('text=')[1] || '');
+
+  // Taxa e caução chegam pelo MESMO WhatsApp. Sem essa palavra, a
+  // administração não sabe se o comprovante quita a taxa ou se é a garantia
+  // que um dia vai ter de ser devolvida.
+  checa('a taxa se identifica', /comprovante do Pix da taxa/i.test(texto('taxa', 150)), true);
+  checa('o caução se identifica', /comprovante do Pix do cauç?ão/i.test(texto('caucao', 300)), true);
+  checa('e não se confundem', /da taxa/i.test(texto('caucao', 300)), false);
+  checa('o valor acompanha o tipo', /R\$.?300,00/.test(texto('caucao', 300)), true);
+
+  // Sem tipo informado, o padrão continua sendo a taxa — é o caminho antigo,
+  // e ele não pode passar a dizer "caução" de repente.
+  checa('sem tipo, é a taxa', /da taxa/i.test(texto(undefined, 150)), true);
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }
 console.log('TODOS OS TESTES PASSARAM (' + ok + ')');
