@@ -117,20 +117,44 @@ function pixCopiaECola(chave, nome, cidade, valor, txid){
    colado, e ele nao depende de biblioteca externa para existir. A imagem
    dependia, e era mais uma coisa que podia nao carregar bem na hora em que o
    morador precisava pagar. */
-function abrirPixReserva(id){
+/* Taxa e caucao sao DOIS pagamentos, nao um.
+
+   A taxa e do condominio e fica. O caucao e garantia: volta para o morador
+   depois da vistoria. Somar os dois num Pix so pouparia um clique e cobraria
+   caro depois -- na hora de devolver, ninguem saberia quanto do que entrou
+   era caucao, e a conferencia viraria arqueologia no extrato.
+
+   Separados, cada um leva seu proprio identificador: RES<id> para a taxa,
+   CAU<id> para o caucao. */
+var _PIX_TIPOS = {
+  taxa:   { rotulo:'Taxa da reserva',   prefixo:'RES', nota:'' },
+  caucao: { rotulo:'Caução (garantia)', prefixo:'CAU',
+            nota:'O caução é uma garantia: volta para você depois da vistoria, se não houver danos.' }
+};
+
+function abrirPixReserva(id, tipo){
+  var t = _PIX_TIPOS[tipo] ? tipo : 'taxa';
+  var info = _PIX_TIPOS[t];
   var r=(G('reservas')||[]).find(function(x){return x.id===id;});
   if(!r) return;
   var cfg=getCfgRes();
   if(!cfg.pix_chave){ toast('Chave Pix do condomínio não configurada.'); return; }
 
-  var valor=parseFloat(r.taxa)||0;
+  var valor=parseFloat(t==='caucao' ? r.caucao : r.taxa)||0;
+  // Caucao "a combinar" nao existe: se nao ha valor, nao ha o que garantir.
+  if(t==='caucao' && valor<=0){ toast('\u26a0\ufe0f Esta reserva n\u00e3o tem cau\u00e7\u00e3o.'); return; }
+
   var codigo=pixCopiaECola(cfg.pix_chave, cfg.pix_nome||nomeCondominioAtual(),
-                           cfg.pix_cidade||'BRASIL', valor, 'RES'+r.id);
+                           cfg.pix_cidade||'BRASIL', valor, info.prefixo+r.id);
   var ov=$('pix-ov'); if(!ov) return;
+  var _tit=$('pix-titulo');
+  if(_tit) _tit.textContent = (t==='caucao') ? 'Pagar o caução com Pix' : 'Pagar com Pix';
   $('pix-valor').textContent = valor>0
     ? valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
     : 'Valor a combinar';
-  $('pix-info').textContent = r.espaco+' \u2022 '+(r.data?new Date(r.data+'T00:00').toLocaleDateString('pt-BR'):'');
+  $('pix-info').textContent = info.rotulo+' \u2022 '+r.espaco+' \u2022 '+(r.data?new Date(r.data+'T00:00').toLocaleDateString('pt-BR'):'');
+  var _nota=$('pix-nota');
+  if(_nota){ _nota.textContent = info.nota; _nota.style.display = info.nota ? '' : 'none'; }
   $('pix-codigo').value = codigo;
 
   /* Passo 2 — enviar o comprovante.
@@ -142,7 +166,7 @@ function abrirPixReserva(id){
      Sem WhatsApp configurado o bloco inteiro some, em vez de mostrar um
      botao que nao leva a lugar nenhum. */
   var p2 = $('pix-passo2'), aWa = $('pix-whats');
-  var linkWa = _pixWhatsLink(cfg.pix_whats, r, valor);
+  var linkWa = _pixWhatsLink(cfg.pix_whats, r, valor, t);
   if(p2 && aWa && linkWa){
     aWa.href = linkWa;
     p2.style.display = '';
@@ -158,14 +182,19 @@ function abrirPixReserva(id){
    Reaproveita a validacao de numero de Informacoes Gerais: numero curto
    (ramal, 190) ou sem DDD nao vira link, e ai o botao nem aparece -- melhor
    do que abrir uma aba em branco na mao de quem esta tentando pagar. */
-function _pixWhatsLink(numero, r, valor){
+function _pixWhatsLink(numero, r, valor, tipo){
   var base = (typeof _igWhatsLink === 'function') ? _igWhatsLink(numero) : '';
   if(!base) return '';
   var data = r && r.data ? new Date(r.data+'T00:00').toLocaleDateString('pt-BR') : '';
   var vTxt = valor > 0
     ? valor.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
     : 'valor a combinar';
-  var msg = 'Olá! Segue o comprovante do Pix da reserva'
+  /* Dizer O QUE foi pago e tao importante quanto dizer qual reserva: taxa e
+     caucao chegam pelo mesmo WhatsApp, e sem essa palavra a administracao
+     nao sabe se aquele comprovante quita a taxa ou se e a garantia que um dia
+     vai ter de devolver. */
+  var oQue = (tipo === 'caucao') ? 'do caução' : 'da taxa';
+  var msg = 'Olá! Segue o comprovante do Pix ' + oQue + ' da reserva'
           + (r && r.espaco ? ' de ' + r.espaco : '')
           + (data ? ' em ' + data : '')
           + ' (' + vTxt + ').';
@@ -4511,6 +4540,16 @@ html.ambiente-ensaio body{padding-top:28px}
               </div>
             </div>
           </div>
+          <!-- Cobrar o caução por Pix é opcional, e por isso é um interruptor:
+               tem condomínio que recebe o caução em dinheiro, em cheque, ou
+               nem cobra. Desligado, o botão do caução simplesmente não existe
+               na tela do morador — a taxa continua normal. -->
+          <label style="display:flex;align-items:flex-start;gap:10px;margin-top:14px;cursor:pointer;font-size:13px;color:var(--text-2)">
+            <input type="checkbox" id="cfg-pix-caucao" style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">
+            <span>Oferecer <b>Pix também para o caução</b>. Vira um botão separado do da taxa, com valor
+              e identificação próprios (<code>CAU</code> no extrato, contra <code>RES</code> da taxa), porque
+              o caução é devolvido depois e misturar os dois atrapalha a devolução.</span>
+          </label>
           <div style="font-size:12px;color:var(--text-3);margin-top:8px">
             Deixe a chave em branco para desativar o Pix nas reservas.
           </div>
@@ -9777,7 +9816,10 @@ function renderReservas(){
     concluida:{pill:'pill-teal',label:'Concluída'},
   };
   const pgtoMap={pago:'Pago',pendente:'Pendente',isento:'Isento'};
-  const _pixChave = (getCfgRes().pix_chave||'');   // lido uma vez, fora do laco
+  const _cfgPix = getCfgRes();
+  const _pixChave = (_cfgPix.pix_chave||'');   // lido uma vez, fora do laco
+  // Pix do caucao so aparece se a administracao ligou (Configuracoes -> Cobranca).
+  const _pixCaucaoOn = !!_cfgPix.pix_caucao;
 
   its.forEach(r=>{
     const div=document.createElement('div');
@@ -9831,7 +9873,11 @@ function renderReservas(){
           ${(!isMorador && r.status==='pendente')?`
           <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="aprovarReserva(${r.id})"><i class="fa-solid fa-check"></i> Aprovar</button>
           <button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="recusarReserva(${r.id})"><i class="fa-solid fa-xmark"></i> Recusar</button>`:''}
-          ${(r.taxa>0 && r.pgto!=='pago' && r.pgto!=='isento' && _pixChave)?`<button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="abrirPixReserva(${r.id})"><i class="fa-solid fa-sack-dollar"></i> Pagar com Pix</button>`:''}
+          ${(r.taxa>0 && r.pgto!=='pago' && r.pgto!=='isento' && _pixChave)?`<button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="abrirPixReserva(${r.id},'taxa')"><i class="fa-solid fa-sack-dollar"></i> Pagar com Pix</button>`:''}
+          ${/* Caucao: botao proprio, valor proprio, identificacao propria no
+                extrato. Some quando o caucao ja foi devolvido -- cobrar de
+                novo o que ja voltou seria o pior erro possivel aqui. */''}
+          ${(_pixCaucaoOn && r.caucao>0 && !r.chkCaucaoDev && _pixChave)?`<button class="btn btn-sm" style="background:transparent;color:var(--gold);border:1px solid var(--gold)" onclick="abrirPixReserva(${r.id},'caucao')" title="Pagar o cauc\u0327a\u0303o (garantia, devolvida ap\u00f3s a vistoria)"><i class="fa-solid fa-shield-halved"></i> Caução com Pix</button>`:''}
           ${(!isMorador && r.taxa>0 && r.pgto==='pendente')?`
           <button class="btn btn-sm" style="background:var(--green-d,#1f7a4d);color:#fff;border:none" onclick="marcarPagoReserva(${r.id},true)"><i class="fa-solid fa-circle-check"></i> Marcar pago</button>`:''}
           ${(!isMorador && r.taxa>0 && r.pgto==='pago')?`
@@ -11484,7 +11530,8 @@ async function salvarRes(){
       // reservar é quem está mais disposto a pagar. Depois disso o morador
       // teria de achar o botão no card — e quem não achasse não pagava.
       const _idPix = obj.id;
-      const _depois = _faltaPagar ? function(){ abrirPixReserva(_idPix); } : null;
+      // Explicito: aqui e sempre a TAXA. O caucao tem botao proprio no card.
+      const _depois = _faltaPagar ? function(){ abrirPixReserva(_idPix, 'taxa'); } : null;
       if(typeof mostrarAvisoReserva==='function'){
         mostrarAvisoReserva(_msg, _depois, _faltaPagar ? 'Pagar com Pix' : 'Entendi');
       } else {
@@ -13260,6 +13307,7 @@ function renderCfgReservas(){
   if($('cfg-pix-nome'))   $('cfg-pix-nome').value   = cfgRes.pix_nome   || '';
   if($('cfg-pix-cidade')) $('cfg-pix-cidade').value = cfgRes.pix_cidade || '';
   if($('cfg-pix-whats'))  $('cfg-pix-whats').value  = cfgRes.pix_whats  || '';
+  if($('cfg-pix-caucao')) $('cfg-pix-caucao').checked = !!cfgRes.pix_caucao;
   renderAlertDestinos();
   if($('cfg-bloq-inad'))         $('cfg-bloq-inad').checked         = !!cfgRes.bloquear_inadimplente;
   if($('cfg-max-reservas'))      $('cfg-max-reservas').value        = cfgRes.max_reservas_morador||'';
@@ -14087,6 +14135,7 @@ function salvarCfgReservas(){
   if($('cfg-pix-nome'))   cfgRes.pix_nome   = $('cfg-pix-nome').value.trim();
   if($('cfg-pix-cidade')) cfgRes.pix_cidade = $('cfg-pix-cidade').value.trim();
   if($('cfg-pix-whats'))  cfgRes.pix_whats  = $('cfg-pix-whats').value.trim();
+  if($('cfg-pix-caucao')) cfgRes.pix_caucao = $('cfg-pix-caucao').checked;
   cfgRes.alert_destinos = Array.isArray(cfgRes.alert_destinos) ? cfgRes.alert_destinos : (window._alertDestinos||[]);
   if($('cfg-bloq-inad'))         cfgRes.bloquear_inadimplente = $('cfg-bloq-inad').checked;
   if($('cfg-max-reservas'))      cfgRes.max_reservas_morador = parseInt($('cfg-max-reservas').value,10)||0;
@@ -17585,9 +17634,13 @@ async function excluirUsuario(docId){
 <!-- Modal Pix da reserva -->
 <div id="pix-ov" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;padding:16px">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:380px;width:100%;padding:22px;text-align:center;box-sizing:border-box">
-    <div style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">Pagar com Pix</div>
+    <div id="pix-titulo" style="font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px">Pagar com Pix</div>
     <div id="pix-info" style="font-size:12.5px;color:var(--text-3);margin-bottom:10px"></div>
     <div id="pix-valor" style="font-size:24px;font-weight:700;color:var(--green-l);margin-bottom:14px"></div>
+    <!-- Só aparece no caução: quem paga precisa saber que aquele dinheiro
+         volta, senão a garantia parece uma segunda taxa. -->
+    <div id="pix-nota" style="display:none;font-size:12px;color:var(--gold);background:rgba(201,160,48,.09);
+         border:1px solid rgba(201,160,48,.22);border-radius:8px;padding:9px 12px;margin-bottom:14px;line-height:1.5"></div>
     <!-- Sem imagem de QR Code, por decisão: o "copia e cola" abaixo é o
          caminho único, e ele é gerado aqui dentro, sem depender de nada
          externo para aparecer. -->
