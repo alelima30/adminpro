@@ -62,9 +62,9 @@ O banco tem **9 tabelas**. Mas só **4 delas** guardam módulo de verdade:
 `unidades`, `condominos`, `reservas` e `localizacoes`.
 
 Todo o resto do sistema — financeiro, manutenção, comunicados, preventivas,
-regulamentos, fotos, informativos, procedimentos, configurações — vive em
-**uma única tabela chamada `modulo_dados`**, como um bloco JSON por condomínio
-e por módulo.
+regulamentos, fotos, informativos, procedimentos, configurações e a Central de
+Acompanhamento — vive em **uma única tabela chamada `modulo_dados`**, como um
+bloco JSON por condomínio e por módulo.
 
 ```
 modulo_dados
@@ -83,7 +83,11 @@ mas o formato continua sendo o de um documento inteiro, não o de registros
 independentes.
 
 `modulo_dados` não é erro — foi o jeito de migrar do Firebase sem parar o
-sistema. É dívida consciente. O ponto é lembrar que ela existe, porque de fora
+sistema. É dívida consciente. A Central de Acompanhamento (28/08/2026) entrou
+ali de propósito: a camada de bloco já tem trava contra dois administradores
+gravando por cima um do outro, e o módulo funciona sem ninguém precisar rodar
+SQL no painel. O gatilho para migrar para tabela própria é volume — algumas
+centenas de assuntos, ou várias pessoas escrevendo ao mesmo tempo. O ponto é lembrar que ela existe, porque de fora
 tudo parece igualmente pronto.
 
 **Sinal disso no banco:** existe uma tabela `classificacoes`, criada, com regra

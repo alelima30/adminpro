@@ -54,6 +54,9 @@ jobs:
       - name: Pix (o copia e cola que o morador usa para pagar)
         run: node tests/pix.test.js
 
+      - name: Central de Acompanhamento (cards, filtros e historico)
+        run: node tests/acompanhamento.test.js
+
   # ────────────────────────────────────────────────────────────────
   # 2) DEPLOY das Edge Functions do Supabase
   #    So roda na branch main e so se os testes passarem.
