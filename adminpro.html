@@ -3154,7 +3154,7 @@ html.ambiente-ensaio body{padding-top:28px}
           </div>
           <div class="ph-actions" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <span id="acomp-ultima" style="font-size:12px;color:var(--text-3)"></span>
-            <button class="btn btn-ghost" onclick="renderAcompanhamento()" title="Recarregar"><i class="fa-solid fa-rotate-right"></i></button>
+            <button class="btn btn-ghost" onclick="acompAtualizar()" title="Recarregar"><i class="fa-solid fa-rotate-right"></i></button>
             <button class="btn btn-gold" id="acomp-btn-novo" onclick="acompNovo()"><i class="fa-solid fa-plus"></i> Novo assunto</button>
           </div>
         </div>
@@ -8716,7 +8716,7 @@ function showPanel(id,el){
   // de um modal da tela anterior.
   try{ _sincronizarTravaRolagem(); }catch(_){}
   try{ _ocultarAbasBloqueadas(); }catch(_){}
-  ({acompanhamento:renderAcompanhamento,dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{aplicarFiltroInicialRes();renderReservas();verificarAlertas();resLembreteChecar();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:()=>{ renderSaas(); try{ renderAssinaturas(); }catch(_){} },inicio:renderInicio})[id]?.();
+  ({acompanhamento:acompEntrar,dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{aplicarFiltroInicialRes();renderReservas();verificarAlertas();resLembreteChecar();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:()=>{ renderSaas(); try{ renderAssinaturas(); }catch(_){} },inicio:renderInicio})[id]?.();
 }
 
 /* Esconde as abas que levam a uma tela bloqueada.
@@ -14137,8 +14137,18 @@ function acompStatusInfo(id){
 
 /* ── Onde os dados ficam ─────────────────────────────────────────────── */
 
+/* Devolve uma CÓPIA, nunca o objeto vivo do cache -- mesmo padrão de
+   _igDados().
+
+   Sem a cópia, cada alteração (registrar histórico, mudar situação, anexar)
+   mexia direto no cache ANTES de o S() decidir se podia gravar. E o S()
+   recusa quando a leitura do banco falhou nesta sessão: a tela mostraria a
+   alteração como salva, e ela sumiria no carregamento seguinte, sem erro e
+   sem aviso. Com a cópia, o que não foi gravado não fica na tela mentindo. */
 function _acompDados(){
   var d = G('acompanhamento');
+  try{ d = d ? JSON.parse(JSON.stringify(d)) : null; }
+  catch(_){ d = null; }
   if(!d || typeof d!=='object' || Array.isArray(d)) return { itens:[] };
   if(!Array.isArray(d.itens)) d.itens = [];
   return d;
@@ -14527,7 +14537,11 @@ function acompSalvarForm(id){
 
   var a, criando=false;
   if(id){
-    a=_acompItem(id);
+    /* O assunto tem de ser procurado DENTRO de 'd'. _acompItem() faz a sua
+       própria leitura, e como _acompDados() devolve cópia, seria outro
+       objeto: as alterações iriam para um lugar que ninguém grava, e o
+       Salvar terminaria com "salvo!" sem ter salvado nada. */
+    d.itens.forEach(function(x){ if(String(x.id)===String(id)) a=x; });
     if(!a){ toast('⛔ Assunto não encontrado.'); return; }
   } else {
     criando=true;
@@ -14578,6 +14592,28 @@ function acompExcluir(id){
 }
 
 /* ── Detalhes ────────────────────────────────────────────────────────── */
+
+/* Entrar no painel pelo menu SEMPRE mostra a lista.
+
+   Sem isto, quem abrisse a ficha de um assunto, fosse para outra tela e
+   voltasse, caía de novo na MESMA ficha -- desenhada antes, sem refletir o
+   que mudou nesse meio-tempo. Parecia que o painel tinha travado num
+   assunto. A lista e o ponto de partida; a ficha e um lugar aonde se vai. */
+function acompEntrar(){
+  _acompAberto='';
+  if($('acomp-view-detalhe')) $('acomp-view-detalhe').style.display='none';
+  if($('acomp-view-lista'))   $('acomp-view-lista').style.display='';
+  renderAcompanhamento();
+}
+
+/* O botao de recarregar redesenha o que ESTA na tela: estando na ficha,
+   redesenha a ficha; estando na lista, a lista. Recarregar nao deveria ser
+   um jeito indireto de perder o lugar onde a pessoa estava. */
+function acompAtualizar(){
+  var det=$('acomp-view-detalhe');
+  if(_acompAberto && det && det.style.display!=='none') acompAbrir(_acompAberto);
+  else acompEntrar();
+}
 
 function acompVoltar(){
   _acompAberto='';

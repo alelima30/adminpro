@@ -16,7 +16,7 @@ const { carregar } = require('./extrair');
 // delas interessa aqui — o que se testa e a DECISAO de trocar ou nao de tela —
 // entao todas entram como no-op.
 const RENDERS = {};
-['renderAcompanhamento','renderDashboard','renderLotes','renderUnidades','renderLocalizacoes','renderClassificacoes',
+['acompEntrar','renderAcompanhamento','renderDashboard','renderLotes','renderUnidades','renderLocalizacoes','renderClassificacoes',
  'renderCondominos','renderFTabela','renderFin','renderManut','renderComun','renderEventos',
  'renderPreventivas','aplicarFiltroInicialRes','renderReservas','verificarAlertas',
  'resLembreteChecar','renderEncomendas','renderRelatorios','renderEspacos','renderReg',
