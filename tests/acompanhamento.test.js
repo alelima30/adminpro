@@ -255,6 +255,58 @@ bloco('Quem faz o quê', () => {
   checa('super-admin passa por cima', [su.acompPodeEditar(), su.acompPodeDecidir()], [true, true]);
 });
 
+// ── O cache não pode ser alterado antes de gravar ─────────────────────
+// _acompDados() devolve uma CÓPIA. Sem isso, cada edição mexia direto no
+// cache antes de o S() decidir se podia gravar — e o S() recusa quando a
+// leitura do banco falhou nesta sessão. A tela mostraria a alteração como
+// salva, e ela sumiria no carregamento seguinte, sem erro e sem aviso.
+bloco('Editar não mexe no cache antes de salvar', () => {
+  const cache = { itens: [assunto({ id: 'X1', titulo: 'Título original', status: 'PENDENTE' })] };
+  let gravado = null;
+
+  const campos = {
+    'acf-titulo': 'Título NOVO', 'acf-cat': 'Segurança', 'acf-status': 'EM_ANDAMENTO',
+    'acf-resp': 'Empresa X', 'acf-prio': 'ALTA', 'acf-inicio': '2026-08-01',
+    'acf-previsao': '', 'acf-desc': 'desc', 'acf-proxima': 'prox', 'acf-obs': '',
+  };
+  const forms = carregar(
+    ['acompSalvarForm', '_acompDados', '_acompSalvar', '_acompItem', '_acompAgora',
+     '_acompQuem', 'acompRegistrar', 'acompStatusInfo'],
+    {
+      G: () => cache,
+      S: (k, v) => { gravado = v; },
+      $: (id) => (campos[id] !== undefined ? { value: campos[id], focus() {} } : null),
+      toast: () => {},
+      acompPodeEditar: () => true,
+      acompFecharModal: () => {},
+      renderAcompanhamento: () => {},
+      acompAbrir: () => {},
+      _acompAberto: '',
+      ACOMP_STATUS: [
+        { id: 'PENDENTE', label: 'Pendente' },
+        { id: 'EM_ANDAMENTO', label: 'Em andamento' },
+      ],
+      window: { _userNivel: 'admin' },
+      localStorage: { getItem: () => '{"nome":"Alessandro"}' },
+    });
+
+  forms.acompSalvarForm('X1');
+
+  // O que importa: o cache NÃO mudou, e o que foi entregue ao S() mudou.
+  checa('o cache continua com o título antigo', cache.itens[0].titulo, 'Título original');
+  checa('e com a situação antiga', cache.itens[0].status, 'PENDENTE');
+  checa('mas o S() recebeu a alteração', gravado && gravado.itens[0].titulo, 'Título NOVO');
+  checa('com a situação nova', gravado && gravado.itens[0].status, 'EM_ANDAMENTO');
+
+  // A edição precisa chegar no objeto CERTO. Se ela fosse aplicada a uma
+  // cópia solta, o S() receberia o registro sem mudança nenhuma — e a tela
+  // diria "salvo" sem ter salvado.
+  checa('não gravou um registro intacto por engano',
+        gravado && gravado.itens[0].titulo === cache.itens[0].titulo, false);
+  checa('e o histórico ganhou a linha da mudança',
+        gravado && gravado.itens[0].historico.length > 0, true);
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }
 console.log('TODOS OS TESTES PASSARAM (' + ok + ')');
