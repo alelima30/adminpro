@@ -1010,6 +1010,76 @@ html.light .sb-flyout{background:#1A2847}
 .btn-sm{padding:6px 11px;font-size:11px}
 
 /* ══ KPI GRID ══ */
+/* ══════════ CENTRAL DE ACOMPANHAMENTO ══════════
+   Quase tudo reaproveita .card, .kpi, .btn e .fg que ja existem. O que e
+   proprio daqui: as cores das cinco situacoes e a tabela que vira cartao no
+   celular -- seis colunas em 390px nao se leem. */
+.acomp-filtros{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.acomp-filtros-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto;align-items:flex-end}
+@media(max-width:720px){
+  .acomp-filtros-acoes{margin-left:0;width:100%}
+  .acomp-filtros-acoes .btn{flex:1}
+}
+
+/* Situacoes. Uma cor por situacao, e a MESMA em todo lugar: card, etiqueta da
+   lista e cabecalho do detalhe. Cor que muda de tela em tela obriga a
+   reaprender o significado a cada vez. */
+.acomp-st{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;
+  padding:3px 10px;border-radius:20px;white-space:nowrap;border:1px solid transparent;line-height:1.6}
+.acomp-st-diretoria{background:rgba(224,82,82,.12);color:#e05252;border-color:rgba(224,82,82,.3)}
+.acomp-st-pendente {background:rgba(232,119,34,.12);color:#e87722;border-color:rgba(232,119,34,.3)}
+.acomp-st-andamento{background:rgba(201,160,48,.14);color:var(--gold);border-color:rgba(201,160,48,.32)}
+.acomp-st-terceiros{background:rgba(46,125,209,.12);color:#3d8fdd;border-color:rgba(46,125,209,.3)}
+.acomp-st-concluido{background:rgba(42,157,111,.13);color:#2ea36f;border-color:rgba(42,157,111,.3)}
+
+/* Prioridade so aparece quando e alta ou urgente: marcar "baixa" com cor
+   gasta atencao no que nao precisa dela. */
+.acomp-prio{font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  padding:2px 7px;border-radius:5px;white-space:nowrap}
+.acomp-prio-alta{background:rgba(232,119,34,.15);color:#e87722}
+.acomp-prio-urgente{background:rgba(224,82,82,.16);color:#e05252}
+
+.kpi.acomp-card{cursor:pointer}
+.kpi.acomp-card.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+
+.acomp-tabela{width:100%;border-collapse:collapse}
+.acomp-tabela th{text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--text-3);padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+.acomp-tabela td{padding:12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text-2);vertical-align:middle}
+.acomp-tabela tr:last-child td{border-bottom:none}
+.acomp-tabela .acomp-assunto{color:var(--text);font-weight:600}
+.acomp-rotulo{display:none}
+
+/* No celular cada linha vira um bloco, e o cabecalho da coluna vira rotulo
+   dentro da propria linha. */
+@media(max-width:820px){
+  .acomp-tabela thead{display:none}
+  .acomp-tabela,.acomp-tabela tbody,.acomp-tabela tr,.acomp-tabela td{display:block;width:100%}
+  .acomp-tabela tr{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--ink-2)}
+  .acomp-tabela td{border:none;padding:4px 0;display:flex;gap:10px;align-items:center;justify-content:space-between}
+  .acomp-tabela td:last-child{padding-top:10px}
+  .acomp-rotulo{display:inline;font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0}
+  .acomp-tabela .acomp-assunto{font-size:14px}
+  .acomp-tabela td .btn{width:100%}
+}
+
+.acomp-hist{position:relative;padding-left:22px;margin-top:4px}
+.acomp-hist::before{content:'';position:absolute;left:6px;top:4px;bottom:4px;width:2px;background:var(--border)}
+.acomp-hist-item{position:relative;padding:0 0 16px 4px}
+.acomp-hist-item::before{content:'';position:absolute;left:-21px;top:5px;width:10px;height:10px;border-radius:50%;
+  background:var(--gold);border:2px solid var(--card)}
+.acomp-hist-quando{font-size:11.5px;color:var(--text-3);margin-bottom:3px}
+.acomp-hist-texto{font-size:13px;color:var(--text-2);line-height:1.6;white-space:pre-wrap}
+.acomp-hist-quem{font-size:11px;color:var(--text-3);margin-top:3px;font-style:italic}
+
+/* O bloco da decisao precisa saltar aos olhos: e o unico ponto da tela em
+   que alguem esta sendo esperado. */
+.acomp-decisao{border:1px solid rgba(224,82,82,.35);background:rgba(224,82,82,.07);
+  border-radius:12px;padding:16px;margin-bottom:18px}
+.acomp-decisao h4{font-size:13px;font-weight:700;color:#e05252;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+
+.acomp-vazio{text-align:center;padding:38px 16px;color:var(--text-3);font-size:13.5px;line-height:1.7}
+
 .kpi-grid{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
@@ -2180,7 +2250,11 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 
   /* ── Tabelas rolam horizontalmente ── */
   .tbl-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch }
-  table{ min-width:500px }
+  /* 500px de largura minima e o que faz a tabela rolar de lado em vez de
+     espremer as colunas. Vale para as tabelas que CONTINUAM tabelas no
+     celular -- a da Central de Acompanhamento vira cartao, e herdar este
+     minimo a empurrava 143px para fora da tela. */
+  table:not(.acomp-tabela){ min-width:500px }
 
   /* ── Chart row já vai para 1 col ── */
   .chart-row{ grid-template-columns:1fr; gap:12px }
@@ -3053,6 +3127,86 @@ html.ambiente-ensaio body{padding-top:28px}
       </div>
 
       <!-- ████ CLASSIFICAÇÃO DE CONDÔMINOS ████ -->
+      <!-- ████ CENTRAL DE ACOMPANHAMENTO ████
+           Registro dos assuntos da Administração e o que a Diretoria precisa
+           decidir. Nasceu para tirar da conversa verbal o "e aquele orçamento
+           da pintura?": o assunto fica escrito, com histórico, e quem precisa
+           acompanhar entra e vê. -->
+      <div class="panel" id="panel-acompanhamento">
+
+        <div class="ph">
+          <div>
+            <div class="ph-title">Central de Acompanhamento</div>
+            <div class="ph-sub">Acompanhe todos os assuntos da Administração em um só lugar.</div>
+          </div>
+          <div class="ph-actions" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span id="acomp-ultima" style="font-size:12px;color:var(--text-3)"></span>
+            <button class="btn btn-ghost" onclick="renderAcompanhamento()" title="Recarregar"><i class="fa-solid fa-rotate-right"></i></button>
+            <button class="btn btn-gold" id="acomp-btn-novo" onclick="acompNovo()"><i class="fa-solid fa-plus"></i> Novo assunto</button>
+          </div>
+        </div>
+
+        <!-- ── LISTA (visão principal) ─────────────────────────────── -->
+        <div id="acomp-view-lista">
+
+          <!-- Cinco situações. Clicar filtra a lista por aquela situação:
+               o número sem o caminho para a lista obriga a pessoa a procurar
+               de novo o que ela acabou de ver. -->
+          <div class="kpi-grid" id="acomp-cards"></div>
+
+          <div id="acomp-avisos" style="margin-bottom:16px"></div>
+
+          <div class="card" style="margin-bottom:16px">
+            <div class="acomp-filtros">
+              <div class="fg" style="margin:0;flex:2;min-width:190px">
+                <label>Buscar</label>
+                <input type="text" id="acomp-busca" placeholder="Assunto, categoria, responsável ou descrição…" oninput="renderAcompanhamento()">
+              </div>
+              <div class="fg" style="margin:0;flex:1;min-width:150px">
+                <label>Situação</label>
+                <select id="acomp-f-status" onchange="renderAcompanhamento()"></select>
+              </div>
+              <div class="fg" style="margin:0;flex:1;min-width:150px">
+                <label>Categoria</label>
+                <select id="acomp-f-cat" onchange="renderAcompanhamento()"></select>
+              </div>
+              <div class="fg" style="margin:0;flex:1;min-width:150px">
+                <label>Responsável</label>
+                <select id="acomp-f-resp" onchange="renderAcompanhamento()"></select>
+              </div>
+              <div class="fg" style="margin:0;min-width:140px">
+                <label>De</label>
+                <input type="date" id="acomp-f-de" onchange="renderAcompanhamento()">
+              </div>
+              <div class="fg" style="margin:0;min-width:140px">
+                <label>Até</label>
+                <input type="date" id="acomp-f-ate" onchange="renderAcompanhamento()">
+              </div>
+              <div class="acomp-filtros-acoes">
+                <button class="btn btn-ghost btn-sm" onclick="acompLimparFiltros()"><i class="fa-solid fa-filter-circle-xmark"></i> Limpar filtros</button>
+                <button class="btn btn-ghost btn-sm" onclick="acompRelatorio()"><i class="fa-solid fa-file-lines"></i> Gerar relatório</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head" style="flex-wrap:wrap;gap:10px">
+              <div class="card-title">
+                <div class="card-icon" style="background:rgba(46,125,209,0.12);color:var(--blue)"><i class="fa-solid fa-list-check"></i></div>
+                Assuntos
+              </div>
+              <span id="acomp-contagem" style="font-size:12px;color:var(--text-3);margin-left:auto"></span>
+            </div>
+            <!-- No computador é tabela; no celular vira cartão (ver CSS
+                 .acomp-tabela). Tabela de 6 colunas em 390px não se lê. -->
+            <div id="acomp-lista"></div>
+          </div>
+        </div>
+
+        <!-- ── DETALHES (mesma tela, outra visão) ──────────────────── -->
+        <div id="acomp-view-detalhe" style="display:none"></div>
+      </div>
+
       <div class="panel" id="panel-classificacoes">
         <!-- Abas do par: cadastrar um exige o outro na sequencia certa, e o
              menu nao contava essa ordem. Mesmo padrao de Reservas. -->
@@ -5575,7 +5729,7 @@ async function _linkTemporario(caminho){
 
 // Cache local (mantem toda a logica sync original)
 const DB_CACHE = {};
-const DB_KEYS = ['saas_condominios','lotes','funcs','fin','manut','comun','prev','reservas','reg','inadimplencia','unidades','localizacoes','condominos','condseq','classificacoes','encomendas','infogerais'];
+const DB_KEYS = ['saas_condominios','lotes','funcs','fin','manut','comun','prev','reservas','reg','inadimplencia','unidades','localizacoes','condominos','condseq','classificacoes','encomendas','infogerais','acompanhamento'];
 
 const G = k => (DB_CACHE[k] !== undefined) ? DB_CACHE[k] : null;
 
@@ -5597,6 +5751,12 @@ const _NORM = {
 };
 
 // Modulos que so admin/gestor pode gravar (RLS bloqueia morador).
+/* 'acompanhamento' NAO entra nesta lista de proposito. Ela existe para que o
+   morador nao tente gravar modulo de administracao e tome 403 no console --
+   mas o supervisor (a Diretoria, na Central de Acompanhamento) PRECISA
+   gravar: e ele quem registra aprovar/recusar. Quem pode o que naquele
+   modulo e decidido por acompPodeEditar()/acompPodeDecidir(), e o morador
+   sequer alcanca a tela. */
 const _MOD_ADMIN = ['lotes','unidades','condominos','localizacoes','saas_condominios','usuarios','infogerais'];
 function _podeGravarModulo(k){
   if(_MOD_ADMIN.indexOf(k) === -1) return true;          // modulo livre
@@ -5894,6 +6054,7 @@ const MODULOS_SAAS = {
   funcionarios:   { label:'Funcionários',              grupo:'paineis',       secao:'Painéis' },
   financeiro:     { label:'Financeiro',                grupo:'paineis',       secao:'Painéis' },
   inadimplencia:  { label:'Inadimplência',             grupo:'paineis',       secao:'Painéis' },
+  acompanhamento: { label:'Central de Acompanhamento', grupo:'administrativo', secao:'Administrativo' },
   condominos:     { label:'Condôminos',                grupo:'administrativo', secao:'Administrativo' },
   unidades:       { label:'Cadastro de Unidades',      grupo:'administrativo', secao:'Administrativo' },
   localizacoes:   { label:'Localizações',              grupo:'administrativo', secao:'Administrativo' },
@@ -7050,10 +7211,10 @@ function closeSidebar(){
 }
 
 /* ══ NAVIGATION ══ */
-const panelNames={inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',infogerais:'Informações Gerais',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas',espacos:'Criar Espaços'};
+const panelNames={acompanhamento:'Central de Acompanhamento',inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',infogerais:'Informações Gerais',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas',espacos:'Criar Espaços'};
 const ACESSO_PAINEIS = {
-  admin:   ['inicio','saas','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','usuarios','configuracoes','procedimentos'],
-  gestor:  ['inicio','dashboard','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','procedimentos'],
+  admin:   ['inicio','saas','dashboard','acompanhamento','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','usuarios','configuracoes','procedimentos'],
+  gestor:  ['inicio','dashboard','acompanhamento','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','procedimentos'],
   morador: ['inicio','reservas','encomendas','comunicados','eventos','infogerais','regulamento','procedimentos']
 };
 /* ══════════════════════════
@@ -8361,6 +8522,7 @@ const SB_GRUPOS = {
      300 unidades. O menu antigo listava os tres lado a lado, sem contar
      essa ordem; a aba conta, porque esta na tela em que voce ja esta. */
   administrativo: { titulo:'Administrativo', itens:[
+    {id:'acompanhamento', label:'Central de Acompanhamento', icon:'fa-clipboard-check', acesso:['admin','gestor']},
     {id:'unidades',   label:'Cadastro de Unidades', icon:'fa-house-chimney',  acesso:['admin','gestor']},
     {id:'condominos', label:'Condôminos',           icon:'fa-person-shelter', acesso:['admin','gestor']},
   ]},
@@ -8541,7 +8703,7 @@ function showPanel(id,el){
   // de um modal da tela anterior.
   try{ _sincronizarTravaRolagem(); }catch(_){}
   try{ _ocultarAbasBloqueadas(); }catch(_){}
-  ({dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{aplicarFiltroInicialRes();renderReservas();verificarAlertas();resLembreteChecar();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:()=>{ renderSaas(); try{ renderAssinaturas(); }catch(_){} },inicio:renderInicio})[id]?.();
+  ({acompanhamento:renderAcompanhamento,dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{aplicarFiltroInicialRes();renderReservas();verificarAlertas();resLembreteChecar();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:()=>{ renderSaas(); try{ renderAssinaturas(); }catch(_){} },inicio:renderInicio})[id]?.();
 }
 
 /* Esconde as abas que levam a uma tela bloqueada.
@@ -13897,6 +14059,980 @@ function resPagamentoAoSalvar(resAnterior, taxa, finBlocoAtivo){
   };
   if(!temTaxa && out.pgto === 'pendente') out.pgto = 'isento';
   return out;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   CENTRAL DE ACOMPANHAMENTO
+
+   O que o módulo resolve: hoje a Diretoria descobre o andamento das coisas
+   perguntando. Aqui a Administração escreve uma vez, e quem precisa saber
+   entra e lê — com histórico, para que "já falei disso" tenha data.
+
+   ONDE OS DADOS FICAM. Em modulo_dados, sob a chave 'acompanhamento',
+   como Informações Gerais e Comunicados — e não em tabelas próprias.
+   Foi decisão consciente, e o motivo é prático: a camada de bloco JÁ
+   existe, JÁ tem trava contra dois administradores gravando por cima um
+   do outro (ver _modBlocoGravar) e JÁ carrega sozinha, sem ninguém
+   precisar rodar SQL no painel do Supabase para o módulo funcionar.
+
+   O custo dessa escolha está anotado em docs/ARQUITETURA.md: bloco único
+   é gravado inteiro. Com dezenas de assuntos isso não pesa. Passando de
+   algumas centenas, ou com várias pessoas escrevendo ao mesmo tempo, o
+   caminho é migrar para tabela própria — e aí o formato de cada assunto
+   aqui embaixo já é praticamente a linha da tabela.
+
+   Os ANEXOS não vão para o bloco: vão para o Storage privado, e o que se
+   guarda é o CAMINHO do arquivo, nunca o link. Link assinado vence e o
+   documento parece ter sumido.
+   ══════════════════════════════════════════════════════════════════════ */
+
+var ACOMP_STATUS = [
+  { id:'AGUARDANDO_DIRETORIA', label:'Aguardando Diretoria', curto:'Aguardando Diretoria',
+    classe:'acomp-st-diretoria', icone:'fa-user-shield', cor:'#e05252',
+    desc:'Precisam de decisão da Diretoria' },
+  { id:'PENDENTE', label:'Pendente', curto:'Pendente',
+    classe:'acomp-st-pendente', icone:'fa-clipboard-list', cor:'#e87722',
+    desc:'Aguardando início ou providência' },
+  { id:'EM_ANDAMENTO', label:'Em andamento', curto:'Em andamento',
+    classe:'acomp-st-andamento', icone:'fa-gears', cor:'#c9a030',
+    desc:'Em execução pela Administração' },
+  { id:'AGUARDANDO_TERCEIROS', label:'Aguardando terceiros', curto:'Aguardando terceiros',
+    classe:'acomp-st-terceiros', icone:'fa-hourglass-half', cor:'#3d8fdd',
+    desc:'Dependem de empresa, fornecedor ou órgão' },
+  { id:'CONCLUIDO', label:'Concluído', curto:'Concluído',
+    classe:'acomp-st-concluido', icone:'fa-circle-check', cor:'#2ea36f',
+    desc:'Assuntos finalizados' }
+];
+
+/* Categorias iniciais. Ficam numa lista para que acrescentar uma seja
+   mexer em UM lugar — e para que um dia virem cadastro sem reescrever o
+   módulo. Categoria gravada que não esteja mais aqui continua valendo:
+   ver _acompCategorias(). */
+var ACOMP_CATEGORIAS = ['Administração','Segurança','Manutenção','Financeiro','Obras',
+  'Jurídico','Tecnologia / TI','Serviços Públicos','Recursos Humanos','Eventos',
+  'Comunicação','Outros'];
+
+var ACOMP_PRIORIDADES = ['BAIXA','MEDIA','ALTA','URGENTE'];
+var ACOMP_PRIO_ROTULO = { BAIXA:'Baixa', MEDIA:'Média', ALTA:'Alta', URGENTE:'Urgente' };
+
+function acompStatusInfo(id){
+  for(var i=0;i<ACOMP_STATUS.length;i++) if(ACOMP_STATUS[i].id===id) return ACOMP_STATUS[i];
+  // Situação desconhecida (dado antigo, ou digitado fora): aparece como está,
+  // em cinza, em vez de sumir da lista — some da tela é como se perdesse.
+  return { id:id||'', label:id||'—', curto:id||'—', classe:'', icone:'fa-circle', cor:'', desc:'' };
+}
+
+/* ── Onde os dados ficam ─────────────────────────────────────────────── */
+
+function _acompDados(){
+  var d = G('acompanhamento');
+  if(!d || typeof d!=='object' || Array.isArray(d)) return { itens:[] };
+  if(!Array.isArray(d.itens)) d.itens = [];
+  return d;
+}
+
+function _acompSalvar(d){ S('acompanhamento', d); }
+
+function _acompItem(id){
+  var itens=_acompDados().itens;
+  for(var i=0;i<itens.length;i++) if(String(itens[i].id)===String(id)) return itens[i];
+  return null;
+}
+
+/* Quem está mexendo. Vai para o histórico e para a decisão: registro sem
+   autor não serve de registro. */
+function _acompQuem(){
+  try{
+    var u=JSON.parse(localStorage.getItem('apvc_user')||'{}');
+    return (u.nome||u.email||'Administração');
+  }catch(_){ return 'Administração'; }
+}
+
+function _acompAgora(){ return new Date().toISOString(); }
+
+/* Data/hora legível. Aceita ISO completo e data solta ('2026-08-28'). */
+function acompDataHora(iso){
+  if(!iso) return '';
+  var d = new Date(String(iso).length<=10 ? (iso+'T00:00') : iso);
+  if(isNaN(d.getTime())) return '';
+  var dia = d.toLocaleDateString('pt-BR');
+  if(String(iso).length<=10) return dia;
+  return dia + ' às ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+function acompData(iso){
+  if(!iso) return '';
+  var d = new Date(String(iso).length<=10 ? (iso+'T00:00') : iso);
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('pt-BR');
+}
+
+/* Permissões — reaproveitando os níveis que já existem, sem inventar
+   um segundo sistema de acesso.
+
+   Administração (admin/gestor/super) escreve: cria, edita, atualiza,
+   anexa, pede decisão e conclui.
+
+   Diretoria: o AdminPro não tem um nível 'diretoria' hoje. Quem entra
+   pela Central e NÃO é da administração — supervisor — acompanha e
+   decide, sem poder editar o assunto. É exatamente o que foi pedido:
+   "a Diretoria não deve precisar editar o assunto para decidir".
+   Toda decisão fica assinada com nome e horário, seja de quem for. */
+function acompPodeEditar(){
+  try{ if(isSuperAdmin()) return true; }catch(_){}
+  var n = window._userNivel || '';
+  return n==='admin' || n==='gestor';
+}
+function acompPodeDecidir(){
+  try{ if(isSuperAdmin()) return true; }catch(_){}
+  var n = window._userNivel || '';
+  return n==='admin' || n==='gestor' || n==='supervisor';
+}
+
+/* ── Contagem por situação ───────────────────────────────────────────── */
+function acompContar(itens){
+  var out={};
+  ACOMP_STATUS.forEach(function(s){ out[s.id]=0; });
+  (itens||[]).forEach(function(a){
+    if(out[a.status]===undefined) out[a.status]=0;
+    out[a.status]++;
+  });
+  return out;
+}
+
+/* Última movimentação de TODOS os assuntos — é o carimbo do topo da tela.
+   Vem do maior 'atualizadoEm', não do relógio de quem está olhando: a
+   pergunta é "quando alguém mexeu nisso", não "que horas são". */
+function acompUltimaAtualizacao(itens){
+  var mx='';
+  (itens||[]).forEach(function(a){
+    var q=a.atualizadoEm||a.criadoEm||'';
+    if(q>mx) mx=q;
+  });
+  return mx;
+}
+
+/* Categorias que aparecem nos filtros: as fixas MAIS as que já foram
+   gravadas. Sem isso, renomear a lista fixa faria assuntos antigos
+   sumirem do filtro sem terem sumido do sistema. */
+function _acompCategorias(itens){
+  var vistas={};
+  ACOMP_CATEGORIAS.forEach(function(c){ vistas[c]=true; });
+  (itens||[]).forEach(function(a){ if(a.categoria) vistas[a.categoria]=true; });
+  return Object.keys(vistas).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+}
+function _acompResponsaveis(itens){
+  var vistos={};
+  (itens||[]).forEach(function(a){ if(a.responsavel) vistos[a.responsavel]=true; });
+  return Object.keys(vistos).sort(function(a,b){ return a.localeCompare(b,'pt-BR'); });
+}
+
+/* ── Filtro ──────────────────────────────────────────────────────────
+   Uma função só, sem tocar em tela, para poder ser testada. */
+function acompFiltrar(itens, f){
+  f = f || {};
+  var busca = (f.busca||'').trim().toLowerCase();
+  var out = (itens||[]).filter(function(a){
+    if(f.status && a.status!==f.status) return false;
+    if(f.categoria && a.categoria!==f.categoria) return false;
+    if(f.responsavel && a.responsavel!==f.responsavel) return false;
+    // Período olha a ÚLTIMA MOVIMENTAÇÃO, que é o que a pessoa tem em mente
+    // ao perguntar "o que andou este mês".
+    var quando = (a.atualizadoEm||a.criadoEm||'').slice(0,10);
+    if(f.de   && quando && quando < f.de)  return false;
+    if(f.ate  && quando && quando > f.ate) return false;
+    if(busca){
+      /* A solicitacao a Diretoria entra na busca junto com o resto: e ali
+         que mora o texto pelo qual a pessoa procura de verdade ("orcamento
+         3.850"), e deixar de fora fazia o assunto existir sem ser
+         encontravel. */
+      var alvo = [a.titulo,a.categoria,a.responsavel,a.descricao,
+                  a.proximaAcao,a.observacoes,a.solicitacao]
+                 .join(' ').toLowerCase();
+      if(alvo.indexOf(busca)<0) return false;
+    }
+    return true;
+  });
+  // Mais recente primeiro: quem abre a tela quer ver o que mexeu agora.
+  out.sort(function(a,b){
+    var qa=a.atualizadoEm||a.criadoEm||'', qb=b.atualizadoEm||b.criadoEm||'';
+    return qa<qb ? 1 : (qa>qb ? -1 : 0);
+  });
+  return out;
+}
+
+/* Assuntos cuja decisão da Diretoria vence hoje ou já venceu. Vira o aviso
+   do topo — prazo que ninguém vê não é prazo. */
+function acompDecisoesVencendo(itens, hojeISO){
+  var hoje = hojeISO || _reslHojeISO();
+  return (itens||[]).filter(function(a){
+    if(a.status!=='AGUARDANDO_DIRETORIA') return false;
+    if(!a.prazoDecisao) return false;
+    return a.prazoDecisao <= hoje;
+  });
+}
+
+/* ── Tela: lista ─────────────────────────────────────────────────────── */
+
+var _acompFiltroStatus = '';   // clique nos cards
+var _acompAberto = '';         // id do assunto em detalhe
+
+function _acompLerFiltros(){
+  return {
+    busca:       ($('acomp-busca')   ||{}).value || '',
+    status:      _acompFiltroStatus,
+    categoria:   ($('acomp-f-cat')   ||{}).value || '',
+    responsavel: ($('acomp-f-resp')  ||{}).value || '',
+    de:          ($('acomp-f-de')    ||{}).value || '',
+    ate:         ($('acomp-f-ate')   ||{}).value || ''
+  };
+}
+
+function acompLimparFiltros(){
+  _acompFiltroStatus='';
+  ['acomp-busca','acomp-f-de','acomp-f-ate'].forEach(function(id){ if($(id)) $(id).value=''; });
+  ['acomp-f-status','acomp-f-cat','acomp-f-resp'].forEach(function(id){ if($(id)) $(id).value=''; });
+  renderAcompanhamento();
+}
+
+function acompFiltrarPorStatus(id){
+  // Clicar de novo no mesmo card desliga o filtro: é o gesto que a pessoa
+  // tenta naturalmente, e sem isso ela procura um "limpar" que está longe.
+  _acompFiltroStatus = (_acompFiltroStatus===id) ? '' : id;
+  if($('acomp-f-status')) $('acomp-f-status').value = _acompFiltroStatus;
+  renderAcompanhamento();
+}
+
+function _acompMontarSelects(itens){
+  var sel=$('acomp-f-status');
+  if(sel && !sel._pronto){
+    sel.innerHTML = '<option value="">Todos os status</option>' +
+      ACOMP_STATUS.map(function(s){ return '<option value="'+s.id+'">'+escHtml(s.label)+'</option>'; }).join('');
+    sel.onchange = function(){ _acompFiltroStatus = sel.value; renderAcompanhamento(); };
+    sel._pronto = true;
+  }
+  if(sel) sel.value = _acompFiltroStatus;
+
+  var c=$('acomp-f-cat');
+  if(c){
+    var vc=c.value;
+    c.innerHTML = '<option value="">Todas as categorias</option>' +
+      _acompCategorias(itens).map(function(x){ return '<option value="'+escU(x)+'">'+escHtml(x)+'</option>'; }).join('');
+    c.value = vc;
+  }
+  var r=$('acomp-f-resp');
+  if(r){
+    var vr=r.value;
+    var lista=_acompResponsaveis(itens);
+    r.innerHTML = '<option value="">Todos os responsáveis</option>' +
+      lista.map(function(x){ return '<option value="'+escU(x)+'">'+escHtml(x)+'</option>'; }).join('');
+    r.value = vr;
+  }
+}
+
+function _acompCardsHTML(cont){
+  return ACOMP_STATUS.map(function(s){
+    var sel = (_acompFiltroStatus===s.id) ? ' sel' : '';
+    return '<div class="kpi acomp-card'+sel+'" onclick="acompFiltrarPorStatus(\''+s.id+'\')" '
+      + 'title="Clique para ver só estes">'
+      + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">'
+      +   '<i class="fa-solid '+s.icone+'" style="font-size:20px;color:'+s.cor+'"></i>'
+      +   '<div style="font-size:30px;font-weight:700;color:var(--text);line-height:1">'+(cont[s.id]||0)+'</div>'
+      + '</div>'
+      + '<div style="font-size:11.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:'+s.cor+'">'
+      +   escHtml(s.label)+'</div>'
+      + '<div style="font-size:11.5px;color:var(--text-3);margin-top:4px;line-height:1.5">'+escHtml(s.desc)+'</div>'
+      + '</div>';
+  }).join('');
+}
+
+function _acompLinhaHTML(a){
+  var st=acompStatusInfo(a.status);
+  var prio = (a.prioridade==='ALTA'||a.prioridade==='URGENTE')
+    ? ' <span class="acomp-prio acomp-prio-'+a.prioridade.toLowerCase()+'">'+ACOMP_PRIO_ROTULO[a.prioridade]+'</span>' : '';
+  return '<tr>'
+    + '<td><span class="acomp-rotulo">Assunto</span><span class="acomp-assunto">'+escHtml(a.titulo||'(sem título)')+prio+'</span></td>'
+    + '<td><span class="acomp-rotulo">Categoria</span><span>'+escHtml(a.categoria||'—')+'</span></td>'
+    + '<td><span class="acomp-rotulo">Status</span><span class="acomp-st '+st.classe+'"><i class="fa-solid '+st.icone+'"></i> '+escHtml(st.label)+'</span></td>'
+    + '<td><span class="acomp-rotulo">Responsável</span><span>'+escHtml(a.responsavel||'—')+'</span></td>'
+    + '<td><span class="acomp-rotulo">Atualizado</span><span>'+escHtml(acompData(a.atualizadoEm||a.criadoEm))+'</span></td>'
+    + '<td><button class="btn btn-ghost btn-sm" onclick="acompAbrir(\''+escU(a.id)+'\')">Ver detalhes <i class="fa-solid fa-chevron-right"></i></button></td>'
+    + '</tr>';
+}
+
+function renderAcompanhamento(){
+  var alvo=$('acomp-lista'); if(!alvo) return;
+  var d=_acompDados(), itens=d.itens;
+
+  _acompMontarSelects(itens);
+
+  var cards=$('acomp-cards');
+  if(cards) cards.innerHTML=_acompCardsHTML(acompContar(itens));
+
+  var ult=$('acomp-ultima');
+  if(ult){
+    var u=acompUltimaAtualizacao(itens);
+    ult.textContent = u ? ('Última atualização: '+acompDataHora(u)) : 'Nenhum assunto cadastrado ainda';
+  }
+
+  // Aviso de prazo de decisão vencendo/vencido.
+  var av=$('acomp-avisos');
+  if(av){
+    var vencendo=acompDecisoesVencendo(itens);
+    av.innerHTML = vencendo.length
+      ? '<div style="border:1px solid rgba(224,82,82,.35);background:rgba(224,82,82,.07);border-radius:12px;'
+        + 'padding:14px 16px;display:flex;gap:12px;align-items:flex-start">'
+        + '<i class="fa-solid fa-triangle-exclamation" style="color:#e05252;font-size:17px;margin-top:1px"></i>'
+        + '<div style="font-size:13px;color:var(--text-2);line-height:1.6">'
+        +   '<b style="color:#e05252">'+vencendo.length+' decisão(ões) da Diretoria no prazo ou vencida(s):</b><br>'
+        +   vencendo.map(function(a){
+                return escHtml(a.titulo)+' — prazo '+escHtml(acompData(a.prazoDecisao));
+              }).join('<br>')
+        + '</div></div>'
+      : '';
+  }
+
+  var botao=$('acomp-btn-novo');
+  if(botao) botao.style.display = acompPodeEditar() ? '' : 'none';
+
+  var lista=acompFiltrar(itens, _acompLerFiltros());
+
+  var cont=$('acomp-contagem');
+  if(cont) cont.textContent = lista.length===itens.length
+    ? (itens.length+' assunto(s)')
+    : (lista.length+' de '+itens.length+' assunto(s)');
+
+  if(!itens.length){
+    alvo.innerHTML='<div class="acomp-vazio">'
+      + '<i class="fa-solid fa-clipboard-list" style="font-size:30px;opacity:.35;display:block;margin-bottom:12px"></i>'
+      + 'Nenhum assunto registrado ainda.<br>'
+      + (acompPodeEditar()
+          ? 'Use <b>Novo assunto</b> para começar — a Diretoria passa a acompanhar por aqui.'
+          : 'Assim que a Administração registrar algum, ele aparece aqui.')
+      + '</div>';
+    return;
+  }
+  if(!lista.length){
+    alvo.innerHTML='<div class="acomp-vazio">Nenhum assunto encontrado com esses filtros.<br>'
+      + '<button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="acompLimparFiltros()">Limpar filtros</button></div>';
+    return;
+  }
+
+  alvo.innerHTML='<div style="overflow-x:auto"><table class="acomp-tabela">'
+    + '<thead><tr><th>Assunto</th><th>Categoria</th><th>Status</th><th>Responsável</th><th>Última atualização</th><th>Ação</th></tr></thead>'
+    + '<tbody>'+lista.map(_acompLinhaHTML).join('')+'</tbody></table></div>';
+}
+
+/* ── Registrar uma movimentação ──────────────────────────────────────
+   Todo caminho que muda alguma coisa passa por aqui. Assim o histórico
+   nunca depende de alguém ter lembrado de escrever nele, e o carimbo de
+   "última atualização" nunca fica para trás do que aconteceu. */
+function acompRegistrar(a, texto, opc){
+  opc = opc || {};
+  if(!Array.isArray(a.historico)) a.historico = [];
+  a.historico.push({
+    quando: _acompAgora(),
+    texto: texto,
+    quem: opc.quem || _acompQuem(),
+    statusAnterior: opc.statusAnterior || '',
+    novoStatus: opc.novoStatus || '',
+    proximaAcao: opc.proximaAcao || ''
+  });
+  a.atualizadoEm = _acompAgora();
+  return a;
+}
+
+/* ── Novo / editar ───────────────────────────────────────────────────── */
+
+function acompNovo(){ acompAbrirForm(null); }
+
+function acompAbrirForm(id){
+  if(!acompPodeEditar()){ toast('⚠️ Só a Administração cadastra e edita assuntos.'); return; }
+  var a = id ? _acompItem(id) : null;
+  if(id && !a){ toast('⛔ Assunto não encontrado.'); return; }
+
+  var cats=_acompCategorias(_acompDados().itens);
+  var opcCat = cats.map(function(c){
+    return '<option value="'+escU(c)+'"'+((a&&a.categoria===c)?' selected':'')+'>'+escHtml(c)+'</option>'; }).join('');
+  var opcSt = ACOMP_STATUS.map(function(s){
+    var sel = a ? (a.status===s.id) : (s.id==='PENDENTE');   // novo nasce PENDENTE
+    return '<option value="'+s.id+'"'+(sel?' selected':'')+'>'+escHtml(s.label)+'</option>'; }).join('');
+  var opcPr = ACOMP_PRIORIDADES.map(function(p){
+    var sel = a ? (a.prioridade===p) : (p==='MEDIA');
+    return '<option value="'+p+'"'+(sel?' selected':'')+'>'+ACOMP_PRIO_ROTULO[p]+'</option>'; }).join('');
+
+  var precisa = a ? !!a.precisaDecisao : false;
+
+  _acompModal((id?'Editar assunto':'Novo assunto'),
+      '<div class="form-grid" style="gap:12px">'
+    + '<div class="fg full" style="grid-column:1/-1"><label>Assunto *</label>'
+    +   '<input type="text" id="acf-titulo" maxlength="140" placeholder="Ex: Manutenção das câmeras da portaria" value="'+escU(a?a.titulo:'')+'"></div>'
+    + '<div class="fg"><label>Categoria *</label><select id="acf-cat">'+opcCat+'</select></div>'
+    + '<div class="fg"><label>Situação *</label><select id="acf-status">'+opcSt+'</select></div>'
+    + '<div class="fg"><label>Responsável</label>'
+    +   '<input type="text" id="acf-resp" list="acf-resp-dl" placeholder="Administração, empresa, funcionário…" value="'+escU(a?a.responsavel:'Administração')+'">'
+    +   '<datalist id="acf-resp-dl">'+_acompResponsaveis(_acompDados().itens).map(function(x){return '<option value="'+escU(x)+'">';}).join('')+'</datalist></div>'
+    + '<div class="fg"><label>Prioridade</label><select id="acf-prio">'+opcPr+'</select></div>'
+    + '<div class="fg"><label>Data de início</label><input type="date" id="acf-inicio" value="'+escU(a?a.dataInicio:_reslHojeISO())+'"></div>'
+    + '<div class="fg"><label>Previsão de conclusão</label><input type="date" id="acf-previsao" value="'+escU(a?a.previsao:'')+'"></div>'
+    + '<div class="fg full" style="grid-column:1/-1"><label>Descrição</label>'
+    +   '<textarea id="acf-desc" rows="4" placeholder="O que é o assunto, com o detalhe que a Diretoria precisa para entender sem perguntar.">'+escHtml(a?a.descricao:'')+'</textarea></div>'
+    + '<div class="fg full" style="grid-column:1/-1"><label>Próxima ação</label>'
+    +   '<input type="text" id="acf-proxima" placeholder="Ex: Aguardar visita técnica da empresa." value="'+escU(a?a.proximaAcao:'')+'"></div>'
+    + '<div class="fg full" style="grid-column:1/-1"><label>Observações</label>'
+    +   '<textarea id="acf-obs" rows="2">'+escHtml(a?a.observacoes:'')+'</textarea></div>'
+    + '<div class="fg full" style="grid-column:1/-1">'
+    +   '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:var(--text-2)">'
+    +     '<input type="checkbox" id="acf-precisa" '+(precisa?'checked':'')+' onchange="_acompToggleDecisao()" '
+    +       'style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">'
+    +     '<span>Este assunto <b>precisa de decisão da Diretoria</b></span></label></div>'
+    + '<div class="fg full" id="acf-box-decisao" style="grid-column:1/-1;display:'+(precisa?'':'none')+'">'
+    +   '<label>O que a Diretoria precisa decidir</label>'
+    +   '<textarea id="acf-solicitacao" rows="2" placeholder="Ex: Aprovação do orçamento de R$ 3.850,00.">'+escHtml(a?a.solicitacao:'')+'</textarea>'
+    +   '<div style="margin-top:10px;max-width:220px"><label>Prazo para decisão</label>'
+    +     '<input type="date" id="acf-prazo" value="'+escU(a?a.prazoDecisao:'')+'"></div>'
+    + '</div>'
+    + '</div>',
+    [ { texto:'Cancelar', classe:'btn btn-ghost', acao:'acompFecharModal()' },
+      { texto:'<i class="fa-solid fa-floppy-disk"></i> Salvar', classe:'btn btn-gold',
+        acao:'acompSalvarForm('+(id?('\''+String(id).replace(/'/g,"\\'")+'\''):'null')+')' } ]);
+}
+
+function _acompToggleDecisao(){
+  var c=$('acf-precisa'), b=$('acf-box-decisao');
+  if(c&&b) b.style.display = c.checked ? '' : 'none';
+}
+
+function acompSalvarForm(id){
+  if(!acompPodeEditar()){ toast('⚠️ Sem permissão para gravar.'); return; }
+  var titulo=($('acf-titulo')?$('acf-titulo').value:'').trim();
+  if(!titulo){ toast('⚠️ Informe o assunto.'); if($('acf-titulo')) $('acf-titulo').focus(); return; }
+  var categoria=($('acf-cat')||{}).value||'';
+  if(!categoria){ toast('⚠️ Escolha a categoria.'); return; }
+
+  var d=_acompDados();
+  var novoStatus=($('acf-status')||{}).value||'PENDENTE';
+  var precisa=!!($('acf-precisa')&&$('acf-precisa').checked);
+
+  var a, criando=false;
+  if(id){
+    a=_acompItem(id);
+    if(!a){ toast('⛔ Assunto não encontrado.'); return; }
+  } else {
+    criando=true;
+    a={ id:'A'+Date.now()+Math.floor(Math.random()*1000), criadoEm:_acompAgora(),
+        criadoPor:_acompQuem(), historico:[], anexos:[], decisoes:[] };
+    d.itens.push(a);
+  }
+
+  var anterior=a.status||'';
+  a.titulo=titulo;
+  a.categoria=categoria;
+  a.status=novoStatus;
+  a.responsavel=($('acf-resp')?$('acf-resp').value:'').trim();
+  a.prioridade=($('acf-prio')||{}).value||'MEDIA';
+  a.dataInicio=($('acf-inicio')||{}).value||'';
+  a.previsao=($('acf-previsao')||{}).value||'';
+  a.descricao=($('acf-desc')?$('acf-desc').value:'').trim();
+  a.proximaAcao=($('acf-proxima')?$('acf-proxima').value:'').trim();
+  a.observacoes=($('acf-obs')?$('acf-obs').value:'').trim();
+  a.precisaDecisao=precisa;
+  a.solicitacao=precisa ? ($('acf-solicitacao')?$('acf-solicitacao').value:'').trim() : '';
+  a.prazoDecisao=precisa ? (($('acf-prazo')||{}).value||'') : '';
+
+  if(criando){
+    acompRegistrar(a, 'Assunto criado.', { novoStatus:novoStatus });
+  } else if(anterior!==novoStatus){
+    acompRegistrar(a, 'Situação alterada de "'+acompStatusInfo(anterior).label+'" para "'+acompStatusInfo(novoStatus).label+'".',
+                   { statusAnterior:anterior, novoStatus:novoStatus });
+  } else {
+    acompRegistrar(a, 'Assunto editado.');
+  }
+
+  _acompSalvar(d);
+  acompFecharModal();
+  toast('✅ Assunto salvo.');
+  if(_acompAberto===String(a.id)) acompAbrir(a.id); else renderAcompanhamento();
+}
+
+function acompExcluir(id){
+  if(!acompPodeEditar()){ toast('⚠️ Sem permissão.'); return; }
+  var a=_acompItem(id); if(!a) return;
+  if(!confirm('Excluir "'+(a.titulo||'este assunto')+'"?\n\nO histórico e os anexos vão junto, e isso não tem como ser desfeito.')) return;
+  var d=_acompDados();
+  d.itens=d.itens.filter(function(x){ return String(x.id)!==String(id); });
+  _acompSalvar(d);
+  toast('🗑️ Assunto excluído.');
+  acompVoltar();
+}
+
+/* ── Detalhes ────────────────────────────────────────────────────────── */
+
+function acompVoltar(){
+  _acompAberto='';
+  if($('acomp-view-detalhe')) $('acomp-view-detalhe').style.display='none';
+  if($('acomp-view-lista'))   $('acomp-view-lista').style.display='';
+  renderAcompanhamento();
+}
+
+function acompAbrir(id){
+  var a=_acompItem(id);
+  if(!a){ toast('⛔ Assunto não encontrado.'); return; }
+  _acompAberto=String(id);
+  var alvo=$('acomp-view-detalhe'); if(!alvo) return;
+  if($('acomp-view-lista')) $('acomp-view-lista').style.display='none';
+  alvo.style.display='';
+  alvo.innerHTML=_acompDetalheHTML(a);
+  try{ alvo.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){}
+}
+
+function _acompInfoLinha(rot, val){
+  if(!val) return '';
+  return '<div><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">'+escHtml(rot)+'</div>'
+       + '<div style="font-size:13.5px;color:var(--text-2);margin-top:3px">'+escHtml(val)+'</div></div>';
+}
+
+function _acompDetalheHTML(a){
+  var st=acompStatusInfo(a.status);
+  var podeEd=acompPodeEditar(), podeDec=acompPodeDecidir();
+  var h='';
+
+  h+='<div style="margin-bottom:16px">'
+   + '<button class="btn btn-ghost btn-sm" onclick="acompVoltar()"><i class="fa-solid fa-arrow-left"></i> Voltar para a lista</button>'
+   + '</div>';
+
+  // Cabeçalho
+  h+='<div class="card" style="margin-bottom:16px">'
+   + '<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;margin-bottom:14px">'
+   +   '<div style="flex:1;min-width:220px">'
+   +     '<div style="font-size:19px;font-weight:700;color:var(--text);line-height:1.35">'+escHtml(a.titulo||'(sem título)')+'</div>'
+   +     '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+   +       '<span class="acomp-st '+st.classe+'"><i class="fa-solid '+st.icone+'"></i> '+escHtml(st.label)+'</span>'
+   +       ((a.prioridade==='ALTA'||a.prioridade==='URGENTE')
+            ? '<span class="acomp-prio acomp-prio-'+a.prioridade.toLowerCase()+'">'+ACOMP_PRIO_ROTULO[a.prioridade]+'</span>' : '')
+   +     '</div>'
+   +   '</div>'
+   +   (podeEd
+        ? '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+          + '<button class="btn btn-ghost btn-sm" onclick="acompAbrirForm(\''+escU(a.id)+'\')"><i class="fa-solid fa-pen"></i> Editar</button>'
+          + '<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="acompExcluir(\''+escU(a.id)+'\')"><i class="fa-solid fa-trash"></i></button>'
+          + '</div>' : '')
+   + '</div>'
+   + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px">'
+   +   _acompInfoLinha('Categoria', a.categoria)
+   +   _acompInfoLinha('Responsável', a.responsavel)
+   +   _acompInfoLinha('Prioridade', ACOMP_PRIO_ROTULO[a.prioridade]||a.prioridade)
+   +   _acompInfoLinha('Aberto em', acompData(a.dataInicio||a.criadoEm))
+   +   _acompInfoLinha('Previsão de conclusão', acompData(a.previsao))
+   +   _acompInfoLinha('Última atualização', acompDataHora(a.atualizadoEm||a.criadoEm))
+   + '</div>'
+   + '</div>';
+
+  // Decisão pendente
+  if(a.status==='AGUARDANDO_DIRETORIA'){
+    h+='<div class="acomp-decisao">'
+     + '<h4><i class="fa-solid fa-user-shield"></i> Decisão necessária</h4>'
+     + '<div style="font-size:13.5px;color:var(--text-2);line-height:1.65;white-space:pre-wrap">'
+     +   escHtml(a.solicitacao||'A Administração pediu uma decisão sobre este assunto.')+'</div>'
+     + (a.prazoDecisao
+        ? '<div style="font-size:12.5px;color:var(--text-3);margin-top:10px"><b>Prazo para decisão:</b> '+escHtml(acompData(a.prazoDecisao))+'</div>' : '')
+     + (podeDec
+        ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">'
+          + '<button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="acompDecidir(\''+escU(a.id)+'\',\'APROVADO\')"><i class="fa-solid fa-check"></i> Aprovar</button>'
+          + '<button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="acompDecidir(\''+escU(a.id)+'\',\'RECUSADO\')"><i class="fa-solid fa-xmark"></i> Recusar</button>'
+          + '<button class="btn btn-ghost btn-sm" onclick="acompDecidir(\''+escU(a.id)+'\',\'MAIS_INFO\')"><i class="fa-solid fa-circle-question"></i> Pedir mais informações</button>'
+          + '</div>'
+        : '<div style="font-size:12px;color:var(--text-3);margin-top:12px">Aguardando a Diretoria.</div>')
+     + '</div>';
+  } else if(podeEd && a.status!=='CONCLUIDO'){
+    h+='<div style="margin-bottom:16px">'
+     + '<button class="btn btn-sm" style="background:#e05252;color:#fff;border:none" onclick="acompSolicitarDecisao(\''+escU(a.id)+'\')">'
+     +   '<i class="fa-solid fa-triangle-exclamation"></i> Solicitar decisão da Diretoria</button>'
+     + '</div>';
+  }
+
+  if(a.descricao){
+    h+='<div class="card" style="margin-bottom:16px">'
+     + '<div class="card-head"><div class="card-title"><div class="card-icon"><i class="fa-solid fa-align-left"></i></div>Descrição</div></div>'
+     + '<div style="font-size:13.5px;color:var(--text-2);line-height:1.7;white-space:pre-wrap">'+escHtml(a.descricao)+'</div>'
+     + '</div>';
+  }
+  if(a.proximaAcao){
+    h+='<div class="card" style="margin-bottom:16px;border-left:3px solid var(--gold)">'
+     + '<div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Próxima ação</div>'
+     + '<div style="font-size:14px;color:var(--text);line-height:1.6">'+escHtml(a.proximaAcao)+'</div>'
+     + '</div>';
+  }
+  if(a.observacoes){
+    h+='<div class="card" style="margin-bottom:16px">'
+     + '<div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Observações</div>'
+     + '<div style="font-size:13px;color:var(--text-2);line-height:1.7;white-space:pre-wrap">'+escHtml(a.observacoes)+'</div>'
+     + '</div>';
+  }
+
+  // Decisões tomadas
+  if(Array.isArray(a.decisoes) && a.decisoes.length){
+    h+='<div class="card" style="margin-bottom:16px">'
+     + '<div class="card-head"><div class="card-title"><div class="card-icon"><i class="fa-solid fa-gavel"></i></div>Decisões da Diretoria</div></div>'
+     + a.decisoes.map(function(dd){
+         var cor = dd.decisao==='APROVADO' ? '#2ea36f' : (dd.decisao==='RECUSADO' ? '#e05252' : '#3d8fdd');
+         var rot = dd.decisao==='APROVADO' ? 'Aprovado' : (dd.decisao==='RECUSADO' ? 'Recusado' : 'Pediu mais informações');
+         return '<div style="border-top:1px solid var(--border);padding:12px 0">'
+           + '<div style="font-weight:700;color:'+cor+';font-size:13px">'+rot+'</div>'
+           + '<div style="font-size:12px;color:var(--text-3);margin-top:3px">Por '+escHtml(dd.quem||'—')+' • '+escHtml(acompDataHora(dd.quando))+'</div>'
+           + (dd.observacao ? '<div style="font-size:13px;color:var(--text-2);margin-top:6px;line-height:1.6;white-space:pre-wrap">'+escHtml(dd.observacao)+'</div>' : '')
+           + '</div>';
+       }).join('')
+     + '</div>';
+  }
+
+  // Anexos
+  h+='<div class="card" style="margin-bottom:16px">'
+   + '<div class="card-head" style="flex-wrap:wrap;gap:10px">'
+   +   '<div class="card-title"><div class="card-icon"><i class="fa-solid fa-paperclip"></i></div>Documentos e anexos</div>'
+   +   (podeEd ? '<button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="$(\'acomp-arquivo\').click()"><i class="fa-solid fa-upload"></i> Anexar</button>' : '')
+   + '</div>'
+   + '<input type="file" id="acomp-arquivo" style="display:none" onchange="acompAnexar(\''+escU(a.id)+'\', this)">'
+   + (Array.isArray(a.anexos)&&a.anexos.length
+      ? a.anexos.map(function(x,i){
+          return '<div style="display:flex;gap:10px;align-items:center;border-top:1px solid var(--border);padding:10px 0">'
+            + '<i class="fa-solid '+(/(jpg|jpeg|png|gif|webp)$/i.test(x.nome||'')?'fa-image':'fa-file-lines')+'" style="color:var(--gold)"></i>'
+            + '<div style="flex:1;min-width:0">'
+            +   '<div style="font-size:13px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(x.nome||'arquivo')+'</div>'
+            +   '<div style="font-size:11px;color:var(--text-3)">'+escHtml(acompDataHora(x.quando))+' • '+escHtml(x.quem||'')+'</div>'
+            + '</div>'
+            + '<button class="btn btn-ghost btn-sm" onclick="acompAbrirAnexo(\''+escU(a.id)+'\','+i+')">Abrir</button>'
+            + (podeEd ? '<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="acompRemoverAnexo(\''+escU(a.id)+'\','+i+')"><i class="fa-solid fa-trash"></i></button>' : '')
+            + '</div>';
+        }).join('')
+      : '<div style="font-size:12.5px;color:var(--text-3);padding:6px 0">Nenhum documento anexado.</div>')
+   + '</div>';
+
+  // Histórico
+  var hist=(a.historico||[]).slice().sort(function(x,y){ return (x.quando||'')<(y.quando||'') ? 1 : -1; });
+  h+='<div class="card">'
+   + '<div class="card-head" style="flex-wrap:wrap;gap:10px">'
+   +   '<div class="card-title"><div class="card-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>Histórico</div>'
+   +   (podeEd ? '<button class="btn btn-gold btn-sm" style="margin-left:auto" onclick="acompFormAtualizacao(\''+escU(a.id)+'\')"><i class="fa-solid fa-plus"></i> Adicionar atualização</button>' : '')
+   + '</div>'
+   + (hist.length
+      ? '<div class="acomp-hist">'+hist.map(function(x){
+          return '<div class="acomp-hist-item">'
+            + '<div class="acomp-hist-quando">'+escHtml(acompDataHora(x.quando))+'</div>'
+            + '<div class="acomp-hist-texto">'+escHtml(x.texto||'')+'</div>'
+            + (x.proximaAcao ? '<div class="acomp-hist-texto" style="color:var(--text-3);margin-top:4px"><b>Próxima ação:</b> '+escHtml(x.proximaAcao)+'</div>' : '')
+            + '<div class="acomp-hist-quem">'+escHtml(x.quem||'')+'</div>'
+            + '</div>';
+        }).join('')+'</div>'
+      : '<div style="font-size:12.5px;color:var(--text-3)">Sem movimentações registradas.</div>')
+   + '</div>';
+
+  return h;
+}
+
+/* ── Atualização no histórico ────────────────────────────────────────── */
+
+function acompFormAtualizacao(id){
+  if(!acompPodeEditar()){ toast('⚠️ Sem permissão.'); return; }
+  var a=_acompItem(id); if(!a) return;
+  var opcSt='<option value="">— manter '+escHtml(acompStatusInfo(a.status).label)+' —</option>'
+    + ACOMP_STATUS.map(function(s){ return '<option value="'+s.id+'">'+escHtml(s.label)+'</option>'; }).join('');
+
+  _acompModal('Adicionar atualização',
+      '<div class="form-grid" style="gap:12px">'
+    + '<div class="fg full" style="grid-column:1/-1"><label>O que aconteceu *</label>'
+    +   '<textarea id="acu-texto" rows="3" placeholder="Ex: Empresa responsável foi acionada."></textarea></div>'
+    + '<div class="fg"><label>Nova situação</label><select id="acu-status">'+opcSt+'</select></div>'
+    + '<div class="fg"><label>Data e hora</label><input type="datetime-local" id="acu-quando" value="'+_acompAgoraLocal()+'"></div>'
+    + '<div class="fg full" style="grid-column:1/-1"><label>Próxima ação</label>'
+    +   '<input type="text" id="acu-proxima" placeholder="O que vem depois" value="'+escU(a.proximaAcao||'')+'"></div>'
+    + '</div>',
+    [ { texto:'Cancelar', classe:'btn btn-ghost', acao:'acompFecharModal()' },
+      { texto:'<i class="fa-solid fa-plus"></i> Registrar', classe:'btn btn-gold',
+        acao:'acompSalvarAtualizacao(\''+String(id).replace(/'/g,"\\'")+'\')' } ]);
+}
+
+function _acompAgoraLocal(){
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
+       +'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+
+function acompSalvarAtualizacao(id){
+  if(!acompPodeEditar()){ toast('⚠️ Sem permissão.'); return; }
+  var texto=($('acu-texto')?$('acu-texto').value:'').trim();
+  if(!texto){ toast('⚠️ Escreva o que aconteceu.'); return; }
+  var d=_acompDados(), a=null;
+  d.itens.forEach(function(x){ if(String(x.id)===String(id)) a=x; });
+  if(!a){ toast('⛔ Assunto não encontrado.'); return; }
+
+  var novo=($('acu-status')||{}).value||'';
+  var prox=($('acu-proxima')?$('acu-proxima').value:'').trim();
+  var quando=($('acu-quando')||{}).value||'';
+  var anterior=a.status;
+
+  if(novo && novo!==anterior) a.status=novo;
+  if(prox) a.proximaAcao=prox;
+
+  acompRegistrar(a, texto, { statusAnterior:anterior, novoStatus:(novo&&novo!==anterior)?novo:'', proximaAcao:prox });
+  // Data escolhida à mão vale para o registro; o carimbo de "última
+  // movimentação" continua sendo agora, senão lançar algo de ontem faria o
+  // assunto parecer parado.
+  if(quando){ a.historico[a.historico.length-1].quando = new Date(quando).toISOString(); }
+  if(novo && novo!==anterior){
+    acompRegistrar(a, 'Situação alterada de "'+acompStatusInfo(anterior).label+'" para "'+acompStatusInfo(novo).label+'".',
+                   { statusAnterior:anterior, novoStatus:novo });
+  }
+
+  _acompSalvar(d);
+  acompFecharModal();
+  toast('✅ Atualização registrada.');
+  acompAbrir(id);
+}
+
+/* ── Decisão da Diretoria ────────────────────────────────────────────── */
+
+function acompSolicitarDecisao(id){
+  if(!acompPodeEditar()){ toast('⚠️ Sem permissão.'); return; }
+  var a=_acompItem(id); if(!a) return;
+
+  _acompModal('Solicitar decisão da Diretoria',
+      '<div class="form-grid" style="gap:12px">'
+    + '<div class="fg full" style="grid-column:1/-1"><label>O que a Diretoria precisa decidir *</label>'
+    +   '<textarea id="acd-solicitacao" rows="3" placeholder="Ex: Aprovação do orçamento de R$ 3.850,00 para instalação de novas câmeras.">'+escHtml(a.solicitacao||'')+'</textarea></div>'
+    + '<div class="fg"><label>Prazo para decisão</label><input type="date" id="acd-prazo" value="'+escU(a.prazoDecisao||'')+'"></div>'
+    + '</div>'
+    + '<div style="font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.6">'
+    +   'O assunto passa para <b>Aguardando Diretoria</b> e aparece no primeiro card da tela, '
+    +   'com o pedido e o prazo à vista de quem decide.</div>',
+    [ { texto:'Cancelar', classe:'btn btn-ghost', acao:'acompFecharModal()' },
+      { texto:'<i class="fa-solid fa-triangle-exclamation"></i> Enviar para a Diretoria', classe:'btn btn-gold',
+        acao:'acompConfirmarSolicitacao(\''+String(id).replace(/'/g,"\\'")+'\')' } ]);
+}
+
+function acompConfirmarSolicitacao(id){
+  var sol=($('acd-solicitacao')?$('acd-solicitacao').value:'').trim();
+  if(!sol){ toast('⚠️ Escreva o que precisa ser decidido.'); return; }
+  var d=_acompDados(), a=null;
+  d.itens.forEach(function(x){ if(String(x.id)===String(id)) a=x; });
+  if(!a) return;
+
+  var anterior=a.status;
+  a.precisaDecisao=true;
+  a.solicitacao=sol;
+  a.prazoDecisao=($('acd-prazo')||{}).value||'';
+  a.status='AGUARDANDO_DIRETORIA';
+  acompRegistrar(a, 'Solicitação enviada para decisão da Diretoria.'
+    + (a.prazoDecisao ? ' Prazo: '+acompData(a.prazoDecisao)+'.' : ''),
+    { statusAnterior:anterior, novoStatus:'AGUARDANDO_DIRETORIA' });
+
+  _acompSalvar(d);
+  acompFecharModal();
+  toast('✅ Enviado para a Diretoria.');
+  acompAbrir(id);
+}
+
+function acompDecidir(id, decisao){
+  if(!acompPodeDecidir()){ toast('⚠️ Só a Diretoria decide este assunto.'); return; }
+  var a=_acompItem(id); if(!a) return;
+  var rot = decisao==='APROVADO' ? 'Aprovar' : (decisao==='RECUSADO' ? 'Recusar' : 'Pedir mais informações');
+
+  /* Depois de decidir, o assunto precisa ir para ALGUM lugar — senão fica
+     "aguardando Diretoria" para sempre e o card mente. O destino sugerido
+     muda com a decisão, mas quem decide pode trocar. */
+  var sugerido = decisao==='APROVADO' ? 'EM_ANDAMENTO'
+               : (decisao==='RECUSADO' ? 'CONCLUIDO' : 'PENDENTE');
+  var opcSt = ACOMP_STATUS.map(function(s){
+    return '<option value="'+s.id+'"'+(s.id===sugerido?' selected':'')+'>'+escHtml(s.label)+'</option>'; }).join('');
+
+  _acompModal(rot,
+      '<div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:14px">'
+    +   '<b>'+escHtml(a.titulo||'')+'</b>'
+    +   (a.solicitacao ? '<div style="color:var(--text-3);margin-top:6px;white-space:pre-wrap">'+escHtml(a.solicitacao)+'</div>' : '')
+    + '</div>'
+    + '<div class="form-grid" style="gap:12px">'
+    + '<div class="fg full" style="grid-column:1/-1"><label>Observação da Diretoria</label>'
+    +   '<textarea id="acx-obs" rows="3" placeholder="Ex: Orçamento aprovado para execução do serviço."></textarea></div>'
+    + '<div class="fg"><label>Situação após a decisão</label><select id="acx-status">'+opcSt+'</select></div>'
+    + '</div>',
+    [ { texto:'Cancelar', classe:'btn btn-ghost', acao:'acompFecharModal()' },
+      { texto:'Confirmar '+rot.toLowerCase(), classe:'btn btn-gold',
+        acao:'acompConfirmarDecisao(\''+String(id).replace(/'/g,"\\'")+'\',\''+decisao+'\')' } ]);
+}
+
+function acompConfirmarDecisao(id, decisao){
+  if(!acompPodeDecidir()){ toast('⚠️ Sem permissão.'); return; }
+  var d=_acompDados(), a=null;
+  d.itens.forEach(function(x){ if(String(x.id)===String(id)) a=x; });
+  if(!a) return;
+
+  var obs=($('acx-obs')?$('acx-obs').value:'').trim();
+  var novo=($('acx-status')||{}).value||'PENDENTE';
+  var anterior=a.status;
+  var rot = decisao==='APROVADO' ? 'APROVADO' : (decisao==='RECUSADO' ? 'RECUSADO' : 'MAIS INFORMAÇÕES');
+
+  if(!Array.isArray(a.decisoes)) a.decisoes=[];
+  a.decisoes.push({ decisao:decisao, observacao:obs, quem:_acompQuem(), quando:_acompAgora() });
+
+  a.status=novo;
+  // Decidido: deixa de estar na fila da Diretoria. Sem isto o assunto
+  // continuaria pedindo uma decisão que já foi tomada.
+  a.precisaDecisao=false;
+
+  acompRegistrar(a, 'Decisão da Diretoria: '+rot+'.'+(obs?'\n'+obs:''),
+                 { statusAnterior:anterior, novoStatus:novo, quem:_acompQuem() });
+
+  _acompSalvar(d);
+  acompFecharModal();
+  toast('✅ Decisão registrada.');
+  acompAbrir(id);
+}
+
+/* ── Anexos ──────────────────────────────────────────────────────────
+   Guardam o CAMINHO no Storage privado, nunca o link: link assinado vence
+   e o documento parece ter sumido. O link é gerado na hora de abrir. */
+
+async function acompAnexar(id, input){
+  if(!acompPodeEditar()){ toast('⚠️ Sem permissão.'); return; }
+  var file = input && input.files && input.files[0];
+  if(!file) return;
+  input.value='';
+  if(file.size > 10*1024*1024){ toast('⚠️ Arquivo muito grande (máximo 10 MB).'); return; }
+  if(!window.SB){ toast('⛔ Sem conexão para enviar o arquivo.'); return; }
+
+  toast('⏳ Enviando arquivo…');
+  try{
+    var m=(file.name||'').match(/\.[A-Za-z0-9]{1,6}$/);
+    var ext=m?m[0]:'';
+    var caminho=_condAtual+'/acompanhamento/'+id+'/'+Date.now()+ext;
+    var up=await SB.storage.from('privado').upload(caminho, file,
+      { contentType:file.type||'application/octet-stream', upsert:true });
+    if(up.error) throw up.error;
+
+    var d=_acompDados(), a=null;
+    d.itens.forEach(function(x){ if(String(x.id)===String(id)) a=x; });
+    if(!a){ toast('⛔ Assunto não encontrado.'); return; }
+    if(!Array.isArray(a.anexos)) a.anexos=[];
+    a.anexos.push({ nome:file.name, caminho:caminho, tipo:file.type||'',
+                    quem:_acompQuem(), quando:_acompAgora() });
+    acompRegistrar(a, 'Documento anexado: '+file.name);
+    _acompSalvar(d);
+    toast('✅ Arquivo anexado.');
+    acompAbrir(id);
+  }catch(e){
+    toast('⛔ Não consegui enviar: '+((e&&e.message)||e));
+  }
+}
+
+async function acompAbrirAnexo(id, i){
+  var a=_acompItem(id); if(!a||!a.anexos||!a.anexos[i]) return;
+  var cam=a.anexos[i].caminho;
+  if(!cam){ toast('⛔ Arquivo sem caminho registrado.'); return; }
+  try{
+    var url=await _linkTemporario(cam);
+    if(url) window.open(url,'_blank','noopener');
+    else toast('⛔ Não consegui gerar o link do arquivo.');
+  }catch(e){ toast('⛔ Não consegui abrir: '+((e&&e.message)||e)); }
+}
+
+async function acompRemoverAnexo(id, i){
+  if(!acompPodeEditar()){ toast('⚠️ Sem permissão.'); return; }
+  var d=_acompDados(), a=null;
+  d.itens.forEach(function(x){ if(String(x.id)===String(id)) a=x; });
+  if(!a||!a.anexos||!a.anexos[i]) return;
+  var an=a.anexos[i];
+  if(!confirm('Remover o anexo "'+(an.nome||'arquivo')+'"?')) return;
+  try{ if(window.SB && an.caminho) await SB.storage.from('privado').remove([an.caminho]); }catch(_){}
+  a.anexos.splice(i,1);
+  acompRegistrar(a, 'Documento removido: '+(an.nome||'arquivo'));
+  _acompSalvar(d);
+  toast('🗑️ Anexo removido.');
+  acompAbrir(id);
+}
+
+/* ── Relatório ───────────────────────────────────────────────────────
+   Sai com os MESMOS filtros que estão na tela: relatório que ignora o
+   filtro obriga a montar tudo de novo, e aí ninguém usa. */
+function acompRelatorioTexto(itens, f){
+  var lista=acompFiltrar(itens, f||{});
+  var cont=acompContar(lista);
+  var per='';
+  if(f && (f.de||f.ate)) per='Período: '+(f.de?acompData(f.de):'início')+' até '+(f.ate?acompData(f.ate):'hoje');
+  var l=[];
+  l.push('CENTRAL DE ACOMPANHAMENTO');
+  l.push('RELATÓRIO DA ADMINISTRAÇÃO');
+  if(per) l.push(per);
+  l.push('Emitido em '+acompDataHora(_acompAgora()));
+  l.push('');
+  ACOMP_STATUS.forEach(function(s){ l.push(s.label+': '+(cont[s.id]||0)); });
+  l.push('');
+  l.push('TOTAL: '+lista.length+' assunto(s)');
+  l.push('');
+  ACOMP_STATUS.forEach(function(s){
+    var doStatus=lista.filter(function(a){ return a.status===s.id; });
+    if(!doStatus.length) return;
+    l.push('── '+s.label.toUpperCase()+' ──');
+    doStatus.forEach(function(a){
+      l.push('• '+(a.titulo||'(sem título)'));
+      l.push('   Categoria: '+(a.categoria||'—')+' | Responsável: '+(a.responsavel||'—'));
+      if(a.proximaAcao) l.push('   Próxima ação: '+a.proximaAcao);
+      if(a.status==='AGUARDANDO_DIRETORIA' && a.solicitacao) l.push('   Decisão pedida: '+a.solicitacao);
+      l.push('   Última atualização: '+acompData(a.atualizadoEm||a.criadoEm));
+    });
+    l.push('');
+  });
+  return l.join('\n');
+}
+
+function acompRelatorio(){
+  var texto=acompRelatorioTexto(_acompDados().itens, _acompLerFiltros());
+  _acompModal('Relatório de acompanhamento',
+      '<div style="font-size:12px;color:var(--text-3);margin-bottom:10px">'
+    +   'Gerado com os filtros que estão na tela. Copie para levar à reunião da Diretoria.</div>'
+    + '<textarea id="acr-texto" readonly rows="16" style="width:100%;box-sizing:border-box;font-size:12px;'
+    +   'font-family:ui-monospace,Menlo,Consolas,monospace;padding:10px;border-radius:8px;border:1px solid var(--border);'
+    +   'background:var(--ink-2);color:var(--text-2);resize:vertical">'+escHtml(texto)+'</textarea>',
+    [ { texto:'Fechar', classe:'btn btn-ghost', acao:'acompFecharModal()' },
+      { texto:'<i class="fa-solid fa-copy"></i> Copiar', classe:'btn btn-gold', acao:'acompCopiarRelatorio()' } ]);
+}
+
+function acompCopiarRelatorio(){
+  var t=$('acr-texto'); if(!t) return;
+  t.select(); t.setSelectionRange(0,999999);
+  try{ document.execCommand('copy'); toast('✓ Relatório copiado.'); }
+  catch(_){ if(navigator.clipboard) navigator.clipboard.writeText(t.value).then(function(){ toast('✓ Relatório copiado.'); }); }
+}
+
+/* ── Modal do módulo ─────────────────────────────────────────────────
+   Um só, criado sob demanda, com o visual dos demais modais do sistema. */
+function _acompModal(titulo, corpoHTML, botoes){
+  var ov=$('acomp-modal');
+  if(!ov){
+    ov=document.createElement('div');
+    ov.id='acomp-modal';
+    ov.style.cssText='display:none;position:fixed;inset:0;z-index:9800;background:rgba(0,0,0,0.6);'
+      + 'align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto';
+    ov.innerHTML='<div id="acomp-modal-cx" style="background:var(--card);border:1px solid var(--border);'
+      + 'border-radius:14px;max-width:620px;width:100%;margin:24px auto;box-sizing:border-box;padding:22px"></div>';
+    document.body.appendChild(ov);
+    // Clicar fora fecha; clicar dentro, não.
+    ov.addEventListener('click', function(e){ if(e.target===ov) acompFecharModal(); });
+  }
+  $('acomp-modal-cx').innerHTML =
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">'
+    +   '<div style="font-size:16px;font-weight:700;color:var(--text)">'+escHtml(titulo)+'</div>'
+    +   '<button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="acompFecharModal()"><i class="fa-solid fa-xmark"></i></button>'
+    + '</div>'
+    + corpoHTML
+    + '<div class="modal-actions" style="margin-top:18px">'
+    +   (botoes||[]).map(function(b){ return '<button class="'+b.classe+'" onclick="'+b.acao+'">'+b.texto+'</button>'; }).join('')
+    + '</div>';
+  ov.style.display='flex';
+  try{ _sincronizarTravaRolagem(); }catch(_){}
+}
+
+function acompFecharModal(){
+  var ov=$('acomp-modal');
+  if(ov) ov.style.display='none';
+  try{ _sincronizarTravaRolagem(); }catch(_){}
 }
 
 function reservaViolaRegra(espaco, data, horario, lote, idAtual){
