@@ -5768,7 +5768,7 @@ const _NORM = {
    morador nao tente gravar modulo de administracao e tome 403 no console --
    mas o supervisor (a Diretoria, na Central de Acompanhamento) PRECISA
    gravar: e ele quem registra aprovar/recusar. Quem pode o que naquele
-   modulo e decidido por acompPodeEditar()/acompPodeDecidir(), e o morador
+   modulo e decidido por acompPodeEditar(), e o morador
    sequer alcanca a tela. */
 const _MOD_ADMIN = ['lotes','unidades','condominos','localizacoes','saas_condominios','usuarios','infogerais'];
 function _podeGravarModulo(k){
@@ -14204,11 +14204,6 @@ function acompPodeEditar(){
   var n = window._userNivel || '';
   return n==='admin' || n==='gestor';
 }
-function acompPodeDecidir(){
-  try{ if(isSuperAdmin()) return true; }catch(_){}
-  var n = window._userNivel || '';
-  return n==='admin' || n==='gestor' || n==='supervisor';
-}
 
 /* ── Contagem por situação ───────────────────────────────────────────── */
 function acompContar(itens){
@@ -14641,7 +14636,7 @@ function _acompInfoLinha(rot, val){
 
 function _acompDetalheHTML(a){
   var st=acompStatusInfo(a.status);
-  var podeEd=acompPodeEditar(), podeDec=acompPodeDecidir();
+  var podeEd=acompPodeEditar();
   var h='';
 
   h+='<div style="margin-bottom:16px">'
@@ -14683,12 +14678,16 @@ function _acompDetalheHTML(a){
      +   escHtml(a.solicitacao||'A Administração pediu uma decisão sobre este assunto.')+'</div>'
      + (a.prazoDecisao
         ? '<div style="font-size:12.5px;color:var(--text-3);margin-top:10px"><b>Prazo para decisão:</b> '+escHtml(acompData(a.prazoDecisao))+'</div>' : '')
-     + (podeDec
-        ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">'
-          + '<button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="acompDecidir(\''+escU(a.id)+'\',\'APROVADO\')"><i class="fa-solid fa-check"></i> Aprovar</button>'
-          + '<button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="acompDecidir(\''+escU(a.id)+'\',\'RECUSADO\')"><i class="fa-solid fa-xmark"></i> Recusar</button>'
-          + '<button class="btn btn-ghost btn-sm" onclick="acompDecidir(\''+escU(a.id)+'\',\'MAIS_INFO\')"><i class="fa-solid fa-circle-question"></i> Pedir mais informações</button>'
-          + '</div>'
+     /* Nao ha botao de aprovar/recusar aqui, por decisao de 28/08/2026.
+
+        A decisao acontece na reuniao, entre pessoas -- nao num clique. O que
+        o sistema faz e mostrar CLARAMENTE o que esta esperando a Diretoria e
+        ate quando; depois da reuniao, a Administracao muda a situacao do
+        assunto e escreve no historico o que ficou combinado. Menos teatro,
+        e um registro que corresponde ao que de fato aconteceu. */
+     + (podeEd
+        ? '<div style="font-size:12px;color:var(--text-3);margin-top:12px;line-height:1.6">'
+          + 'Depois da decisão, atualize a situação do assunto e registre no histórico o que ficou combinado.</div>'
         : '<div style="font-size:12px;color:var(--text-3);margin-top:12px">Aguardando a Diretoria.</div>')
      + '</div>';
   } else if(podeEd && a.status!=='CONCLUIDO'){
@@ -14714,22 +14713,6 @@ function _acompDetalheHTML(a){
     h+='<div class="card" style="margin-bottom:16px">'
      + '<div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Observações</div>'
      + '<div style="font-size:13px;color:var(--text-2);line-height:1.7;white-space:pre-wrap">'+escHtml(a.observacoes)+'</div>'
-     + '</div>';
-  }
-
-  // Decisões tomadas
-  if(Array.isArray(a.decisoes) && a.decisoes.length){
-    h+='<div class="card" style="margin-bottom:16px">'
-     + '<div class="card-head"><div class="card-title"><div class="card-icon"><i class="fa-solid fa-gavel"></i></div>Decisões da Diretoria</div></div>'
-     + a.decisoes.map(function(dd){
-         var cor = dd.decisao==='APROVADO' ? '#2ea36f' : (dd.decisao==='RECUSADO' ? '#e05252' : '#3d8fdd');
-         var rot = dd.decisao==='APROVADO' ? 'Aprovado' : (dd.decisao==='RECUSADO' ? 'Recusado' : 'Pediu mais informações');
-         return '<div style="border-top:1px solid var(--border);padding:12px 0">'
-           + '<div style="font-weight:700;color:'+cor+';font-size:13px">'+rot+'</div>'
-           + '<div style="font-size:12px;color:var(--text-3);margin-top:3px">Por '+escHtml(dd.quem||'—')+' • '+escHtml(acompDataHora(dd.quando))+'</div>'
-           + (dd.observacao ? '<div style="font-size:13px;color:var(--text-2);margin-top:6px;line-height:1.6;white-space:pre-wrap">'+escHtml(dd.observacao)+'</div>' : '')
-           + '</div>';
-       }).join('')
      + '</div>';
   }
 
@@ -14876,62 +14859,6 @@ function acompConfirmarSolicitacao(id){
   _acompSalvar(d);
   acompFecharModal();
   toast('✅ Enviado para a Diretoria.');
-  acompAbrir(id);
-}
-
-function acompDecidir(id, decisao){
-  if(!acompPodeDecidir()){ toast('⚠️ Só a Diretoria decide este assunto.'); return; }
-  var a=_acompItem(id); if(!a) return;
-  var rot = decisao==='APROVADO' ? 'Aprovar' : (decisao==='RECUSADO' ? 'Recusar' : 'Pedir mais informações');
-
-  /* Depois de decidir, o assunto precisa ir para ALGUM lugar — senão fica
-     "aguardando Diretoria" para sempre e o card mente. O destino sugerido
-     muda com a decisão, mas quem decide pode trocar. */
-  var sugerido = decisao==='APROVADO' ? 'EM_ANDAMENTO'
-               : (decisao==='RECUSADO' ? 'CONCLUIDO' : 'PENDENTE');
-  var opcSt = ACOMP_STATUS.map(function(s){
-    return '<option value="'+s.id+'"'+(s.id===sugerido?' selected':'')+'>'+escHtml(s.label)+'</option>'; }).join('');
-
-  _acompModal(rot,
-      '<div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:14px">'
-    +   '<b>'+escHtml(a.titulo||'')+'</b>'
-    +   (a.solicitacao ? '<div style="color:var(--text-3);margin-top:6px;white-space:pre-wrap">'+escHtml(a.solicitacao)+'</div>' : '')
-    + '</div>'
-    + '<div class="form-grid" style="gap:12px">'
-    + '<div class="fg full" style="grid-column:1/-1"><label>Observação da Diretoria</label>'
-    +   '<textarea id="acx-obs" rows="3" placeholder="Ex: Orçamento aprovado para execução do serviço."></textarea></div>'
-    + '<div class="fg"><label>Situação após a decisão</label><select id="acx-status">'+opcSt+'</select></div>'
-    + '</div>',
-    [ { texto:'Cancelar', classe:'btn btn-ghost', acao:'acompFecharModal()' },
-      { texto:'Confirmar '+rot.toLowerCase(), classe:'btn btn-gold',
-        acao:'acompConfirmarDecisao(\''+String(id).replace(/'/g,"\\'")+'\',\''+decisao+'\')' } ]);
-}
-
-function acompConfirmarDecisao(id, decisao){
-  if(!acompPodeDecidir()){ toast('⚠️ Sem permissão.'); return; }
-  var d=_acompDados(), a=null;
-  d.itens.forEach(function(x){ if(String(x.id)===String(id)) a=x; });
-  if(!a) return;
-
-  var obs=($('acx-obs')?$('acx-obs').value:'').trim();
-  var novo=($('acx-status')||{}).value||'PENDENTE';
-  var anterior=a.status;
-  var rot = decisao==='APROVADO' ? 'APROVADO' : (decisao==='RECUSADO' ? 'RECUSADO' : 'MAIS INFORMAÇÕES');
-
-  if(!Array.isArray(a.decisoes)) a.decisoes=[];
-  a.decisoes.push({ decisao:decisao, observacao:obs, quem:_acompQuem(), quando:_acompAgora() });
-
-  a.status=novo;
-  // Decidido: deixa de estar na fila da Diretoria. Sem isto o assunto
-  // continuaria pedindo uma decisão que já foi tomada.
-  a.precisaDecisao=false;
-
-  acompRegistrar(a, 'Decisão da Diretoria: '+rot+'.'+(obs?'\n'+obs:''),
-                 { statusAnterior:anterior, novoStatus:novo, quem:_acompQuem() });
-
-  _acompSalvar(d);
-  acompFecharModal();
-  toast('✅ Decisão registrada.');
   acompAbrir(id);
 }
 

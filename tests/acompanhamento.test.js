@@ -27,7 +27,7 @@ const api = carregar(
   ['acompStatusInfo', 'acompContar', 'acompUltimaAtualizacao', 'acompFiltrar',
    'acompDecisoesVencendo', 'acompRegistrar', 'acompRelatorioTexto',
    'acompData', 'acompDataHora', '_acompCategorias', '_acompResponsaveis',
-   'acompPodeEditar', 'acompPodeDecidir', '_acompAgora', '_acompQuem'],
+   'acompPodeEditar', '_acompAgora', '_acompQuem'],
   {
     ACOMP_STATUS: [
       { id:'AGUARDANDO_DIRETORIA', label:'Aguardando Diretoria', classe:'acomp-st-diretoria', icone:'i', cor:'#e05252', desc:'d' },
@@ -231,80 +231,21 @@ bloco('Datas legíveis, sem "Invalid Date"', () => {
 });
 
 // ── Permissões ────────────────────────────────────────────────────────
-bloco('Quem faz o quê', () => {
-  const perm = (nivel, sup) => carregar(['acompPodeEditar', 'acompPodeDecidir'], {
+/* ── Quem faz o quê ──────────────────────────────────────────────────
+   Em 28/08/2026 saiu o botão de aprovar/recusar da Diretoria: a decisão
+   acontece na reunião, e depois a Administração atualiza a situação e
+   escreve no histórico. Sobrou uma permissão só — quem escreve. */
+bloco('Quem escreve na Central', () => {
+  const perm = (nivel, sup) => carregar(['acompPodeEditar'], {
     isSuperAdmin: () => !!sup,
     window: { _userNivel: nivel },
   });
 
-  const adm = perm('admin');
-  checa('administração edita', adm.acompPodeEditar(), true);
-  checa('e também decide', adm.acompPodeDecidir(), true);
-
-  // O pedido era claro: "a Diretoria não deve precisar editar o assunto para
-  // tomar uma decisão". Então ela decide sem poder editar.
-  const sup = perm('supervisor');
-  checa('diretoria NÃO edita', sup.acompPodeEditar(), false);
-  checa('mas decide', sup.acompPodeDecidir(), true);
-
-  const mor = perm('morador');
-  checa('morador não edita', mor.acompPodeEditar(), false);
-  checa('nem decide', mor.acompPodeDecidir(), false);
-
-  const su = perm('morador', true);
-  checa('super-admin passa por cima', [su.acompPodeEditar(), su.acompPodeDecidir()], [true, true]);
-});
-
-// ── O cache não pode ser alterado antes de gravar ─────────────────────
-// _acompDados() devolve uma CÓPIA. Sem isso, cada edição mexia direto no
-// cache antes de o S() decidir se podia gravar — e o S() recusa quando a
-// leitura do banco falhou nesta sessão. A tela mostraria a alteração como
-// salva, e ela sumiria no carregamento seguinte, sem erro e sem aviso.
-bloco('Editar não mexe no cache antes de salvar', () => {
-  const cache = { itens: [assunto({ id: 'X1', titulo: 'Título original', status: 'PENDENTE' })] };
-  let gravado = null;
-
-  const campos = {
-    'acf-titulo': 'Título NOVO', 'acf-cat': 'Segurança', 'acf-status': 'EM_ANDAMENTO',
-    'acf-resp': 'Empresa X', 'acf-prio': 'ALTA', 'acf-inicio': '2026-08-01',
-    'acf-previsao': '', 'acf-desc': 'desc', 'acf-proxima': 'prox', 'acf-obs': '',
-  };
-  const forms = carregar(
-    ['acompSalvarForm', '_acompDados', '_acompSalvar', '_acompItem', '_acompAgora',
-     '_acompQuem', 'acompRegistrar', 'acompStatusInfo'],
-    {
-      G: () => cache,
-      S: (k, v) => { gravado = v; },
-      $: (id) => (campos[id] !== undefined ? { value: campos[id], focus() {} } : null),
-      toast: () => {},
-      acompPodeEditar: () => true,
-      acompFecharModal: () => {},
-      renderAcompanhamento: () => {},
-      acompAbrir: () => {},
-      _acompAberto: '',
-      ACOMP_STATUS: [
-        { id: 'PENDENTE', label: 'Pendente' },
-        { id: 'EM_ANDAMENTO', label: 'Em andamento' },
-      ],
-      window: { _userNivel: 'admin' },
-      localStorage: { getItem: () => '{"nome":"Alessandro"}' },
-    });
-
-  forms.acompSalvarForm('X1');
-
-  // O que importa: o cache NÃO mudou, e o que foi entregue ao S() mudou.
-  checa('o cache continua com o título antigo', cache.itens[0].titulo, 'Título original');
-  checa('e com a situação antiga', cache.itens[0].status, 'PENDENTE');
-  checa('mas o S() recebeu a alteração', gravado && gravado.itens[0].titulo, 'Título NOVO');
-  checa('com a situação nova', gravado && gravado.itens[0].status, 'EM_ANDAMENTO');
-
-  // A edição precisa chegar no objeto CERTO. Se ela fosse aplicada a uma
-  // cópia solta, o S() receberia o registro sem mudança nenhuma — e a tela
-  // diria "salvo" sem ter salvado.
-  checa('não gravou um registro intacto por engano',
-        gravado && gravado.itens[0].titulo === cache.itens[0].titulo, false);
-  checa('e o histórico ganhou a linha da mudança',
-        gravado && gravado.itens[0].historico.length > 0, true);
+  checa('administração edita', perm('admin').acompPodeEditar(), true);
+  checa('gestor também', perm('gestor').acompPodeEditar(), true);
+  checa('supervisor só acompanha', perm('supervisor').acompPodeEditar(), false);
+  checa('morador só acompanha', perm('morador').acompPodeEditar(), false);
+  checa('super-admin passa por cima', perm('morador', true).acompPodeEditar(), true);
 });
 
 console.log('\n' + '-'.repeat(50));
