@@ -14979,17 +14979,28 @@ function acompCopiarRelatorio(){
 
 /* ── Modal do módulo ─────────────────────────────────────────────────
    Um só, criado sob demanda, com o visual dos demais modais do sistema. */
+/* O modal do modulo usa as classes .modal-ov / .modal do proprio sistema.
+
+   A primeira versao montava o seu proprio: a rolagem ficava no FUNDO e a
+   caixa crescia livre. Num formulario alto -- o de editar assunto passa de
+   740px -- a caixa ficava maior que a janela, o topo saia de vista e nao
+   dava para voltar: o titulo e o campo Assunto ficavam inalcancaveis. Foi
+   o "nao consigo subir essa tela".
+
+   A .modal do sistema ja resolve isso ha muito tempo: max-height 88vh e
+   rolagem DENTRO da caixa, entao ela nunca passa da janela. E, por ser
+   .modal-ov.open, a trava de rolagem da pagina (_sincronizarTravaRolagem)
+   reconhece o modal e segura o fundo -- coisa que a minha versao nao fazia,
+   e por isso a pagina de tras rolava junto. */
 function _acompModal(titulo, corpoHTML, botoes){
   var ov=$('acomp-modal');
   if(!ov){
     ov=document.createElement('div');
     ov.id='acomp-modal';
-    ov.style.cssText='display:none;position:fixed;inset:0;z-index:9800;background:rgba(0,0,0,0.6);'
-      + 'align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto';
-    ov.innerHTML='<div id="acomp-modal-cx" style="background:var(--card);border:1px solid var(--border);'
-      + 'border-radius:14px;max-width:620px;width:100%;margin:24px auto;box-sizing:border-box;padding:22px"></div>';
+    ov.className='modal-ov';
+    ov.innerHTML='<div id="acomp-modal-cx" class="modal"></div>';
     document.body.appendChild(ov);
-    // Clicar fora fecha; clicar dentro, não.
+    // Clicar fora fecha; clicar dentro, nao.
     ov.addEventListener('click', function(e){ if(e.target===ov) acompFecharModal(); });
   }
   $('acomp-modal-cx').innerHTML =
@@ -15001,13 +15012,17 @@ function _acompModal(titulo, corpoHTML, botoes){
     + '<div class="modal-actions" style="margin-top:18px">'
     +   (botoes||[]).map(function(b){ return '<button class="'+b.classe+'" onclick="'+b.acao+'">'+b.texto+'</button>'; }).join('')
     + '</div>';
-  ov.style.display='flex';
+  ov.classList.add('open');
+  // A caixa reaproveitada guarda a rolagem do uso anterior: abrir o proximo
+  // modal no meio do formulario anterior seria o mesmo defeito por outro
+  // caminho.
+  $('acomp-modal-cx').scrollTop = 0;
   try{ _sincronizarTravaRolagem(); }catch(_){}
 }
 
 function acompFecharModal(){
   var ov=$('acomp-modal');
-  if(ov) ov.style.display='none';
+  if(ov) ov.classList.remove('open');
   try{ _sincronizarTravaRolagem(); }catch(_){}
 }
 
