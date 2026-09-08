@@ -1753,7 +1753,21 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
   font-size:11px;font-weight:600;
   letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);
 }
-.fg input,.fg select,.fg textarea{
+/* Rotulo de OPCAO (a linha de um radio/checkbox) nao e rotulo de campo: e
+   frase, para ler. Sem caixa alta e sem espacamento entre letras -- que num
+   celular estouravam a linha e jogavam o texto para fora da tela. */
+.fg label.fg-opcao{
+  font-size:13px;font-weight:400;
+  letter-spacing:normal;text-transform:none;color:var(--text);
+}
+/* Radio e checkbox nao sao caixa de texto: nada de fundo, borda, respiro
+   interno nem largura de campo. Sem esta excecao eles herdavam width:100%
+   (regra do modal no celular) e empurravam o texto da opcao para fora. */
+.fg input[type=radio],.fg input[type=checkbox]{
+  background:none;border:0;padding:0;
+  width:auto;min-width:0;max-width:none;flex:none;
+}
+.fg input:not([type=radio]):not([type=checkbox]),.fg select,.fg textarea{
   background:var(--ink-2);
   border:1px solid var(--border);
   border-radius:var(--radius-sm);
@@ -2278,7 +2292,10 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
   /* Permite os campos encolherem dentro do grid/modal (senão um select longo estica tudo) */
   .form-grid > *{ min-width:0 }
   .modal .fg{ min-width:0 }
-  .modal .fg input, .modal .fg select, .modal .fg textarea{ min-width:0; max-width:100%; width:100% }
+  /* Radio e checkbox ficam de fora: width:100% neles esticava a bolinha ate
+     a largura do modal e o texto da opcao saia da tela. */
+  .modal .fg input:not([type=radio]):not([type=checkbox]),
+  .modal .fg select, .modal .fg textarea{ min-width:0; max-width:100%; width:100% }
   /* Itens com grid-column:1/-1 inline ainda ocupam a coluna única */
   .form-grid > .fg[style*="grid-column"]{ grid-column:1 !important }
 
@@ -17708,7 +17725,7 @@ function _musrRenderModulos(sel){
   if(!ops.length){ box.innerHTML='<span style="color:var(--text-3);font-size:13px">Nenhum módulo liberado pela plataforma.</span>'; return; }
   box.innerHTML=ops.map(function(k){
     var chk=(sel&&sel[k]===true)?'checked':'';
-    return '<label style="display:flex;align-items:center;gap:8px;background:var(--ink-3);border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px">'
+    return '<label class="fg-opcao" style="display:flex;align-items:center;gap:8px;background:var(--ink-3);border:1px solid var(--border);border-radius:10px;padding:8px 12px;cursor:pointer;font-size:13px;max-width:100%">'
       +'<input type="checkbox" class="musr-mod" value="'+k+'" '+chk+' style="accent-color:var(--gold);width:16px;height:16px"> '+MODULOS_SAAS[k].label+'</label>';
   }).join('');
 }
@@ -17849,9 +17866,9 @@ function musrCadRender(){
     var h='<i class="fa-solid fa-circle-check" style="color:var(--green-l)"></i> '
       +'<b>'+escU(nome)+'</b> já está no cadastro do '+escU(uni)+' como <b>'+escU(ja.papel)+'</b>.';
     if(tel && _soDigitos(tel) && _soDigitos(tel)!==_soDigitos(ja.tel||'')){
-      h+='<label style="display:flex;gap:8px;align-items:flex-start;margin-top:9px;cursor:pointer">'
+      h+='<label class="fg-opcao" style="display:flex;gap:8px;align-items:flex-start;margin-top:9px;cursor:pointer">'
         +'<input type="checkbox" id="musr-cad-tel" style="accent-color:var(--gold);width:16px;height:16px;margin-top:2px;flex:none">'
-        +'<span>Atualizar o telefone no cadastro: <b>'+escU(ja.tel||'(vazio)')+'</b> passa a ser <b>'+escU(tel)+'</b>.</span></label>';
+        +'<span style="flex:1 1 auto;min-width:0">Atualizar o telefone no cadastro: <b>'+escU(ja.tel||'(vazio)')+'</b> passa a ser <b>'+escU(tel)+'</b>.</span></label>';
     }
     corpo.innerHTML=h;
     return;
@@ -17860,10 +17877,13 @@ function musrCadRender(){
   var co=getCondominos();
   var quemE=function(cod){ return cod ? ((co[cod]||{}).nome||cod) : ''; };
   var linha=function(val, txt, extra){
-    return '<label style="display:flex;gap:8px;align-items:'+(extra?'center':'flex-start')+';cursor:pointer;padding:4px 0">'
+    // O texto vai num span que PODE encolher (min-width:0): sem isso, num
+    // celular estreito ele empurrava a linha para fora e virava uma palavra
+    // por linha, com metade escondida.
+    return '<label class="fg-opcao" style="display:flex;flex-wrap:wrap;gap:4px 8px;align-items:'+(extra?'center':'flex-start')+';cursor:pointer;padding:4px 0">'
       +'<input type="radio" name="musr-cad-onde" value="'+val+'"'+(val==='nada'?' checked':'')
-      +' style="accent-color:var(--gold);flex:none;margin-top:'+(extra?'0':'3px')+'">'
-      +'<span>'+txt+'</span>'+(extra||'')+'</label>';
+      +' style="accent-color:var(--gold);width:16px;height:16px;flex:none;margin-top:'+(extra?'0':'3px')+'">'
+      +'<span style="flex:1 1 140px;min-width:0">'+txt+'</span>'+(extra||'')+'</label>';
   };
 
   var h2='<div style="margin-bottom:9px"><b>'+escU(nome)+'</b> não está no cadastro do '
@@ -17876,7 +17896,7 @@ function musrCadRender(){
 
   var conds=_musrCondsDaUnidade(uni);
   if(conds.length){
-    var sel='<select id="musr-cad-de" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:12.5px;outline:none;max-width:100%">'
+    var sel='<select id="musr-cad-de" style="padding:5px 9px;border-radius:8px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:12.5px;outline:none;flex:1 1 160px;min-width:0;max-width:100%">'
       +conds.map(function(c){ return '<option value="'+escU(c.cod)+'">'+escU(c.nome)+' ('+escU(c.papel)+')</option>'; }).join('')
       +'</select>';
     h2+=linha('dependente','Dependente de', sel);
