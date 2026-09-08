@@ -25,12 +25,17 @@ function bloco(titulo, fn) { console.log('\n' + titulo); fn(); }
 
 const api = carregar(
   ['acompStatusInfo', 'acompContar', 'acompUltimaAtualizacao', 'acompFiltrar',
-   'acompDecisoesVencendo', 'acompRegistrar', 'acompRelatorioTexto',
+   'acompRegistrar', 'acompRelatorioTexto',
    'acompData', 'acompDataHora', '_acompCategorias', '_acompResponsaveis',
    'acompPodeEditar', '_acompAgora', '_acompQuem'],
   {
+    /* "Aguardando Diretoria" saiu da lista em 02/09/2026, a pedido. Um assunto
+       antigo que ainda esteja nessa situação NÃO pode sumir da tela -- é o que
+       o bloco "Situação desconhecida" logo abaixo protege. */
+    ACOMP_STATUS_ANTIGOS: {
+      AGUARDANDO_DIRETORIA: { label:'Aguardando Diretoria', classe:'acomp-st-diretoria', icone:'i', cor:'#e05252' },
+    },
     ACOMP_STATUS: [
-      { id:'AGUARDANDO_DIRETORIA', label:'Aguardando Diretoria', classe:'acomp-st-diretoria', icone:'i', cor:'#e05252', desc:'d' },
       { id:'PENDENTE',             label:'Pendente',             classe:'acomp-st-pendente',  icone:'i', cor:'#e87722', desc:'d' },
       { id:'EM_ANDAMENTO',         label:'Em andamento',         classe:'acomp-st-andamento', icone:'i', cor:'#c9a030', desc:'d' },
       { id:'AGUARDANDO_TERCEIROS', label:'Aguardando terceiros', classe:'acomp-st-terceiros', icone:'i', cor:'#3d8fdd', desc:'d' },
@@ -45,7 +50,7 @@ const api = carregar(
 
 const {
   acompStatusInfo, acompContar, acompUltimaAtualizacao, acompFiltrar,
-  acompDecisoesVencendo, acompRegistrar, acompRelatorioTexto,
+  acompRegistrar, acompRelatorioTexto,
   acompData, _acompCategorias, _acompResponsaveis,
 } = api;
 
@@ -90,9 +95,10 @@ bloco('A contagem dos cards bate com a lista', () => {
   const soma = Object.keys(c).reduce((s, k) => s + c[k], 0);
   checa('a soma fecha com o total', soma, BASE.length);
 
+  // Quatro situações desde que "Aguardando Diretoria" saiu da lista.
   const vazio = acompContar([]);
   checa('sem assuntos, tudo zero e nada indefinido',
-        Object.keys(vazio).map((k) => vazio[k]), [0, 0, 0, 0, 0]);
+        Object.keys(vazio).map((k) => vazio[k]), [0, 0, 0, 0]);
 });
 
 bloco('Situação desconhecida não some da tela', () => {
@@ -147,20 +153,6 @@ bloco('Filtrar', () => {
   checa('a lista original fica intacta', BASE.length, antes);
 });
 
-// ── Prazo de decisão ──────────────────────────────────────────────────
-bloco('Aviso de decisão vencendo', () => {
-  const venc = (prazo, st) => acompDecisoesVencendo(
-    [assunto({ status: st || 'AGUARDANDO_DIRETORIA', prazoDecisao: prazo })], '2026-08-28').length;
-
-  checa('prazo de ontem avisa', venc('2026-08-27'), 1);
-  checa('prazo de hoje avisa', venc('2026-08-28'), 1);
-  checa('prazo de amanhã ainda não', venc('2026-08-29'), 0);
-  checa('sem prazo não avisa', venc(''), 0);
-  // Só faz sentido cobrar quem está esperando decisão. Um assunto já em
-  // andamento com prazo velho viraria alarme falso todo dia.
-  checa('assunto que não espera decisão não entra', venc('2026-08-01', 'EM_ANDAMENTO'), 0);
-});
-
 // ── Histórico ─────────────────────────────────────────────────────────
 bloco('O histórico só cresce', () => {
   const a = assunto({ historico: [{ quando: '2026-08-20T10:00:00.000Z', texto: 'Assunto criado.' }] });
@@ -205,7 +197,12 @@ bloco('As listas dos filtros não escondem o que existe', () => {
 bloco('Relatório para a reunião', () => {
   const txt = acompRelatorioTexto(BASE, {});
   checa('tem o cabeçalho', /CENTRAL DE ACOMPANHAMENTO/.test(txt), true);
-  checa('traz a contagem por situação', /Aguardando Diretoria: 1/.test(txt), true);
+  /* O assunto '2' está numa situação que saiu da lista. Ele NÃO pode sumir do
+     relatório: continua aparecendo na tela, e um relatório que soma menos que
+     o total sem explicar é pior do que relatório nenhum. */
+  checa('situação fora da lista ainda é contada', /Aguardando Diretoria: 1/.test(txt), true);
+  checa('e o assunto dela aparece no relatório',
+        txt.indexOf('Orçamento pintura da sede') >= 0, true);
   checa('e os pendentes', /Pendente: 2/.test(txt), true);
   checa('lista os assuntos', txt.indexOf('Manutenção das câmeras da portaria') >= 0, true);
   checa('mostra o total', /TOTAL: 6/.test(txt), true);
