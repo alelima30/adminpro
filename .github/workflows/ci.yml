@@ -57,6 +57,9 @@ jobs:
       - name: Central de Acompanhamento (cards, filtros e historico)
         run: node tests/acompanhamento.test.js
 
+      - name: Acesso por usuario (tela liberada caso a caso)
+        run: node tests/acessos.test.js
+
   # ────────────────────────────────────────────────────────────────
   # 2) DEPLOY das Edge Functions do Supabase
   #    So roda na branch main e so se os testes passarem.
