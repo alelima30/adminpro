@@ -4962,8 +4962,8 @@ html.ambiente-ensaio body{padding-top:28px}
         </select>
       </div>
       <div class="fg full" id="musr-modulos-box" style="display:none">
-        <label>Módulos deste supervisor</label>
-        <div style="font-size:11px;color:var(--text-3);margin:2px 0 8px;line-height:1.5">
+        <label id="musr-modulos-tt">Módulos deste supervisor</label>
+        <div id="musr-modulos-ajuda" style="font-size:11px;color:var(--text-3);margin:2px 0 8px;line-height:1.5">
           Ele poderá <strong>usar (registrar e dar baixa)</strong> apenas os módulos marcados.
           Só aparecem os módulos liberados pela plataforma para este condomínio.
         </div>
@@ -6153,13 +6153,17 @@ function modulosVisiveis(){
   const ativos = modulosAtivos();
   const nivel = window._userNivel || 'morador';
   if(isSuperAdmin() || nivel==='admin' || nivel==='gestor') return ativos;
-  if(nivel==='supervisor'){
-    const mods=_supervisorMods();
-    return ativos.filter(k=> mods[k]===true);
-  }
+  const mods = _supervisorMods();
+  if(nivel==='supervisor') return ativos.filter(k=> mods[k]===true);
   const vis = G('modulos_morador');
-  if(!vis || typeof vis!=='object') return ativos; // não configurado => tudo liberado
-  return ativos.filter(k=> vis[k]!==false);
+  return ativos.filter(function(k){
+    // Liberado caso a caso para ESTA pessoa: vale mesmo que a tela esteja
+    // fechada para os moradores em geral. É como um diretor fica morador e
+    // ainda assim enxerga a Central de Acompanhamento.
+    if(mods[k]===true) return true;
+    if(!vis || typeof vis!=='object') return true; // não configurado => tudo liberado
+    return vis[k]!==false;
+  });
 }
 
 // Camada 3 — supervisor com acesso só a módulos específicos (por usuário).
@@ -6173,6 +6177,35 @@ function _supervisorMods(){
 // Nível equivalente para os filtros de menu/data-acesso (supervisor ~ gestor,
 // mas o conjunto real é restringido depois pelos módulos atribuídos a ele)
 function nivelMenu(){ var n=window._userNivel||'morador'; return n==='supervisor'?'gestor':n; }
+
+/* Telas liberadas CASO A CASO para a pessoa que está logada, sem mexer no
+   nível dela.
+   Nasceu de um pedido concreto: o diretor precisa acompanhar a Central de
+   Acompanhamento, mas não deve mexer em Reservas. Como gestor ele ganharia o
+   sistema inteiro; como supervisor perderia as telas de morador. Então ele
+   fica MORADOR e recebe só a tela extra.
+   Para admin/gestor/supervisor devolve vazio de propósito: nesses níveis o
+   acesso já é decidido em outro lugar, e um registro antigo aqui (de quando a
+   pessoa era outra coisa) não pode voltar a valer sozinho. */
+function _telasExtras(){
+  if(isSuperAdmin()) return {};
+  var n = window._userNivel || 'morador';
+  if(n==='admin' || n==='gestor' || n==='supervisor') return {};
+  var mods=_supervisorMods(), out={};
+  (ACESSO_PAINEIS.gestor||[]).forEach(function(id){
+    var m=(id==='relatorios'||id==='espacos')?'reservas':id;
+    if(mods[m]===true) out[id]=true;
+  });
+  return out;
+}
+function _telaExtra(id){ return _telasExtras()[id]===true; }
+// Algum grupo do menu tem tela extra? (senão o grupo inteiro fica escondido
+// e a tela liberada não teria por onde ser aberta)
+function _grupoTemExtra(grupo){
+  var ex=_telasExtras();
+  return Object.keys(ex).some(function(id){ return (MODULOS_SAAS[id]||{}).grupo===grupo; });
+}
+
 // Painéis permitidos por nível (supervisor: interseção gestor ∩ módulos atribuídos)
 function paineisPermitidos(nivel){
   if(nivel==='supervisor'){
@@ -6183,7 +6216,11 @@ function paineisPermitidos(nivel){
     });
     return out;
   }
-  return ACESSO_PAINEIS[nivel] || ACESSO_PAINEIS.morador;
+  var base=(ACESSO_PAINEIS[nivel] || ACESSO_PAINEIS.morador).slice();
+  Object.keys(_telasExtras()).forEach(function(id){
+    if(base.indexOf(id)<0) base.push(id);
+  });
+  return base;
 }
 
 // Painel → módulo. Cada tela é seu próprio módulo (mesmo id).
@@ -6251,12 +6288,13 @@ function aplicarSaas(){
     var nav=$('nav-'+id); if(!nav) return;
     var st=nav.closest('.nav-standalone'); if(!st) return;
     var liberado = id==='comunicados' ? (ativos.includes('comunicados')||ativos.includes('eventos')) : ativos.includes(id);
-    st.style.display = (liberado && _nivelPermite(st)) ? '' : 'none';
+    st.style.display = (liberado && (_nivelPermite(st) || _telaExtra(id))) ? '' : 'none';
   });
   // Grupos: esconde se nenhuma tela liberada OU o nível não permite
   document.querySelectorAll('.sb-group').forEach(g=>{
     const hd=g.querySelector('.sb-group-hd'); if(!hd) return;
-    g.style.display = (_grupoTemModuloAtivo(hd.dataset.grupo) && _nivelPermite(g)) ? '' : 'none';
+    const _ok = _nivelPermite(g) || _grupoTemExtra(hd.dataset.grupo);
+    g.style.display = (_grupoTemModuloAtivo(hd.dataset.grupo) && _ok) ? '' : 'none';
   });
   const saasEl=$('sb-saas'); if(saasEl) saasEl.style.display = isSuperAdmin()?'':'none';
   const tag=$('tb-tag-cond'); if(tag) tag.textContent=_condAtual;
@@ -8605,7 +8643,7 @@ function sbAbrirGrupo(key, hdEl){
   if(_sbGrupoRaiz === key){ sbFecharFlyout(); return; }
   const nivel = nivelMenu();
   $('sb-flyout-title').textContent = grupo.titulo;
-  const itens = grupo.itens.filter(it => (it.acesso||[]).includes(nivel) && _itemModuloAtivo(it.id));
+  const itens = grupo.itens.filter(it => ((it.acesso||[]).includes(nivel) || _telaExtra(it.id)) && _itemModuloAtivo(it.id));
   $('sb-flyout-body').innerHTML = itens.map(_sbItemHtml).join('');
   _sbGrupoRaiz = key;
   sbFecharFlyout2();
@@ -8621,7 +8659,7 @@ function sbNavFlyout(subkey, el){
   if(!grupo) return;
   const nivel = nivelMenu();
   $('sb-flyout2-title').textContent = grupo.titulo;
-  const itens = grupo.itens.filter(it => (it.acesso||[]).includes(nivel) && _itemModuloAtivo(it.id));
+  const itens = grupo.itens.filter(it => ((it.acesso||[]).includes(nivel) || _telaExtra(it.id)) && _itemModuloAtivo(it.id));
   $('sb-flyout2-body').innerHTML = itens.map(_sbItemHtml).join('');
   $('sb-flyout2').classList.add('open');
   // destaca o item pai na primeira coluna
@@ -17711,17 +17749,35 @@ function musrNivelChange(){
 }
 function _musrCarregarModulos(email, nivel){
   var box=$('musr-modulos-box'); if(!box) return;
-  var sup = nivel==='supervisor';
-  box.style.display = sup ? '' : 'none';
-  if(!sup) return;
+  // Aparece para supervisor E para morador. No supervisor a lista É o acesso
+  // dele. No morador é um ACRÉSCIMO: ele continua morador (Reservas,
+  // Comunicados, Encomendas) e ganha por cima as telas marcadas aqui — que é
+  // como um diretor acompanha a Central sem poder mexer no resto.
+  var mostra = (nivel==='supervisor' || nivel==='morador');
+  box.style.display = mostra ? '' : 'none';
+  if(!mostra) return;
+  var tt=$('musr-modulos-tt'), aj=$('musr-modulos-ajuda');
+  if(tt) tt.textContent = nivel==='supervisor' ? 'Módulos deste supervisor' : 'Telas extras para esta pessoa';
+  if(aj) aj.innerHTML = nivel==='supervisor'
+    ? 'Ele poderá <strong>usar (registrar e dar baixa)</strong> apenas os módulos marcados. '
+      +'Só aparecem os módulos liberados pela plataforma para este condomínio.'
+    : 'Ela continua <strong>morador</strong> (Reservas, Comunicados, Encomendas) e ganha '
+      +'<strong>por cima</strong> as telas marcadas aqui. Marque nada e ela fica só com o de morador. '
+      +'Desmarcar tira o acesso na hora — é assim que se troca um diretor.';
   var cfg=(G('supervisores')||{})[(email||'').toLowerCase()]||{};
-  _musrRenderModulos(cfg.modulos||{});
+  _musrRenderModulos(cfg.modulos||{}, nivel);
 }
-function _musrRenderModulos(sel){
+function _musrRenderModulos(sel, nivel){
   var box=$('musr-modulos-list'); if(!box) return;
   var liberados=modulosAtivos();                 // liberados pelo sênior
   var gestor=ACESSO_PAINEIS.gestor||[];
   var ops=liberados.filter(function(k){ return gestor.indexOf(k)>=0; }); // faz sentido p/ supervisor
+  // Para morador, some o que ele JÁ tem por ser morador: marcar Reservas ali
+  // não mudaria nada e só faria parecer que muda.
+  if(nivel==='morador'){
+    var base=ACESSO_PAINEIS.morador||[];
+    ops=ops.filter(function(k){ return base.indexOf(k)<0; });
+  }
   if(!ops.length){ box.innerHTML='<span style="color:var(--text-3);font-size:13px">Nenhum módulo liberado pela plataforma.</span>'; return; }
   box.innerHTML=ops.map(function(k){
     var chk=(sel&&sel[k]===true)?'checked':'';
@@ -17729,9 +17785,19 @@ function _musrRenderModulos(sel){
       +'<input type="checkbox" class="musr-mod" value="'+k+'" '+chk+' style="accent-color:var(--gold);width:16px;height:16px"> '+MODULOS_SAAS[k].label+'</label>';
   }).join('');
 }
-function _salvarSupervisorMods(email){
+/* Grava o acesso por usuário. Vale para supervisor (é o acesso dele) e para
+   morador (são as telas extras). Em admin/gestor APAGA o registro: quem viu a
+   caixinha de módulos foi outro nível, e deixar o registro para trás faria a
+   pessoa voltar a ter acesso extra se um dia virasse morador de novo. */
+function _salvarSupervisorMods(email, nivel){
   var map=G('supervisores')||{};
   var key=(email||'').toLowerCase(); if(!key) return;
+  if(nivel==='admin' || nivel==='gestor'){
+    if(!(key in map)) return;
+    delete map[key];
+    S('supervisores', map);
+    return;
+  }
   var mods={};
   document.querySelectorAll('.musr-mod').forEach(function(c){ mods[c.value]=c.checked; });
   map[key]={ modulos:mods };
@@ -17771,7 +17837,7 @@ async function salvarDadosUsr(){
     var tabela = u._tipo==='sol' ? 'solicitacoes' : 'usuarios';
     var up = await SB.from(tabela).update(dados).eq('id', docId);
     if(up.error) throw up.error;
-    if(dados.nivel==='supervisor') _salvarSupervisorMods(u.email);
+    _salvarSupervisorMods(u.email, dados.nivel);
     // Quem já tinha sido aprovado antes disso existir entra no cadastro por aqui.
     var _resumoCad='';
     try{ _resumoCad=_musrAplicarCadastro(dados.nome, dados.tel, u.email, dados.unidade)||''; }catch(_e){}
@@ -18026,7 +18092,7 @@ async function aprovarUsuario(){
     // Só depois do acesso gravado é que o cadastro do condomínio é tocado.
     var _resumoCad='';
     try{ _resumoCad=_musrAplicarCadastro(_nomeF, _telF, u.email, _uniF)||''; }catch(_e){}
-    if(nivel==='supervisor') _salvarSupervisorMods(u.email);
+    _salvarSupervisorMods(u.email, nivel);
     fecharModalUsr();
     await renderUsuarios();
     toast('✓ Acesso aprovado!' + (_resumoCad ? ' ' + _resumoCad : ''));
