@@ -3167,7 +3167,6 @@ html.ambiente-ensaio body{padding-top:28px}
                de novo o que ela acabou de ver. -->
           <div class="kpi-grid" id="acomp-cards"></div>
 
-          <div id="acomp-avisos" style="margin-bottom:16px"></div>
 
           <div class="card" style="margin-bottom:16px">
             <div class="acomp-filtros">
@@ -14099,10 +14098,21 @@ function resPagamentoAoSalvar(resAnterior, taxa, finBlocoAtivo){
    documento parece ter sumido.
    ══════════════════════════════════════════════════════════════════════ */
 
+/* "Aguardando Diretoria" saiu em 02/09/2026, a pedido: nao esta em uso.
+
+   Nao foi apagada do sistema, so da lista -- e a diferenca importa. Se um
+   assunto antigo ainda estiver nessa situacao, acompStatusInfo() devolve um
+   rotulo legivel e ele continua aparecendo na lista, em vez de sumir da tela
+   (que, para quem usa, e o mesmo que ter sido apagado).
+
+   Para trazer de volta um dia, basta reinserir a entrada abaixo:
+
+     { id:'AGUARDANDO_DIRETORIA', label:'Aguardando Diretoria', curto:'Aguardando Diretoria',
+       classe:'acomp-st-diretoria', icone:'fa-user-shield', cor:'#e05252',
+       desc:'Precisam de decisão da Diretoria' },
+
+   O CSS .acomp-st-diretoria continua no arquivo por isso. */
 var ACOMP_STATUS = [
-  { id:'AGUARDANDO_DIRETORIA', label:'Aguardando Diretoria', curto:'Aguardando Diretoria',
-    classe:'acomp-st-diretoria', icone:'fa-user-shield', cor:'#e05252',
-    desc:'Precisam de decisão da Diretoria' },
   { id:'PENDENTE', label:'Pendente', curto:'Pendente',
     classe:'acomp-st-pendente', icone:'fa-clipboard-list', cor:'#e87722',
     desc:'Aguardando início ou providência' },
@@ -14128,8 +14138,20 @@ var ACOMP_CATEGORIAS = ['Administração','Segurança','Manutenção','Financeir
 var ACOMP_PRIORIDADES = ['BAIXA','MEDIA','ALTA','URGENTE'];
 var ACOMP_PRIO_ROTULO = { BAIXA:'Baixa', MEDIA:'Média', ALTA:'Alta', URGENTE:'Urgente' };
 
+/* Situacoes que sairam de uso, mas que ainda podem estar gravadas em algum
+   assunto. Ficam so com o rotulo: nao aparecem como card nem como opcao no
+   formulario, mas quem ja esta nelas continua com nome legivel na lista e no
+   relatorio, em vez de mostrar "AGUARDANDO_DIRETORIA" cru para o sindico. */
+var ACOMP_STATUS_ANTIGOS = {
+  AGUARDANDO_DIRETORIA: { label:'Aguardando Diretoria', classe:'acomp-st-diretoria',
+                          icone:'fa-user-shield', cor:'#e05252' }
+};
+
 function acompStatusInfo(id){
   for(var i=0;i<ACOMP_STATUS.length;i++) if(ACOMP_STATUS[i].id===id) return ACOMP_STATUS[i];
+  var velho = ACOMP_STATUS_ANTIGOS[id];
+  if(velho) return { id:id, label:velho.label, curto:velho.label, classe:velho.classe,
+                     icone:velho.icone, cor:velho.cor, desc:'' };
   // Situação desconhecida (dado antigo, ou digitado fora): aparece como está,
   // em cinza, em vez de sumir da lista — some da tela é como se perdesse.
   return { id:id||'', label:id||'—', curto:id||'—', classe:'', icone:'fa-circle', cor:'', desc:'' };
@@ -14277,17 +14299,6 @@ function acompFiltrar(itens, f){
   return out;
 }
 
-/* Assuntos cuja decisão da Diretoria vence hoje ou já venceu. Vira o aviso
-   do topo — prazo que ninguém vê não é prazo. */
-function acompDecisoesVencendo(itens, hojeISO){
-  var hoje = hojeISO || _reslHojeISO();
-  return (itens||[]).filter(function(a){
-    if(a.status!=='AGUARDANDO_DIRETORIA') return false;
-    if(!a.prazoDecisao) return false;
-    return a.prazoDecisao <= hoje;
-  });
-}
-
 /* ── Tela: lista ─────────────────────────────────────────────────────── */
 
 var _acompFiltroStatus = '';   // clique nos cards
@@ -14391,23 +14402,6 @@ function renderAcompanhamento(){
     ult.textContent = u ? ('Última atualização: '+acompDataHora(u)) : 'Nenhum assunto cadastrado ainda';
   }
 
-  // Aviso de prazo de decisão vencendo/vencido.
-  var av=$('acomp-avisos');
-  if(av){
-    var vencendo=acompDecisoesVencendo(itens);
-    av.innerHTML = vencendo.length
-      ? '<div style="border:1px solid rgba(224,82,82,.35);background:rgba(224,82,82,.07);border-radius:12px;'
-        + 'padding:14px 16px;display:flex;gap:12px;align-items:flex-start">'
-        + '<i class="fa-solid fa-triangle-exclamation" style="color:#e05252;font-size:17px;margin-top:1px"></i>'
-        + '<div style="font-size:13px;color:var(--text-2);line-height:1.6">'
-        +   '<b style="color:#e05252">'+vencendo.length+' decisão(ões) da Diretoria no prazo ou vencida(s):</b><br>'
-        +   vencendo.map(function(a){
-                return escHtml(a.titulo)+' — prazo '+escHtml(acompData(a.prazoDecisao));
-              }).join('<br>')
-        + '</div></div>'
-      : '';
-  }
-
   var botao=$('acomp-btn-novo');
   if(botao) botao.style.display = acompPodeEditar() ? '' : 'none';
 
@@ -14477,8 +14471,6 @@ function acompAbrirForm(id){
     var sel = a ? (a.prioridade===p) : (p==='MEDIA');
     return '<option value="'+p+'"'+(sel?' selected':'')+'>'+ACOMP_PRIO_ROTULO[p]+'</option>'; }).join('');
 
-  var precisa = a ? !!a.precisaDecisao : false;
-
   _acompModal((id?'Editar assunto':'Novo assunto'),
       '<div class="form-grid" style="gap:12px">'
     + '<div class="fg full" style="grid-column:1/-1"><label>Assunto *</label>'
@@ -14492,31 +14484,15 @@ function acompAbrirForm(id){
     + '<div class="fg"><label>Data de início</label><input type="date" id="acf-inicio" value="'+escU(a?a.dataInicio:_reslHojeISO())+'"></div>'
     + '<div class="fg"><label>Previsão de conclusão</label><input type="date" id="acf-previsao" value="'+escU(a?a.previsao:'')+'"></div>'
     + '<div class="fg full" style="grid-column:1/-1"><label>Descrição</label>'
-    +   '<textarea id="acf-desc" rows="4" placeholder="O que é o assunto, com o detalhe que a Diretoria precisa para entender sem perguntar.">'+escHtml(a?a.descricao:'')+'</textarea></div>'
+    +   '<textarea id="acf-desc" rows="4" placeholder="O que é o assunto, com o detalhe que quem acompanha precisa para entender sem perguntar.">'+escHtml(a?a.descricao:'')+'</textarea></div>'
     + '<div class="fg full" style="grid-column:1/-1"><label>Próxima ação</label>'
     +   '<input type="text" id="acf-proxima" placeholder="Ex: Aguardar visita técnica da empresa." value="'+escU(a?a.proximaAcao:'')+'"></div>'
     + '<div class="fg full" style="grid-column:1/-1"><label>Observações</label>'
     +   '<textarea id="acf-obs" rows="2">'+escHtml(a?a.observacoes:'')+'</textarea></div>'
-    + '<div class="fg full" style="grid-column:1/-1">'
-    +   '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:var(--text-2)">'
-    +     '<input type="checkbox" id="acf-precisa" '+(precisa?'checked':'')+' onchange="_acompToggleDecisao()" '
-    +       'style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">'
-    +     '<span>Este assunto <b>precisa de decisão da Diretoria</b></span></label></div>'
-    + '<div class="fg full" id="acf-box-decisao" style="grid-column:1/-1;display:'+(precisa?'':'none')+'">'
-    +   '<label>O que a Diretoria precisa decidir</label>'
-    +   '<textarea id="acf-solicitacao" rows="2" placeholder="Ex: Aprovação do orçamento de R$ 3.850,00.">'+escHtml(a?a.solicitacao:'')+'</textarea>'
-    +   '<div style="margin-top:10px;max-width:220px"><label>Prazo para decisão</label>'
-    +     '<input type="date" id="acf-prazo" value="'+escU(a?a.prazoDecisao:'')+'"></div>'
-    + '</div>'
     + '</div>',
     [ { texto:'Cancelar', classe:'btn btn-ghost', acao:'acompFecharModal()' },
       { texto:'<i class="fa-solid fa-floppy-disk"></i> Salvar', classe:'btn btn-gold',
         acao:'acompSalvarForm('+(id?('\''+String(id).replace(/'/g,"\\'")+'\''):'null')+')' } ]);
-}
-
-function _acompToggleDecisao(){
-  var c=$('acf-precisa'), b=$('acf-box-decisao');
-  if(c&&b) b.style.display = c.checked ? '' : 'none';
 }
 
 function acompSalvarForm(id){
@@ -14528,7 +14504,6 @@ function acompSalvarForm(id){
 
   var d=_acompDados();
   var novoStatus=($('acf-status')||{}).value||'PENDENTE';
-  var precisa=!!($('acf-precisa')&&$('acf-precisa').checked);
 
   var a, criando=false;
   if(id){
@@ -14556,9 +14531,9 @@ function acompSalvarForm(id){
   a.descricao=($('acf-desc')?$('acf-desc').value:'').trim();
   a.proximaAcao=($('acf-proxima')?$('acf-proxima').value:'').trim();
   a.observacoes=($('acf-obs')?$('acf-obs').value:'').trim();
-  a.precisaDecisao=precisa;
-  a.solicitacao=precisa ? ($('acf-solicitacao')?$('acf-solicitacao').value:'').trim() : '';
-  a.prazoDecisao=precisa ? (($('acf-prazo')||{}).value||'') : '';
+  /* Os campos de decisão da Diretoria saíram do formulário. O que já estiver
+     gravado num assunto antigo NÃO é apagado por isso -- editar o assunto
+     para corrigir o telefone não pode zerar um pedido que alguém escreveu. */
 
   if(criando){
     acompRegistrar(a, 'Assunto criado.', { novoStatus:novoStatus });
@@ -14669,33 +14644,6 @@ function _acompDetalheHTML(a){
    +   _acompInfoLinha('Última atualização', acompDataHora(a.atualizadoEm||a.criadoEm))
    + '</div>'
    + '</div>';
-
-  // Decisão pendente
-  if(a.status==='AGUARDANDO_DIRETORIA'){
-    h+='<div class="acomp-decisao">'
-     + '<h4><i class="fa-solid fa-user-shield"></i> Decisão necessária</h4>'
-     + '<div style="font-size:13.5px;color:var(--text-2);line-height:1.65;white-space:pre-wrap">'
-     +   escHtml(a.solicitacao||'A Administração pediu uma decisão sobre este assunto.')+'</div>'
-     + (a.prazoDecisao
-        ? '<div style="font-size:12.5px;color:var(--text-3);margin-top:10px"><b>Prazo para decisão:</b> '+escHtml(acompData(a.prazoDecisao))+'</div>' : '')
-     /* Nao ha botao de aprovar/recusar aqui, por decisao de 28/08/2026.
-
-        A decisao acontece na reuniao, entre pessoas -- nao num clique. O que
-        o sistema faz e mostrar CLARAMENTE o que esta esperando a Diretoria e
-        ate quando; depois da reuniao, a Administracao muda a situacao do
-        assunto e escreve no historico o que ficou combinado. Menos teatro,
-        e um registro que corresponde ao que de fato aconteceu. */
-     + (podeEd
-        ? '<div style="font-size:12px;color:var(--text-3);margin-top:12px;line-height:1.6">'
-          + 'Depois da decisão, atualize a situação do assunto e registre no histórico o que ficou combinado.</div>'
-        : '<div style="font-size:12px;color:var(--text-3);margin-top:12px">Aguardando a Diretoria.</div>')
-     + '</div>';
-  } else if(podeEd && a.status!=='CONCLUIDO'){
-    h+='<div style="margin-bottom:16px">'
-     + '<button class="btn btn-sm" style="background:#e05252;color:#fff;border:none" onclick="acompSolicitarDecisao(\''+escU(a.id)+'\')">'
-     +   '<i class="fa-solid fa-triangle-exclamation"></i> Solicitar decisão da Diretoria</button>'
-     + '</div>';
-  }
 
   if(a.descricao){
     h+='<div class="card" style="margin-bottom:16px">'
@@ -14822,46 +14770,6 @@ function acompSalvarAtualizacao(id){
 
 /* ── Decisão da Diretoria ────────────────────────────────────────────── */
 
-function acompSolicitarDecisao(id){
-  if(!acompPodeEditar()){ toast('⚠️ Sem permissão.'); return; }
-  var a=_acompItem(id); if(!a) return;
-
-  _acompModal('Solicitar decisão da Diretoria',
-      '<div class="form-grid" style="gap:12px">'
-    + '<div class="fg full" style="grid-column:1/-1"><label>O que a Diretoria precisa decidir *</label>'
-    +   '<textarea id="acd-solicitacao" rows="3" placeholder="Ex: Aprovação do orçamento de R$ 3.850,00 para instalação de novas câmeras.">'+escHtml(a.solicitacao||'')+'</textarea></div>'
-    + '<div class="fg"><label>Prazo para decisão</label><input type="date" id="acd-prazo" value="'+escU(a.prazoDecisao||'')+'"></div>'
-    + '</div>'
-    + '<div style="font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.6">'
-    +   'O assunto passa para <b>Aguardando Diretoria</b> e aparece no primeiro card da tela, '
-    +   'com o pedido e o prazo à vista de quem decide.</div>',
-    [ { texto:'Cancelar', classe:'btn btn-ghost', acao:'acompFecharModal()' },
-      { texto:'<i class="fa-solid fa-triangle-exclamation"></i> Enviar para a Diretoria', classe:'btn btn-gold',
-        acao:'acompConfirmarSolicitacao(\''+String(id).replace(/'/g,"\\'")+'\')' } ]);
-}
-
-function acompConfirmarSolicitacao(id){
-  var sol=($('acd-solicitacao')?$('acd-solicitacao').value:'').trim();
-  if(!sol){ toast('⚠️ Escreva o que precisa ser decidido.'); return; }
-  var d=_acompDados(), a=null;
-  d.itens.forEach(function(x){ if(String(x.id)===String(id)) a=x; });
-  if(!a) return;
-
-  var anterior=a.status;
-  a.precisaDecisao=true;
-  a.solicitacao=sol;
-  a.prazoDecisao=($('acd-prazo')||{}).value||'';
-  a.status='AGUARDANDO_DIRETORIA';
-  acompRegistrar(a, 'Solicitação enviada para decisão da Diretoria.'
-    + (a.prazoDecisao ? ' Prazo: '+acompData(a.prazoDecisao)+'.' : ''),
-    { statusAnterior:anterior, novoStatus:'AGUARDANDO_DIRETORIA' });
-
-  _acompSalvar(d);
-  acompFecharModal();
-  toast('✅ Enviado para a Diretoria.');
-  acompAbrir(id);
-}
-
 /* ── Anexos ──────────────────────────────────────────────────────────
    Guardam o CAMINHO no Storage privado, nunca o link: link assinado vence
    e o documento parece ter sumido. O link é gerado na hora de abrir. */
@@ -14939,10 +14847,24 @@ function acompRelatorioTexto(itens, f){
   l.push('Emitido em '+acompDataHora(_acompAgora()));
   l.push('');
   ACOMP_STATUS.forEach(function(s){ l.push(s.label+': '+(cont[s.id]||0)); });
+  /* Situacoes fora da lista (um assunto antigo em "Aguardando Diretoria",
+     por exemplo) tambem entram na contagem. Sem isto o relatorio somaria
+     menos do que o total logo abaixo, e ninguem saberia por que. */
+  Object.keys(cont).forEach(function(k){
+    if(!ACOMP_STATUS.some(function(s){ return s.id===k; }) && cont[k])
+      l.push(acompStatusInfo(k).label+': '+cont[k]);
+  });
   l.push('');
   l.push('TOTAL: '+lista.length+' assunto(s)');
   l.push('');
-  ACOMP_STATUS.forEach(function(s){
+  // A lista de situacoes do relatorio inclui as que sairam do sistema mas
+  // ainda existem em algum assunto -- senao o assunto some do relatorio
+  // enquanto continua aparecendo na tela.
+  var _sitsRel = ACOMP_STATUS.slice();
+  lista.forEach(function(a){
+    if(!_sitsRel.some(function(s){ return s.id===a.status; })) _sitsRel.push(acompStatusInfo(a.status));
+  });
+  _sitsRel.forEach(function(s){
     var doStatus=lista.filter(function(a){ return a.status===s.id; });
     if(!doStatus.length) return;
     l.push('── '+s.label.toUpperCase()+' ──');
