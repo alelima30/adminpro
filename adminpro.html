@@ -1652,11 +1652,17 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
    reconhece o lugar antes de ler o nome.
    O <select> continua existindo, escondido: ele é quem guarda o valor, e
    toda a lógica de horário, financeiro e termo continua lendo dele. */
+/* 2 colunas no celular, 3 a partir do tablet. minmax(0,1fr) e nao 1fr:
+   com 1fr a coluna nao encolhe abaixo do conteudo e um nome comprido
+   empurra a grade para fora da tela.
+   Mais de 3 nao entra: este grupo mora dentro do modal de reserva, que tem
+   500px no computador -- a quarta coluna sairia com 100px e a foto viraria
+   selo. */
 .esp-cards{
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
-  margin-top:2px;
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;margin-top:2px;
 }
-@media (min-width:900px){ .esp-cards{ grid-template-columns:repeat(3,minmax(0,1fr)) } }
+@media (min-width:600px){ .esp-cards{ grid-template-columns:repeat(3,minmax(0,1fr)) } }
 .esp-card{
   position:relative;display:flex;flex-direction:column;
   border:2px solid var(--border);border-radius:12px;overflow:hidden;
@@ -1693,8 +1699,10 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
   font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,0.35);
 }
 .esp-card.sel .esp-card-visto{ display:flex }
-/* Desativado pelo condomínio: o admin ainda vê (e pode escolher, para
-   remarcar algo antigo), mas fica claro que está fora do ar. */
+/* Desativado pelo condomínio: o cartão CONTINUA na tela (sumir faria parecer
+   que o espaço deixou de existir), mas apagado, com selo e sem clique. */
+.esp-card-off{ cursor:not-allowed }
+.esp-card-off:hover{ border-color:var(--border) }
 .esp-card-off .esp-card-foto,.esp-card-off .esp-card-sem{ opacity:.45;filter:grayscale(1) }
 .esp-card-off .esp-card-nome{ color:var(--text-3) }
 .esp-card-tarja{
@@ -11298,21 +11306,46 @@ function atualizarHorariosEspaco(espaco, manterValor){
 }
 
 // Popula o seletor de espaços. Morador: só espaços ativos. Admin: todos (desativados marcados).
+/* Popula o seletor de espaços.
+
+   Espaço desativado CONTINUA na lista, para todo mundo — ele vira uma
+   <option disabled>, e o cartão correspondente aparece apagado e com o selo
+   "Indisponível". Antes o morador simplesmente não via o espaço, e sumir é
+   pior do que mostrar fechado: quem procurava o Quiosque achava que o
+   sistema tinha perdido o espaço, não que ele estava fora do ar.
+
+   A única exceção é o espaço da PRÓPRIA reserva que está aberta
+   (incluirEspaco): ele continua selecionável mesmo desativado, senão abrir
+   uma reserva antiga para corrigir um telefone a faria perder o espaço. */
+/* Quais espaços entram no formulário e quais entram travados.
+   Separada do desenho para poder ser testada sozinha: é a regra, não a tela. */
+function espListaParaForm(lista, cfg, incluirEspaco){
+  cfg = cfg || {};
+  return (lista||[]).map(function(esp){
+    var ativo = (cfg['disp_'+_chvEsp(esp)+'_ativo']===false) ? false : true;
+    return { nome: esp, ativo: ativo, travado: (!ativo && esp!==incluirEspaco) };
+  });
+}
+
 function mresPopularEspacos(incluirEspaco){
   var sel=$('mres-espaco'); if(!sel) return;
-  var cfg=getCfgRes();
-  var nivel=window._userNivel||'morador';
-  var isAdm=(nivel==='admin'||nivel==='gestor'||nivel==='supervisor');
   var lista=(typeof ESPACOS_CFG!=='undefined')?ESPACOS_CFG:[].map.call(sel.options,function(o){return o.value;});
   var html='';
-  lista.forEach(function(esp){
-    var ativo=(cfg['disp_'+_chvEsp(esp)+'_ativo']===false)?false:true;
-    if(!ativo && !isAdm && esp!==incluirEspaco) return; // morador não vê espaço desativado
-    var rotulo=esp+((!ativo&&isAdm)?' (desativado)':'');
-    html+='<option value="'+escHtml(esp)+'">'+escHtml(rotulo)+'</option>';
+  espListaParaForm(lista, getCfgRes(), incluirEspaco).forEach(function(e){
+    html+='<option value="'+escHtml(e.nome)+'"'+(e.travado?' disabled':'')+'>'
+        + escHtml(e.nome+(e.ativo?'':' (indisponível)'))+'</option>';
   });
   sel.innerHTML=html;
   mresRenderCardsEspaco();
+}
+
+/* Primeiro espaço que pode mesmo ser escolhido. Sem isto, um condomínio
+   cujo primeiro espaço da lista esteja desativado abriria toda reserva nova
+   já apontando para um espaço travado. */
+function mresPrimeiroEspacoLivre(){
+  var sel=$('mres-espaco'); if(!sel) return '';
+  var livre=[].filter.call(sel.options,function(o){ return !o.disabled; })[0];
+  return livre ? livre.value : (sel.options[0] ? sel.options[0].value : '');
 }
 
 /* ── Espaço escolhido por cartão com foto ────────────────────────────
@@ -11355,14 +11388,24 @@ function mresRenderCardsEspaco(){
   var atual=sel.value;
   cx.innerHTML=[].map.call(sel.options, function(o){
     var nome=o.value;
-    var off=/\(desativado\)\s*$/.test(o.textContent||'');
+    // Quem decide se está travado é a própria <option>, não o texto do
+    // rótulo: ler o estado no texto quebraria no dia em que o rótulo mudasse.
+    var off=!!o.disabled;
+    var marcado=(nome===atual);
     var foto=espFoto(nome);
     var visual = foto
       ? '<img class="esp-card-foto" alt="" loading="lazy">'
       : '<div class="esp-card-sem"><i class="fa-solid '+_espIcone(nome)+'"></i></div>';
     return '<button type="button" role="radio" class="esp-card'+(off?' esp-card-off':'')+'"'
-      + ' data-esp="'+escHtml(nome)+'" aria-checked="'+(nome===atual?'true':'false')+'"'
-      + ' onclick="mresEscolherEspaco(this.getAttribute(\'data-esp\'))">'
+      + ' data-esp="'+escHtml(nome)+'"'
+      + ' aria-checked="'+(marcado?'true':'false')+'"'
+      + (off ? ' aria-disabled="true"' : '')
+      // Roving tabindex: o grupo inteiro é uma parada só no Tab, e as setas
+      // andam entre os cartões (é o que um grupo de rádio faz).
+      + ' tabindex="'+((marcado && !off) ? '0' : '-1')+'"'
+      + ' aria-label="'+escHtml(nome+(off?' — indisponível':''))+'"'
+      + ' onclick="mresEscolherEspaco(this.getAttribute(\'data-esp\'))"'
+      + ' onkeydown="mresTeclaEspaco(event, this)">'
       + visual
       + (off ? '<span class="esp-card-tarja"><i class="fa-solid fa-circle-minus"></i> Indisponível</span>' : '')
       + '<span class="esp-card-visto"><i class="fa-solid fa-check"></i></span>'
@@ -11378,24 +11421,63 @@ function mresRenderCardsEspaco(){
   mresEspacoSync();
 }
 
-// Clique num cartão: quem mudou foi o <select>, e o resto do formulário
-// reage exatamente como reagia quando havia um dropdown ali.
+/* Clique num cartão: quem mudou foi o <select>, e o resto do formulário
+   reage exatamente como reagia quando havia um dropdown ali.
+   Espaço indisponível não é escolhido — e diz por quê, em vez de só não
+   responder ao toque. */
 function mresEscolherEspaco(nome){
   var sel=$('mres-espaco'); if(!sel) return;
+  var op=[].filter.call(sel.options,function(o){ return o.value===nome; })[0];
+  if(!op) return;
+  if(op.disabled){
+    toast('"'+nome+'" está indisponível no momento. Fale com a administração.');
+    return;
+  }
   if(sel.value===nome){ mresEspacoSync(); return; }
   sel.value=nome;
   try{ onEspacoChange(); }catch(_){ mresEspacoSync(); }
+}
+
+// Setas andam entre os cartões disponíveis; Enter/Espaço o navegador já
+// resolve sozinho num <button>.
+function mresTeclaEspaco(ev, el){
+  var k=ev.key;
+  if(k!=='ArrowRight' && k!=='ArrowLeft' && k!=='ArrowDown' && k!=='ArrowUp') return;
+  var cx=$('mres-espaco-cards'); if(!cx) return;
+  var livres=[].filter.call(cx.querySelectorAll('.esp-card'), function(b){
+    return b.getAttribute('aria-disabled')!=='true';
+  });
+  if(!livres.length) return;
+  var i=livres.indexOf(el);
+  if(i<0) i=0;
+  var passo=(k==='ArrowRight'||k==='ArrowDown') ? 1 : -1;
+  var alvo=livres[(i+passo+livres.length)%livres.length];
+  ev.preventDefault();
+  mresEscolherEspaco(alvo.getAttribute('data-esp'));
+  var novo=cx.querySelector('.esp-card[data-esp="'+(alvo.getAttribute('data-esp')||'').replace(/"/g,'\\"')+'"]');
+  if(novo) novo.focus();
 }
 
 // Repinta qual cartão está marcado a partir do <select>.
 function mresEspacoSync(){
   var cx=$('mres-espaco-cards'), sel=$('mres-espaco');
   if(!cx||!sel) return;
+  var algumMarcado=false;
   [].forEach.call(cx.querySelectorAll('.esp-card'), function(b){
     var marcado = b.getAttribute('data-esp')===sel.value;
+    if(marcado) algumMarcado=true;
     b.classList.toggle('sel', marcado);
     b.setAttribute('aria-checked', marcado?'true':'false');
+    b.tabIndex = (marcado && b.getAttribute('aria-disabled')!=='true') ? 0 : -1;
   });
+  // Nada marcado (ou o marcado está travado): o grupo ainda precisa de uma
+  // porta de entrada pelo teclado.
+  if(!algumMarcado){
+    var primeiro=[].filter.call(cx.querySelectorAll('.esp-card'),function(b){
+      return b.getAttribute('aria-disabled')!=='true';
+    })[0];
+    if(primeiro) primeiro.tabIndex=0;
+  }
 }
 
 // Limita o calendário aos dias liberados do espaço (antecedência mín/máx). Admin fica livre.
@@ -11635,7 +11717,7 @@ function abrirModalRes(id){
 
   $('mres-pessoas').value=r?.pessoas||'';
   mresPopularEspacos(r?.espaco||'');
-  $('mres-espaco').value=r?.espaco||$('mres-espaco').options[0]?.value||'Quadra de Areia';
+  $('mres-espaco').value=r?.espaco||mresPrimeiroEspacoLivre()||'Quadra de Areia';
   if($('mres-status')) $('mres-status').value=r?.status||'pendente';
   $('mres-data').value=r?.data||hojeLocal();
 
