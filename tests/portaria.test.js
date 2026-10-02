@@ -378,6 +378,41 @@ bloco('As contagens nao mudam quando um espaco esta marcado', () => {
     /if\(listaEsp\.indexOf\(e\)<0\) listaEsp\.push\(e\);/.test(src), true);
 });
 
+// ── Tela que fica o dia inteiro aberta não pode cair no login ─────────
+// O Painel vive num monitor da portaria, sem ninguém tocando. O Supabase
+// renova o acesso de tempos em tempos, mas esse relógio PARA quando a aba sai
+// de vista ou o computador dorme — e o que volta é a tela de login, com a
+// portaria sem ver as reservas do dia e sem saber a senha.
+bloco('A sessao e mantida viva pelo Painel', () => {
+  const src = lerFonte();
+  checa('existe quem toque a sessao', src.includes('async function _portTocarSessao()'), true);
+  checa('e e tocada no mesmo tique que rele as reservas',
+    /if\(_p === 'portaria'\) _portTocarSessao\(\);/.test(src), true);
+  // getSession() renova o acesso quando esta perto de vencer.
+  checa('toca via getSession', /await SB\.auth\.getSession\(\)/.test(src), true);
+  // So com a tela aberta: nao ha por que segurar sessao de quem nao esta ali.
+  checa('so enquanto o Painel esta na tela',
+    /_p === 'portaria'\) _portTocarSessao/.test(src), true);
+});
+
+bloco('Perder a sessao tem segunda chance', () => {
+  const src = lerFonte();
+  checa('existe a reconexao', src.includes('async function _tentarReconectar()'), true);
+  checa('ela usa refreshSession', /await SB\.auth\.refreshSession\(\)/.test(src), true);
+  // Soluco de rede e queda de sessao chegam do mesmo jeito. Tratar os dois
+  // como logout e o que faz a portaria amanhecer deslogada por dez segundos
+  // de internet ruim.
+  checa('so manda para o login se a reconexao falhar',
+    /var voltou = await _tentarReconectar\(\);\s*\n\s*if\(!voltou\) _aplicarSessao\(null\);/.test(src), true);
+  // Sair pelo botao e decisao: nao se desfaz.
+  checa('sair pelo botao nao e reconectado',
+    /_event === 'SIGNED_OUT' && window\._saiuDeProposito/.test(src), true);
+  checa('e o botao marca isso', /window\._saiuDeProposito = true;/.test(src), true);
+  // Uma tentativa por vez: refresh em paralelo briga pelo mesmo token.
+  checa('nao tenta reconectar duas vezes ao mesmo tempo',
+    /if\(_reconectando \|\| !window\.SB\) return false;/.test(src), true);
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }
 console.log('TODOS OS TESTES PASSARAM (' + ok + ')');

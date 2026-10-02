@@ -7367,9 +7367,51 @@ async function _aplicarSessao(session){
   _sessaoOcupada = false;
 }
 
+/* Tela que fica aberta o dia inteiro nao pode cair no login sozinha.
+
+   O Painel de Reservas vive num monitor da portaria, sem ninguem tocando. O
+   Supabase renova o acesso de tempos em tempos, mas esse relogio PARA quando
+   a aba sai de vista ou o computador dorme -- e o que volta e a tela de
+   login, com a portaria sem ver as reservas do dia e sem saber a senha.
+
+   Duas defesas:
+
+   1. Enquanto a tela estiver aberta, a sessao e tocada de minuto em minuto
+      (_portTocarSessao, chamada no mesmo tique que rele as reservas).
+      getSession() renova o acesso quando esta perto de vencer.
+
+   2. Perder a sessao passa por uma segunda chance antes de virar tela de
+      login. Soluco de rede e queda de sessao chegam aqui do mesmo jeito, e
+      tratar os dois como logout e o que faz a portaria amanhecer deslogada
+      por causa de dez segundos de internet ruim. */
+var _reconectando = false;
+
+async function _tentarReconectar(){
+  if(_reconectando || !window.SB) return false;
+  _reconectando = true;
+  try{
+    var r = await SB.auth.refreshSession();
+    return !!(r && r.data && r.data.session);
+  }catch(_){ return false; }
+  finally{ _reconectando = false; }
+}
+
 if (SB){
   SB.auth.onAuthStateChange(function(_event, session){
     if(_event==='PASSWORD_RECOVERY'){ setTimeout(_definirNovaSenha, 0); return; }
+    if(!session){
+      // Sair pelo botao e decisao; perder a sessao sozinho merece uma
+      // tentativa antes de mandar alguem digitar senha de novo.
+      if(_event === 'SIGNED_OUT' && window._saiuDeProposito){
+        setTimeout(function(){ _aplicarSessao(null); }, 0);
+        return;
+      }
+      setTimeout(async function(){
+        var voltou = await _tentarReconectar();
+        if(!voltou) _aplicarSessao(null);
+      }, 0);
+      return;
+    }
     setTimeout(function(){ _aplicarSessao(session); }, 0);
   });
 
@@ -7968,6 +8010,9 @@ function entrarNoPortal(nome){
 })();
 // ─────────────────────────────────────────────────────────────────────────────
 async function doLogout() {
+  // Marca que a saida foi pedida: sem isto, a reconexao automatica tentaria
+  // trazer de volta justamente a sessao que a pessoa acabou de encerrar.
+  window._saiuDeProposito = true;
   await firebase.auth().signOut();
   limparSessao(); // remove usuário e expiração
   _limparCacheDados(); // não deixa dados do condomínio no aparelho
@@ -13674,6 +13719,15 @@ function _portQuandoAtualizou(){
   return ' · atualizado às '+h+':'+m;
 }
 
+/* Mantem a sessao viva enquanto a tela da portaria esta aberta. getSession()
+   renova o acesso quando ele esta perto de vencer -- e e justamente isso que
+   deixa de acontecer sozinho num computador que fica horas sem ninguem
+   mexendo. */
+async function _portTocarSessao(){
+  if(!window.SB) return;
+  try{ await SB.auth.getSession(); }catch(_){}
+}
+
 var _reslCiclos = 0;
 setInterval(function(){
   _reslCiclos++;
@@ -13689,6 +13743,7 @@ setInterval(function(){
      de ontem como se fosse hoje depois da meia-noite -- inclusive quando a
      leitura do banco falha e _reslReler desiste no meio. */
   try{ if(_p === 'portaria') renderPortaria(); }catch(_){}
+  if(_p === 'portaria') _portTocarSessao();
 }, 60000);
 
 // Voltar para a aba depois de um tempo fora é o momento em que o dado mais
