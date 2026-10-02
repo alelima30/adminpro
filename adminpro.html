@@ -1660,6 +1660,59 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 .esp-selo-frio{background:rgba(255,255,255,0.07);color:var(--text-3)}
 .esp-excluir:hover{color:var(--red);border-color:var(--red)}
 
+/* ══ PORTARIA ══
+   Tela lida de relance, muitas vezes num monitor velho e de longe. Por isso
+   a hora e grande e os cartoes sao largos: quem esta no portao precisa ver
+   "16:00 — Salao de Festa — L17" sem chegar perto. */
+.port-filtros{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.port-dias{display:flex;gap:6px;flex-wrap:wrap}
+.port-dia{
+  padding:9px 15px;border-radius:10px;border:1px solid var(--border);
+  background:var(--ink-2);color:var(--text-2);
+  font-size:13px;font-weight:600;cursor:pointer;min-height:40px;
+  transition:all .15s;
+}
+.port-dia:hover{border-color:var(--border-h);color:var(--text)}
+.port-dia.on{
+  background:rgba(232,119,34,0.14);border-color:var(--gold);color:var(--gold);
+}
+.port-grupo{
+  font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--gold);margin:16px 0 8px;display:flex;align-items:center;gap:8px;
+}
+.port-grupo::after{content:'';flex:1;height:1px;background:var(--border)}
+.port-card{
+  display:flex;gap:14px;align-items:flex-start;
+  padding:14px 16px;margin-bottom:9px;
+  background:var(--ink-2);border:1px solid var(--border);border-left:3px solid var(--gold);
+  border-radius:11px;
+}
+.port-hora{
+  flex:none;min-width:88px;
+  font-size:19px;font-weight:800;color:var(--gold);line-height:1.2;
+}
+.port-hora small{display:block;font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.5px}
+.port-corpo{flex:1;min-width:0}
+.port-espaco{font-size:15px;font-weight:700;color:var(--text);line-height:1.3}
+.port-quem{font-size:13.5px;color:var(--text-2);margin-top:3px;line-height:1.5}
+.port-uni{
+  display:inline-block;font-size:11.5px;font-weight:700;color:var(--gold);
+  background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.25);
+  border-radius:6px;padding:1px 8px;margin-right:6px;
+}
+.port-extra{font-size:12px;color:var(--text-3);margin-top:5px;display:flex;gap:12px;flex-wrap:wrap}
+.port-vazio{
+  padding:34px 18px;text-align:center;color:var(--text-3);font-size:14px;line-height:1.7;
+  border:1px dashed var(--border);border-radius:12px;
+}
+@media(max-width:620px){
+  .port-card{gap:11px;padding:12px 13px}
+  .port-hora{min-width:74px;font-size:17px}
+  .port-espaco{font-size:14px}
+  .port-dia{flex:1 1 calc(50% - 6px);text-align:center}
+  .port-filtros > input{flex:1 1 100%}
+}
+
 /* ══ ESPAÇO EM CARTÕES (formulário de reserva) ══
    Antes era um <select>. No celular ele virava aquela lista cinza do
    sistema, toda igual: dez linhas de texto em que "Quadra de tênis - dura"
@@ -4374,6 +4427,43 @@ html.ambiente-ensaio body{padding-top:28px}
         </div>
       </div>
 
+      <!-- ████ PORTARIA ████
+           Tela de leitura, para quem fica no portão. Mostra as reservas JA
+           APROVADAS, do dia, com o que a portaria precisa para receber as
+           pessoas: hora, espaco, quem, de qual unidade, quantos e para que.
+
+           O que NAO aparece aqui, de proposito: taxa, caucao, situacao de
+           pagamento, comprovante, observacoes internas e reservas pendentes
+           ou canceladas. A portaria nao cobra ninguem e nao decide nada --
+           mostrar valor no portao so cria constrangimento e discussao que
+           nao e dali. E reserva pendente no portao seria pior: alguem
+           entraria num espaco que a administracao ainda nao liberou. -->
+      <div class="panel" id="panel-portaria">
+        <div class="ph">
+          <div>
+            <div class="ph-title"><i class="fa-solid fa-shield-halved" style="color:var(--gold);margin-right:8px"></i>Portaria</div>
+            <div class="ph-sub">Reservas aprovadas — quem vai usar os espaços</div>
+          </div>
+          <div class="ph-actions">
+            <button class="btn btn-ghost ph-acao" onclick="renderPortaria()" title="Buscar as reservas mais recentes">
+              <i class="fa-solid fa-rotate"></i> Atualizar</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+          <div class="port-filtros">
+            <div class="port-dias" id="port-dias"></div>
+            <input type="date" id="port-data" onchange="portDataEscolhida()"
+                   style="padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:14px;outline:none">
+            <input type="text" id="port-busca" placeholder="Unidade ou nome..." oninput="renderPortaria()"
+                   style="padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:14px;outline:none;flex:1 1 180px;min-width:0">
+          </div>
+          <div id="port-resumo" style="margin-top:10px;font-size:13px;color:var(--text-3)"></div>
+        </div>
+
+        <div id="port-lista"></div>
+      </div>
+
       <!-- ████ P7c: CRIAR ESPAÇOS (aba de Reservas) ████ -->
       <div class="panel" id="panel-espacos">
         <div class="tabs" data-acesso="admin,gestor" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
@@ -6307,6 +6397,7 @@ const MODULOS_SAAS = {
   classificacoes: { label:'Classificação de Condôminos', grupo:'administrativo', secao:'Administrativo' },
   reservas:       { label:'Reservas',                  grupo:null,            secao:'Operações' },
   encomendas:     { label:'Encomendas',                grupo:null,            secao:'Operações' },
+  portaria:       { label:'Portaria',                  grupo:'operacoes',     secao:'Operações' },
   manutencao:     { label:'Manutenção',                grupo:'operacoes',     secao:'Operações' },
   preventivas:    { label:'Preventivas & Corretivas',  grupo:'operacoes',     secao:'Operações' },
   comunicados:    { label:'Comunicação (Informativos)', grupo:null,           secao:'Operações' },
@@ -7823,10 +7914,10 @@ function closeSidebar(){
 }
 
 /* ══ NAVIGATION ══ */
-const panelNames={acompanhamento:'Central de Acompanhamento',inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',infogerais:'Informações Gerais',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas',espacos:'Criar Espaços'};
+const panelNames={acompanhamento:'Central de Acompanhamento',inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',infogerais:'Informações Gerais',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',portaria:'Portaria',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas',espacos:'Criar Espaços'};
 const ACESSO_PAINEIS = {
-  admin:   ['inicio','saas','dashboard','acompanhamento','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','usuarios','configuracoes','procedimentos'],
-  gestor:  ['inicio','dashboard','acompanhamento','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','procedimentos'],
+  admin:   ['inicio','saas','portaria','dashboard','acompanhamento','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','usuarios','configuracoes','procedimentos'],
+  gestor:  ['inicio','portaria','dashboard','acompanhamento','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','procedimentos'],
   morador: ['inicio','reservas','encomendas','comunicados','eventos','infogerais','regulamento','procedimentos']
 };
 /* ══════════════════════════
@@ -9142,6 +9233,7 @@ const SB_GRUPOS = {
     {id:'manutencao',    label:'Manuten\u00e7\u00e3o',               icon:'fa-wrench',               acesso:['admin','gestor']},
     {id:'preventivas',   label:'Preventivas & Corretivas', icon:'fa-screwdriver-wrench',   acesso:['admin','gestor']},
     {id:'procedimentos', label:'Procedimentos',            icon:'fa-clipboard-list',       acesso:['admin','gestor','morador']},
+    {id:'portaria',      label:'Portaria',                 icon:'fa-shield-halved',        acesso:['admin','gestor']},
   ]},
   sistema:  { titulo:'Sistema', itens:[
     {id:'usuarios',      label:'Usu\u00e1rios',                 icon:'fa-users-gear',           acesso:['admin']},
@@ -9315,7 +9407,7 @@ function showPanel(id,el){
   // de um modal da tela anterior.
   try{ _sincronizarTravaRolagem(); }catch(_){}
   try{ _ocultarAbasBloqueadas(); }catch(_){}
-  ({acompanhamento:acompEntrar,dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{aplicarFiltroInicialRes();renderReservas();verificarAlertas();resLembreteChecar();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:()=>{ renderSaas(); try{ renderAssinaturas(); }catch(_){} },inicio:renderInicio})[id]?.();
+  ({acompanhamento:acompEntrar,portaria:renderPortaria,dashboard:renderDashboard,lotes:renderLotes,unidades:renderUnidades,localizacoes:renderLocalizacoes,classificacoes:renderClassificacoes,condominos:renderCondominos,funcionarios:renderFTabela,financeiro:renderFin,manutencao:renderManut,comunicados:renderComun,eventos:renderEventos,preventivas:renderPreventivas,reservas:()=>{aplicarFiltroInicialRes();renderReservas();verificarAlertas();resLembreteChecar();},encomendas:renderEncomendas,relatorios:renderRelatorios,espacos:renderEspacos,regulamento:renderReg,assistente:renderAssistente,infogerais:renderInfoGerais,inadimplencia:renderInadimplencia,usuarios:renderUsuarios,configuracoes:()=>{renderCfgReservas()},saas:()=>{ renderSaas(); try{ renderAssinaturas(); }catch(_){} },inicio:renderInicio})[id]?.();
 }
 
 /* Esconde as abas que levam a uma tela bloqueada.
@@ -14964,6 +15056,150 @@ function resStatusAoSalvar(nivel, resAnterior, exigeAprov){
   if(souAdm) return (resAnterior && resAnterior.status) ? resAnterior.status : 'confirmada';
   if(resAnterior && resAnterior.status && resAnterior.status!=='pendente') return resAnterior.status;
   return exigeAprov ? 'pendente' : 'confirmada';
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PORTARIA
+
+   Para que serve: quem fica no portão precisa saber quem vai usar os
+   espaços hoje — e só isso. A tela de Reservas da administração não serve:
+   ela mostra pendentes, valores, situação de pagamento e botões que mudam
+   as coisas. No portão isso é ruído na melhor hipótese, e problema na pior.
+
+   DUAS REGRAS QUE NÃO SE NEGOCIAM AQUI:
+
+   1. Só reserva APROVADA aparece. Pendente e cancelada nunca. Uma pendente
+      exibida no portão faz alguém entrar num espaço que a administração
+      ainda não liberou.
+   2. Nenhum valor aparece. Taxa, caução, situação de pagamento e
+      comprovante ficam de fora. A portaria não cobra ninguém; mostrar valor
+      ali só cria constrangimento e uma discussão que não é daquele lugar.
+
+   A tela é só de leitura: não tem um único botão que altere uma reserva.
+══════════════════════════════════════════════════════════════════════ */
+
+// Situações que significam "aprovada e vai acontecer (ou aconteceu)".
+var PORTARIA_STATUS = ['confirmada','realizada','concluida'];
+
+var _portPeriodo = 'hoje';   // hoje | amanha | semana | data
+var _portData    = '';       // usada quando o período é 'data'
+
+function _portSoma(iso, dias){
+  var p=String(iso||'').split('-');
+  var d=new Date(+p[0], (+p[1]||1)-1, +p[2]||1);
+  d.setDate(d.getDate()+dias);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+/* Decide o que a portaria vê. Pura de propósito: é a regra, não a tela, e é
+   dela que depende o que NÃO pode aparecer. Testada em tests/portaria.test.js */
+function portariaFiltrar(reservas, opcoes){
+  var o = opcoes || {};
+  var hoje = o.hoje || '';
+  var periodo = o.periodo || 'hoje';
+  var busca = String(o.busca||'').toLowerCase().trim();
+
+  var de, ate;
+  if(periodo==='amanha'){ de = ate = _portSoma(hoje, 1); }
+  else if(periodo==='semana'){ de = hoje; ate = _portSoma(hoje, 6); }
+  else if(periodo==='data'){ de = ate = (o.data || hoje); }
+  else { de = ate = hoje; }
+
+  return (reservas||[]).filter(function(r){
+    if(PORTARIA_STATUS.indexOf(String(r.status||'')) < 0) return false;
+    var d = String(r.data||'');
+    if(!d || d < de || d > ate) return false;
+    if(busca){
+      var alvo = (String(r.nome||'')+' '+String(r.lote||'')+' '+String(r.espaco||'')).toLowerCase();
+      if(alvo.indexOf(busca) < 0) return false;
+    }
+    return true;
+  }).sort(function(a,b){
+    if(a.data !== b.data) return a.data < b.data ? -1 : 1;
+    return hrIni(a.horario) - hrIni(b.horario);
+  });
+}
+
+function portPeriodo(p){
+  _portPeriodo = p;
+  if(p!=='data' && $('port-data')) $('port-data').value='';
+  renderPortaria();
+}
+function portDataEscolhida(){
+  var v = $('port-data') ? $('port-data').value : '';
+  if(!v) return;
+  _portData = v; _portPeriodo = 'data';
+  renderPortaria();
+}
+
+function _portDataBonita(iso){
+  var p=String(iso||'').split('-');
+  if(p.length<3) return iso||'';
+  var d=new Date(+p[0], (+p[1]||1)-1, +p[2]||1);
+  var dias=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+  var hoje=hojeLocal();
+  var prefixo = iso===hoje ? 'Hoje · ' : (iso===_portSoma(hoje,1) ? 'Amanhã · ' : '');
+  return prefixo + dias[d.getDay()] + ', ' + p[2]+'/'+p[1];
+}
+
+function renderPortaria(){
+  var lista=$('port-lista'); if(!lista) return;
+  var hoje=hojeLocal();
+
+  var abas=$('port-dias');
+  if(abas){
+    abas.innerHTML=[['hoje','Hoje'],['amanha','Amanhã'],['semana','Próximos 7 dias']]
+      .map(function(x){
+        return '<button type="button" class="port-dia'+(_portPeriodo===x[0]?' on':'')+'"'
+             + ' onclick="portPeriodo(&#39;'+x[0]+'&#39;)">'+x[1]+'</button>';
+      }).join('');
+  }
+
+  var res = portariaFiltrar(G('reservas')||[], {
+    hoje: hoje, periodo: _portPeriodo, data: _portData,
+    busca: $('port-busca') ? $('port-busca').value : ''
+  });
+
+  var resumo=$('port-resumo');
+  if(resumo){
+    resumo.textContent = res.length
+      ? res.length + (res.length===1 ? ' reserva aprovada' : ' reservas aprovadas')
+      : 'Nenhuma reserva aprovada neste período.';
+  }
+
+  if(!res.length){
+    lista.innerHTML='<div class="port-vazio"><i class="fa-solid fa-calendar-check" style="font-size:26px;display:block;margin-bottom:10px;opacity:.5"></i>'
+      +'Nenhuma reserva aprovada para mostrar.<br>'
+      +'<span style="font-size:12.5px">Só aparecem aqui as reservas já aprovadas pela administração.</span></div>';
+    return;
+  }
+
+  var html='', diaAtual='';
+  res.forEach(function(r){
+    if(r.data!==diaAtual){
+      diaAtual=r.data;
+      html+='<div class="port-grupo">'+escHtml(_portDataBonita(r.data))+'</div>';
+    }
+    var hr=String(r.horario||'');
+    var partes=hr.split(/[-–]/);
+    var ini=(partes[0]||'').trim();
+    var fim=(partes[1]||'').trim();
+    var extra=[];
+    if(r.pessoas) extra.push('<i class="fa-solid fa-user-group"></i> '+escHtml(r.pessoas)+' pessoa(s)');
+    if(r.finalidade) extra.push('<i class="fa-solid fa-tag"></i> '+escHtml(r.finalidade));
+    if(r.tel) extra.push('<i class="fa-brands fa-whatsapp"></i> '+escHtml(r.tel));
+    html+='<div class="port-card">'
+      +'<div class="port-hora">'+escHtml(ini||'—')+(fim?'<small>até '+escHtml(fim)+'</small>':'')+'</div>'
+      +'<div class="port-corpo">'
+        +'<div class="port-espaco">'+escHtml(r.espaco||'—')+'</div>'
+        +'<div class="port-quem">'
+          +(r.lote?'<span class="port-uni">'+escHtml(r.lote)+'</span>':'')
+          +escHtml(r.nome||'—')+'</div>'
+        +(extra.length?'<div class="port-extra">'+extra.join('')+'</div>':'')
+      +'</div>'
+    +'</div>';
+  });
+  lista.innerHTML=html;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
