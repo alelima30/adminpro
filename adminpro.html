@@ -5098,6 +5098,9 @@ html.ambiente-ensaio body{padding-top:28px}
     <div class="modal-title" id="musr-t">Aprovar Cadastro</div>
     <div class="modal-sub" id="musr-info"></div>
     <input type="hidden" id="musr-docid">
+    <!-- CPF informado por quem se cadastrou. Nao e editavel aqui: serve para
+         reconhecer a pessoa no cadastro do condominio (ver _musrIdentificar). -->
+    <input type="hidden" id="musr-cpf">
     <div class="form-grid" style="margin-top:16px">
       <div class="fg"><label>Nome</label><input type="text" id="musr-nome" placeholder="Nome completo" oninput="musrCadRender()"></div>
       <div class="fg"><label><i class="fa-brands fa-whatsapp" style="color:var(--green-l)"></i> WhatsApp</label><input type="text" id="musr-tel" placeholder="(11) 99999-9999" oninput="musrCadRender()"></div>
@@ -18568,6 +18571,7 @@ function abrirModalUsr(docId){
   if($('musr-tel')) $('musr-tel').value = u.tel || '';
   if($('musr-unidade')) $('musr-unidade').value = u.lote || u.unidade || '';
   if($('musr-email')) $('musr-email').value = u.email || '';
+  if($('musr-cpf')) $('musr-cpf').value = u.cpf || '';
   $('musr-nivel').value = u.nivel || 'morador';
   $('musr-obs').value = u.obs || '';
   _musrCarregarModulos(u.email, u.nivel);
@@ -18743,6 +18747,54 @@ function _musrJaNoCadastro(uni, nome){
   return achado;
 }
 
+/* Quem e esta pessoa dentro do cadastro do condominio?
+
+   Por NOME nao basta. Normalizar resolve "ALESSANDRA SOUZA" x "Alessandra
+   Souza", mas nao resolve "Alessandra S. Souza" x "Alessandra Souza" -- e e
+   assim que nascem duas fichas da mesma pessoa, cada uma com o seu historico.
+   O CPF resolve: nome muda de grafia, CPF nao.
+
+   Por isso o CPF vem primeiro, e procura no condominio INTEIRO, nao so na
+   unidade declarada: a pessoa pode ja existir vinculada a outro lote (mudou
+   de casa) ou como dependente de alguem.
+
+   ONDE esta conferencia acontece importa tanto quanto a conferencia. Ela e
+   feita AQUI, na aprovacao, por quem ja esta autenticado no condominio --
+   nunca na pagina publica de cadastro. Se a pagina publica pudesse comparar
+   CPFs, qualquer pessoa digitaria numeros ate acertar um e descobriria quem
+   mora onde. O formulario publico so GRAVA o CPF; quem COMPARA e esta tela. */
+function _musrIdentificar(uni, nome, cpf){
+  var porCpf = mresCondominoPorCpf(cpf);
+  if(porCpf){
+    var achado = { via:'cpf', cod:porCpf.cod, nome:porCpf.reg.nome,
+                   mesmoNome: _musrNorm(porCpf.reg.nome) === _musrNorm(nome) };
+    var un = getUnidades()[String(uni||'').toUpperCase().trim()] || {};
+    achado.papel = (un.proprietario===porCpf.cod) ? 'proprietário'
+                 : (un.morador===porCpf.cod)      ? 'morador'
+                 : '';
+    achado.nestaUnidade = !!achado.papel;
+    return achado;
+  }
+  var porNome = _musrJaNoCadastro(uni, nome);
+  if(porNome) return { via:'nome', cod:porNome.cod, nome:nome, papel:porNome.papel,
+                       tel:porNome.tel, dep:porNome.dep, nestaUnidade:true, mesmoNome:true };
+  return null;
+}
+
+/* O CPF que a pessoa informou ao se cadastrar. Guardar na ficha e o que faz
+   a proxima conferencia funcionar: sem ele, a ficha criada hoje nao sera
+   reconhecida amanha. */
+function _musrCpfInformado(){
+  return ($('musr-cpf') ? $('musr-cpf').value : '').trim();
+}
+
+function _musrLinhaOpcao(val, txt, marcada){
+  return '<label class="fg-opcao" style="display:flex;flex-wrap:wrap;gap:4px 8px;align-items:flex-start;cursor:pointer;padding:6px 0">'
+    +'<input type="radio" name="musr-cad-cpf" value="'+val+'"'+(marcada?' checked':'')
+    +' style="accent-color:var(--gold);width:16px;height:16px;flex:none;margin-top:3px">'
+    +'<span style="flex:1 1 140px;min-width:0">'+txt+'</span></label>';
+}
+
 function musrCadRender(){
   var box=$('musr-cad-box'), corpo=$('musr-cad-corpo');
   if(!box||!corpo) return;
@@ -18759,6 +18811,37 @@ function musrCadRender(){
       +'A unidade <b>'+escU(uni)+'</b> não existe no cadastro do condomínio. '
       +'Cadastre a unidade em <b>Unidades</b> para poder vincular esta pessoa. '
       +'O acesso ao app pode ser liberado normalmente.';
+    return;
+  }
+
+  var cpf =($('musr-cpf')?$('musr-cpf').value:'').trim();
+  var ident=_musrIdentificar(uni, nome, cpf);
+
+  /* O CPF bateu com alguem que esta no cadastro com OUTRO nome. E o caso que
+     o nome sozinho nunca pegaria: "Alessandra S. Souza" no cadastro,
+     "Alessandra Souza" no app. Em vez de criar a segunda ficha, a tela
+     pergunta -- e quem responde e a administracao, que conhece as pessoas. */
+  if(ident && ident.via==='cpf' && !ident.mesmoNome){
+    corpo.innerHTML=
+      '<div style="display:flex;gap:9px;align-items:flex-start">'
+      +'<i class="fa-solid fa-id-card" style="color:var(--gold);margin-top:2px"></i>'
+      +'<div><b>O CPF informado já está no cadastro do condomínio</b>, no nome de '
+      +'<b>'+escU(ident.nome)+'</b>'
+      +(ident.nestaUnidade
+          ? ' — '+escU(ident.papel)+' do '+escU(uni)+'.'
+          : ', mas sem vínculo com o '+escU(uni)+'.')
+      +'<br><span style="color:var(--text-3)">Quem se cadastrou no app escreveu '
+      +'<b>'+escU(nome)+'</b>. É a mesma pessoa?</span></div></div>'
+      + _musrLinhaOpcao('mesma', 'Sim, é a mesma pessoa'
+          + (ident.nestaUnidade
+              ? ' — só liberar o acesso, o cadastro já está certo'
+              : ' — vincular esta ficha ao '+escU(uni)), true)
+      + _musrLinhaOpcao('outra', 'Não, são pessoas diferentes'
+          + ' <span style="color:var(--text-3)">— então confira o CPF antes de aprovar</span>', false)
+      + '<div style="margin-top:9px;font-size:11.5px;color:var(--text-3);line-height:1.6">'
+      + 'Marcando <b>Sim</b>, nenhuma ficha nova é criada: a pessoa que já existe '
+      + 'é que recebe o acesso. É assim que não ficam dois nomes iguais na lista '
+      + 'de moradores da unidade.</div>';
     return;
   }
 
@@ -18822,6 +18905,29 @@ function _musrAplicarCadastro(nome, tel, email, uni){
   var un=getUnidades()[uni]; if(!un) return '';
   var co=getCondominos();
 
+  /* O CPF reconheceu a pessoa com outro nome, e a administração confirmou
+     que é a mesma. Nenhuma ficha nova: aproveita a que existe. Se ela ainda
+     não tem vínculo com esta unidade, vincula — é o caso de quem mudou de
+     casa dentro do condomínio. */
+  var _rCpf=document.querySelector('input[name="musr-cad-cpf"]:checked');
+  if(_rCpf){
+    if(_rCpf.value!=='mesma') return '';   // pessoas diferentes: não mexe em nada
+    var _cpf=($('musr-cpf')?$('musr-cpf').value:'').trim();
+    var _p=mresCondominoPorCpf(_cpf);
+    if(!_p) return '';
+    if(un.proprietario===_p.cod || un.morador===_p.cod){
+      return nome+' é '+_p.reg.nome+', que já está no cadastro do '+uni+'. Nada foi duplicado.';
+    }
+    var _slot = un.morador ? (un.proprietario ? '' : 'proprietario') : 'morador';
+    if(!_slot){
+      return nome+' é '+_p.reg.nome+', que já está no cadastro. O '+uni+
+             ' já tem proprietário e morador — ajuste o vínculo em Unidades se precisar.';
+    }
+    var _us=getUnidades(); _us[uni][_slot]=_p.cod; S('unidades', _us);
+    return nome+' é '+_p.reg.nome+', que já estava no cadastro. Vinculado ao '+uni+
+           ' como '+(_slot==='proprietario'?'proprietário':'morador')+' — sem criar ficha nova.';
+  }
+
   // Já está no cadastro: no máximo atualiza o telefone, e só se pedirem.
   var ja=_musrJaNoCadastro(uni, nome);
   if(ja){
@@ -18855,7 +18961,7 @@ function _musrAplicarCadastro(nome, tel, email, uni){
     });
     pai.dependentes.push({
       codigo: de+'-'+String(maxN+1).padStart(2,'0'),
-      nome:nome, parentesco:'', cpf:'', rg:'', nascimento:'', foto:'',
+      nome:nome, parentesco:'', cpf:_musrCpfInformado(), rg:'', nascimento:'', foto:'',
       telefone:tel||'', email:String(email||'').trim()
     });
     co[de]=pai; S('condominos', co);
@@ -18879,7 +18985,7 @@ function _musrAplicarCadastro(nome, tel, email, uni){
   if(iguais.length===1) cod=iguais[0];
   if(!cod){
     cod=conFormatCodigo(conProximoCodigoNum());
-    co[cod]={ nome:nome, tipoPessoa:'fisica', foto:'', cpf:'', rg:'',
+    co[cod]={ nome:nome, tipoPessoa:'fisica', foto:'', cpf:_musrCpfInformado(), rg:'',
               email:String(email||'').trim(), telefone:tel||'',
               telefones: tel?[{numero:tel, tipo:'Celular'}]:[], dependentes:[] };
     var num=parseInt(cod,10);

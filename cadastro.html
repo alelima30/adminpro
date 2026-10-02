@@ -70,6 +70,11 @@
     <div class="iw"><i class="fa-solid fa-user"></i>
       <input type="text" id="c-nome" placeholder="Seu nome completo" autocomplete="name"></div>
 
+    <label>CPF <span style="font-weight:400;opacity:.75">(opcional, mas recomendado)</span></label>
+    <div class="iw"><i class="fa-solid fa-id-card"></i>
+      <input type="text" id="c-cpf" placeholder="000.000.000-00" inputmode="numeric" autocomplete="off"></div>
+    <div class="hint">Serve para a administração reconhecer que você já está no cadastro do condomínio e não criar uma ficha repetida no seu nome. Ninguém além da administração vê este dado.</div>
+
     <label class="req">E-mail</label>
     <div class="iw"><i class="fa-solid fa-envelope"></i>
       <input type="email" id="c-email" placeholder="voce@exemplo.com" autocomplete="email"></div>
@@ -179,6 +184,22 @@ function condSelecionado(){
 
 function showMsg(txt, tipo){ const m=$('msg'); m.textContent=txt; m.className='msg '+tipo; }
 
+/* CPF: confere os dois digitos verificadores. Nao e firula -- o CPF so serve
+   para reconhecer a pessoa no cadastro, e um numero invalido nunca vai
+   reconhecer ninguem. Melhor avisar aqui do que deixar passar. */
+function cpfValido(v){
+  const d=String(v||'').replace(/\D/g,'');
+  if(d.length!==11) return false;
+  if(/^(\d)\1{10}$/.test(d)) return false;   // 111.111.111-11 e afins
+  const dig=(ate)=>{
+    let soma=0;
+    for(let i=0;i<ate;i++) soma += parseInt(d[i],10)*(ate+1-i);
+    const r=(soma*10)%11;
+    return (r===10||r===11) ? 0 : r;
+  };
+  return dig(9)===parseInt(d[9],10) && dig(10)===parseInt(d[10],10);
+}
+
 // Monta o <select> a partir de uma lista [{c:cod, r:rua}]
 function montarSelectUnidades(lista){
   const sel=$('c-unidade');
@@ -229,7 +250,15 @@ async function enviar(){
   const senha=$('c-senha').value;
   const senha2=$('c-senha2').value;
 
+  const cpf=($('c-cpf')?$('c-cpf').value:'').trim();
+
   if(!nome){ return showMsg('Informe seu nome completo.','err'); }
+  // CPF e opcional. Preenchido, tem de ser um CPF de verdade: um numero
+  // digitado errado aqui nao protege ninguem de nada -- so cria a confianca
+  // falsa de que a conferencia foi feita.
+  if(cpf && !cpfValido(cpf)){
+    return showMsg('CPF inválido. Confira os números, ou deixe o campo em branco.','err');
+  }
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ return showMsg('Informe um e-mail válido.','err'); }
   // WhatsApp: Brasil exige 11 dígitos (DDD + 9 + 8). Outro país: começa com "+" e código.
   const _dig = tel.replace(/\D/g,'');
@@ -268,7 +297,7 @@ async function enviar(){
     // 2) Registra a solicitação (a administração aprova depois). Sem senha aqui.
     const sol = await SB.from('solicitacoes').insert({
       auth_id: authId, condominio_id: condominio,
-      nome, email, tel, unidade, vinculo, nivel:'morador', status:'pendente'
+      nome, email, tel, cpf: cpf || null, unidade, vinculo, nivel:'morador', status:'pendente'
     });
     if(sol.error) throw sol.error;
 

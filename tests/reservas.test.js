@@ -662,6 +662,7 @@ bloco('Pessoas da unidade: cadastro × contas do app', () => {
 // responder "dependente de quem?".
 bloco('Conta do app → cadastro do condomínio', () => {
   let UNI, CON, SEQ, SALVOU, ESCOLHA, ESCOLHA_DE, CONFIRMOU, MARCA_TEL, CAIXA;
+  let CPF_INFORMADO, RESPOSTA_CPF;
 
   function reset() {
     UNI = { L01: { proprietario: '0001', morador: '' }, L02: {} };
@@ -671,6 +672,7 @@ bloco('Conta do app → cadastro do condomínio', () => {
     };
     SEQ = 1; SALVOU = []; ESCOLHA = 'nada'; ESCOLHA_DE = '0001';
     CONFIRMOU = true; MARCA_TEL = false; CAIXA = '';
+    CPF_INFORMADO = ''; RESPOSTA_CPF = null;   // null = a pergunta do CPF nem apareceu
   }
   reset();
 
@@ -678,7 +680,8 @@ bloco('Conta do app → cadastro do condomínio', () => {
   // congelado. Só entram FUNÇÕES, que leem as variáveis por closure e por
   // isso enxergam o valor do momento da chamada.
   const api = carregar(
-    ['_musrNorm', '_musrCondsDaUnidade', '_musrJaNoCadastro', '_musrAplicarCadastro', '_soDigitos'],
+    ['_musrNorm', '_musrCondsDaUnidade', '_musrJaNoCadastro', '_musrAplicarCadastro', '_soDigitos',
+     '_musrIdentificar', 'mresCondominoPorCpf', '_musrCpfInformado'],
     {
       getUnidades: () => UNI,
       getCondominos: () => CON,
@@ -695,9 +698,20 @@ bloco('Conta do app → cadastro do condomínio', () => {
         if (id === 'musr-cad-box') return { style: { display: CAIXA } };
         if (id === 'musr-cad-de') return { value: ESCOLHA_DE };
         if (id === 'musr-cad-tel') return MARCA_TEL ? { checked: true } : null;
+        if (id === 'musr-cpf') return { value: CPF_INFORMADO };
         return null;
       },
-      document: { querySelector: () => ({ value: ESCOLHA }) },
+      // Responde POR SELETOR. Antes respondia o mesmo para qualquer pergunta,
+      // e quando apareceu um segundo grupo de rádios (o do CPF) o teste
+      // entregava a resposta do grupo errado.
+      document: {
+        querySelector: (sel) => {
+          if (String(sel).indexOf('musr-cad-cpf') >= 0) {
+            return RESPOSTA_CPF ? { value: RESPOSTA_CPF } : null;
+          }
+          return { value: ESCOLHA };
+        },
+      },
     },
   );
 
@@ -740,6 +754,62 @@ bloco('Conta do app → cadastro do condomínio', () => {
   checa('ligou à unidade', UNI.L01.morador, '0002');
   checa('sem mexer no proprietário', UNI.L01.proprietario, '0001');
   checa('telefone do app foi junto', CON['0002'].telefone, '11933334444');
+
+  /* ── O CPF reconhece quem o nome nao reconheceria ──────────────────
+     Normalizar o nome resolve "JOAO SILVA" x "joão silva". Nao resolve
+     "João A. Silva" x "João Silva" -- e e dai que nascem duas fichas da
+     mesma pessoa, cada uma com o seu historico. O CPF resolve. */
+  reset();
+  CON['0001'].cpf = '390.533.447-05';
+  checa('o nome sozinho nao reconhece a grafia diferente',
+    api._musrJaNoCadastro('L01', 'João A. Silva'), null);
+  let id = api._musrIdentificar('L01', 'João A. Silva', '39053344705');
+  checa('o CPF reconhece', id && id.via, 'cpf');
+  checa('e diz de quem e a ficha', id && id.nome, 'João Silva');
+  checa('percebe que o nome digitado e outro', id && id.mesmoNome, false);
+  checa('e que a pessoa ja e desta unidade', id && id.papel, 'proprietário');
+
+  checa('CPF com pontuacao diferente reconhece igual',
+    api._musrIdentificar('L01', 'João A. Silva', '390.533.447-05').via, 'cpf');
+  checa('CPF de outra pessoa nao reconhece ninguem',
+    api._musrIdentificar('L01', 'Ana Nova', '11144477735'), null);
+  checa('sem CPF, volta a valer so o nome',
+    api._musrIdentificar('L01', 'João Silva', '').via, 'nome');
+
+  // Mesma pessoa, cadastrada em OUTRA unidade (mudou de casa).
+  checa('o CPF procura no condominio inteiro, nao so na unidade',
+    api._musrIdentificar('L02', 'João A. Silva', '39053344705').nestaUnidade, false);
+
+  // ── "Sim, e a mesma pessoa": nao cria ficha nenhuma ──
+  reset(); CON['0001'].cpf = '39053344705';
+  CPF_INFORMADO = '390.533.447-05'; RESPOSTA_CPF = 'mesma'; ESCOLHA = 'morador';
+  let m2 = api._musrAplicarCadastro('João A. Silva', '11999998888', 'j@x.com', 'L01');
+  checa('avisa que nao duplicou', /Nada foi duplicado/.test(m2), true);
+  checa('nenhuma ficha nova foi criada', Object.keys(CON), ['0001']);
+  checa('e nada foi gravado', SALVOU, []);
+
+  // Mesma pessoa, mas ainda sem vinculo com esta unidade: vincula.
+  reset(); CON['0001'].cpf = '39053344705';
+  UNI.L02 = { proprietario: '', morador: '' };
+  CPF_INFORMADO = '39053344705'; RESPOSTA_CPF = 'mesma';
+  let m3 = api._musrAplicarCadastro('João A. Silva', '', '', 'L02');
+  checa('vincula a ficha que ja existe', UNI.L02.morador, '0001');
+  checa('sem criar outra', Object.keys(CON), ['0001']);
+  checa('e diz o que fez', /sem criar ficha nova/.test(m3), true);
+
+  // ── "Nao, sao pessoas diferentes": nao mexe em nada ──
+  reset(); CON['0001'].cpf = '39053344705';
+  CPF_INFORMADO = '39053344705'; RESPOSTA_CPF = 'outra'; ESCOLHA = 'morador';
+  checa('respondendo que sao pessoas diferentes, nada acontece',
+    api._musrAplicarCadastro('João A. Silva', '', '', 'L01'), '');
+  checa('nada gravado', SALVOU, []);
+
+  // ── O CPF informado entra na ficha nova ──
+  // Sem isto a conferencia so funciona uma vez: a ficha criada hoje nao
+  // seria reconhecida pelo CPF amanha.
+  reset(); ESCOLHA = 'morador'; CPF_INFORMADO = '111.444.777-35';
+  api._musrAplicarCadastro('Ana Nova', '11933334444', 'ana@x.com', 'L01');
+  checa('a ficha criada guarda o CPF', CON['0002'].cpf, '111.444.777-35');
 
   // ── Dependente: o vínculo é com uma pessoa, não com a unidade ──
   reset(); ESCOLHA = 'dependente'; ESCOLHA_DE = '0001';

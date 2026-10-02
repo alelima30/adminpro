@@ -254,3 +254,27 @@ nele faria cada clique num horário reescrever meio megabyte.
 
 Renomear um espaço move a foto para a chave nova; excluir apaga a foto
 (`espFotosRenomear` / `espFotosExcluir`, cobertas em `tests/espacos.test.js`).
+
+
+## CPF: a chave contra morador duplicado
+
+A mesma pessoa entra no sistema por dois caminhos — a administração cadastra,
+e ela mesma se cadastra pelo link público. Reconhecer que são a mesma pessoa é
+feito em camadas:
+
+1. **Nome normalizado** (`_musrNorm`: sem acento, sem caixa, sem espaço
+   dobrado) — resolve "ALESSANDRA SOUZA" × "Alessandra Souza". Usado em
+   `encPessoasDaUnidade` e `_musrJaNoCadastro`.
+2. **CPF** (`mresCondominoPorCpf`, `_musrIdentificar`) — resolve
+   "Alessandra S. Souza" × "Alessandra Souza", que o nome nunca pegaria.
+   Procura no condomínio inteiro, não só na unidade declarada: a pessoa pode
+   ter mudado de casa.
+
+O CPF é coletado em `cadastro.html` (opcional, com validação dos dígitos) e
+guardado em `solicitacoes.cpf` (ver `supabase/12_cpf_solicitacoes.sql`).
+
+**A comparação acontece na aprovação, nunca na página pública.** A página de
+cadastro é anônima e não tem acesso de leitura ao cadastro de condôminos — se
+tivesse, qualquer pessoa digitaria CPFs até acertar um e descobriria quem mora
+onde. O formulário público só grava; quem compara é a tela de aprovação, por
+quem já está autenticado no condomínio.
