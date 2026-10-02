@@ -147,6 +147,61 @@ bloco('A migração do cpf recarrega o cache do schema', () => {
   checa('e manda recarregar o cache', /notify pgrst, 'reload schema'/.test(sql), true);
 });
 
+// ── Unidade no cadastro público: digitar em vez de rolar ──────────────
+// Era um <select> com a lista inteira. No celular isso vira a roleta do
+// sistema com centenas de lotes, e achar o J11 ali é rolar no escuro.
+bloco('A unidade do cadastro público é digitada e filtrada', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'cadastro.html'), 'utf8');
+
+  checa('o campo que aparece é de digitar',
+    /id="c-unidade-busca"[\s\S]{0,400}oninput="uniFiltrar/.test(src), true);
+  // O resto do formulário (validação e envio) lê c-unidade: ele continua
+  // existindo, agora escondido. Trocar o id teria quebrado tudo em silêncio.
+  checa('o valor continua no mesmo campo de sempre',
+    src.includes('<input type="hidden" id="c-unidade">'), true);
+  checa('e o envio continua lendo dele',
+    src.includes("const unidade=$('c-unidade').value;"), true);
+
+  // Lista grande não pode ser desenhada inteira a cada tecla.
+  checa('a lista desenhada é limitada', /\.slice\(0,\s*40\)/.test(src), true);
+  // Quem digita "J1" procura o J11, não o "AJ1".
+  checa('quem começa com o texto vem primeiro',
+    /comeca\.concat\(contem\)/.test(src), true);
+
+  // Clicar na lista não pode ser morto pelo onblur do campo.
+  checa('o clique na lista sobrevive ao blur',
+    /id="c-unidade-lista" onmousedown="event\.preventDefault\(\)"/.test(src), true);
+
+  // form.reset() não desfaz o destaque pintado por uniEscolher.
+  checa('o reset do formulário limpa a unidade',
+    src.includes("$('form').reset(); uniLimpar();"), true);
+});
+
+bloco('Tab e Enter na unidade só confirmam sem duvida', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'cadastro.html'), 'utf8');
+  const i = src.indexOf('function uniEscolhaTeclado');
+  const corpo = src.slice(i, src.indexOf('\n}', i) + 2);
+  const uniNorm = (v) => String(v || '').toUpperCase().replace(/\s+/g, '');
+  let uniEscolhaTeclado;
+  eval(corpo.replace('function uniEscolhaTeclado', 'uniEscolhaTeclado = function'));
+
+  const L = [{ c: 'J10' }, { c: 'J11' }, { c: 'J12' }];
+  checa('unidade digitada por inteiro confirma', uniEscolhaTeclado('j11', L, -1), 'J11');
+  checa('minúscula vale', uniEscolhaTeclado('J11', L, -1), 'J11');
+  checa('espaço no meio não atrapalha', uniEscolhaTeclado(' j 11 ', L, -1), 'J11');
+  checa('sobrou uma só na lista', uniEscolhaTeclado('J1', [{ c: 'J11' }], -1), 'J11');
+  checa('escolhido com as setas', uniEscolhaTeclado('J1', L, 2), 'J12');
+  // Mandar a pessoa para a unidade errada é pior do que pedir que termine.
+  checa('prefixo ambíguo não escolhe', uniEscolhaTeclado('J1', L, -1), '');
+  checa('vazio não escolhe', uniEscolhaTeclado('', L, -1), '');
+  checa('unidade inexistente não escolhe', uniEscolhaTeclado('ZZ9', L, -1), '');
+  checa('lista ausente não quebra', uniEscolhaTeclado('J11', null, -1), '');
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }
 console.log('TODOS OS TESTES PASSARAM (' + ok + ')');

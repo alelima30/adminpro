@@ -87,8 +87,20 @@
     <div class="row2">
       <div>
         <label class="req">Unidade</label>
-        <div class="iw"><i class="fa-solid fa-house-chimney"></i>
-          <select id="c-unidade"><option value="">Carregando unidades...</option></select></div>
+        <!-- Digita e filtra. Era um <select> com a lista inteira: no celular
+             isso vira a roleta do sistema com centenas de lotes, e achar o
+             J11 ali é rolar no escuro. O valor continua guardado no mesmo
+             campo c-unidade, agora escondido — nada do resto mudou. -->
+        <div class="iw" style="position:relative"><i class="fa-solid fa-house-chimney"></i>
+          <input type="text" id="c-unidade-busca" placeholder="Digite sua unidade — ex: J11"
+                 autocomplete="off" autocapitalize="characters" spellcheck="false"
+                 oninput="uniFiltrar(this.value)" onfocus="uniAbrir()"
+                 onkeydown="uniTecla(event)" onblur="uniSair()">
+          <div id="c-unidade-lista" onmousedown="event.preventDefault()" style="
+            display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:50;
+            background:var(--ink);border:1px solid var(--gold);border-radius:10px;
+            max-height:210px;overflow-y:auto;box-shadow:0 14px 40px rgba(0,0,0,.5)"></div>
+          <input type="hidden" id="c-unidade"></div>
       </div>
       <div>
         <label class="req">Vínculo</label>
@@ -201,24 +213,142 @@ function cpfValido(v){
 }
 
 // Monta o <select> a partir de uma lista [{c:cod, r:rua}]
+/* ── Unidade: digita e filtra ──────────────────────────────────────────
+   A lista inteira fica guardada aqui; a tela mostra no maximo as primeiras
+   que casarem com o que foi digitado. Num condominio de centenas de lotes,
+   desenhar tudo a cada tecla trava o celular -- e ninguem le 300 linhas. */
+var UNIDADES = [];
+
 function montarSelectUnidades(lista){
-  const sel=$('c-unidade');
+  const inp=$('c-unidade-busca');
   if(!lista || !lista.length){
-    sel.innerHTML='<option value="">Nenhuma unidade cadastrada</option>';
+    UNIDADES=[];
+    if(inp){ inp.placeholder='Nenhuma unidade cadastrada'; inp.disabled=true; }
     $('uni-hint').textContent='Nenhuma unidade encontrada — contate a administração.';
     return;
   }
   lista.sort((a,b)=>a.c.localeCompare(b.c,'pt-BR',{numeric:true}));
-  const grupos={};
-  lista.forEach(u=>{ const q=(u.c.match(/^[A-Za-z]+/)||[u.c[0]])[0].toUpperCase(); (grupos[q]=grupos[q]||[]).push(u); });
-  let html='<option value="">Selecione sua unidade...</option>';
-  Object.keys(grupos).sort().forEach(q=>{
-    html+='<optgroup label="Bloco '+q+'">';
-    grupos[q].forEach(u=>{ html+='<option value="'+u.c+'">'+u.c+(u.r?' \u2014 '+u.r:'')+'</option>'; });
-    html+='</optgroup>';
+  UNIDADES=lista;
+  if(inp){ inp.disabled=false; inp.placeholder='Digite sua unidade — ex: '+lista[0].c; }
+  $('uni-hint').textContent='Comece a digitar e escolha a sua na lista.';
+}
+
+function uniNorm(v){ return String(v||'').toUpperCase().replace(/\s+/g,''); }
+
+/* Quem casa com o que foi digitado. Primeiro as que COMECAM pelo texto --
+   quem digita "J1" procura o J11, nao o "AJ1". */
+function uniFiltradas(txt){
+  const f=uniNorm(txt);
+  if(!f) return UNIDADES.slice(0,40);
+  const comeca=[], contem=[];
+  UNIDADES.forEach(u=>{
+    const c=uniNorm(u.c);
+    if(c.indexOf(f)===0) comeca.push(u);
+    else if(c.indexOf(f)>0) contem.push(u);
   });
-  sel.innerHTML=html;
-  $('uni-hint').textContent='Selecione a unidade correspondente ao seu im\u00f3vel.';
+  return comeca.concat(contem).slice(0,40);
+}
+
+function uniDesenhar(txt){
+  const dd=$('c-unidade-lista'); if(!dd) return;
+  const achadas=uniFiltradas(txt);
+  dd._lista=achadas; dd._idx=-1;
+  if(!achadas.length){
+    dd.innerHTML='<div style="padding:14px;text-align:center;color:var(--text-3);font-size:13px">'
+      +'Nenhuma unidade encontrada.<br>Confira o código ou fale com a administração.</div>';
+    return;
+  }
+  dd.innerHTML=achadas.map(u=>
+    '<div data-uni="'+u.c+'" onclick="uniEscolher(\''+u.c+'\')" style="padding:10px 13px;cursor:pointer;'
+    +'display:flex;align-items:center;gap:9px;border-bottom:1px solid rgba(255,255,255,.05)">'
+    +'<span style="font-weight:700;color:var(--gold);font-size:13px;min-width:46px">'+u.c+'</span>'
+    +(u.r?'<span style="font-size:12px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+u.r+'</span>':'')
+    +'</div>').join('');
+}
+
+function uniAbrir(){
+  if(!UNIDADES.length) return;
+  uniDesenhar($('c-unidade-busca').value);
+  $('c-unidade-lista').style.display='block';
+}
+function uniFiltrar(v){
+  $('c-unidade').value='';          // digitou de novo: a escolha anterior caiu
+  uniDesenhar(v);
+  $('c-unidade-lista').style.display='block';
+}
+function uniEscolher(cod){
+  $('c-unidade').value=cod;
+  const inp=$('c-unidade-busca');
+  inp.value=cod;
+  inp.style.color='var(--gold)'; inp.style.fontWeight='700';
+  $('c-unidade-lista').style.display='none';
+  $('uni-hint').textContent='Unidade '+cod+' selecionada.';
+}
+function uniRealce(){
+  const dd=$('c-unidade-lista');
+  [].forEach.call(dd.querySelectorAll('[data-uni]'), (el,i)=>{
+    el.style.background = (i===dd._idx) ? 'rgba(232,119,34,.16)' : '';
+  });
+  const at=dd.querySelectorAll('[data-uni]')[dd._idx];
+  if(at && at.scrollIntoView) at.scrollIntoView({block:'nearest'});
+}
+
+/* Mesma regra do app: Tab e Enter so confirmam quando NAO ha duvida. Digitou
+   "J1" existindo J11 e J12, nao se escolhe nenhuma -- mandar a pessoa para a
+   unidade errada e pior do que pedir que termine de escolher. */
+function uniEscolhaTeclado(digitado, lista, idx){
+  lista = lista || [];
+  if(idx>=0 && lista[idx]) return lista[idx].c;
+  const d=uniNorm(digitado);
+  if(!d) return '';
+  const exata=lista.filter(u=>uniNorm(u.c)===d)[0];
+  if(exata) return exata.c;
+  if(lista.length===1) return lista[0].c;
+  return '';
+}
+
+function uniTecla(ev){
+  const dd=$('c-unidade-lista'); if(!dd) return;
+  const lista=dd._lista||[]; const k=ev.key;
+  if(k==='ArrowDown'||k==='ArrowUp'){
+    if(!lista.length) return;
+    if(dd.style.display==='none') uniAbrir();
+    const passo=(k==='ArrowDown')?1:-1;
+    let i=(typeof dd._idx==='number'?dd._idx:-1)+passo;
+    if(i<0) i=lista.length-1;
+    if(i>=lista.length) i=0;
+    dd._idx=i; uniRealce(); ev.preventDefault(); return;
+  }
+  if(k==='Escape'){ dd.style.display='none'; dd._idx=-1; return; }
+  if(k==='Enter'||k==='Tab'){
+    const esc=uniEscolhaTeclado(ev.target.value, lista, dd._idx);
+    if(esc){ uniEscolher(esc); if(k==='Enter') ev.preventDefault(); }
+    else { dd.style.display='none'; dd._idx=-1; }
+  }
+}
+
+/* Sair do campo fecha a lista. Se o texto for exatamente uma unidade da
+   lista, confirma -- ninguem deveria ter de voltar e clicar no que ja
+   digitou certo. E se nao for, o campo volta ao normal para nao parecer
+   escolhido sem estar. */
+function uniLimpar(){
+  const inp=$('c-unidade-busca');
+  if($('c-unidade')) $('c-unidade').value='';
+  if(inp){ inp.value=''; inp.style.color=''; inp.style.fontWeight=''; }
+  const dd=$('c-unidade-lista');
+  if(dd){ dd.style.display='none'; dd._idx=-1; }
+}
+
+function uniSair(){
+  const dd=$('c-unidade-lista'), inp=$('c-unidade-busca');
+  if(!dd||!inp) return;
+  const d=uniNorm(inp.value);
+  if(d && !$('c-unidade').value){
+    const exata=UNIDADES.filter(u=>uniNorm(u.c)===d)[0];
+    if(exata) uniEscolher(exata.c);
+  }
+  if(!$('c-unidade').value){ inp.style.color=''; inp.style.fontWeight=''; }
+  dd.style.display='none'; dd._idx=-1;
 }
 
 // Carrega as unidades: usa a lista embutida (sempre funciona) e tenta atualizar via Firebase
@@ -231,7 +361,9 @@ async function carregarUnidades(){
     if(data && data.length){
       const atual = $('c-unidade').value;
       montarSelectUnidades(data.map(u=>({c:u.cod, r:u.rua||''})));
-      if(atual) $('c-unidade').value=atual;
+      // A lista chegou do servidor depois que a pessoa já tinha escolhido:
+      // devolve a escolha dela, inclusive no campo que aparece na tela.
+      if(atual) uniEscolher(atual);
     } else if(cond!=='APVC'){
       montarSelectUnidades([]); // condomínio novo ainda sem unidades
     }
@@ -335,7 +467,10 @@ async function enviar(){
     // Não deixa o solicitante logado no navegador
     try{ await SB.auth.signOut(); }catch(_){}
 
-    $('form').reset(); carregarCondominios(); carregarUnidades();
+    // form.reset() devolve os campos ao padrão do HTML, mas não desfaz o
+    // destaque que uniEscolher() pinta no campo de unidade -- sem isto, o
+    // formulário zerado continuava com uma unidade "escolhida" em laranja.
+    $('form').reset(); uniLimpar(); carregarCondominios(); carregarUnidades();
     var _msgOk='A administração vai analisar e liberar seu acesso à unidade '+unidade+'. Você usará o e-mail e a senha que acabou de cadastrar.';
     if($('ok-txt')) $('ok-txt').textContent=_msgOk;
     if($('ok-ov')) $('ok-ov').style.display='flex';
