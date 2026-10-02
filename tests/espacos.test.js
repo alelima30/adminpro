@@ -15,7 +15,8 @@
 const { carregar } = require('./extrair');
 
 const api = carregar(
-  ['resStatusAoSalvar', 'espFotosRenomear', 'espFotosExcluir', '_chvEsp', '_espIcone', 'semAcento'],
+  ['resStatusAoSalvar', 'espFotosRenomear', 'espFotosExcluir', '_chvEsp', '_espIcone', 'semAcento',
+   'espListaParaForm'],
   {},
 );
 
@@ -106,6 +107,41 @@ bloco('Sem foto, o cartão mostra um ícone que diz algo', () => {
   checa('sala coworking', api._espIcone('Sala coworking'), 'fa-laptop');
   checa('espaço que ninguém previu tem ícone genérico',
         api._espIcone('Espaço do Zezinho'), 'fa-location-dot');
+});
+
+// ── Espaço desativado continua na tela, mas travado ───────────────────
+bloco('Espaço desativado aparece para todo mundo, sem poder ser escolhido', () => {
+  const LISTA = ['Quadra de areia', 'Sala de jogos', 'Quiosque'];
+  const CFG = { disp_sala_de_jogos_ativo: false };
+  const r = api.espListaParaForm(LISTA, CFG, '');
+
+  checa('nenhum espaço some da lista', r.map((e) => e.nome), LISTA);
+  checa('o desativado vem travado', r[1].travado, true);
+  checa('e marcado como inativo', r[1].ativo, false);
+  checa('os ativos não vêm travados', [r[0].travado, r[2].travado], [false, false]);
+});
+
+bloco('A reserva aberta não perde o próprio espaço', () => {
+  // Reserva antiga marcada num espaço que o condomínio desativou depois:
+  // se ele viesse travado, abrir a reserva para corrigir um telefone a
+  // faria perder o espaço no salvamento.
+  const r = api.espListaParaForm(
+    ['Quadra de areia', 'Sala de jogos'], { disp_sala_de_jogos_ativo: false }, 'Sala de jogos');
+  checa('o espaço da própria reserva continua selecionável', r[1].travado, false);
+  checa('mas segue sinalizado como inativo', r[1].ativo, false);
+});
+
+bloco('Sem configuração, todo espaço está ativo', () => {
+  const r = api.espListaParaForm(['Quiosque', 'Ginásio'], {}, '');
+  checa('nada travado', r.map((e) => e.travado), [false, false]);
+  // Só `false` desativa: uma chave ausente, ou qualquer outro valor, é ativo.
+  const r2 = api.espListaParaForm(['Quiosque'], { disp_quiosque_ativo: true }, '');
+  checa('true também é ativo', r2[0].travado, false);
+});
+
+bloco('Lista vazia ou ausente não quebra', () => {
+  checa('lista nula', api.espListaParaForm(null, {}, ''), []);
+  checa('cfg nula', api.espListaParaForm(['Quiosque'], null, '').length, 1);
 });
 
 console.log('\n' + '-'.repeat(50));

@@ -329,8 +329,17 @@ bloco('Quem desenha texto do usuário chama o escape', () => {
     /escHtml\(b\.espaco\)/.test(linha("return '<tr><td>'+(b.espaco")), true);
   checa('nome do espaço no cartão de disponibilidade',
     src.includes("'+escHtml(esp)+'</span>'"), true);
-  checa('nome do espaço no seletor da reserva (valor e rótulo)',
-    src.includes(`html+='<option value="'+escHtml(esp)+'">'+escHtml(rotulo)+'</option>';`), true);
+  // O <option> do espaço passou a ser montado em duas linhas (ganhou o
+  // "disabled" do espaço indisponível). O que importa continua o mesmo: o
+  // nome, que é texto livre digitado pela administração, é escapado tanto no
+  // value quanto no rótulo.
+  checa('nome do espaço no seletor da reserva (value)',
+    src.includes(`html+='<option value="'+escHtml(e.nome)+'"'`), true);
+  checa('nome do espaço no seletor da reserva (rótulo)',
+    src.includes(`escHtml(e.nome+(e.ativo?'':' (indisponível)'))`), true);
+  // Mesmo texto, agora também desenhado como cartão com foto.
+  checa('nome do espaço no cartão de reserva',
+    src.includes(`'<span class="esp-card-nome">'+escHtml(nome)+'</span>'`), true);
   checa('nenhum <option> de espaço monta o nome sem escapar',
     src.includes("return '<option>'+e+'</option>'"), false);
 });
