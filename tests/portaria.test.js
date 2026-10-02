@@ -160,8 +160,13 @@ bloco('A portaria tem como chegar na propria tela', () => {
   checa('ele nasce escondido (quem o mostra e o aplicarSaas)',
     /id="nav-portaria-wrap" style="display:none"/.test(src), true);
   checa('e e escondido de quem tem a barra de abas',
-    /_temAbas[\s\S]{0,200}nivel/.test(src) ||
-    src.includes("_stPort.style.display = (ativos.includes('portaria') && !_temAbas)"), true);
+    src.includes('&& !_temAbas) ?'), true);
+  /* "O modulo esta ligado" nao basta: para o morador, modulo sem configuracao
+     conta como liberado, entao o item aparecia para TODO morador -- e clicar
+     nele dava "Acesso restrito ao seu perfil". A pergunta tem de ser a mesma
+     que o showPanel faz. */
+  checa('e so aparece para quem realmente pode abrir a tela',
+    src.includes("var _podeAbrir = paineisPermitidos(_n).indexOf('portaria') >= 0;"), true);
   // Sem isto, quem so tem esta tela entrava no sistema e caia no Inicio.
   checa('quem so tem esta tela entra nela',
     /const ordem = \['dashboard','portaria'/.test(src), true);
