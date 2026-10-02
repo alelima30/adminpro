@@ -344,6 +344,29 @@ bloco('Quem desenha texto do usuário chama o escape', () => {
     src.includes("return '<option>'+e+'</option>'"), false);
 });
 
+/* Campo que precisa atravessar a lista inteira para a trava funcionar.
+
+   A lista de usuarios e montada campo a campo a partir da linha do banco.
+   O CPF foi adicionado ao formulario publico, ao banco e a tela de aprovacao
+   -- e ficou de fora DESTE mapeamento. Nao deu erro nenhum: a pergunta "e a
+   mesma pessoa?" simplesmente nunca aparecia, e a duplicata que ela existe
+   para impedir voltava a acontecer calada. Um recurso inteiro inerte, sem uma
+   linha vermelha em lugar nenhum.
+
+   Por isso a verificacao e sobre o codigo-fonte: o defeito nao esta em
+   nenhuma funcao, esta em quem montou o objeto sem o campo. */
+bloco('O CPF atravessa do banco ate a tela de aprovacao', () => {
+  const src = lerFonte();
+  checa('a solicitacao leva o CPF para a lista',
+    /_tipo:'sol'[\s\S]{0,600}?cpf:s\.cpf/.test(src), true);
+  checa('o modal recebe o CPF ao abrir',
+    src.includes("$('musr-cpf').value = u.cpf"), true);
+  checa('e o formulario publico envia o CPF',
+    require('fs').readFileSync(
+      require('path').join(__dirname, '..', 'cadastro.html'), 'utf8')
+      .includes('cpf: cpf || null'), true);
+});
+
 // ── Resultado ──────────────────────────────────────────────────────────
 // ── Intervalo mínimo entre reservas da mesma unidade ───────────────────
 // O condomínio quer espaçar o uso: reservou de manhã, só de novo depois de

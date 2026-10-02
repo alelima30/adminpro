@@ -18475,6 +18475,12 @@ async function renderUsuarios(){
         if(lista.some(function(u){ return u.email===s.email; })) return;
         lista.push({ _docId:s.id, _tipo:'sol', auth_id:s.auth_id,
           nome:s.nome, email:s.email, tel:s.tel, lote:s.unidade||'', unidade:s.unidade||'',
+          // O CPF e o que permite reconhecer a pessoa no cadastro do
+          // condominio (ver _musrIdentificar). Esta lista monta cada item
+          // campo a campo: faltar aqui nao da erro nenhum -- a pergunta "e a
+          // mesma pessoa?" simplesmente nunca aparece, e a duplicata que ela
+          // existe para impedir volta a acontecer calada.
+          cpf:s.cpf||'',
           vinculo:s.vinculo, nivel:s.nivel||'morador', status:'pendente',
           condominio_id:s.condominio_id, dataCadastro:s.criado_em });
       });
