@@ -111,6 +111,42 @@ bloco('Cadastro sem CPF não dá falso positivo', () => {
   checa('ninguém é encontrado por CPF vazio', api.mresCondominoPorCpf('22222222222'), null);
 });
 
+// ── Campo opcional não pode derrubar o cadastro ───────────────────────
+// Aconteceu de verdade: a coluna cpf ainda não existia no banco (o cache de
+// schema do Supabase não tinha recarregado), e o cadastro público inteiro
+// parava com "Could not find the 'cpf' column of 'solicitacoes' in the schema
+// cache". A pessoa não conseguia entrar no sistema por causa de um campo que
+// ela nem era obrigada a preencher.
+bloco('O cadastro público sobrevive sem a coluna cpf', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'cadastro.html'), 'utf8');
+
+  checa('o envio tenta primeiro COM o cpf',
+    src.includes("insert(Object.assign({ cpf: cpf || null }, base))"), true);
+  checa('e repete sem ele quando o erro é do cpf',
+    /if\(sol\.error && \/cpf\/i\.test\(sol\.error\.message\|\|''\)\)/.test(src), true);
+  checa('a segunda tentativa não leva o cpf',
+    /sol = await SB\.from\('solicitacoes'\)\.insert\(base\);/.test(src), true);
+  // Outros erros continuam parando o cadastro: engolir tudo seria pior.
+  checa('erro que não é do cpf continua subindo',
+    /if\(sol\.error\) throw sol\.error;/.test(src), true);
+  // Quem precisa saber do problema é quem cuida do sistema.
+  checa('o aviso vai para o console, não para a tela',
+    /console\.warn\('Coluna cpf indispon/.test(src), true);
+});
+
+bloco('A migração do cpf recarrega o cache do schema', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const sql = fs.readFileSync(
+    path.join(__dirname, '..', 'supabase', '12_cpf_solicitacoes.sql'), 'utf8');
+  checa('cria a coluna', /add column if not exists cpf text/.test(sql), true);
+  // Sem isto, criar a coluna não basta: o Supabase continua respondendo pelo
+  // cache antigo e o cadastro segue quebrado.
+  checa('e manda recarregar o cache', /notify pgrst, 'reload schema'/.test(sql), true);
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }
 console.log('TODOS OS TESTES PASSARAM (' + ok + ')');
