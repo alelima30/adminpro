@@ -13,9 +13,10 @@
 
 const { carregar, lerFonte } = require('./extrair');
 
-const api = carregar(['portariaFiltrar', '_portSoma', 'hrIni'], {
-  PORTARIA_STATUS: ['confirmada', 'realizada', 'concluida'],
-});
+const api = carregar(
+  ['portariaFiltrar', 'portariaJanela', 'portariaAdiante', '_portSoma', 'hrIni'],
+  { PORTARIA_STATUS: ['confirmada', 'realizada', 'concluida'] },
+);
 
 let ok = 0, falhas = 0;
 function checa(descricao, obtido, esperado) {
@@ -136,7 +137,7 @@ bloco('Dado faltando não quebra', () => {
 bloco('A tela do portão não desenha valor nenhum', () => {
   const src = lerFonte();
   const ini = src.indexOf('function renderPortaria()');
-  const fim = src.indexOf('\n}', src.indexOf('lista.innerHTML=html;', ini));
+  const fim = src.indexOf('\n}', src.indexOf('lista.innerHTML=aviso+html;', ini));
   const corpo = src.slice(ini, fim);
   checa('o trecho foi encontrado', ini > 0 && fim > ini, true);
   ['taxa', 'caucao', 'pgto', 'comprovante', 'valor', 'R$'].forEach((proibido) => {
@@ -271,6 +272,61 @@ bloco('Mudar uma reserva refresca o Painel na mesma sessao', () => {
     /closeModal\('m-res'\); renderReservas\(\); verificarAlertas\(\); _portRefrescar\(\);/.test(src), true);
   checa('ao remover a reserva',
     /renderReservas\(\); _portRefrescar\(\); toast\('✓ Reserva removida/.test(src), true);
+});
+
+// ── "Não está atualizando" que não era ────────────────────────────────
+// Caso real: reserva aprovada para 11/10, filtro em "Próximos 7 dias", hoje
+// 02/10. A reserva não aparecia — e estava certo, a janela acaba em 08/10.
+// Errado era a tela: ela dizia "Próximos 7 dias" sem dizer quais dias, e não
+// avisava que havia reserva adiante. Quem olhava concluía, com toda a razão,
+// que o sistema não tinha atualizado.
+bloco('Janela de cada periodo', () => {
+  const j = (p, d) => api.portariaJanela(p, '2026-10-02', d);
+  checa('hoje', j('hoje'), { de: '2026-10-02', ate: '2026-10-02' });
+  checa('amanha', j('amanha'), { de: '2026-10-03', ate: '2026-10-03' });
+  // Sete dias contando hoje: 02 a 08. O dia 11 fica de fora, e e por isso que
+  // a reserva do caso real nao aparecia.
+  checa('proximos 7 dias', j('semana'), { de: '2026-10-02', ate: '2026-10-08' });
+  checa('daqui pra frente nao tem teto', j('futuras').ate, '9999-12-31');
+  checa('data escolhida', j('data', '2026-10-11'), { de: '2026-10-11', ate: '2026-10-11' });
+});
+
+bloco('A reserva do dia 11 com filtro de 7 dias', () => {
+  const lista = [
+    r({ nome: 'Amanha', data: '2026-10-03' }),
+    r({ nome: 'Gustavo', data: '2026-10-11' }),
+  ];
+  checa('fica fora da semana, como deve',
+        nomes(filtra(lista, { periodo: 'semana' })), ['Amanha']);
+  // E a tela tem como avisar que ela existe.
+  const ad = api.portariaAdiante(lista, '2026-10-08');
+  checa('o aviso sabe que ha reserva adiante', ad && ad.quantas, 1);
+  checa('e diz qual e a proxima', ad && ad.primeira, '2026-10-11');
+  // Com "Daqui pra frente", ela aparece.
+  checa('daqui pra frente mostra as duas',
+        nomes(filtra(lista, { periodo: 'futuras' })), ['Amanha', 'Gustavo']);
+});
+
+bloco('O aviso so aparece quando ha o que avisar', () => {
+  const lista = [r({ nome: 'Hoje', data: HOJE })];
+  checa('nada adiante, nenhum aviso', api.portariaAdiante(lista, '2026-10-08'), null);
+  checa('lista vazia nao quebra', api.portariaAdiante([], '2026-10-08'), null);
+  checa('lista nula nao quebra', api.portariaAdiante(null, '2026-10-08'), null);
+  // Pendente adiante NAO conta: ela nunca apareceria no portao mesmo.
+  checa('so conta reserva aprovada',
+    api.portariaAdiante([r({ data: '2026-12-25', status: 'pendente' })], '2026-10-08'), null);
+  checa('cancelada adiante tambem nao conta',
+    api.portariaAdiante([r({ data: '2026-12-25', status: 'cancelada' })], '2026-10-08'), null);
+});
+
+bloco('"Daqui pra frente" nao traz o passado', () => {
+  const lista = [
+    r({ nome: 'Ontem', data: '2026-10-01' }),
+    r({ nome: 'Hoje', data: HOJE }),
+    r({ nome: 'Longe', data: '2027-03-15' }),
+  ];
+  checa('comeca em hoje e nao tem teto',
+        nomes(filtra(lista, { periodo: 'futuras' })), ['Hoje', 'Longe']);
 });
 
 console.log('\n' + '-'.repeat(50));
