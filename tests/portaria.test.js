@@ -210,8 +210,14 @@ bloco('O relogio cobre a tela da portaria', () => {
   const src = lerFonte();
   checa('a portaria esta na lista de telas que releem',
     /_RESL_TELAS = \['reservas','portaria'\]/.test(src), true);
-  checa('o intervalo e de 15 minutos',
+  /* 15 minutos servem para a tela da administracao, que tem alguem na frente
+     apertando Atualizar. No portao, 15 minutos de atraso sao uma reserva
+     aprovada agora e um morador barrado por um quarto de hora. */
+  checa('a administracao rele de 15 em 15 minutos',
     /_RESL_RELEITURA_MIN = 15/.test(src), true);
+  checa('o portao rele de minuto em minuto',
+    /_PORT_RELEITURA_MIN = 1/.test(src), true);
+  checa('e o tique base e de 1 minuto', /\}, 60000\);/.test(src), true);
   // Tela aberta desde ontem seguiria mostrando "hoje" como sendo ontem.
   checa('o tique redesenha a portaria mesmo se a leitura falhar',
     /currentPanel === 'portaria'\) renderPortaria\(\);/.test(src), true);
@@ -250,6 +256,21 @@ bloco('O nome sai pelos dois caminhos que o morador alcança', () => {
     /_dica=.*resPodeVerNomes\(\)&&r\.nome/.test(src), true);
   checa('e nenhum title do calendário monta o nome direto',
     src.includes("title=\"'+escHtml((r.horario||'')+' '+(r.espaco||'')+' — '+(r.nome||''))"), false);
+});
+
+// ── Salvou aqui, aparece aqui ─────────────────────────────────────────
+bloco('Mudar uma reserva refresca o Painel na mesma sessao', () => {
+  const src = lerFonte();
+  checa('existe o refresco imediato', src.includes('function _portRefrescar()'), true);
+  checa('e ele so age com o Painel na tela',
+    /_portRefrescar[\s\S]{0,400}currentPanel === 'portaria'/.test(src), true);
+  // Os quatro caminhos que mudam o que o portao precisa ver.
+  checa('ao aprovar ou recusar (muda status)',
+    /atualizarBadgePendentes\(\); _portRefrescar\(\);/.test(src), true);
+  checa('ao salvar a reserva',
+    /closeModal\('m-res'\); renderReservas\(\); verificarAlertas\(\); _portRefrescar\(\);/.test(src), true);
+  checa('ao remover a reserva',
+    /renderReservas\(\); _portRefrescar\(\); toast\('✓ Reserva removida/.test(src), true);
 });
 
 console.log('\n' + '-'.repeat(50));
