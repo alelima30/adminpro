@@ -5197,8 +5197,10 @@ html.ambiente-ensaio body{padding-top:28px}
             autocomplete="off"
             style="padding-left:36px;width:100%"
             oninput="mresLoteFilter(this.value)"
+            onkeydown="mresLoteTecla(event)"
+            onblur="mresLoteBlur()"
             onfocus="mresLoteOpen()">
-          <div id="mres-lote-dd" style="
+          <div id="mres-lote-dd" onmousedown="event.preventDefault()" style="
             display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;
             background:var(--card-2);border:1px solid rgba(232,119,34,0.25);
             border-radius:12px;z-index:9999;max-height:200px;overflow-y:auto;
@@ -7196,14 +7198,19 @@ function mresLoteRender(filtro){
   const todas = unidadesCadastradas();
   if(!todas.length){
     dd.innerHTML='<div style="padding:16px;text-align:center;color:var(--text-3);font-size:13px">Nenhuma unidade cadastrada.<br>Cadastre em <strong>Administrativo → Cadastrar Unidades</strong>.</div>';
+    dd._lista=[]; dd._idx=-1;
     return;
   }
   const f = (filtro||'').toUpperCase().trim();
   const lista = f ? todas.filter(l=>l.startsWith(f)||l.includes(f)) : todas;
   if(!lista.length){
     dd.innerHTML='<div style="padding:16px;text-align:center;color:var(--text-3);font-size:13px">Nenhuma unidade encontrada</div>';
+    dd._lista=[]; dd._idx=-1;
     return;
   }
+  // Guarda o que esta visivel: e disto que o teclado precisa para saber o
+  // que seria escolhido com Tab, Enter ou as setas.
+  dd._lista=lista.slice(); dd._idx=-1;
   // Agrupa por bloco (primeira letra do código)
   const grupos={};
   lista.forEach(l=>{ const q=(l.match(/^[A-Za-z]+/)||[l[0]])[0].toUpperCase(); if(!grupos[q])grupos[q]=[]; grupos[q].push(l); });
@@ -7213,7 +7220,7 @@ function mresLoteRender(filtro){
     grupos[q].forEach(u=>{
       const d=us[u]||{};
       const sub=[condominoNome(d.proprietario), d.rua].filter(Boolean).join(' · ') || 'Unidade cadastrada';
-      html+=`<div onclick="mresLoteSelecionar('${escU(u)}')" style="padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;color:var(--text);display:flex;align-items:center;gap:10px;transition:background 0.12s" onmouseover="this.style.background='rgba(232,119,34,0.1)';this.style.color='var(--gold)'" onmouseout="this.style.background='';this.style.color='var(--text)'">
+      html+=`<div data-lote="${escU(u)}" onclick="mresLoteSelecionar('${escU(u)}')" style="padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer;color:var(--text);display:flex;align-items:center;gap:10px;transition:background 0.12s" onmouseover="this.style.background='rgba(232,119,34,0.1)';this.style.color='var(--gold)'" onmouseout="this.style.background='';this.style.color='var(--text)'">
         <span style="font-size:11px;font-weight:700;color:var(--gold);background:rgba(232,119,34,0.12);border:1px solid rgba(232,119,34,0.25);border-radius:6px;padding:2px 8px">${escU(u)}</span>
         <span style="font-size:12px;color:var(--text-3);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escU(sub)}</span>
       </div>`;
@@ -7238,6 +7245,90 @@ function mresLoteFilter(val){
   if(!dd) return;
   mresLoteRender(val);
   dd.style.display='block';
+}
+
+/* ── Teclado no campo de unidade ──────────────────────────────────────
+
+   O dropdown nasceu so com clique. Quem digitava "B01" e apertava Tab via o
+   campo preenchido com B01 -- e por baixo nao tinha acontecido nada: o campo
+   que guarda a unidade de verdade continuava vazio, o dropdown ficava aberto
+   por cima dos campos de baixo, e o seletor "Morador / Dependente da unidade"
+   seguia dizendo "selecione a unidade acima". Dava a impressao de que o Tab
+   tinha pulado para o lugar errado.
+
+   Regra de qual unidade o Tab/Enter escolhe: so quando NAO ha duvida --
+   a pessoa andou com as setas, ou o que ela digitou e exatamente uma unidade,
+   ou sobrou uma so na lista. Com duvida (digitou "B0" e existem B01 e B02)
+   nao se escolhe nada: marcar a reserva na casa errada e pior do que pedir
+   para a pessoa terminar de escolher.
+──────────────────────────────────────────────────────────────────── */
+function mresLoteEscolhaTeclado(digitado, lista, idx){
+  lista = lista || [];
+  if(idx >= 0 && lista[idx]) return lista[idx];          // escolheu com as setas
+  var d = String(digitado||'').toUpperCase().trim();
+  if(!d) return '';
+  var exata = lista.filter(function(u){ return String(u).toUpperCase() === d; })[0];
+  if(exata) return exata;
+  if(lista.length === 1) return lista[0];                // sobrou uma so
+  return '';                                             // ambiguo: nao adivinha
+}
+
+// Pinta a linha que esta sob as setas.
+function _mresLoteRealce(){
+  var dd=$('mres-lote-dd'); if(!dd) return;
+  var linhas=dd.querySelectorAll('[data-lote]');
+  [].forEach.call(linhas, function(el, i){
+    var on = (i === dd._idx);
+    el.style.background = on ? 'rgba(232,119,34,0.14)' : '';
+    el.style.color      = on ? 'var(--gold)' : 'var(--text)';
+    if(on && el.scrollIntoView) el.scrollIntoView({block:'nearest'});
+  });
+}
+
+function mresLoteTecla(ev){
+  var dd=$('mres-lote-dd'); if(!dd) return;
+  var lista=dd._lista||[];
+  var k=ev.key;
+
+  if(k==='ArrowDown' || k==='ArrowUp'){
+    if(!lista.length) return;
+    if(dd.style.display==='none'){ mresLoteOpen(); lista=dd._lista||[]; }
+    var passo=(k==='ArrowDown')?1:-1;
+    var i=(typeof dd._idx==='number'?dd._idx:-1)+passo;
+    if(i<0) i=lista.length-1;
+    if(i>=lista.length) i=0;
+    dd._idx=i;
+    _mresLoteRealce();
+    ev.preventDefault();
+    return;
+  }
+
+  if(k==='Escape'){ dd.style.display='none'; dd._idx=-1; return; }
+
+  if(k==='Enter' || k==='Tab'){
+    var escolha=mresLoteEscolhaTeclado(ev.target.value, lista, dd._idx);
+    if(escolha){
+      mresLoteSelecionar(escolha);
+      // Enter nao envia o formulario: aqui ele so confirma a unidade.
+      if(k==='Enter') ev.preventDefault();
+    } else {
+      // Sem escolha possivel, o dropdown pelo menos sai da frente do
+      // proximo campo em vez de ficar aberto por cima dele.
+      dd.style.display='none'; dd._idx=-1;
+    }
+  }
+}
+
+/* Sair do campo fecha o dropdown. E se o texto digitado for exatamente uma
+   unidade cadastrada, confirma: ninguem deveria ter de voltar e clicar para
+   validar o que ja digitou certo. */
+function mresLoteBlur(){
+  var dd=$('mres-lote-dd'), inp=$('mres-lote-search');
+  if(!dd||!inp) return;
+  var d=(inp.value||'').toUpperCase().trim();
+  var atual=($('mres-lote')?$('mres-lote').value:'')||'';
+  if(d && d!==atual.toUpperCase() && getUnidades()[d]) mresLoteSelecionar(d);
+  dd.style.display='none'; dd._idx=-1;
 }
 
 function mresLoteSelecionar(lote){
