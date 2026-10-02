@@ -5217,6 +5217,59 @@ html.ambiente-ensaio body{padding-top:28px}
         <div style="font-size:11px;color:var(--text-3);margin-top:4px">Selecione quem está reservando — nome e telefone preenchem sozinhos.</div>
         <div id="mres-pessoa-aviso" style="display:none;margin-top:8px;font-size:11.5px;line-height:1.6;color:var(--amber);
              background:rgba(240,168,67,0.10);border:1px solid rgba(240,168,67,0.30);border-radius:8px;padding:8px 11px"></div>
+        <!-- Cadastro rápido: para quem ainda não está no cadastro (ver
+             mresConflitoPessoa — a trava contra nome duplicado). -->
+        <button type="button" class="btn btn-ghost btn-sm" id="mres-novo-btn"
+                style="margin-top:8px;align-self:flex-start"
+                onclick="mresAbrirNovaPessoa()">
+          <i class="fa-solid fa-user-plus"></i> Não está na lista? Cadastrar agora
+        </button>
+      </div>
+      <div class="fg" id="mres-novo-wrap" style="grid-column:1/-1;display:none;
+           background:var(--ink-3);border:1px solid rgba(232,119,34,0.25);border-radius:11px;padding:13px 14px;gap:10px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:700;color:var(--gold)">
+            <i class="fa-solid fa-user-plus"></i> Cadastrar pessoa no <span id="mres-novo-uni">—</span>
+          </span>
+          <button type="button" class="btn btn-ghost btn-sm" style="margin-left:auto"
+                  onclick="mresFecharNovaPessoa()"><i class="fa-solid fa-xmark"></i> Fechar</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-3);line-height:1.5">
+          Entra no cadastro do condomínio de verdade — não é um atalho só desta reserva.
+          Se a pessoa já estiver cadastrada, ou já tiver conta no app, o sistema avisa
+          e aproveita o registro em vez de criar outro.
+        </div>
+        <div class="form-grid" style="gap:10px">
+          <div class="fg full" style="grid-column:1/-1">
+            <label>Nome completo</label>
+            <input type="text" id="mres-novo-nome" placeholder="Ex: Alessandra Souza"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault();mresSalvarNovaPessoa();}">
+          </div>
+          <div class="fg">
+            <label><i class="fa-brands fa-whatsapp" style="color:var(--green-l)"></i> WhatsApp</label>
+            <input type="text" id="mres-novo-tel" placeholder="(11) 99999-9999">
+          </div>
+          <div class="fg">
+            <label>CPF (recomendado)</label>
+            <input type="text" id="mres-novo-cpf" placeholder="Evita cadastro repetido">
+          </div>
+          <div class="fg">
+            <label>Entra como</label>
+            <select id="mres-novo-papel" onchange="mresNovoPapelMudou()">
+              <option value="morador">Morador / inquilino da unidade</option>
+              <option value="proprietario">Proprietário da unidade</option>
+              <option value="dependente">Dependente de alguém da unidade</option>
+            </select>
+          </div>
+          <div class="fg" id="mres-novo-de-wrap" style="display:none">
+            <label>Dependente de</label>
+            <select id="mres-novo-de"></select>
+          </div>
+        </div>
+        <button type="button" class="btn btn-gold btn-sm" style="align-self:flex-start"
+                onclick="mresSalvarNovaPessoa()">
+          <i class="fa-solid fa-check"></i> Cadastrar e usar nesta reserva
+        </button>
       </div>
       <div class="fg">
         <label>Nome do Morador</label>
@@ -7331,6 +7384,236 @@ function mresLoteBlur(){
   dd.style.display='none'; dd._idx=-1;
 }
 
+/* ══ CADASTRO RAPIDO DE PESSOA, DIRETO NA RESERVA ══════════════════════
+
+   O caso real: a Alessandra e inquilina do L17 hoje, nao esta no cadastro, e
+   a administracao precisa reservar para ela agora. Sair da tela, cadastrar em
+   Condominos e voltar custa a reserva.
+
+   O PROBLEMA DE VERDADE aqui nao e o formulario -- e a DUPLICATA. A mesma
+   pessoa pode entrar por dois caminhos: a administracao cadastra, e ela
+   propria se cadastra pelo link do app declarando o L17. Se os dois nomes nao
+   se reconhecerem, a lista passa a mostrar "Alessandra" duas vezes, e a
+   reserva feita por uma nao e achada pela outra.
+
+   Tres travas, nesta ordem:
+
+   1. ANTES DE CRIAR, procura no cadastro do condominio (por nome
+      normalizado, e por CPF quando houver). Achou: nao cria nada -- so
+      seleciona quem ja existe.
+   2. ANTES DE CRIAR, procura entre as CONTAS DO APP daquela unidade. Achou:
+      cadastra com aquele nome, para as duas entradas colapsarem numa so em
+      encPessoasDaUnidade.
+   3. DEPOIS, quando ela se cadastrar no app, a tela de aprovacao de usuario
+      encontra o nome em _musrJaNoCadastro e oferece so atualizar o telefone,
+      em vez de criar um segundo registro.
+
+   O CPF e a trava mais forte das tres: nome muda de grafia, CPF nao. Por isso
+   o campo esta no formulario, mesmo sendo opcional.
+───────────────────────────────────────────────────────────────────── */
+
+/* Decide o que fazer com o nome digitado. Pura: recebe o cadastro e as contas
+   do app, devolve a acao. Testada em tests/espacos.test.js. */
+function mresConflitoPessoa(nome, cpf, jaNoCadastro, pessoasDaUnidade){
+  var n = _musrNorm(nome);
+  if(!n) return { acao:'sem-nome' };
+
+  // 1) Ja esta no cadastro desta unidade (nome ou CPF): nao se cria nada.
+  if(jaNoCadastro) return { acao:'ja-cadastrado', papel:jaNoCadastro.papel, nome:nome };
+
+  // 2) Tem conta no app declarando esta unidade, mas nao esta no cadastro.
+  var app = (pessoasDaUnidade||[]).filter(function(p){
+    return p.origem==='app' && _musrNorm(p.nome)===n;
+  })[0];
+  if(app) return { acao:'vincular-conta-app', nome:app.nome, tel:app.tel||'' };
+
+  return { acao:'criar', nome:String(nome||'').trim(), cpf:String(cpf||'').trim() };
+}
+
+/* Procura pelo CPF em TODO o cadastro, nao so nesta unidade: a pessoa pode
+   ja existir vinculada a outro lote (mudou de casa dentro do condominio).
+   Criar um segundo registro para ela seria o pior tipo de duplicata --
+   duas fichas da mesma pessoa, cada uma com um historico. */
+function mresCondominoPorCpf(cpf){
+  var d = _soDigitos(cpf);
+  if(d.length < 11) return null;
+  var co = getCondominos(), achado = null;
+  Object.keys(co).forEach(function(cod){
+    if(achado) return;
+    if(_soDigitos(co[cod].cpf) === d) achado = { cod:cod, reg:co[cod] };
+  });
+  return achado;
+}
+
+function mresAbrirNovaPessoa(){
+  var uni=($('mres-lote')?$('mres-lote').value:'')||'';
+  if(!uni){ toast('⚠️ Escolha a unidade primeiro.'); return; }
+  var wrap=$('mres-novo-wrap'); if(!wrap) return;
+  wrap.style.display='';
+  if($('mres-novo-uni')) $('mres-novo-uni').textContent=uni;
+  ['mres-novo-nome','mres-novo-tel','mres-novo-cpf'].forEach(function(id){
+    if($(id)) $(id).value='';
+  });
+  // O papel padrao e "morador (inquilino)": e o caso que motivou a tela.
+  if($('mres-novo-papel')) $('mres-novo-papel').value='morador';
+  mresNovoPapelMudou();
+  if($('mres-novo-nome')) $('mres-novo-nome').focus();
+}
+
+function mresFecharNovaPessoa(){
+  var wrap=$('mres-novo-wrap'); if(wrap) wrap.style.display='none';
+}
+
+/* Dependente precisa de titular. Se a unidade nao tem proprietario nem
+   morador, nao ha de quem depender -- e a tela diz isso em vez de deixar
+   escolher uma opcao que nao vai dar em nada. */
+function mresNovoPapelMudou(){
+  var papel=$('mres-novo-papel')?$('mres-novo-papel').value:'';
+  var wrap=$('mres-novo-de-wrap'), sel=$('mres-novo-de');
+  if(!wrap||!sel) return;
+  if(papel!=='dependente'){ wrap.style.display='none'; return; }
+  var uni=($('mres-lote')?$('mres-lote').value:'')||'';
+  var conds=_musrCondsDaUnidade(uni);
+  if(!conds.length){
+    wrap.style.display='';
+    sel.innerHTML='<option value="">(a unidade ainda nao tem proprietario nem morador)</option>';
+    return;
+  }
+  sel.innerHTML=conds.map(function(c){
+    return '<option value="'+escU(c.cod)+'">'+escU(c.nome)+' ('+escU(c.papel)+')</option>';
+  }).join('');
+  wrap.style.display='';
+}
+
+function mresSalvarNovaPessoa(){
+  var uni=($('mres-lote')?$('mres-lote').value:'')||'';
+  if(!uni){ toast('⚠️ Escolha a unidade primeiro.'); return; }
+  var un=getUnidades()[uni];
+  if(!un){ toast('⚠️ A unidade '+uni+' não está cadastrada.'); return; }
+
+  var nome=($('mres-novo-nome')?$('mres-novo-nome').value:'').trim();
+  var tel =($('mres-novo-tel') ?$('mres-novo-tel').value :'').trim();
+  var cpf =($('mres-novo-cpf') ?$('mres-novo-cpf').value :'').trim();
+  var papel=($('mres-novo-papel')?$('mres-novo-papel').value:'morador');
+
+  var r = mresConflitoPessoa(nome, cpf, _musrJaNoCadastro(uni, nome), encPessoasDaUnidade(uni));
+
+  if(r.acao==='sem-nome'){ toast('⚠️ Informe o nome completo.'); return; }
+
+  if(r.acao==='ja-cadastrado'){
+    toast('✓ '+r.nome+' já está no '+uni+' como '+r.papel+'. Selecionei na lista.');
+    mresFecharNovaPessoa();
+    mresPreencherPessoas(uni);
+    mresSelecionarPessoaPorNome(r.nome);
+    return;
+  }
+
+  if(tel){
+    var errTel=_validarWhats(tel);
+    if(errTel){ toast('⚠️ '+errTel); return; }
+  }
+
+  // Mesma pessoa ja cadastrada em OUTRA unidade: nao se cria ficha nova.
+  var porCpf = mresCondominoPorCpf(cpf);
+  if(porCpf && papel!=='dependente'){
+    if(!confirm(porCpf.reg.nome+' já tem cadastro neste condomínio (CPF '+cpf+').\n\n'+
+                'Vincular essa MESMA pessoa ao '+uni+' como '+papel+'?\n\n'+
+                'Cancelar para rever — criar outra ficha para a mesma pessoa deixaria '+
+                'dois históricos separados.')) return;
+    _mresVincularNaUnidade(uni, porCpf.cod, papel);
+    _mresDepoisDeCadastrar(uni, porCpf.reg.nome);
+    return;
+  }
+
+  if(r.acao==='vincular-conta-app'){
+    if(!confirm(r.nome+' já tem conta no aplicativo informando a unidade '+uni+',\n'+
+                'mas ainda não está no cadastro do condomínio.\n\n'+
+                'Cadastrar com esse mesmo nome? É assim que as duas entradas viram uma só.')) return;
+    if(!tel) tel=r.tel||'';
+    nome=r.nome;   // o nome do app manda, para os dois baterem
+  }
+
+  if(papel==='dependente'){
+    var de=$('mres-novo-de')?$('mres-novo-de').value:'';
+    var co=getCondominos(), pai=co[de];
+    if(!pai){ toast('⚠️ Escolha de quem esta pessoa é dependente.'); return; }
+    var maxN=0;
+    (pai.dependentes||[]).forEach(function(d){
+      var m=String(d.codigo||'').match(/-(\d+)$/);
+      if(m){ var x=parseInt(m[1],10); if(x>maxN) maxN=x; }
+    });
+    pai.dependentes=(pai.dependentes||[]).concat([{
+      codigo: de+'-'+String(maxN+1).padStart(2,'0'),
+      nome:nome, parentesco:'', cpf:cpf, rg:'', nascimento:'', foto:'',
+      telefone:tel, email:''
+    }]);
+    co[de]=pai;
+    S('condominos', co);
+    _mresDepoisDeCadastrar(uni, nome);
+    return;
+  }
+
+  // Proprietario ou morador: ficha nova de condomino.
+  var cod=conFormatCodigo(conProximoCodigoNum());
+  var num=parseInt(cod,10);
+  if(!isNaN(num) && num>(parseInt(G('condseq'),10)||0)) S('condseq', num);
+  var todos=getCondominos();
+  todos[cod]={
+    nome:nome, tipoPessoa:'fisica', cpf:cpf, rg:'', nascimento:'', sexo:'',
+    nacionalidade:'', profissao:'', email:'', telefone:tel,
+    telefones: tel ? [{numero:tel, tipo:'Celular'}] : [],
+    classificacao:'', foto:'', dependentes:[]
+  };
+  S('condominos', todos);
+  if(!_mresVincularNaUnidade(uni, cod, papel)) return;
+  _mresDepoisDeCadastrar(uni, nome);
+}
+
+/* Vincula na unidade. Trocar o proprietario ou o morador de um lote nao e
+   coisa que se faca em silencio: se o lugar ja esta ocupado, pergunta. */
+function _mresVincularNaUnidade(uni, cod, papel){
+  var us=getUnidades(), un=us[uni]; if(!un) return false;
+  var slot=(papel==='proprietario')?'proprietario':'morador';
+  var atual=un[slot];
+  if(atual && atual!==cod){
+    var co=getCondominos();
+    var nomeAtual=(co[atual]||{}).nome||atual;
+    var rotulo=(slot==='proprietario')?'proprietário':'morador';
+    if(!confirm('O '+uni+' já tem '+rotulo+': '+nomeAtual+'.\n\n'+
+                'Substituir por esta pessoa?\n\n'+
+                nomeAtual+' continua no cadastro do condomínio — só deixa de ser '+
+                rotulo+' deste lote.')) return false;
+  }
+  un[slot]=cod;
+  us[uni]=un;
+  S('unidades', us);
+  return true;
+}
+
+function _mresDepoisDeCadastrar(uni, nome){
+  mresFecharNovaPessoa();
+  mresPreencherPessoas(uni);
+  mresSelecionarPessoaPorNome(nome);
+  try{ renderCondominos(); }catch(_){}
+  try{ renderUnidades(); }catch(_){}
+  toast('✓ '+nome+' cadastrado no '+uni+' e já selecionado.');
+}
+
+/* Marca a pessoa recem-criada no seletor e preenche nome e telefone, para a
+   reserva seguir sem mais nenhum clique. */
+function mresSelecionarPessoaPorNome(nome){
+  var sel=$('mres-pessoa-sel'); if(!sel) return;
+  var alvo=_musrNorm(nome);
+  var lista=window._mresPessoas||[];
+  for(var i=0;i<lista.length;i++){
+    if(_musrNorm(lista[i].nome)===alvo){
+      sel.value=String(i);
+      try{ mresPessoaSel(); }catch(_){}
+      return;
+    }
+  }
+}
+
 function mresLoteSelecionar(lote){
   if($('mres-lote'))       $('mres-lote').value=lote;
   if($('mres-lote-search')){
@@ -7349,7 +7632,16 @@ function mresPreencherPessoas(lote){
   if(!wrap||!sel) return;
   var nivel=window._userNivel||'morador';
   var isAdm=(nivel==='admin'||nivel==='gestor'||nivel==='supervisor');
-  if(!isAdm){ wrap.style.display='none'; return; }
+  // Trocar de unidade fecha o cadastro rapido: ele e sempre de UMA unidade,
+  // e deixa-lo aberto com o lote antigo no titulo cadastraria no lugar errado.
+  try{ mresFecharNovaPessoa(); }catch(_){}
+  var btnNovo=$('mres-novo-btn');
+  if(!isAdm){
+    wrap.style.display='none';
+    if(btnNovo) btnNovo.style.display='none';
+    return;
+  }
+  if(btnNovo) btnNovo.style.display = String(lote||'').trim() ? '' : 'none';
   if(!String(lote||'').trim()){
     sel.innerHTML='<option value="">— selecione a unidade acima —</option>';
     wrap.style.display=''; return;
@@ -10399,22 +10691,32 @@ function _encUnidadeMorador(){ try{ return (JSON.parse(localStorage.getItem('apv
    e informacao util: ou o cadastro envelheceu, ou alguem se cadastrou
    dizendo ser de uma unidade que nao e. Esconder isso escolhendo uma
    fonte so nao resolve nenhum dos dois casos. */
+/* Quem pode reservar por esta unidade: o cadastro do condominio mais as
+   contas do aplicativo que declararam a unidade.
+
+   A juncao e por nome NORMALIZADO (sem acento, sem caixa, sem espaco
+   dobrado). Era por texto exato, e isso produzia a duplicata classica:
+   a administracao cadastrava "ALESSANDRA SOUZA", a propria Alessandra se
+   cadastrava no app como "Alessandra Souza", e a lista mostrava as duas --
+   a mesma pessoa, duas vezes, e quem reservasse por uma nao era encontrado
+   pela outra. */
 function encPessoasDaUnidade(uni){
   var chave=String(uni||'').toUpperCase().trim();
   var u=getUnidades()[chave]; var pessoas=[]; var vistos={};
   var conds=G('condominos')||{};
+  var ch=function(n){ return _musrNorm(n); };
   if(u){
     [u.proprietario,u.morador].forEach(function(cod){
       if(!cod) return;
       var c=conds[cod]; if(!c) return;
       var tel=c.telefone||((c.telefones&&c.telefones[0])?(c.telefones[0].numero||''):'');
-      if(c.nome && !vistos[c.nome]){
-        vistos[c.nome]=pessoas.length+1;
+      if(c.nome && !vistos[ch(c.nome)]){
+        vistos[ch(c.nome)]=pessoas.length+1;
         pessoas.push({nome:c.nome, tel:tel, email:c.email||'', origem:'cadastro'});
       }
       (c.dependentes||[]).forEach(function(d){
-        if(d.nome && !vistos[d.nome]){
-          vistos[d.nome]=pessoas.length+1;
+        if(d.nome && !vistos[ch(d.nome)]){
+          vistos[ch(d.nome)]=pessoas.length+1;
           pessoas.push({nome:d.nome, tel:d.telefone||tel, email:d.email||c.email||'', origem:'cadastro'});
         }
       });
@@ -10425,7 +10727,7 @@ function encPessoasDaUnidade(uni){
   (_usrDaUnidade(chave)).forEach(function(a){
     var nome=String(a.nome||'').trim();
     if(!nome) return;
-    var pos=vistos[nome];
+    var pos=vistos[ch(nome)];
     if(pos){
       // Mesma pessoa nos dois cadastros: guarda o contato do app quando
       // ele difere, para a administracao poder escolher qual usar.
@@ -10434,7 +10736,7 @@ function encPessoasDaUnidade(uni){
       if(a.email && a.email !== ja.email) ja.emailApp=a.email;
       ja.temConta=true;
     } else {
-      vistos[nome]=pessoas.length+1;
+      vistos[ch(nome)]=pessoas.length+1;
       pessoas.push({nome:nome, tel:a.tel||'', email:a.email||'', origem:'app', temConta:true});
     }
   });

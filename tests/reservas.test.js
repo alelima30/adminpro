@@ -583,7 +583,7 @@ bloco('Pessoas da unidade: cadastro × contas do app', () => {
   // fora, é resolvido no escopo global e o teste consegue trocá-lo de
   // verdade a cada caso.
   const api = carregar(
-    ['encPessoasDaUnidade', '_soDigitos', '_usrDaUnidade'],
+    ['encPessoasDaUnidade', '_soDigitos', '_usrDaUnidade', '_musrNorm'],
     {
       getUnidades: () => UNIDADES,
       G: (k) => (k === 'condominos' ? CONDOMINOS : null),
@@ -632,6 +632,28 @@ bloco('Pessoas da unidade: cadastro × contas do app', () => {
     pessoas('Z99').map((x) => x.nome), ['Ana Nova']);
 
   checa('unidade sem nada devolve lista vazia', pessoas('X00'), []);
+
+  /* A juncao era por texto EXATO, e por isso falhava justamente onde mais
+     importa: ninguem escreve o proprio nome do mesmo jeito que a
+     administracao escreveu. A administracao cadastra "MARIA SOUZA", a Maria
+     se cadastra no app como "Maria Souza", e a lista mostrava as duas --
+     a mesma pessoa, duas vezes. Quem reservasse por uma nao era achado
+     pela outra. */
+  CONTAS = [{ nome: 'MARIA SOUZA', tel: '11988887777', unidade: 'L01', status: 'ativo' }];
+  p = pessoas('L01');
+  checa('caixa diferente nao duplica', p.length, 3);
+  checa('e o telefone do app e aproveitado',
+    p.find((x) => x.nome === 'Maria Souza').telApp, '11988887777');
+
+  CONTAS = [{ nome: 'Maria  Souza', tel: '11988887777', unidade: 'L01', status: 'ativo' }];
+  checa('espaco dobrado nao duplica', pessoas('L01').length, 3);
+
+  CONTAS = [{ nome: 'Joao Souza', tel: '11988887777', unidade: 'L01', status: 'ativo' }];
+  checa('acento faltando nao duplica', pessoas('L01').length, 3);
+
+  // Mas pessoas realmente diferentes continuam sendo duas.
+  CONTAS = [{ nome: 'Maria Souza Neta', tel: '11988887777', unidade: 'L01', status: 'ativo' }];
+  checa('nome parecido mas diferente continua separado', pessoas('L01').length, 4);
 });
 
 // ── Onde a conta do app entra no cadastro do condomínio ────────────────
