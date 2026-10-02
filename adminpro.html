@@ -6635,7 +6635,14 @@ function aplicarSaas(){
   if(_stPort){
     var _n = window._userNivel || 'morador';
     var _temAbas = (_n==='admin' || _n==='gestor' || _n==='supervisor');
-    _stPort.style.display = (ativos.includes('portaria') && !_temAbas) ? '' : 'none';
+    /* "O módulo está ligado para o condomínio" NÃO é a pergunta certa aqui:
+       para o morador, módulo sem configuração conta como liberado, então o
+       item aparecia para todo mundo — e clicar nele dava "Acesso restrito ao
+       seu perfil", porque abrir a tela depende de outra coisa.
+       A pergunta certa é a mesma que o showPanel faz: esta pessoa PODE abrir?
+       Isso só é verdade para quem o admin marcou a tela em "Telas extras". */
+    var _podeAbrir = paineisPermitidos(_n).indexOf('portaria') >= 0;
+    _stPort.style.display = (ativos.includes('portaria') && _podeAbrir && !_temAbas) ? '' : 'none';
   }
 
   // Grupos: esconde se nenhuma tela liberada OU o nível não permite
@@ -12084,6 +12091,30 @@ function mresEspacoSync(){
   }
 }
 
+/* Enquanto não houver espaço escolhido, some tudo o que depende dele e a
+   tela pede a escolha. */
+function _mresEsconderDependentesDoEspaco(){
+  ['mres-fin-section','mres-fin-bloco','mres-hr-custom-wrap']
+    .forEach(function(id){ var e=$(id); if(e) e.style.display='none'; });
+  var hr=$('mres-horario');
+  if(hr){
+    /* A lista padrão de horários é memorizada na PRIMEIRA vez que
+       atualizarHorariosEspaco roda, lendo as options que estão no HTML. Como
+       esta função agora roda antes dela (reserva nova abre sem espaço), era
+       preciso memorizar aqui também — senão o que ficava guardado como
+       "padrão" era justamente o aviso abaixo, e escolher o espaço depois não
+       trazia horário nenhum. */
+    if(!_HR_OPTS_DEFAULT){
+      _HR_OPTS_DEFAULT=[].map.call(hr.options,function(o){ return {v:o.value,t:o.text}; });
+    }
+    hr.innerHTML='<option value="">— escolha o espaço acima —</option>';
+  }
+  var av=$('mres-hr-aviso');
+  if(av){ av.textContent=''; av.style.display='none'; }
+  var inp=$('mres-data');
+  if(inp){ inp.removeAttribute('min'); inp.removeAttribute('max'); }
+}
+
 // Limita o calendário aos dias liberados do espaço (antecedência mín/máx). Admin fica livre.
 function mresAplicarLimitesData(){
   var inp=$('mres-data'); if(!inp) return;
@@ -12116,6 +12147,14 @@ var _mresValoresSoltos = false;
 function onEspacoChange(reservaExistente){
   const espaco = $('mres-espaco').value;
   try{ mresEspacoSync(); }catch(_){}   // cartão marcado acompanha o valor
+
+  /* Sem espaço escolhido não há o que calcular: horário, financeiro e termo
+     são todos DAQUELE espaço. Mostrar a grade de horários antes da escolha
+     exibiria a agenda de um espaço que ninguém pediu. */
+  if(!espaco){
+    _mresEsconderDependentesDoEspaco();
+    return;
+  }
   atualizarHorariosEspaco(espaco, reservaExistente ? reservaExistente.horario : undefined);
   if(typeof mresAplicarLimitesData==='function') mresAplicarLimitesData();
   const cfg    = JSON.parse(localStorage.getItem('apvc_cfg_reservas')||'{}');
@@ -12321,7 +12360,12 @@ function abrirModalRes(id){
 
   $('mres-pessoas').value=r?.pessoas||'';
   mresPopularEspacos(r?.espaco||'');
-  $('mres-espaco').value=r?.espaco||mresPrimeiroEspacoLivre()||'Quadra de Areia';
+  /* Reserva nova abre SEM espaço escolhido. Antes vinha com o primeiro da
+     lista marcado, e isso fazia a pessoa reservar a Quadra de Areia sem ter
+     escolhido nada -- bastava não reparar no cartão laranja já aceso. Escolher
+     o espaço é a decisão principal desta tela; ela tem de ser feita, não
+     herdada. */
+  $('mres-espaco').value = r ? (r.espaco||'') : '';
   if($('mres-status')) $('mres-status').value=r?.status||'pendente';
   $('mres-data').value=r?.data||hojeLocal();
 
@@ -12378,6 +12422,9 @@ function abrirModalRes(id){
 
 async function salvarRes(){
   if(!$('mres-nome').value.trim()){toast('⚠️ Informe o nome do morador.');return;}
+  // A reserva nasce sem espaço escolhido de propósito (ver abrirModalRes):
+  // aqui é onde a escolha deixa de ser opcional.
+  if(!($('mres-espaco').value||'').trim()){ toast('⚠️ Escolha o espaço da reserva.'); return; }
   if(!$('mres-data').value){toast('⚠️ Informe a data da reserva.');return;}
   // ── Unidade: precisa estar cadastrada (para admin/gestor); morador usa a vinculada ──
   const _nivelRes = window._userNivel||'morador';
