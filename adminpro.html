@@ -1701,6 +1701,33 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
   border-radius:6px;padding:1px 8px;margin-right:6px;
 }
 .port-extra{font-size:12px;color:var(--text-3);margin-top:5px;display:flex;gap:12px;flex-wrap:wrap}
+/* Molduras de espaço: filtro de um toque, logo abaixo do resumo. */
+.port-chips{
+  display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;
+}
+.port-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 12px;border-radius:999px;
+  border:1px solid var(--border);background:var(--ink-2);color:var(--text-2);
+  font-size:12.5px;font-weight:600;cursor:pointer;min-height:36px;
+  transition:border-color .15s, background .15s, color .15s;
+}
+.port-chip:hover{ border-color:rgba(232,119,34,0.45);color:var(--text) }
+.port-chip.on{
+  background:rgba(232,119,34,0.14);border-color:var(--gold);color:var(--gold);
+}
+.port-chip-n{
+  font-size:11px;font-weight:700;min-width:19px;text-align:center;
+  padding:1px 6px;border-radius:999px;
+  background:rgba(255,255,255,0.08);color:inherit;
+}
+.port-chip.on .port-chip-n{ background:rgba(232,119,34,0.22) }
+/* Espaço sem nenhuma reserva no período: continua clicável, mas não disputa
+   a atenção de quem está lendo a tela de relance. */
+.port-chip-zero{ opacity:.5 }
+@media(max-width:620px){
+  .port-chip{ font-size:12px;padding:7px 10px }
+}
 .port-adiante{
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   background:rgba(232,119,34,0.09);border:1px solid rgba(232,119,34,0.28);
@@ -4486,6 +4513,8 @@ html.ambiente-ensaio body{padding-top:28px}
                    style="padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--ink-2);color:var(--text);font-size:14px;outline:none;flex:1 1 180px;min-width:0">
           </div>
           <div id="port-resumo" style="margin-top:10px;font-size:13px;color:var(--text-3)"></div>
+          <!-- Uma moldurinha por espaço cadastrado, para filtrar com um toque. -->
+          <div id="port-espacos" class="port-chips"></div>
         </div>
 
         <div id="port-lista"></div>
@@ -15285,8 +15314,9 @@ function resStatusAoSalvar(nivel, resAnterior, exigeAprov){
 // Situações que significam "aprovada e vai acontecer (ou aconteceu)".
 var PORTARIA_STATUS = ['confirmada','realizada','concluida'];
 
-var _portPeriodo = 'hoje';   // hoje | amanha | semana | data
+var _portPeriodo = 'hoje';   // hoje | amanha | semana | data | futuras
 var _portData    = '';       // usada quando o período é 'data'
+var _portEspaco  = '';       // '' = todos os espaços
 
 function _portSoma(iso, dias){
   var p=String(iso||'').split('-');
@@ -15320,6 +15350,19 @@ function portariaAdiante(reservas, ate){
   return { quantas: fora.length, primeira: primeira };
 }
 
+/* Quantas reservas aprovadas cada espaço tem no período que está na tela.
+   É o número que vai dentro da moldurinha de cada espaço: a portaria vê de
+   relance onde a casa vai encher, sem precisar filtrar um por um. */
+function portariaPorEspaco(reservas){
+  var c = {};
+  (reservas||[]).forEach(function(r){
+    var e = String(r.espaco||'');
+    if(!e) return;
+    c[e] = (c[e]||0) + 1;
+  });
+  return c;
+}
+
 /* Decide o que a portaria vê. Pura de propósito: é a regra, não a tela, e é
    dela que depende o que NÃO pode aparecer. Testada em tests/portaria.test.js */
 function portariaFiltrar(reservas, opcoes){
@@ -15327,6 +15370,7 @@ function portariaFiltrar(reservas, opcoes){
   var hoje = o.hoje || '';
   var periodo = o.periodo || 'hoje';
   var busca = String(o.busca||'').toLowerCase().trim();
+  var espaco = String(o.espaco||'').trim();
 
   var j = portariaJanela(periodo, hoje, o.data);
   var de = j.de, ate = j.ate;
@@ -15335,6 +15379,7 @@ function portariaFiltrar(reservas, opcoes){
     if(PORTARIA_STATUS.indexOf(String(r.status||'')) < 0) return false;
     var d = String(r.data||'');
     if(!d || d < de || d > ate) return false;
+    if(espaco && String(r.espaco||'') !== espaco) return false;
     if(busca){
       var alvo = (String(r.nome||'')+' '+String(r.lote||'')+' '+String(r.espaco||'')).toLowerCase();
       if(alvo.indexOf(busca) < 0) return false;
@@ -15351,6 +15396,13 @@ function portPeriodo(p){
   if(p!=='data' && $('port-data')) $('port-data').value='';
   renderPortaria();
 }
+function portEspaco(nome){
+  // Clicar de novo no mesmo espaço desmarca: a moldurinha é liga-desliga, e
+  // sem isso não haveria como voltar a ver tudo a não ser achando o "Todos".
+  _portEspaco = (_portEspaco === nome) ? '' : nome;
+  renderPortaria();
+}
+
 function portDataEscolhida(){
   var v = $('port-data') ? $('port-data').value : '';
   if(!v) return;
@@ -15382,10 +15434,36 @@ function renderPortaria(){
   }
 
   var todas = G('reservas')||[];
-  var res = portariaFiltrar(todas, {
+  var opc = {
     hoje: hoje, periodo: _portPeriodo, data: _portData,
     busca: $('port-busca') ? $('port-busca').value : ''
-  });
+  };
+  // Sem o espaço: é desta lista que saem as contagens das moldurinhas. Se
+  // elas contassem já filtradas, clicar num espaço zeraria todos os outros.
+  var doPeriodo = portariaFiltrar(todas, opc);
+  var res = portariaFiltrar(todas, Object.assign({ espaco:_portEspaco }, opc));
+
+  var chips=$('port-espacos');
+  if(chips){
+    var porEsp = portariaPorEspaco(doPeriodo);
+    var listaEsp = [];
+    try{ listaEsp = espacosDoCondominio()||[]; }catch(_){ listaEsp = []; }
+    // Espaço que saiu do cadastro mas ainda tem reserva no período continua
+    // aparecendo: senão a reserva fica na lista sem moldurinha que a alcance.
+    Object.keys(porEsp).forEach(function(e){ if(listaEsp.indexOf(e)<0) listaEsp.push(e); });
+
+    var htmlChips = '<button type="button" class="port-chip'+(_portEspaco?'':' on')+'"'
+      + ' onclick="portEspaco(&#39;&#39;)">Todos'
+      + '<span class="port-chip-n">'+doPeriodo.length+'</span></button>';
+    listaEsp.forEach(function(e){
+      var n = porEsp[e]||0;
+      htmlChips += '<button type="button" class="port-chip'
+        + (_portEspaco===e?' on':'') + (n?'':' port-chip-zero') + '"'
+        + ' onclick="portEspaco(' + JSON.stringify(e).replace(/"/g,'&quot;') + ')">'
+        + escHtml(e) + '<span class="port-chip-n">'+n+'</span></button>';
+    });
+    chips.innerHTML = htmlChips;
+  }
 
   var jan = portariaJanela(_portPeriodo, hoje, _portData);
   var adiante = portariaAdiante(todas, jan.ate);
@@ -15417,10 +15495,16 @@ function renderPortaria(){
   }
 
   if(!res.length){
+    // Dizer QUAL filtro deixou a tela vazia. "Nenhuma reserva" com um espaço
+    // marcado lá em cima faz procurar defeito onde há só um filtro ligado.
+    var _nada = _portEspaco
+      ? 'Nenhuma reserva aprovada de <b>'+escHtml(_portEspaco)+'</b> neste período.'
+        + '<br><span style="font-size:12.5px">Toque em <b>Todos</b> para ver os outros espaços.</span>'
+      : 'Nenhuma reserva aprovada neste período.'
+        + '<br><span style="font-size:12.5px">Só aparecem aqui as reservas já aprovadas pela administração.</span>';
     lista.innerHTML = aviso
       +'<div class="port-vazio"><i class="fa-solid fa-calendar-check" style="font-size:26px;display:block;margin-bottom:10px;opacity:.5"></i>'
-      +'Nenhuma reserva aprovada neste período.<br>'
-      +'<span style="font-size:12.5px">Só aparecem aqui as reservas já aprovadas pela administração.</span></div>';
+      + _nada + '</div>';
     return;
   }
 
