@@ -66,6 +66,9 @@ jobs:
       - name: Pessoas (cadastro rapido sem duplicar morador)
         run: node tests/pessoas.test.js
 
+      - name: Portaria (so reserva aprovada, e sem valores)
+        run: node tests/portaria.test.js
+
   # ────────────────────────────────────────────────────────────────
   # 2) DEPLOY das Edge Functions do Supabase
   #    So roda na branch main e so se os testes passarem.
