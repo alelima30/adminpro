@@ -295,10 +295,29 @@ async function enviar(){
     const authId = cad.data && cad.data.user ? cad.data.user.id : null;
 
     // 2) Registra a solicitação (a administração aprova depois). Sem senha aqui.
-    const sol = await SB.from('solicitacoes').insert({
+    const base = {
       auth_id: authId, condominio_id: condominio,
-      nome, email, tel, cpf: cpf || null, unidade, vinculo, nivel:'morador', status:'pendente'
-    });
+      nome, email, tel, unidade, vinculo, nivel:'morador', status:'pendente'
+    };
+    let sol = await SB.from('solicitacoes').insert(Object.assign({ cpf: cpf || null }, base));
+
+    /* O CPF é um campo OPCIONAL, e campo opcional não pode derrubar o
+       cadastro inteiro. Se a coluna ainda não existe no banco (migração não
+       aplicada, ou o cache de schema do Supabase ainda não recarregou), o
+       envio voltava com
+
+           Could not find the 'cpf' column of 'solicitacoes' in the schema cache
+
+       e a pessoa simplesmente não conseguia se cadastrar — por causa de um
+       campo que ela nem era obrigada a preencher. Agora, nesse caso
+       específico, o cadastro vai sem o CPF e segue. Quem precisa saber do
+       problema é quem cuida do sistema, pelo console; quem está se
+       cadastrando não tem nada a ver com isso. */
+    if(sol.error && /cpf/i.test(sol.error.message||'')){
+      console.warn('Coluna cpf indisponível em solicitacoes — enviando sem ela. '
+        + 'Rode supabase/12_cpf_solicitacoes.sql (inclui o reload do schema).');
+      sol = await SB.from('solicitacoes').insert(base);
+    }
     if(sol.error) throw sol.error;
 
     // Avisa a equipe (WhatsApp) que há um novo cadastro para aprovar.
