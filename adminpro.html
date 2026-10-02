@@ -11485,7 +11485,7 @@ async function _mudarStatusReserva(id, novo, msg){
   }
   // A tela vem DEPOIS: se render/alertas falharem (ex.: RLS), a notificacao
   // abaixo ja foi disparada. Mesmo cuidado usado ao salvar a reserva.
-  try{ renderReservas(); verificarAlertas(); atualizarBadgePendentes(); }
+  try{ renderReservas(); verificarAlertas(); atualizarBadgePendentes(); _portRefrescar(); }
   catch(_e){ console.error('render pos-status', _e); }
   toast(msg);
   // Notifica o morador (WhatsApp + e-mail) quando aprovada/recusada
@@ -12621,7 +12621,7 @@ async function salvarRes(){
   _enviarNotifsReserva(_novaReserva, _cfgN, obj, statusVal, _dtFmt, _cond);
 
   // Tela depois — se algo aqui falhar, a notificação JÁ foi enviada.
-  try{ closeModal('m-res'); renderReservas(); verificarAlertas(); }catch(_e){ console.error('pós-reserva (ignorado):', _e); }
+  try{ closeModal('m-res'); renderReservas(); verificarAlertas(); _portRefrescar(); }catch(_e){ console.error('pós-reserva (ignorado):', _e); }
 
   // aviso visual pro morador
   if(_isMoradorMsg){
@@ -12761,7 +12761,7 @@ async function excluirRes(id){
     toast('⚠️ Não foi possível remover: '+(_d.erro||'erro no servidor'));
     return;
   }
-  renderReservas(); toast('✓ Reserva removida.');
+  renderReservas(); _portRefrescar(); toast('✓ Reserva removida.');
 }
 
 /* ══════════════════════════
@@ -13547,6 +13547,19 @@ setInterval(function(){ try{ resLembreteChecar(); }catch(_){} }, 60000);
    sem dono. */
 var _RESL_RELEITURA_MIN = 15;
 
+/* O Painel de Reservas relê de minuto em minuto, não de 15 em 15.
+
+   Não é capricho: a tela de Reservas da administração é consultada por
+   alguém que está ali trabalhando e que aperta Atualizar quando quer. O
+   Painel fica sozinho num monitor no portão, e o que ele mostra é usado para
+   deixar ou não uma pessoa entrar. Quinze minutos de atraso ali significam
+   uma reserva aprovada agora e um morador barrado no portão por um quarto de
+   hora, sem ninguém entender por quê.
+
+   Uma consulta por minuto, só com a tela à vista e só enquanto ela estiver
+   aberta — é barato perto disso. */
+var _PORT_RELEITURA_MIN = 1;
+
 /* Telas que vivem das reservas e por isso merecem a releitura.
 
    O Painel de Reservas entrou aqui porque e, das duas, a que mais precisa:
@@ -13591,6 +13604,19 @@ async function _reslReler(forcar){
   }catch(_){ return false; /* sem rede: a proxima rodada tenta de novo */ }
 }
 
+/* Reserva salva, aprovada ou recusada NESTA sessão: o Painel de Reservas
+   mostra o resultado na hora, sem esperar o relógio.
+
+   Vale para a aba onde a mudança aconteceu — por exemplo, a administração
+   que salva uma reserva e muda para a aba Painel de Reservas. A tela da
+   portaria, que é outro aparelho e outra sessão, não tem como saber disso: ela
+   descobre na releitura do minuto seguinte. */
+function _portRefrescar(){
+  try{
+    if(typeof currentPanel !== 'undefined' && currentPanel === 'portaria') renderPortaria();
+  }catch(_){}
+}
+
 /* Botao "Atualizar" do Painel de Reservas. Antes ele so redesenhava a tela
    com o que ja estava na memoria do navegador -- parecia que atualizava e
    nao atualizava nada. Agora vai ao banco. */
@@ -13610,16 +13636,22 @@ function _portQuandoAtualizou(){
   return ' · atualizado às '+h+':'+m;
 }
 
+var _reslCiclos = 0;
 setInterval(function(){
-  _reslReler();
-  /* O Painel de Reservas fica aberto a noite inteira na portaria, e ele
-     mostra "hoje". Sem redesenhar aqui, uma tela aberta desde ontem seguiria
-     exibindo o dia de ontem como se fosse hoje depois da meia-noite --
-     inclusive quando a leitura do banco falha e _reslReler desiste no meio. */
-  try{
-    if(typeof currentPanel !== 'undefined' && currentPanel === 'portaria') renderPortaria();
-  }catch(_){}
-}, _RESL_RELEITURA_MIN*60000);
+  _reslCiclos++;
+  var _p = (typeof currentPanel === 'undefined') ? '' : currentPanel;
+  // Portaria: todo minuto. Reservas: a cada 15, como antes.
+  var _hora = (_p === 'portaria')
+    ? (_reslCiclos % _PORT_RELEITURA_MIN === 0)
+    : (_reslCiclos % _RESL_RELEITURA_MIN === 0);
+  if(_hora) _reslReler();
+
+  /* O Painel fica aberto a noite inteira na portaria, e ele mostra "hoje".
+     Sem redesenhar aqui, uma tela aberta desde ontem seguiria exibindo o dia
+     de ontem como se fosse hoje depois da meia-noite -- inclusive quando a
+     leitura do banco falha e _reslReler desiste no meio. */
+  try{ if(_p === 'portaria') renderPortaria(); }catch(_){}
+}, 60000);
 
 // Voltar para a aba depois de um tempo fora é o momento em que o dado mais
 // provavelmente está velho — relê na hora, sem esperar o ciclo fechar.
