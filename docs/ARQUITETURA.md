@@ -240,3 +240,17 @@ você está em produção.
 3. **O portão dos testes agora vale para o site também** — mas ele depende de
    uma configuração fora do código (Settings → Pages → Source: GitHub Actions).
    Se o site parar de atualizar, é o primeiro lugar para olhar.
+
+## Foto dos espaços (reservas)
+
+As fotos dos espaços ficam em `modulo_dados/espacos_fotos`, indexadas pela
+mesma chave que o resto da configuração do espaço usa (`_chvEsp`: "Salão de
+Festa" → `sal_o_de_festa`). São dataURL JPEG, reduzidas no aparelho antes de
+subir (largura máxima 900px, ~260 KB por foto).
+
+Ficam FORA de `cfg_reservas` de propósito: aquele bloco é regravado inteiro a
+cada ajuste de horário e também espelha no localStorage. Pendurar as fotos
+nele faria cada clique num horário reescrever meio megabyte.
+
+Renomear um espaço move a foto para a chave nova; excluir apaga a foto
+(`espFotosRenomear` / `espFotosExcluir`, cobertas em `tests/espacos.test.js`).
