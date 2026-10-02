@@ -60,6 +60,9 @@ jobs:
       - name: Acesso por usuario (tela liberada caso a caso)
         run: node tests/acessos.test.js
 
+      - name: Espacos (cartao com foto e status da reserva)
+        run: node tests/espacos.test.js
+
   # ────────────────────────────────────────────────────────────────
   # 2) DEPLOY das Edge Functions do Supabase
   #    So roda na branch main e so se os testes passarem.

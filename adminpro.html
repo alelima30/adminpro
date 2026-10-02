@@ -1644,6 +1644,75 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
 }
 .esp-selo-frio{background:rgba(255,255,255,0.07);color:var(--text-3)}
 .esp-excluir:hover{color:var(--red);border-color:var(--red)}
+
+/* ══ ESPAÇO EM CARTÕES (formulário de reserva) ══
+   Antes era um <select>. No celular ele virava aquela lista cinza do
+   sistema, toda igual: dez linhas de texto em que "Quadra de tênis - dura"
+   e "- saibro" só se distinguem lendo até o fim. Com foto, a pessoa
+   reconhece o lugar antes de ler o nome.
+   O <select> continua existindo, escondido: ele é quem guarda o valor, e
+   toda a lógica de horário, financeiro e termo continua lendo dele. */
+.esp-cards{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+  margin-top:2px;
+}
+@media (min-width:900px){ .esp-cards{ grid-template-columns:repeat(3,minmax(0,1fr)) } }
+.esp-card{
+  position:relative;display:flex;flex-direction:column;
+  border:2px solid var(--border);border-radius:12px;overflow:hidden;
+  background:var(--ink-2);cursor:pointer;text-align:left;padding:0;
+  color:inherit;font:inherit;width:100%;min-width:0;
+  transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.esp-card:hover{ border-color:rgba(232,119,34,0.45) }
+.esp-card:focus-visible{ outline:none;box-shadow:0 0 0 3px rgba(232,119,34,0.35) }
+.esp-card-foto{
+  width:100%;aspect-ratio:16/10;object-fit:cover;display:block;
+  background:var(--ink-3);
+}
+/* Sem foto cadastrada: tarja com ícone, no lugar de uma imagem quebrada. */
+.esp-card-sem{
+  width:100%;aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--ink-3) 0%,var(--ink-2) 100%);
+  color:var(--text-3);font-size:26px;
+}
+.esp-card-nome{
+  padding:8px 10px;font-size:12.5px;font-weight:600;line-height:1.35;
+  min-height:38px;display:flex;align-items:center;
+  border-top:1px solid var(--border);
+}
+/* Selecionado: a cor de destaque do app, borda forte e o visto no canto. */
+.esp-card.sel{
+  border-color:var(--gold);
+  box-shadow:0 2px 10px rgba(232,119,34,0.22);
+}
+.esp-card.sel .esp-card-nome{ color:var(--gold) }
+.esp-card-visto{
+  position:absolute;top:7px;right:7px;width:24px;height:24px;border-radius:50%;
+  background:var(--gold);color:#fff;display:none;align-items:center;justify-content:center;
+  font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,0.35);
+}
+.esp-card.sel .esp-card-visto{ display:flex }
+/* Desativado pelo condomínio: o admin ainda vê (e pode escolher, para
+   remarcar algo antigo), mas fica claro que está fora do ar. */
+.esp-card-off .esp-card-foto,.esp-card-off .esp-card-sem{ opacity:.45;filter:grayscale(1) }
+.esp-card-off .esp-card-nome{ color:var(--text-3) }
+.esp-card-tarja{
+  position:absolute;top:7px;right:7px;
+  background:rgba(0,0,0,0.62);color:#fff;border-radius:20px;
+  font-size:10px;font-weight:600;padding:3px 8px;display:flex;align-items:center;gap:4px;
+}
+/* Miniatura na tela de Espaços, ao lado do nome. */
+.esp-mini{
+  width:54px;height:38px;border-radius:7px;object-fit:cover;flex:none;
+  border:1px solid var(--border);background:var(--ink-3);
+}
+.esp-mini-sem{
+  width:54px;height:38px;border-radius:7px;flex:none;
+  border:1px dashed var(--border);background:var(--ink-3);
+  display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:13px;
+}
+
 @media (max-width:520px){
   .esp-item{align-items:stretch}
   .esp-acoes{width:100%}
@@ -4266,6 +4335,10 @@ html.ambiente-ensaio body{padding-top:28px}
           </div>
 
           <div id="esp-lista"></div>
+          <!-- Entrada de foto dos espaços: uma só, reaproveitada por todos
+               (espEscolherFoto guarda nela qual espaço pediu). -->
+          <input type="file" id="esp-foto-input" accept="image/*"
+                 style="display:none" onchange="espFotoSelecionada(this)">
 
           <div style="font-size:11.5px;color:var(--text-3);margin-top:12px;line-height:1.6">
             <b>Renomear</b> leva junto as regras, o financeiro, os bloqueios e as reservas já feitas —
@@ -5079,9 +5152,14 @@ html.ambiente-ensaio body{padding-top:28px}
       <div class="fg full" style="grid-column:1/-1;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:4px;margin-top:8px">
         <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold)">▸ Espaço & Horário</span>
       </div>
-      <div class="fg">
+      <div class="fg full" style="grid-column:1/-1">
         <label>Espaço</label>
-        <select id="mres-espaco" onchange="onEspacoChange()">
+        <!-- Os cartões são a escolha visual; o <select> abaixo é quem guarda o
+             valor (toda a lógica de horário, financeiro e termo lê dele).
+             Ele fica escondido na tela, mas continua no formulário. -->
+        <div id="mres-espaco-cards" class="esp-cards" role="radiogroup" aria-label="Espaço"></div>
+        <select id="mres-espaco" onchange="onEspacoChange()" tabindex="-1"
+                aria-hidden="true" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
           <option value="Quadra de Areia">Quadra de Areia</option>
           <option value="Quadra de Tennis">Quadra de Tennis</option>
           <option value="Quadra de Saibro">Quadra de Saibro</option>
@@ -5093,7 +5171,7 @@ html.ambiente-ensaio body{padding-top:28px}
           <option value="Cozinha / Espaço Lazer">Cozinha / Espaço Lazer</option>
         </select>
       </div>
-      <div class="fg">
+      <div class="fg" id="mres-status-fg" style="display:none">
         <label>Status</label>
         <select id="mres-status">
           <option value="pendente">Pendente</option>
@@ -5758,7 +5836,7 @@ async function _linkTemporario(caminho){
 
 // Cache local (mantem toda a logica sync original)
 const DB_CACHE = {};
-const DB_KEYS = ['saas_condominios','lotes','funcs','fin','manut','comun','prev','reservas','reg','inadimplencia','unidades','localizacoes','condominos','condseq','classificacoes','encomendas','infogerais','acompanhamento'];
+const DB_KEYS = ['saas_condominios','lotes','funcs','fin','manut','comun','prev','reservas','reg','inadimplencia','unidades','localizacoes','condominos','condseq','classificacoes','encomendas','infogerais','acompanhamento','espacos_fotos'];
 
 const G = k => (DB_CACHE[k] !== undefined) ? DB_CACHE[k] : null;
 
@@ -5786,7 +5864,7 @@ const _NORM = {
    gravar: e ele quem registra aprovar/recusar. Quem pode o que naquele
    modulo e decidido por acompPodeEditar(), e o morador
    sequer alcanca a tela. */
-const _MOD_ADMIN = ['lotes','unidades','condominos','localizacoes','saas_condominios','usuarios','infogerais'];
+const _MOD_ADMIN = ['lotes','unidades','condominos','localizacoes','saas_condominios','usuarios','infogerais','espacos_fotos'];
 function _podeGravarModulo(k){
   if(_MOD_ADMIN.indexOf(k) === -1) return true;          // modulo livre
   try{
@@ -11234,6 +11312,90 @@ function mresPopularEspacos(incluirEspaco){
     html+='<option value="'+escHtml(esp)+'">'+escHtml(rotulo)+'</option>';
   });
   sel.innerHTML=html;
+  mresRenderCardsEspaco();
+}
+
+/* ── Espaço escolhido por cartão com foto ────────────────────────────
+
+   Os cartões são desenhados a partir das OPTIONS do <select>, não de uma
+   lista nova. Assim tudo o que já decidia quais espaços aparecem — espaço
+   desativado, morador x admin, espaços próprios do condomínio — continua
+   decidindo, num lugar só. Uma segunda lista aqui seria a mesma regra
+   escrita duas vezes, e um dia as duas discordariam.
+──────────────────────────────────────────────────────────────────── */
+
+// Foto cadastrada do espaço (ver tela Espaços). Vazio = cartão com ícone.
+function espacosFotos(){
+  var f=G('espacos_fotos');
+  return (f && typeof f==='object' && !Array.isArray(f)) ? f : {};
+}
+function espFoto(nome){
+  var v=espacosFotos()[_chvEsp(String(nome||''))];
+  return (typeof v==='string' && v) ? v : '';
+}
+// Ícone de reserva para quem ainda não tem foto. Melhor que uma moldura
+// vazia: já diz de que tipo de espaço se trata.
+function _espIcone(nome){
+  var n=semAcento(nome);
+  if(/tenis|saibro|quadra/.test(n))        return 'fa-table-tennis-paddle-ball';
+  if(/campo|futebol/.test(n))              return 'fa-futbol';
+  if(/ginasio|academia|fitness/.test(n))   return 'fa-dumbbell';
+  if(/jogos|game/.test(n))                 return 'fa-gamepad';
+  if(/quiosque|churrasq/.test(n))          return 'fa-umbrella-beach';
+  if(/salao|festa/.test(n))                return 'fa-champagne-glasses';
+  if(/cozinha|lazer|gourmet/.test(n))      return 'fa-utensils';
+  if(/cowork|escritorio|reuni/.test(n))    return 'fa-laptop';
+  if(/piscina/.test(n))                    return 'fa-person-swimming';
+  return 'fa-location-dot';
+}
+
+function mresRenderCardsEspaco(){
+  var cx=$('mres-espaco-cards'), sel=$('mres-espaco');
+  if(!cx||!sel) return;
+  var atual=sel.value;
+  cx.innerHTML=[].map.call(sel.options, function(o){
+    var nome=o.value;
+    var off=/\(desativado\)\s*$/.test(o.textContent||'');
+    var foto=espFoto(nome);
+    var visual = foto
+      ? '<img class="esp-card-foto" alt="" loading="lazy">'
+      : '<div class="esp-card-sem"><i class="fa-solid '+_espIcone(nome)+'"></i></div>';
+    return '<button type="button" role="radio" class="esp-card'+(off?' esp-card-off':'')+'"'
+      + ' data-esp="'+escHtml(nome)+'" aria-checked="'+(nome===atual?'true':'false')+'"'
+      + ' onclick="mresEscolherEspaco(this.getAttribute(\'data-esp\'))">'
+      + visual
+      + (off ? '<span class="esp-card-tarja"><i class="fa-solid fa-circle-minus"></i> Indisponível</span>' : '')
+      + '<span class="esp-card-visto"><i class="fa-solid fa-check"></i></span>'
+      + '<span class="esp-card-nome">'+escHtml(nome)+'</span>'
+      + '</button>';
+  }).join('');
+  // A foto entra por propriedade, nunca interpolada no HTML: o conteúdo vem
+  // do cadastro e não pode virar marcação.
+  [].forEach.call(cx.querySelectorAll('.esp-card'), function(b){
+    var img=b.querySelector('img.esp-card-foto');
+    if(img) img.src=espFoto(b.getAttribute('data-esp'));
+  });
+  mresEspacoSync();
+}
+
+// Clique num cartão: quem mudou foi o <select>, e o resto do formulário
+// reage exatamente como reagia quando havia um dropdown ali.
+function mresEscolherEspaco(nome){
+  var sel=$('mres-espaco'); if(!sel) return;
+  if(sel.value===nome){ mresEspacoSync(); return; }
+  sel.value=nome;
+  try{ onEspacoChange(); }catch(_){ mresEspacoSync(); }
+}
+
+// Repinta qual cartão está marcado a partir do <select>.
+function mresEspacoSync(){
+  var cx=$('mres-espaco-cards'), sel=$('mres-espaco');
+  if(!cx||!sel) return;
+  [].forEach.call(cx.querySelectorAll('.esp-card'), function(b){
+    var marcado = b.getAttribute('data-esp')===sel.value;
+    b.classList.toggle('sel', marcado);
+    b.setAttribute('aria-checked', marcado?'true':'false');
+  });
 }
 
 // Limita o calendário aos dias liberados do espaço (antecedência mín/máx). Admin fica livre.
@@ -11267,6 +11429,7 @@ var _mresValoresSoltos = false;
 // Atualiza blocos financeiro e termo ao trocar espaço
 function onEspacoChange(reservaExistente){
   const espaco = $('mres-espaco').value;
+  try{ mresEspacoSync(); }catch(_){}   // cartão marcado acompanha o valor
   atualizarHorariosEspaco(espaco, reservaExistente ? reservaExistente.horario : undefined);
   if(typeof mresAplicarLimitesData==='function') mresAplicarLimitesData();
   const cfg    = JSON.parse(localStorage.getItem('apvc_cfg_reservas')||'{}');
@@ -11355,7 +11518,11 @@ function onEspacoChange(reservaExistente){
     var _cv = parseFloat($('mres-caucao-val') ? $('mres-caucao-val').value : 0) || 0;
     _cxCaucao.closest('label').style.display = _cv>0 ? '' : 'none';
   }
-  if($('mres-status')) $('mres-status').closest('.fg').style.display = isAdmin ? '' : 'none';
+  /* O campo Status saiu do formulário (pedido: "não estou usando essa aba").
+     Quem move o status é a lista — Aprovar, Recusar, Cancelar. O <select>
+     continua existindo e guardando o valor da reserva aberta, para que nada
+     que lê dele quebre; só não aparece mais para ninguém. */
+  if($('mres-status-fg')) $('mres-status-fg').style.display = 'none';
 
   // Financeiro: Taxa e Caução são apenas leitura (o valor vem da configuração).
   // Os campos de forma/status/data de pagamento e comprovante não existem mais
@@ -11634,24 +11801,13 @@ async function salvarRes(){
   let pgto = _pag.pgto, dataPgto = _pag.dataPgto,
       formaPgto = _pag.formaPgto, comprovante = _pag.comprovante;
 
-  // Status:
-  //  - admin/gestor: usa o valor escolhido no formulário
-  //  - morador: se o espaço exigir confirmação do admin -> 'pendente'; senão já entra 'confirmada'
+  // Status: o campo saiu do formulário (ver resStatusAoSalvar).
   const nivel2 = window._userNivel||'morador';
   const _resExistente = _resAnterior;   // mesma reserva, ja procurada acima
-  let statusVal;
-  if(nivel2==='admin'||nivel2==='gestor'){
-    statusVal = $('mres-status')?$('mres-status').value:'pendente';
-  } else if(_resExistente && _resExistente.status && _resExistente.status!=='pendente'){
-    // Morador editando reserva que JÁ foi tratada (confirmada/realizada/etc.): mantém o status atual
-    statusVal = _resExistente.status;
-  } else {
-    const _cfgRes = getCfgRes();
-    // Passa o horario: no modo "taxa", quem decide e a reserva ter ou nao
-    // valor a pagar naquela faixa (ver exigeAprovacao).
-    const _exige = exigeAprovacao(_cfgRes, espacoRes, hr);
-    statusVal = _exige ? 'pendente' : 'confirmada';
-  }
+  // Passa o horario: no modo "taxa", quem decide e a reserva ter ou nao
+  // valor a pagar naquela faixa (ver exigeAprovacao).
+  const statusVal = resStatusAoSalvar(
+    nivel2, _resExistente, exigeAprovacao(getCfgRes(), espacoRes, hr));
 
   const obj={
     id:id?+id:Date.now(),
@@ -13696,6 +13852,8 @@ async function renomearEspaco(deArg, paraArg){
 
   // 6) so agora grava a configuracao e o cache local
   setCfgRes(cfg);
+  // A foto acompanha o nome novo: a chave dela é derivada do nome.
+  try{ S('espacos_fotos', espFotosRenomear(espacosFotos(), de, para)); }catch(_){}
   var all = G('reservas')||[];
   all.forEach(function(r){ if(r.espaco===de) r.espaco=para; });
   DB_CACHE['reservas']=all;
@@ -13824,6 +13982,9 @@ async function excluirEspaco(nome){
   var r = await setCfgRes(cfg);
   if(r && r.ok === false) return;
 
+  // Só depois que a configuração foi aceita: a foto some junto com o espaço.
+  try{ S('espacos_fotos', espFotosExcluir(espacosFotos(), nome)); }catch(_){}
+
   _limpaCacheSeletores();
   try{ renderEspacos(); }catch(_){}
   try{ renderCfgReservas(); }catch(_){}
@@ -13886,9 +14047,18 @@ function renderEspacos(){
       : (uso.total > 0 ? '<span class="esp-selo esp-selo-frio">'+uso.total+' no histórico</span>' : '');
     var n = escHtml(nome);
     var nomeAttr = JSON.stringify(nome).replace(/"/g,'&quot;');
+    var temFoto = !!espFoto(nome);
+    var mini = temFoto
+      ? '<img class="esp-mini" data-esp-mini="'+n+'" alt="">'
+      : '<div class="esp-mini-sem" title="Sem foto"><i class="fa-solid '+_espIcone(nome)+'"></i></div>';
     return '<div class="esp-item">'+
+             mini+
              '<div class="esp-nome"><i class="fa-solid fa-location-dot"></i> '+n+selo+'</div>'+
              '<div class="esp-acoes">'+
+               '<button class="btn btn-ghost btn-sm" onclick="espEscolherFoto('+nomeAttr+')">'+
+                 '<i class="fa-solid fa-camera"></i> '+(temFoto?'Trocar foto':'Foto')+'</button>'+
+               (temFoto ? '<button class="btn btn-ghost btn-sm" onclick="espRemoverFoto('+nomeAttr+')">'+
+                 '<i class="fa-solid fa-image-slash"></i> Tirar foto</button>' : '')+
                '<button class="btn btn-gold btn-sm" onclick="abrirConfigEspaco('+nomeAttr+')">'+
                  '<i class="fa-solid fa-sliders"></i> Configurar</button>'+
                '<button class="btn btn-ghost btn-sm" onclick="pedirRenomearEspaco('+nomeAttr+')">'+
@@ -13899,8 +14069,107 @@ function renderEspacos(){
            '</div>';
   }).join('');
 
+  // src por propriedade: o conteúdo vem do cadastro e não vira marcação.
+  [].forEach.call(el.querySelectorAll('img[data-esp-mini]'), function(img){
+    img.src = espFoto(img.getAttribute('data-esp-mini'));
+  });
+
   var c = $('esp-contagem');
   if(c) c.textContent = lista.length + (lista.length===1 ? ' espaço' : ' espaços');
+}
+
+/* ── Foto do espaço ───────────────────────────────────────────────────
+
+   Guardada em modulo_dados/espacos_fotos, FORA de cfg_reservas de
+   propósito: cfg_reservas é regravada inteira a cada ajuste de horário e
+   também vai para o localStorage. Pendurar dez fotos nela faria cada
+   clique num horário reescrever meio megabyte.
+
+   A imagem é reduzida antes de sair do aparelho. Foto de celular hoje tem
+   4000px e 5 MB; na tela ela aparece com 180px de largura. Subir o
+   original seria pagar caro por pixel que ninguém vê — e estourar o
+   limite de tamanho da linha no banco.
+──────────────────────────────────────────────────────────────────── */
+var _ESP_FOTO_LARG = 900;   // largura máxima guardada
+var _ESP_FOTO_MAX  = 260000; // ~260 KB por foto; acima disso comprime mais
+
+function espEscolherFoto(nome){
+  var inp=$('esp-foto-input'); if(!inp) return;
+  inp._espAlvo=nome;
+  inp.value='';
+  inp.click();
+}
+
+function espFotoSelecionada(input){
+  var f=input.files && input.files[0];
+  var nome=input._espAlvo||'';
+  if(!f||!nome) return;
+  if(!/^image\//.test(f.type||'')){ toast('⚠️ Escolha uma imagem (JPG ou PNG).'); return; }
+  var rd=new FileReader();
+  rd.onerror=function(){ toast('⚠️ Não consegui ler esse arquivo.'); };
+  rd.onload=function(e){
+    var img=new Image();
+    img.onerror=function(){ toast('⚠️ Esse arquivo não abriu como imagem.'); };
+    img.onload=function(){
+      try{
+        var dados=_espComprimir(img);
+        if(!dados){ toast('⚠️ Não consegui preparar essa imagem.'); return; }
+        _espGravarFoto(nome, dados);
+      }catch(_){ toast('⚠️ Não consegui preparar essa imagem.'); }
+    };
+    img.src=e.target.result;
+  };
+  rd.readAsDataURL(f);
+}
+
+// Reduz e recomprime até caber no orçamento. Devolve dataURL ou ''.
+function _espComprimir(img){
+  var larg=img.naturalWidth||img.width, alt=img.naturalHeight||img.height;
+  if(!larg||!alt) return '';
+  var esc=Math.min(1, _ESP_FOTO_LARG/larg);
+  var cv=document.createElement('canvas');
+  cv.width=Math.max(1,Math.round(larg*esc));
+  cv.height=Math.max(1,Math.round(alt*esc));
+  var ctx=cv.getContext('2d');
+  if(!ctx) return '';
+  ctx.drawImage(img,0,0,cv.width,cv.height);
+  var q=0.78, saida=cv.toDataURL('image/jpeg',q);
+  // Foto muito detalhada ainda passa do orçamento no primeiro aperto.
+  while(saida.length>_ESP_FOTO_MAX && q>0.4){ q-=0.12; saida=cv.toDataURL('image/jpeg',q); }
+  return saida;
+}
+
+function _espGravarFoto(nome, dados){
+  var mapa=espacosFotos();
+  var novo={};
+  Object.keys(mapa).forEach(function(k){ novo[k]=mapa[k]; });
+  if(dados) novo[_chvEsp(nome)]=dados; else delete novo[_chvEsp(nome)];
+  S('espacos_fotos', novo);
+  try{ renderEspacos(); }catch(_){}
+  try{ mresRenderCardsEspaco(); }catch(_){}
+  toast(dados ? '✓ Foto de "'+nome+'" atualizada.' : '✓ Foto de "'+nome+'" removida.');
+}
+
+function espRemoverFoto(nome){
+  if(!confirm('Tirar a foto de "'+nome+'"?\n\nO espaço continua existindo; o cartão volta a mostrar o ícone.')) return;
+  _espGravarFoto(nome, '');
+}
+
+/* Renomear leva a foto junto, e excluir leva a foto embora. Sem isto, a
+   foto do espaço renomeado ficaria órfã (ninguém a acha pela chave nova) e
+   a do excluído continuaria ocupando lugar para sempre. As duas devolvem um
+   mapa NOVO — mexer no que está no cache antes de S() decidir se pode
+   gravar foi bug de verdade na Central de Acompanhamento. */
+function espFotosRenomear(mapa, de, para){
+  var out={}, cDe=_chvEsp(de), cPara=_chvEsp(para);
+  Object.keys(mapa||{}).forEach(function(k){ if(k!==cDe && k!==cPara) out[k]=mapa[k]; });
+  if(mapa && mapa[cDe]) out[cPara]=mapa[cDe];
+  return out;
+}
+function espFotosExcluir(mapa, nome){
+  var out={}, c=_chvEsp(nome);
+  Object.keys(mapa||{}).forEach(function(k){ if(k!==c) out[k]=mapa[k]; });
+  return out;
 }
 
 /* Preenche o seletor de "espaço atual" da ferramenta de renomear */
@@ -14126,6 +14395,24 @@ function resPagamentoAoSalvar(resAnterior, taxa, finBlocoAtivo){
   };
   if(!temTaxa && out.pgto === 'pendente') out.pgto = 'isento';
   return out;
+}
+
+/* Status da reserva ao salvar, agora que o campo Status saiu do formulário.
+
+   Editando, o status atual é mantido — quem o move é a lista (Aprovar,
+   Recusar, Cancelar). Sem isto, salvar uma correção de telefone numa
+   reserva já aprovada a jogaria de volta para "pendente".
+
+   Criando pela administração, a reserva já nasce confirmada: quem está
+   cadastrando É quem aprovaria. Deixá-la "pendente" mandaria o
+   administrador para a fila de aprovação para aprovar a si mesmo.
+
+   O morador segue a regra do espaço, como sempre seguiu. */
+function resStatusAoSalvar(nivel, resAnterior, exigeAprov){
+  var souAdm = (nivel==='admin' || nivel==='gestor');
+  if(souAdm) return (resAnterior && resAnterior.status) ? resAnterior.status : 'confirmada';
+  if(resAnterior && resAnterior.status && resAnterior.status!=='pendente') return resAnterior.status;
+  return exigeAprov ? 'pendente' : 'confirmada';
 }
 
 /* ══════════════════════════════════════════════════════════════════════
