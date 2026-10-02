@@ -2931,6 +2931,16 @@ html.ambiente-ensaio body{padding-top:28px}
         </div>
       </div>
 
+      <!-- Painel de Reservas: para a administração é uma ABA dentro de
+           Reservas, e este item fica escondido. Ele só aparece para quem
+           NÃO abre a tela cheia de Reservas — a portaria — que de outro
+           modo não teria por onde chegar na própria tela. Ver aplicarSaas. -->
+      <div class="nav-standalone" id="nav-portaria-wrap" style="display:none">
+        <div class="nav-item" id="nav-portaria" onclick="showPanel('portaria',this)">
+          <div class="nav-icon"><i class="fa-solid fa-shield-halved"></i></div>Painel de Reservas
+        </div>
+      </div>
+
       <!-- Grupos: ao clicar abrem a coluna (flyout) ao lado -->
       <div class="sb-group" data-acesso="admin,gestor">
         <div class="sb-group-hd" data-grupo="paineis" onclick="sbAbrirGrupo('paineis',this)">
@@ -4159,6 +4169,7 @@ html.ambiente-ensaio body{padding-top:28px}
           <button class="tab active" onclick="showPanel('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Reservas</button>
           <button class="tab" onclick="showPanel('relatorios')"><i class="fa-solid fa-file-pdf" style="margin-right:6px"></i>Relatórios</button>
           <button class="tab" onclick="showPanel('espacos')"><i class="fa-solid fa-building" style="margin-right:6px"></i>Criar espaços</button>
+          <button class="tab" onclick="showPanel('portaria')"><i class="fa-solid fa-shield-halved" style="margin-right:6px"></i>Painel de Reservas</button>
         </div>
         <div class="ph">
           <div><div class="ph-title">Gestão de Reservas</div><div class="ph-sub">Agendamento de espaços e áreas comuns do condomínio</div></div>
@@ -4399,6 +4410,7 @@ html.ambiente-ensaio body{padding-top:28px}
           <button class="tab" onclick="showPanel('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Reservas</button>
           <button class="tab active" onclick="showPanel('relatorios')"><i class="fa-solid fa-file-pdf" style="margin-right:6px"></i>Relatórios</button>
           <button class="tab" onclick="showPanel('espacos')"><i class="fa-solid fa-building" style="margin-right:6px"></i>Criar espaços</button>
+          <button class="tab" onclick="showPanel('portaria')"><i class="fa-solid fa-shield-halved" style="margin-right:6px"></i>Painel de Reservas</button>
         </div>
         <div class="ph">
           <div><div class="ph-title"><i class="fa-solid fa-file-pdf" style="color:var(--gold);margin-right:8px"></i>Relatórios de Reservas</div><div class="ph-sub">Gere relatórios e comprovantes em PDF (imprimir ou salvar)</div></div>
@@ -4427,7 +4439,7 @@ html.ambiente-ensaio body{padding-top:28px}
         </div>
       </div>
 
-      <!-- ████ PORTARIA ████
+      <!-- ████ PAINEL DE RESERVAS (a tela da portaria) ████
            Tela de leitura, para quem fica no portão. Mostra as reservas JA
            APROVADAS, do dia, com o que a portaria precisa para receber as
            pessoas: hora, espaco, quem, de qual unidade, quantos e para que.
@@ -4439,9 +4451,15 @@ html.ambiente-ensaio body{padding-top:28px}
            nao e dali. E reserva pendente no portao seria pior: alguem
            entraria num espaco que a administracao ainda nao liberou. -->
       <div class="panel" id="panel-portaria">
+        <div class="tabs" data-acesso="admin,gestor" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="tab" onclick="showPanel('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Reservas</button>
+          <button class="tab" onclick="showPanel('relatorios')"><i class="fa-solid fa-file-pdf" style="margin-right:6px"></i>Relatórios</button>
+          <button class="tab" onclick="showPanel('espacos')"><i class="fa-solid fa-building" style="margin-right:6px"></i>Criar espaços</button>
+          <button class="tab active" onclick="showPanel('portaria')"><i class="fa-solid fa-shield-halved" style="margin-right:6px"></i>Painel de Reservas</button>
+        </div>
         <div class="ph">
           <div>
-            <div class="ph-title"><i class="fa-solid fa-shield-halved" style="color:var(--gold);margin-right:8px"></i>Portaria</div>
+            <div class="ph-title"><i class="fa-solid fa-shield-halved" style="color:var(--gold);margin-right:8px"></i>Painel de Reservas</div>
             <div class="ph-sub">Reservas aprovadas — quem vai usar os espaços</div>
           </div>
           <div class="ph-actions">
@@ -4470,6 +4488,7 @@ html.ambiente-ensaio body{padding-top:28px}
           <button class="tab" onclick="showPanel('reservas')"><i class="fa-solid fa-calendar-check" style="margin-right:6px"></i>Reservas</button>
           <button class="tab" onclick="showPanel('relatorios')"><i class="fa-solid fa-file-pdf" style="margin-right:6px"></i>Relatórios</button>
           <button class="tab active" onclick="showPanel('espacos')"><i class="fa-solid fa-building" style="margin-right:6px"></i>Criar espaços</button>
+          <button class="tab" onclick="showPanel('portaria')"><i class="fa-solid fa-shield-halved" style="margin-right:6px"></i>Painel de Reservas</button>
         </div>
         <div class="ph">
           <div><div class="ph-title">Espaços do condomínio</div><div class="ph-sub">Os ambientes que os moradores podem reservar</div></div>
@@ -6397,7 +6416,7 @@ const MODULOS_SAAS = {
   classificacoes: { label:'Classificação de Condôminos', grupo:'administrativo', secao:'Administrativo' },
   reservas:       { label:'Reservas',                  grupo:null,            secao:'Operações' },
   encomendas:     { label:'Encomendas',                grupo:null,            secao:'Operações' },
-  portaria:       { label:'Portaria',                  grupo:'operacoes',     secao:'Operações' },
+  portaria:       { label:'Painel de Reservas',        grupo:null,            secao:'Operações' },
   manutencao:     { label:'Manutenção',                grupo:'operacoes',     secao:'Operações' },
   preventivas:    { label:'Preventivas & Corretivas',  grupo:'operacoes',     secao:'Operações' },
   comunicados:    { label:'Comunicação (Informativos)', grupo:null,           secao:'Operações' },
@@ -6566,7 +6585,10 @@ function painelInicial(){
   // 'comunicados' e 'eventos' viraram abas dentro do item standalone
   // Comunicados (fora de SB_GRUPOS) -> sem isto, sumiriam desta lista e um
   // morador cujo unico modulo liberado fosse um dos dois ficaria sem tela.
-  const ordem = ['dashboard','comunicados','eventos','infogerais','regulamento','assistente'];
+  // 'portaria' entra aqui porque nao esta em SB_GRUPOS (virou aba de
+  // Reservas). Sem isto, quem so tem essa tela liberada entrava no sistema
+  // e caia no Inicio, sem nada por onde chegar nela.
+  const ordem = ['dashboard','portaria','comunicados','eventos','infogerais','regulamento','assistente'];
   ['paineis','administrativo','operacoes','sistema'].forEach(function(g){
     ((SB_GRUPOS[g]||{}).itens||[]).forEach(function(it){
       if(String(it.id).indexOf('__nav')!==0) ordem.push(it.id);
@@ -6598,6 +6620,24 @@ function aplicarSaas(){
     var liberado = id==='comunicados' ? (ativos.includes('comunicados')||ativos.includes('eventos')) : ativos.includes(id);
     st.style.display = (liberado && (_nivelPermite(st) || _telaExtra(id))) ? '' : 'none';
   });
+  /* Painel de Reservas no menu lateral.
+
+     Quem é admin/gestor chega nele pela ABA dentro de Reservas, e aí o item
+     no menu seria o mesmo destino repetido em dois lugares. Quem não é — a
+     portaria — não enxerga aquela barra de abas (ela é data-acesso
+     admin,gestor), então sem este item ficaria sem caminho nenhum até a
+     própria tela: entraria por ela no login e, ao sair, não voltaria mais.
+
+     Não serve olhar "tem acesso a Reservas?": o porteiro é morador, e todo
+     morador abre Reservas (as dele). Quem decide é ter ou não a barra de
+     abas, que é o que a condição abaixo repete. */
+  var _stPort = $('nav-portaria-wrap');
+  if(_stPort){
+    var _n = window._userNivel || 'morador';
+    var _temAbas = (_n==='admin' || _n==='gestor' || _n==='supervisor');
+    _stPort.style.display = (ativos.includes('portaria') && !_temAbas) ? '' : 'none';
+  }
+
   // Grupos: esconde se nenhuma tela liberada OU o nível não permite
   document.querySelectorAll('.sb-group').forEach(g=>{
     const hd=g.querySelector('.sb-group-hd'); if(!hd) return;
@@ -7914,7 +7954,7 @@ function closeSidebar(){
 }
 
 /* ══ NAVIGATION ══ */
-const panelNames={acompanhamento:'Central de Acompanhamento',inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',infogerais:'Informações Gerais',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',portaria:'Portaria',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas',espacos:'Criar Espaços'};
+const panelNames={acompanhamento:'Central de Acompanhamento',inicio:'Início',dashboard:'Dashboard',lotes:'Censo de Lotes',funcionarios:'Funcionários',financeiro:'Financeiro',manutencao:'Manutenção & Serviços',comunicados:'Informativos',eventos:'Eventos',preventivas:'Preventivas & Corretivas',reservas:'Gestão de Reservas',regulamento:'Regulamentos',assistente:'Assistente Condomínio',infogerais:'Informações Gerais',inadimplencia:'Inadimplência',usuarios:'Gestão de Usuários',configuracoes:'Configurações',procedimentos:'Procedimentos',unidades:'Cadastro de Unidades',localizacoes:'Cadastro de Localizações',condominos:'Condôminos',portaria:'Painel de Reservas',classificacoes:'Classificação de Condôminos',saas:'SaaS · Condomínios',relatorios:'Relatórios de Reservas',encomendas:'Encomendas',espacos:'Criar Espaços'};
 const ACESSO_PAINEIS = {
   admin:   ['inicio','saas','portaria','dashboard','acompanhamento','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','usuarios','configuracoes','procedimentos'],
   gestor:  ['inicio','portaria','dashboard','acompanhamento','lotes','unidades','localizacoes','classificacoes','condominos','funcionarios','financeiro','inadimplencia','manutencao','preventivas','reservas','encomendas','relatorios','espacos','comunicados','eventos','infogerais','regulamento','assistente','procedimentos'],
@@ -9233,7 +9273,6 @@ const SB_GRUPOS = {
     {id:'manutencao',    label:'Manuten\u00e7\u00e3o',               icon:'fa-wrench',               acesso:['admin','gestor']},
     {id:'preventivas',   label:'Preventivas & Corretivas', icon:'fa-screwdriver-wrench',   acesso:['admin','gestor']},
     {id:'procedimentos', label:'Procedimentos',            icon:'fa-clipboard-list',       acesso:['admin','gestor','morador']},
-    {id:'portaria',      label:'Portaria',                 icon:'fa-shield-halved',        acesso:['admin','gestor']},
   ]},
   sistema:  { titulo:'Sistema', itens:[
     {id:'usuarios',      label:'Usu\u00e1rios',                 icon:'fa-users-gear',           acesso:['admin']},
@@ -15059,7 +15098,7 @@ function resStatusAoSalvar(nivel, resAnterior, exigeAprov){
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   PORTARIA
+   PAINEL DE RESERVAS  (a tela da portaria)
 
    Para que serve: quem fica no portão precisa saber quem vai usar os
    espaços hoje — e só isso. A tela de Reservas da administração não serve:

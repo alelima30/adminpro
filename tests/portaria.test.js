@@ -148,6 +148,35 @@ bloco('A tela do portão não desenha valor nenhum', () => {
   });
 });
 
+// ── Onde a tela mora ──────────────────────────────────────────────────
+// Virou aba de Reservas, e saiu do menu Operações. Isso cria uma armadilha:
+// a barra de abas é só para admin/gestor, então a portaria — que é morador —
+// não a enxerga. Sem um caminho próprio, ela entraria na tela pelo login e,
+// ao sair uma vez, nunca mais voltaria.
+bloco('A portaria tem como chegar na propria tela', () => {
+  const src = lerFonte();
+  checa('existe item de menu proprio',
+    src.includes("id=\"nav-portaria-wrap\""), true);
+  checa('ele nasce escondido (quem o mostra e o aplicarSaas)',
+    /id="nav-portaria-wrap" style="display:none"/.test(src), true);
+  checa('e e escondido de quem tem a barra de abas',
+    /_temAbas[\s\S]{0,200}nivel/.test(src) ||
+    src.includes("_stPort.style.display = (ativos.includes('portaria') && !_temAbas)"), true);
+  // Sem isto, quem so tem esta tela entrava no sistema e caia no Inicio.
+  checa('quem so tem esta tela entra nela',
+    /const ordem = \['dashboard','portaria'/.test(src), true);
+});
+
+bloco('A aba aparece junto das outras de Reservas', () => {
+  const src = lerFonte();
+  const abas = (src.match(/showPanel\('portaria'\)/g) || []).length;
+  // Uma aba em cada um dos quatro paineis irmaos: Reservas, Relatorios,
+  // Criar espacos e o proprio Painel de Reservas.
+  checa('as quatro barras de abas levam a ela', abas, 4);
+  checa('e o modulo nao esta mais em nenhum grupo do menu',
+    /portaria:\s*\{ label:'Painel de Reservas',\s*grupo:null/.test(src), true);
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }
 console.log('TODOS OS TESTES PASSARAM (' + ok + ')');
