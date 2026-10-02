@@ -1701,6 +1701,15 @@ a.ig-tel-num:hover{color:var(--gold-l);text-decoration:underline}
   border-radius:6px;padding:1px 8px;margin-right:6px;
 }
 .port-extra{font-size:12px;color:var(--text-3);margin-top:5px;display:flex;gap:12px;flex-wrap:wrap}
+.port-adiante{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:rgba(232,119,34,0.09);border:1px solid rgba(232,119,34,0.28);
+  border-radius:11px;padding:11px 14px;margin-bottom:12px;
+  font-size:12.5px;line-height:1.5;color:var(--text-2);
+}
+.port-adiante i{color:var(--gold);flex:none}
+.port-adiante span{flex:1;min-width:0}
+.port-adiante .btn{flex:none;white-space:nowrap}
 .port-vazio{
   padding:34px 18px;text-align:center;color:var(--text-3);font-size:14px;line-height:1.7;
   border:1px dashed var(--border);border-radius:12px;
@@ -15286,6 +15295,31 @@ function _portSoma(iso, dias){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
+/* De que dia a que dia cada período vai. Separado porque a TELA também
+   precisa saber: dizer "Próximos 7 dias" sem dizer quais dias é o que faz
+   alguém olhar uma reserva do dia 11, não vê-la na lista e concluir que o
+   sistema não atualizou. */
+function portariaJanela(periodo, hoje, data){
+  if(periodo==='amanha')  return { de:_portSoma(hoje,1), ate:_portSoma(hoje,1) };
+  if(periodo==='semana')  return { de:hoje, ate:_portSoma(hoje,6) };
+  if(periodo==='futuras') return { de:hoje, ate:'9999-12-31' };
+  if(periodo==='data'){ var d = data || hoje; return { de:d, ate:d }; }
+  return { de:hoje, ate:hoje };
+}
+
+/* Quantas reservas aprovadas existem DEPOIS do período que está na tela, e
+   qual é a primeira delas. Sem isso, "nenhuma reserva" e "nenhuma reserva
+   nestes 7 dias" parecem a mesma coisa na tela -- e não são. */
+function portariaAdiante(reservas, ate){
+  var fora = (reservas||[]).filter(function(r){
+    return PORTARIA_STATUS.indexOf(String(r.status||'')) >= 0
+        && String(r.data||'') > String(ate||'');
+  });
+  if(!fora.length) return null;
+  var primeira = fora.map(function(r){ return r.data; }).sort()[0];
+  return { quantas: fora.length, primeira: primeira };
+}
+
 /* Decide o que a portaria vê. Pura de propósito: é a regra, não a tela, e é
    dela que depende o que NÃO pode aparecer. Testada em tests/portaria.test.js */
 function portariaFiltrar(reservas, opcoes){
@@ -15294,11 +15328,8 @@ function portariaFiltrar(reservas, opcoes){
   var periodo = o.periodo || 'hoje';
   var busca = String(o.busca||'').toLowerCase().trim();
 
-  var de, ate;
-  if(periodo==='amanha'){ de = ate = _portSoma(hoje, 1); }
-  else if(periodo==='semana'){ de = hoje; ate = _portSoma(hoje, 6); }
-  else if(periodo==='data'){ de = ate = (o.data || hoje); }
-  else { de = ate = hoje; }
+  var j = portariaJanela(periodo, hoje, o.data);
+  var de = j.de, ate = j.ate;
 
   return (reservas||[]).filter(function(r){
     if(PORTARIA_STATUS.indexOf(String(r.status||'')) < 0) return false;
@@ -15343,29 +15374,52 @@ function renderPortaria(){
 
   var abas=$('port-dias');
   if(abas){
-    abas.innerHTML=[['hoje','Hoje'],['amanha','Amanhã'],['semana','Próximos 7 dias']]
+    abas.innerHTML=[['hoje','Hoje'],['amanha','Amanhã'],['semana','Próximos 7 dias'],['futuras','Daqui pra frente']]
       .map(function(x){
         return '<button type="button" class="port-dia'+(_portPeriodo===x[0]?' on':'')+'"'
              + ' onclick="portPeriodo(&#39;'+x[0]+'&#39;)">'+x[1]+'</button>';
       }).join('');
   }
 
-  var res = portariaFiltrar(G('reservas')||[], {
+  var todas = G('reservas')||[];
+  var res = portariaFiltrar(todas, {
     hoje: hoje, periodo: _portPeriodo, data: _portData,
     busca: $('port-busca') ? $('port-busca').value : ''
   });
 
+  var jan = portariaJanela(_portPeriodo, hoje, _portData);
+  var adiante = portariaAdiante(todas, jan.ate);
+  var dBR = function(iso){ var p=String(iso||'').split('-'); return p.length>2 ? p[2]+'/'+p[1] : iso; };
+
   var resumo=$('port-resumo');
   if(resumo){
+    // O intervalo exibido entra no texto: "Próximos 7 dias" sem as datas é o
+    // que faz alguém procurar uma reserva do dia 11 numa janela que acaba no 8.
+    var faixa = (_portPeriodo==='futuras') ? 'de ' + dBR(hoje) + ' em diante'
+              : (jan.de===jan.ate) ? dBR(jan.de)
+              : dBR(jan.de) + ' a ' + dBR(jan.ate);
     resumo.textContent = (res.length
       ? res.length + (res.length===1 ? ' reserva aprovada' : ' reservas aprovadas')
-      : 'Nenhuma reserva aprovada neste período.')
-      + _portQuandoAtualizou();
+      : 'Nenhuma reserva aprovada')
+      + ' · ' + faixa + _portQuandoAtualizou();
+  }
+
+  // Tem reserva aprovada depois desta janela? Dizer isso é a diferença entre
+  // "não tem nada" e "tem, mais pra frente".
+  var aviso = '';
+  if(adiante){
+    aviso = '<div class="port-adiante">'
+      + '<i class="fa-solid fa-circle-info"></i> '
+      + '<span>Há <b>' + adiante.quantas + '</b> reserva(s) aprovada(s) depois de '
+      + escHtml(dBR(jan.ate)) + ' — a próxima em <b>' + escHtml(dBR(adiante.primeira)) + '</b>.</span>'
+      + '<button type="button" class="btn btn-ghost btn-sm" onclick="portPeriodo(&#39;futuras&#39;)">'
+      + 'Ver daqui pra frente</button></div>';
   }
 
   if(!res.length){
-    lista.innerHTML='<div class="port-vazio"><i class="fa-solid fa-calendar-check" style="font-size:26px;display:block;margin-bottom:10px;opacity:.5"></i>'
-      +'Nenhuma reserva aprovada para mostrar.<br>'
+    lista.innerHTML = aviso
+      +'<div class="port-vazio"><i class="fa-solid fa-calendar-check" style="font-size:26px;display:block;margin-bottom:10px;opacity:.5"></i>'
+      +'Nenhuma reserva aprovada neste período.<br>'
       +'<span style="font-size:12.5px">Só aparecem aqui as reservas já aprovadas pela administração.</span></div>';
     return;
   }
@@ -15395,7 +15449,7 @@ function renderPortaria(){
       +'</div>'
     +'</div>';
   });
-  lista.innerHTML=html;
+  lista.innerHTML=aviso+html;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
