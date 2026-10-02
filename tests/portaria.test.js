@@ -14,7 +14,7 @@
 const { carregar, lerFonte } = require('./extrair');
 
 const api = carregar(
-  ['portariaFiltrar', 'portariaJanela', 'portariaAdiante', '_portSoma', 'hrIni'],
+  ['portariaFiltrar', 'portariaJanela', 'portariaAdiante', 'portariaPorEspaco', '_portSoma', 'hrIni'],
   { PORTARIA_STATUS: ['confirmada', 'realizada', 'concluida'] },
 );
 
@@ -327,6 +327,55 @@ bloco('"Daqui pra frente" nao traz o passado', () => {
   ];
   checa('comeca em hoje e nao tem teto',
         nomes(filtra(lista, { periodo: 'futuras' })), ['Hoje', 'Longe']);
+});
+
+// ── Moldurinha por espaço ─────────────────────────────────────────────
+bloco('Filtrar por espaco', () => {
+  const lista = [
+    r({ nome: 'Festa1', espaco: 'Salão de festa' }),
+    r({ nome: 'Festa2', espaco: 'Salão de festa' }),
+    r({ nome: 'Bola', espaco: 'Campo de futebol' }),
+    r({ nome: 'Pendente', espaco: 'Ginásio', status: 'pendente' }),
+  ];
+  checa('sem espaco escolhido, vem tudo', nomes(filtra(lista)).length, 3);
+  checa('com espaco escolhido, so ele',
+        nomes(filtra(lista, { espaco: 'Salão de festa' })), ['Festa1', 'Festa2']);
+  checa('espaco sem reserva devolve vazio',
+        filtra(lista, { espaco: 'Quiosque' }), []);
+  // O filtro nao pode ressuscitar o que o status ja barrou.
+  checa('espaco com reserva so pendente continua vazio',
+        filtra(lista, { espaco: 'Ginásio' }), []);
+  // Nome tem de bater inteiro: "Salão" nao e "Salão de festa".
+  checa('nao casa por pedaco do nome',
+        filtra(lista, { espaco: 'Salão' }), []);
+});
+
+bloco('O numero dentro da moldurinha', () => {
+  const c = api.portariaPorEspaco([
+    { espaco: 'Salão de festa' }, { espaco: 'Salão de festa' }, { espaco: 'Quiosque' },
+  ]);
+  checa('conta por espaco', c, { 'Salão de festa': 2, Quiosque: 1 });
+  checa('espaco vazio nao vira chave', api.portariaPorEspaco([{ espaco: '' }]), {});
+  checa('sem espaco nenhum', api.portariaPorEspaco([{}]), {});
+  checa('lista vazia', api.portariaPorEspaco([]), {});
+  checa('lista nula', api.portariaPorEspaco(null), {});
+});
+
+bloco('As contagens nao mudam quando um espaco esta marcado', () => {
+  const src = lerFonte();
+  /* As moldurinhas contam a partir da lista do PERIODO, nao da ja filtrada.
+     Contando a filtrada, clicar em "Salão de festa" zeraria os numeros de
+     todos os outros -- e eles sao justamente o que diz para onde ir depois. */
+  checa('a contagem sai da lista sem o filtro de espaco',
+    /var porEsp = portariaPorEspaco\(doPeriodo\);/.test(src), true);
+  checa('e a lista exibida leva o filtro',
+    /Object\.assign\(\{ espaco:_portEspaco \}, opc\)/.test(src), true);
+  // Clicar de novo no mesmo espaco desmarca.
+  checa('a moldurinha e liga-desliga',
+    /_portEspaco = \(_portEspaco === nome\) \? '' : nome;/.test(src), true);
+  // Espaco excluido do cadastro mas com reserva no periodo ainda aparece.
+  checa('espaco fora do cadastro ainda ganha moldurinha',
+    /if\(listaEsp\.indexOf\(e\)<0\) listaEsp\.push\(e\);/.test(src), true);
 });
 
 console.log('\n' + '-'.repeat(50));
