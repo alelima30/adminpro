@@ -4463,7 +4463,7 @@ html.ambiente-ensaio body{padding-top:28px}
             <div class="ph-sub">Reservas aprovadas — quem vai usar os espaços</div>
           </div>
           <div class="ph-actions">
-            <button class="btn btn-ghost ph-acao" onclick="renderPortaria()" title="Buscar as reservas mais recentes">
+            <button class="btn btn-ghost ph-acao" onclick="portAtualizar()" title="Buscar no servidor as reservas mais recentes">
               <i class="fa-solid fa-rotate"></i> Atualizar</button>
           </div>
         </div>
@@ -11420,7 +11420,11 @@ function renderCalendario(){
     var ehHoje=dataStr===hojeStr;
     var chips=lista.slice(0,3).map(function(r){
       var cor=_CAL_CORES[r.status]||'#888';
-      return '<div title="'+escHtml((r.horario||'')+' '+(r.espaco||'')+' — '+(r.nome||''))+'" style="font-size:10px;color:#fff;background:'+cor+';border-radius:4px;padding:1px 4px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(r.horario||'').split(/[-–]/)[0]+' '+(r.espaco||'').slice(0,10)+'</div>';
+      // O calendario mostra TODAS as reservas do condominio, inclusive para o
+      // morador -- e preciso, para ele ver o que esta livre. O nome, nao: ia
+      // embutido aqui no title e aparecia em qualquer passada de mouse.
+      var _dica=(r.horario||'')+' '+(r.espaco||'')+(resPodeVerNomes()&&r.nome?' — '+r.nome:'');
+      return '<div title="'+escHtml(_dica)+'" style="font-size:10px;color:#fff;background:'+cor+';border-radius:4px;padding:1px 4px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(r.horario||'').split(/[-–]/)[0]+' '+(r.espaco||'').slice(0,10)+'</div>';
     }).join('');
     var mais=lista.length>3?'<div style="font-size:10px;color:var(--text-3);margin-top:2px">+'+(lista.length-3)+' mais</div>':'';
     html+='<div onclick="resCalDiaClick(\''+dataStr+'\')" style="min-height:78px;border:1px solid '+(ehHoje?'var(--gold)':'var(--border)')+';border-radius:8px;padding:4px 5px;cursor:pointer;background:'+(ehHoje?'rgba(232,119,34,0.06)':'var(--ink-2)')+';overflow:hidden">'+
@@ -12409,7 +12413,9 @@ async function salvarRes(){
 
   if(conflito){
     const dataFmt = new Date(dataRes+'T00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'long'});
-    toast('⚠️ Conflito! '+espacoRes+' já está reservado em '+dataFmt+' — '+conflito.horario+' ('+conflito.nome+')');
+    // O nome de quem ja reservou so sai para a administracao (ver resPodeVerNomes).
+    toast('⚠️ Conflito! '+espacoRes+' já está reservado em '+dataFmt+' — '+conflito.horario
+      + (resPodeVerNomes() ? ' ('+conflito.nome+')' : '. Escolha outro horário.'));
     return;
   }
 
@@ -13463,6 +13469,21 @@ function atualizarReservas(){
   location.reload();
 }
 
+/* Quem pode ver o NOME de quem reservou.
+
+   Para o morador, a resposta e nao. Ele precisa saber que o horario esta
+   ocupado -- isso e informacao de agenda, e sem ela nao da para escolher
+   outro horario. Mas QUEM reservou nao e da conta dele: e saber que a vizinha
+   do B07 vai fazer festa no sabado, quem recebe, quem nao recebe. A agenda
+   do espaco comum e publica; a vida de quem usa, nao.
+
+   Administracao ve: e ela quem resolve conflito, liga para as pessoas e
+   remarca -- sem o nome, nao teria como fazer nada disso. */
+function resPodeVerNomes(){
+  var n = window._userNivel || 'morador';
+  return n==='admin' || n==='gestor' || n==='supervisor';
+}
+
 // De minuto em minuto, e só quando o painel de Reservas está à vista.
 setInterval(function(){ try{ resLembreteChecar(); }catch(_){} }, 60000);
 
@@ -13479,23 +13500,79 @@ setInterval(function(){ try{ resLembreteChecar(); }catch(_){} }, 60000);
    sem dono. */
 var _RESL_RELEITURA_MIN = 15;
 
-async function _reslReler(){
-  if(typeof currentPanel === 'undefined' || currentPanel !== 'reservas') return;
-  if(!window.SB) return;
-  if(document.hidden) return;              // aba em segundo plano: espera voltar
+/* Telas que vivem das reservas e por isso merecem a releitura.
+
+   O Painel de Reservas entrou aqui porque e, das duas, a que mais precisa:
+   fica o dia inteiro aberta na portaria, sem ninguem mexendo. Sem releitura,
+   uma reserva aprovada as 10h so apareceria no portao quando alguem lembrasse
+   de apertar F5 -- e a pessoa chegaria para usar um espaco que, para a
+   portaria, nao estava reservado. */
+var _RESL_TELAS = ['reservas','portaria'];
+
+var _reslUltima = null;   // quando o banco foi lido com sucesso pela ultima vez
+
+/* forcar=true vem do botao "Atualizar": ai nao ha o que esperar. Sem ele, a
+   releitura so acontece com a tela a vista -- reler o que ninguem esta
+   olhando e gasto sem dono. */
+/* Vale a pena ir ao banco agora? Separada para poder ser testada: as tres
+   condicoes abaixo sao o que decide se a portaria fica com dado velho. */
+function _reslDeveReler(painel, temSB, escondido, forcar){
+  if(_RESL_TELAS.indexOf(painel) < 0) return false;   // tela que nao vive de reservas
+  if(!temSB) return false;                            // sem banco, nao ha o que ler
+  if(escondido && !forcar) return false;              // ninguem olhando: gasto sem dono
+  return true;
+}
+
+async function _reslReler(forcar){
+  var _painel = (typeof currentPanel === 'undefined') ? '' : currentPanel;
+  if(!_reslDeveReler(_painel, !!window.SB, !!document.hidden, !!forcar)) return false;
   try{
     var res = await SB.from('reservas').select('*').eq('condominio_id', _condAtual);
-    if(res.error || !res.data) return;     // falhou: fica com o que ja tinha
+    if(res.error || !res.data) return false;     // falhou: fica com o que ja tinha
     var arr = res.data.map(_resRowToApp);
     DB_CACHE['reservas'] = arr;
     try{ localStorage.setItem('apvc_reservas', JSON.stringify(arr)); }catch(_){}
-    try{ renderReservas(); }catch(_){}
-    try{ verificarAlertas(); }catch(_){}
-    try{ resLembreteChecar(); }catch(_){}
-  }catch(_){ /* sem rede: a proxima rodada tenta de novo */ }
+    _reslUltima = new Date();
+    if(currentPanel === 'portaria'){
+      try{ renderPortaria(); }catch(_){}
+    } else {
+      try{ renderReservas(); }catch(_){}
+      try{ verificarAlertas(); }catch(_){}
+      try{ resLembreteChecar(); }catch(_){}
+    }
+    return true;
+  }catch(_){ return false; /* sem rede: a proxima rodada tenta de novo */ }
 }
 
-setInterval(function(){ _reslReler(); }, _RESL_RELEITURA_MIN*60000);
+/* Botao "Atualizar" do Painel de Reservas. Antes ele so redesenhava a tela
+   com o que ja estava na memoria do navegador -- parecia que atualizava e
+   nao atualizava nada. Agora vai ao banco. */
+async function portAtualizar(){
+  var ok = await _reslReler(true);
+  if(!window.SB){ try{ renderPortaria(); }catch(_){} return; }
+  if(ok) toast('✓ Reservas atualizadas.');
+  else   toast('⚠️ Não consegui falar com o servidor. A tela continua mostrando a última leitura.');
+}
+
+// Relógio da última leitura, no rodapé do resumo: numa tela que fica o dia
+// inteiro aberta, saber SE o dado é de agora é parte da informação.
+function _portQuandoAtualizou(){
+  if(!_reslUltima) return '';
+  var h=String(_reslUltima.getHours()).padStart(2,'0');
+  var m=String(_reslUltima.getMinutes()).padStart(2,'0');
+  return ' · atualizado às '+h+':'+m;
+}
+
+setInterval(function(){
+  _reslReler();
+  /* O Painel de Reservas fica aberto a noite inteira na portaria, e ele
+     mostra "hoje". Sem redesenhar aqui, uma tela aberta desde ontem seguiria
+     exibindo o dia de ontem como se fosse hoje depois da meia-noite --
+     inclusive quando a leitura do banco falha e _reslReler desiste no meio. */
+  try{
+    if(typeof currentPanel !== 'undefined' && currentPanel === 'portaria') renderPortaria();
+  }catch(_){}
+}, _RESL_RELEITURA_MIN*60000);
 
 // Voltar para a aba depois de um tempo fora é o momento em que o dado mais
 // provavelmente está velho — relê na hora, sem esperar o ciclo fechar.
@@ -15201,9 +15278,10 @@ function renderPortaria(){
 
   var resumo=$('port-resumo');
   if(resumo){
-    resumo.textContent = res.length
+    resumo.textContent = (res.length
       ? res.length + (res.length===1 ? ' reserva aprovada' : ' reservas aprovadas')
-      : 'Nenhuma reserva aprovada neste período.';
+      : 'Nenhuma reserva aprovada neste período.')
+      + _portQuandoAtualizou();
   }
 
   if(!res.length){

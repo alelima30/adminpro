@@ -177,6 +177,76 @@ bloco('A aba aparece junto das outras de Reservas', () => {
     /portaria:\s*\{ label:'Painel de Reservas',\s*grupo:null/.test(src), true);
 });
 
+// ── Atualizar sozinho ─────────────────────────────────────────────────
+// A tela fica o dia inteiro aberta na portaria, sem ninguém mexendo. Sem
+// releitura, uma reserva aprovada às 10h só apareceria no portão quando
+// alguém lembrasse de apertar F5 — e a pessoa chegaria para usar um espaço
+// que, para a portaria, não estava reservado.
+bloco('Quando vale ir ao banco', () => {
+  const r = carregar(['_reslDeveReler'], { _RESL_TELAS: ['reservas', 'portaria'] });
+  const deve = (painel, temSB, escondido, forcar) =>
+    r._reslDeveReler(painel, temSB, escondido, forcar);
+
+  checa('no painel da portaria, com banco e tela a vista', deve('portaria', true, false, false), true);
+  checa('na tela de reservas tambem', deve('reservas', true, false, false), true);
+
+  // Reler o que ninguem esta olhando e gasto sem dono.
+  checa('em outra tela, nao le', deve('inicio', true, false, false), false);
+  checa('aba em segundo plano, nao le', deve('portaria', true, true, false), false);
+  checa('sem banco, nao le', deve('portaria', false, false, false), false);
+
+  // O botao "Atualizar" nao espera nada: quem apertou esta olhando.
+  checa('o botao ignora a aba escondida', deve('portaria', true, true, true), true);
+  checa('mas nem o botao inventa banco', deve('portaria', false, true, true), false);
+  checa('e nem o botao le de outra tela', deve('inicio', true, false, true), false);
+});
+
+bloco('O relogio cobre a tela da portaria', () => {
+  const src = lerFonte();
+  checa('a portaria esta na lista de telas que releem',
+    /_RESL_TELAS = \['reservas','portaria'\]/.test(src), true);
+  checa('o intervalo e de 15 minutos',
+    /_RESL_RELEITURA_MIN = 15/.test(src), true);
+  // Tela aberta desde ontem seguiria mostrando "hoje" como sendo ontem.
+  checa('o tique redesenha a portaria mesmo se a leitura falhar',
+    /currentPanel === 'portaria'\) renderPortaria\(\);/.test(src), true);
+  // Voltar para a aba e quando o dado mais provavelmente esta velho.
+  checa('voltar para a aba tambem rele',
+    src.includes("addEventListener('visibilitychange'"), true);
+  // O botao antes so redesenhava a memoria: parecia atualizar e nao atualizava.
+  checa('o botao Atualizar vai ao banco',
+    src.includes('onclick="portAtualizar()"'), true);
+});
+
+// ── Nome de quem reservou é dado de outra pessoa ──────────────────────
+// O morador precisa saber que o horário está ocupado — sem isso não escolhe
+// outro. Mas QUEM reservou não é da conta dele: é saber que a vizinha do B07
+// vai fazer festa no sábado, quem recebe e quem não recebe. A agenda do
+// espaço comum é pública; a vida de quem usa, não.
+bloco('Quem pode ver o nome de quem reservou', () => {
+  const quem = (nivel) => carregar(['resPodeVerNomes'], { window: { _userNivel: nivel } })
+    .resPodeVerNomes();
+  checa('admin vê', quem('admin'), true);
+  checa('gestor vê', quem('gestor'), true);
+  checa('supervisor vê', quem('supervisor'), true);
+  checa('morador NÃO vê', quem('morador'), false);
+  checa('nível desconhecido não vê', quem('qualquer_coisa'), false);
+  checa('sem nível definido não vê', quem(undefined), false);
+});
+
+bloco('O nome sai pelos dois caminhos que o morador alcança', () => {
+  const src = lerFonte();
+  // 1) O aviso de conflito ao tentar marcar por cima de outra reserva.
+  checa('o aviso de conflito pergunta antes de citar o nome',
+    src.includes("(resPodeVerNomes() ? ' ('+conflito.nome+')' : '. Escolha outro horário.')"), true);
+  // 2) O calendário, que mostra as reservas de todo mundo — o nome ia no
+  //    title e aparecia em qualquer passada de mouse.
+  checa('a dica do calendário pergunta antes de citar o nome',
+    /_dica=.*resPodeVerNomes\(\)&&r\.nome/.test(src), true);
+  checa('e nenhum title do calendário monta o nome direto',
+    src.includes("title=\"'+escHtml((r.horario||'')+' '+(r.espaco||'')+' — '+(r.nome||''))"), false);
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }
 console.log('TODOS OS TESTES PASSARAM (' + ok + ')');
