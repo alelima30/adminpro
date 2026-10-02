@@ -16,7 +16,7 @@ const { carregar } = require('./extrair');
 
 const api = carregar(
   ['resStatusAoSalvar', 'espFotosRenomear', 'espFotosExcluir', '_chvEsp', '_espIcone', 'semAcento',
-   'espListaParaForm'],
+   'espListaParaForm', 'mresLoteEscolhaTeclado'],
   {},
 );
 
@@ -142,6 +142,36 @@ bloco('Sem configuração, todo espaço está ativo', () => {
 bloco('Lista vazia ou ausente não quebra', () => {
   checa('lista nula', api.espListaParaForm(null, {}, ''), []);
   checa('cfg nula', api.espListaParaForm(['Quiosque'], null, '').length, 1);
+});
+
+// ── Tab no campo de unidade ───────────────────────────────────────────
+// O dropdown de unidade so respondia a clique. Quem digitava "B01" e apertava
+// Tab via o campo preenchido e por baixo nao tinha acontecido nada: a unidade
+// de verdade continuava vazia e a lista de moradores seguia dizendo
+// "selecione a unidade acima".
+bloco('Tab/Enter confirmam a unidade quando nao ha duvida', () => {
+  const L = ['B01', 'B02', 'K15'];
+  checa('digitou a unidade inteira', api.mresLoteEscolhaTeclado('B01', L, -1), 'B01');
+  checa('minuscula tambem vale', api.mresLoteEscolhaTeclado('b01', L, -1), 'B01');
+  checa('com espaco sobrando', api.mresLoteEscolhaTeclado(' B01 ', L, -1), 'B01');
+  checa('sobrou uma so na lista filtrada',
+        api.mresLoteEscolhaTeclado('K', ['K15'], -1), 'K15');
+  checa('escolheu com as setas', api.mresLoteEscolhaTeclado('B', L, 1), 'B02');
+  checa('a seta ganha do texto digitado', api.mresLoteEscolhaTeclado('K15', L, 0), 'B01');
+});
+
+bloco('Com duvida, nao adivinha', () => {
+  const L = ['B01', 'B02', 'K15'];
+  // Marcar a reserva na casa errada e pior do que pedir para terminar de
+  // escolher. "B0" casa com B01 e B02: nao se escolhe nenhuma.
+  checa('prefixo ambiguo nao escolhe', api.mresLoteEscolhaTeclado('B0', ['B01','B02'], -1), '');
+  checa('campo vazio nao escolhe', api.mresLoteEscolhaTeclado('', L, -1), '');
+  checa('so espacos nao escolhe', api.mresLoteEscolhaTeclado('   ', L, -1), '');
+  checa('unidade que nao existe nao escolhe', api.mresLoteEscolhaTeclado('XX9', L, -1), '');
+  checa('lista vazia nao escolhe', api.mresLoteEscolhaTeclado('B01', [], -1), '');
+  checa('lista ausente nao quebra', api.mresLoteEscolhaTeclado('B01', null, -1), '');
+  checa('indice fora da lista cai na regra do texto',
+        api.mresLoteEscolhaTeclado('B01', L, 99), 'B01');
 });
 
 console.log('\n' + '-'.repeat(50));
