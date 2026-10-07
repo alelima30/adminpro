@@ -5035,6 +5035,30 @@ html.ambiente-ensaio body{padding-top:28px}
           </div>
         </div>
 
+        <!-- ▸ Painel de Reservas (a tela da portaria)
+             Cartão próprio, e não um pedaço do cartão de notificações: isto
+             não é aviso nenhum, é o que a tela do portão mostra. Enfiado lá
+             dentro, ninguém achava. -->
+        <div class="cfg-card cfg-grp-reservas cfgsub-avisos card" style="margin-bottom:18px">
+          <div class="card-head">
+            <div class="card-title"><div class="card-icon" style="background:rgba(232,119,34,0.14);color:var(--gold)"><i class="fa-solid fa-shield-halved"></i></div>Painel de Reservas (portaria)</div>
+            <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">
+            A tela que fica aberta na portaria, em <strong>Reservas → Painel de Reservas</strong>.
+          </div>
+          <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;cursor:pointer;font-size:13px;color:var(--text-2)">
+            <input type="checkbox" id="cfg-port-autor" style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">
+            <span>Mostrar <b>quem registrou</b> cada reserva.</span>
+          </label>
+          <div style="font-size:11.5px;color:var(--text-3);margin:0 0 4px 28px;line-height:1.6">
+            Admin, gestor e supervisor marcam reserva para qualquer unidade. Com isto ligado, o
+            painel mostra <i>"Registrada por Fulano (Supervisor)"</i> embaixo de cada reserva.
+            As feitas pelo próprio morador aparecem como tal.<br>
+            Desligar apenas <b>esconde</b> a linha — quem registrou continua sendo guardado.
+          </div>
+        </div>
+
         <!-- ▸ Notificações automáticas de reservas (WhatsApp + e-mail) -->
         <div class="cfg-card cfg-grp-reservas cfgsub-avisos card" style="margin-bottom:18px">
           <div class="card-head">
@@ -5042,17 +5066,6 @@ html.ambiente-ensaio body{padding-top:28px}
             <button class="btn btn-gold btn-sm" onclick="salvarCfgReservas()"><i class="fa-solid fa-floppy-disk"></i> Salvar</button>
           </div>
           <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">Usa o WhatsApp/e-mail configurados em <strong>Integrações & Sistema</strong>.</div>
-
-          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:10px">Painel de Reservas (portaria)</div>
-          <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;cursor:pointer;font-size:13px;color:var(--text-2)">
-            <input type="checkbox" id="cfg-port-autor" style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">
-            <span>Mostrar <b>quem registrou</b> cada reserva no Painel de Reservas.</span>
-          </label>
-          <div style="font-size:11.5px;color:var(--text-3);margin:0 0 16px 28px;line-height:1.6">
-            Admin, gestor e supervisor marcam reserva para qualquer unidade. Com isto ligado,
-            o painel mostra <i>"Registrada por Fulano (Supervisor)"</i> — fica registrado quem
-            marcou. Reservas feitas pelo próprio morador aparecem como tal.
-          </div>
 
           <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:10px">Avisos ao morador</div>
           <label style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;cursor:pointer;font-size:13px;color:var(--text-2)">

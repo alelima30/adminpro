@@ -458,6 +458,14 @@ bloco('A exibicao e configuravel, e o registro nao', () => {
     src.includes("$('cfg-port-autor').checked        = (cfgRes.port_autor !== false);"), true);
   checa('e o admin pode desligar',
     src.includes("cfgRes.port_autor          = $('cfg-port-autor').checked;"), true);
+  /* A opcao tem de estar ONDE SE PROCURA. Ela nasceu dentro do cartao
+     "Notificacoes automaticas (WhatsApp & e-mail)" -- tema nenhum a ver --
+     e simplesmente nao era encontrada. Agora e cartao proprio. */
+  checa('fica num cartao proprio, com titulo que diz do que se trata',
+    /Painel de Reservas \(portaria\)<\/div>[\s\S]{0,600}id="cfg-port-autor"/.test(src), true);
+  checa('e o cartao tem o proprio botao Salvar',
+    /id="cfg-port-autor"[\s\S]{0,1200}<\/div>/.test(src)
+    && /Painel de Reservas \(portaria\)[\s\S]{0,400}salvarCfgReservas\(\)/.test(src), true);
 
   /* O REGISTRO em si nao e configuravel, so a exibicao. Desligar a opcao
      esconde a linha; nao apaga quem marcou. Senao, bastaria desligar para
