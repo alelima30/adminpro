@@ -5489,7 +5489,7 @@ html.ambiente-ensaio body{padding-top:28px}
       </div>
       <div class="fg">
         <label>Nome do Morador</label>
-        <input type="text" id="mres-nome" placeholder="Nome completo">
+        <input type="text" id="mres-nome" placeholder="Nome completo" oninput="try{mresTelMudou()}catch(_){}">
       </div>
       <div class="fg">
         <label>Telefone</label>
@@ -8008,12 +8008,30 @@ function resTelOfereceCadastro(pessoa, digitado){
   return { nome: pessoa.nome, atual: pessoa.tel || '', novo: String(digitado||'').trim() };
 }
 
+/* De quem é esta reserva, dentro do cadastro da unidade.
+
+   NÃO basta olhar o seletor "Morador / Dependente". Ele é um atalho: quem
+   digita o nome direto no campo nunca o toca, e ele também se esvazia quando
+   a lista é repovoada. Dependendo só dele, a caixinha de salvar o telefone
+   simplesmente não aparecia para quem digita o nome -- que é o jeito mais
+   natural de preencher.
+
+   Então: o seletor manda quando foi usado; senão, procura pelo NOME digitado,
+   comparado sem acento nem caixa (ver _musrNorm). */
+function mresPessoaEscolhida(){
+  var lista = window._mresPessoas || [];
+  var sel = $('mres-pessoa-sel');
+  if(sel && sel.value !== '' && lista[+sel.value]) return lista[+sel.value];
+  var nome = _musrNorm($('mres-nome') ? $('mres-nome').value : '');
+  if(!nome) return null;
+  return lista.filter(function(p){ return _musrNorm(p.nome) === nome; })[0] || null;
+}
+
 /* Mostra ou esconde a oferta, conforme o que está digitado agora. */
 function mresTelMudou(){
   var cx=$('mres-tel-cad-wrap'), chk=$('mres-tel-cad'), txt=$('mres-tel-cad-txt');
   if(!cx||!chk) return;
-  var sel=$('mres-pessoa-sel');
-  var p=(sel && sel.value!=='') ? (window._mresPessoas||[])[+sel.value] : null;
+  var p=mresPessoaEscolhida();
   var r=resTelOfereceCadastro(p, $('mres-tel') ? $('mres-tel').value : '');
   if(!r){ cx.style.display='none'; chk.checked=false; return; }
   if(txt){
@@ -8033,8 +8051,7 @@ function mresTelMudou(){
 function mresPedidoTelCadastro(){
   var chk=$('mres-tel-cad');
   if(!chk || !chk.checked) return null;
-  var sel=$('mres-pessoa-sel');
-  var p=(sel && sel.value!=='') ? (window._mresPessoas||[])[+sel.value] : null;
+  var p=mresPessoaEscolhida();
   var r=resTelOfereceCadastro(p, $('mres-tel') ? $('mres-tel').value : '');
   if(!r) return null;
   return { cod:p.cod, dep:p.dep, nome:r.nome, novo:r.novo };
