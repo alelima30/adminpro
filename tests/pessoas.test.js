@@ -12,7 +12,7 @@
 // Souza", "Alessandra  Souza". Por isso a comparação é normalizada, e por
 // isso o CPF existe no formulário.
 
-const { carregar } = require('./extrair');
+const { carregar, lerFonte } = require('./extrair');
 
 let CONDOMINOS = {};
 const api = carregar(
@@ -200,6 +200,55 @@ bloco('Tab e Enter na unidade só confirmam sem duvida', () => {
   checa('vazio não escolhe', uniEscolhaTeclado('', L, -1), '');
   checa('unidade inexistente não escolhe', uniEscolhaTeclado('ZZ9', L, -1), '');
   checa('lista ausente não quebra', uniEscolhaTeclado('J11', null, -1), '');
+});
+
+// ── Telefone digitado na reserva volta para o cadastro ────────────────
+// O telefone da reserva ficava só nela. A pessoa corrigia o número na hora de
+// marcar e, na reserva seguinte, o campo voltava errado — a correção se
+// perdia toda vez.
+bloco('Quando vale oferecer "salvar tambem no cadastro"', () => {
+  const api2 = carregar(['resTelOfereceCadastro', '_soDigitos'], {});
+  const of = api2.resTelOfereceCadastro;
+  const camila = { nome: 'Camila', origem: 'cadastro', cod: '0001', dep: -1, tel: '1133334444' };
+
+  const r = of(camila, '11988887777');
+  checa('número diferente oferece', !!r, true);
+  checa('e diz de quem é', r && r.nome, 'Camila');
+  checa('mostrando o que sai e o que entra', r && [r.atual, r.novo], ['1133334444', '11988887777']);
+
+  // Ficha sem telefone é o caso mais útil: cadastro antigo que nunca teve contato.
+  checa('ficha sem telefone também oferece',
+        !!of({ ...camila, tel: '' }, '11988887777'), true);
+
+  // "(11) 3333-4444" e "1133334444" são o mesmo número: perguntar por causa
+  // de parênteses seria ruído.
+  checa('mesmo número com máscara diferente NÃO oferece',
+        of(camila, '(11) 3333-4444'), null);
+  // Apagar o telefone da reserva não é pedido para apagar o da ficha.
+  checa('campo vazio NÃO oferece', of(camila, ''), null);
+  checa('número incompleto NÃO oferece', of(camila, '119'), null);
+  // Quem não está no cadastro não tem ficha onde gravar.
+  checa('pessoa só com conta no app NÃO oferece',
+        of({ nome: 'X', origem: 'app', tel: '' }, '11988887777'), null);
+  checa('pessoa sem código NÃO oferece',
+        of({ nome: 'X', origem: 'cadastro', tel: '' }, '11988887777'), null);
+  checa('sem pessoa escolhida NÃO oferece', of(null, '11988887777'), null);
+});
+
+bloco('A intencao e lida antes, nao depois', () => {
+  const src = lerFonte();
+  /* O seletor de pessoa e repovoado durante o salvamento e perde a escolha.
+     Lendo a tela depois, a intencao ja tinha evaporado: a caixinha ficava
+     marcada e nada era gravado, em silencio. Achado testando o fluxo inteiro
+     no navegador -- a regra pura passava, e mesmo assim nao gravava. */
+  checa('o pedido e capturado no comeco do salvamento',
+    /_telCadPedido = mresPedidoTelCadastro\(\);/.test(src), true);
+  checa('e a gravacao usa o que foi capturado',
+    src.includes('mresSalvarTelNoCadastro(_telCadPedido)'), true);
+  // Gravar so depois de a reserva estar salva: se o servidor recusar a
+  // reserva, nao faz sentido ter mexido na ficha por causa dela.
+  checa('grava depois da reserva, nao antes',
+    src.indexOf('mresSalvarTelNoCadastro(_telCadPedido)') > src.indexOf('await _reservaUpsertSB(obj)'), true);
 });
 
 console.log('\n' + '-'.repeat(50));
