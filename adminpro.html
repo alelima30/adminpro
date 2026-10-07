@@ -324,6 +324,39 @@ function hrConflita(a,b){ return hrIni(a) < hrFim(b) && hrFim(a) > hrIni(b); }
   --radius-sm: 8px;
 }
 
+/* Controles nativos do navegador (calendário do input de data, relógio,
+   setas do select, barras de rolagem) seguem o color-scheme, não o nosso CSS.
+
+   O <meta color-scheme> do topo anuncia "dark light", com dark na frente --
+   então o Chrome desenhava o ícone do calendário CLARO sempre, inclusive no
+   tema claro, onde ele sumia sobre o fundo claro. Era um ícone invisível num
+   campo que a pessoa precisa abrir.
+
+   Declarar o esquema por tema resolve na raiz, e de uma vez para todos os
+   controles nativos -- não só para o calendário. */
+html       { color-scheme: dark; }
+html.light { color-scheme: light; }
+
+/* Mesmo com o esquema certo, o ícone nasce discreto demais para um campo que
+   se clica. Fica com o tamanho do dedo e visível. */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator{
+  cursor:pointer;
+  opacity:.9;
+  padding:3px;
+  border-radius:5px;
+  transition:opacity .15s, background .15s;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="month"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover{
+  opacity:1;
+  background:rgba(232,119,34,0.18);
+}
+
 /* ══ TEMA CLARO ══ — AdminPro Light */
 html.light {
   --ink:       #F4F6FA;
