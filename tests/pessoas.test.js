@@ -235,6 +235,28 @@ bloco('Quando vale oferecer "salvar tambem no cadastro"', () => {
   checa('sem pessoa escolhida NÃO oferece', of(null, '11988887777'), null);
 });
 
+bloco('Achar a pessoa nao depende do seletor', () => {
+  const src = lerFonte();
+  /* O seletor "Morador / Dependente" e um ATALHO: quem digita o nome direto
+     no campo nunca o toca, e ele tambem se esvazia quando a lista e
+     repovoada. Dependendo so dele, a caixinha nao aparecia justamente para
+     quem preenche do jeito mais natural -- foi assim que o recurso ficou
+     "sem aparecer" na primeira versao. */
+  checa('existe quem ache a pessoa', src.includes('function mresPessoaEscolhida()'), true);
+  checa('o seletor manda quando foi usado',
+    /if\(sel && sel\.value !== '' && lista\[\+sel\.value\]\) return lista\[\+sel\.value\];/.test(src), true);
+  checa('senao, procura pelo nome digitado',
+    /_musrNorm\(p\.nome\) === nome/.test(src), true);
+  // Digitar o nome tem de reavaliar a oferta, senao ela so apareceria
+  // depois de mexer no telefone de novo.
+  checa('digitar o nome reavalia a caixinha',
+    /id="mres-nome"[^>]*oninput="try\{mresTelMudou\(\)\}/.test(src), true);
+  // E os dois caminhos usam a MESMA busca: a caixinha nao pode aparecer por
+  // um criterio e gravar por outro.
+  checa('mostrar usa a busca', /function mresTelMudou\(\)[\s\S]{0,220}mresPessoaEscolhida\(\)/.test(src), true);
+  checa('e gravar usa a mesma', /function mresPedidoTelCadastro\(\)[\s\S]{0,220}mresPessoaEscolhida\(\)/.test(src), true);
+});
+
 bloco('A intencao e lida antes, nao depois', () => {
   const src = lerFonte();
   /* O seletor de pessoa e repovoado durante o salvamento e perde a escolha.
