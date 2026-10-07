@@ -13476,6 +13476,20 @@ function _reslRegistrar(chaves){
   if(mudou) _reslStoreSalvar(s);
 }
 
+/* Lembrete é sobre o que ainda dá para fazer alguma coisa a respeito.
+
+   Reserva de ontem não tem o que lembrar: ninguém vai entregar a chave, nem
+   conferir o espaço, nem avisar o morador. O aviso vira paisagem -- e aviso
+   que vira paisagem deixa de ser lido, levando junto o que importava.
+
+   O corte é o DIA, não a hora: uma reserva das 9h continua valendo às 15h
+   do mesmo dia (a cobrança ainda cabe, o espaço ainda vai ser conferido).
+   Vira passado só quando o dia vira. */
+function _reslJaPassou(r){
+  if(!r || !r.data) return false;
+  return String(r.data) < _reslHojeISO();
+}
+
 function _reslPendentes(ignorarVistos){
   var nivel = window._userNivel||'morador';
   if(nivel!=='admin' && nivel!=='gestor' && nivel!=='supervisor') return [];
@@ -13484,6 +13498,7 @@ function _reslPendentes(ignorarVistos){
   var out = [];
   (G('reservas')||[]).forEach(function(r){
     if(!r.data || r.status==='cancelada' || r.status==='realizada') return;
+    if(_reslJaPassou(r)) return;
     var q = _reslQuando(r); if(!q) return;
     var minsPara = (q.ini.getTime() - agora)/60000;
     var fase;
@@ -13506,14 +13521,19 @@ function _reslPendentes(ignorarVistos){
 
 /* Reservas com taxa e pagamento não confirmado.
 
-   Só entram as que pedem ação: as que já começaram e não foram pagas
-   (dinheiro que devia ter entrado) e as que começam nas próximas 48h
-   (dá para cobrar antes de entregar a chave). Uma reserva com taxa para
-   daqui a dois meses não é problema de hoje, e listar tudo faria a lista
-   virar paisagem — que é como um aviso deixa de ser lido.
+   Só entram as que pedem ação: as de HOJE que já começaram e não foram pagas
+   (ainda dá para cobrar antes de entregar a chave) e as que começam nas
+   próximas 48h. Uma reserva com taxa para daqui a dois meses não é problema
+   de hoje, e listar tudo faria a lista virar paisagem — que é como um aviso
+   deixa de ser lido.
+
+   Reserva de dias anteriores NÃO entra, mesmo em aberto: era por aqui que o
+   passado voltava: a cobrança olhava 60 dias para trás, então uma taxa
+   esquecida ficava repetindo o lembrete todo dia por dois meses. Cobrança
+   atrasada continua existindo e continua visível na lista de reservas, pelo
+   filtro de pagamento — mas lá é consulta, não aviso que interrompe.
 
    "Isento" não é pendência: é uma decisão que já foi tomada. */
-var _RESL_ATRASO_MAX = 60;   // dias para trás que ainda cobramos
 var _RESL_AVISO_H    = 48;   // horas para frente
 
 function _reslPagamentos(ignorarVistos){
@@ -13524,6 +13544,7 @@ function _reslPagamentos(ignorarVistos){
   var out = [];
   (G('reservas')||[]).forEach(function(r){
     if(!r.data || r.status==='cancelada') return;
+    if(_reslJaPassou(r)) return;
     if((r.pgto||'') !== 'pendente') return;
     var taxa = parseFloat(r.taxa);
     if(!(taxa > 0)) return;                       // sem taxa, nada a cobrar
@@ -13531,8 +13552,7 @@ function _reslPagamentos(ignorarVistos){
     var horas = (ini.getTime() - agora)/3600000;
     var fase;
     if(horas <= 0){
-      if(horas < -(_RESL_ATRASO_MAX*24)) return;  // velho demais, some da lista
-      fase = 'atrasado';
+      fase = 'atrasado';          // comecou hoje mais cedo e nao foi pago
     } else if(horas <= _RESL_AVISO_H){
       fase = 'areceber';
     } else return;
@@ -13599,6 +13619,10 @@ function _reslHistLinha(chave, ts){
 
   var r = todas.find(function(x){ return String(x.id) === rid; });
   if(!r) return null;
+
+  // O histórico reconta avisos recentes para quem fechou a janelinha sem ler.
+  // Reserva que já passou não volta nem por aí.
+  if(_reslJaPassou(r)) return null;
 
   if(fase === 'pgto'){
     if(r.status === 'cancelada') return null;
