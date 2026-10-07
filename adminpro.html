@@ -5379,7 +5379,16 @@ html.ambiente-ensaio body{padding-top:28px}
 </div>
 
 <!-- M: Reservas -->
-<div class="modal-ov" id="m-res" onclick="if(event.target===this)fecharModalRes()">
+<!-- Clicar fora NÃO fecha esta janela, de propósito.
+
+     O formulário de reserva é o mais longo do sistema: unidade, pessoa,
+     telefone, espaço, data, horário, finalidade e os aceites do termo. Um
+     toque errado na borda apagava tudo isso -- e no celular, onde a janela
+     ocupa quase a tela inteira, a borda é justamente onde o dedo escorrega.
+
+     Sai pelo X ou salvando. O evento é parado aqui para que o clique também
+     não vaze para a tela atrás da janela. -->
+<div class="modal-ov" id="m-res" onclick="event.stopPropagation()">
   <div class="modal" style="max-width:680px" onclick="event.stopPropagation()">
     <button class="modal-close-x" onclick="fecharModalRes()" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
     <div class="modal-title" id="mres-t">Nova Reserva</div>
