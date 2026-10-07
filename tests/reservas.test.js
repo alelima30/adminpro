@@ -48,7 +48,7 @@ bloco('Conflito de horário', () => {
 // reservaViolaRegra devolve uma MENSAGEM quando viola, ou algo falso quando pode.
 function montar(cfg, nivel, reservas) {
   return carregar(
-    ['reservaViolaRegra', '_chvEsp', 'hrIni', 'hrFim', '_minHora',
+    ['reservaViolaRegra', 'resEhAdministracao', '_chvEsp', 'hrIni', 'hrFim', '_minHora',
      '_resInstante', '_fmtDataBRCurta', '_fmtHorasBR', '_horasReserva'],
     {
       getCfgRes: () => cfg,
@@ -433,7 +433,7 @@ bloco('Painel de números das Reservas', () => {
   const janela = { _userNivel: 'admin' };
 
   const api = carregar(
-    ['_resDashVisivel', 'resToggleDash', '_resAplicarDash'],
+    ['_resDashVisivel', 'resToggleDash', '_resAplicarDash', 'resEhAdministracao'],
     {
       $: (id) => els[id] || null,
       localStorage: { getItem: (k) => (k in guardado ? guardado[k] : null),
