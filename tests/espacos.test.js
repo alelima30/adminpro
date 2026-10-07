@@ -219,6 +219,24 @@ bloco('A regra mora num lugar so', () => {
     src.includes("var isMorador = (_nv !== 'admin' && _nv !== 'gestor');"), true);
 });
 
+// ── Clicar fora não pode apagar o formulário ──────────────────────────
+bloco('A janela de reserva nao fecha por clique fora', () => {
+  const src = lerFonte();
+  /* O formulário de reserva é o mais longo do sistema: unidade, pessoa,
+     telefone, espaço, data, horário, finalidade e os aceites do termo. Um
+     toque errado na borda apagava tudo -- e no celular, onde a janela ocupa
+     quase a tela inteira, a borda é justamente onde o dedo escorrega. */
+  checa('o clique no fundo nao chama o fechamento',
+    /id="m-res" onclick="event\.stopPropagation\(\)"/.test(src), true);
+  checa('e nao sobrou o fechamento por clique fora',
+    src.includes('id="m-res" onclick="if(event.target===this)fecharModalRes()"'), false);
+  // Sai pelo X, que continua perguntando antes de descartar o que foi digitado.
+  checa('o X continua fechando',
+    /modal-close-x" onclick="fecharModalRes\(\)"/.test(src), true);
+  checa('e o fechamento ainda oferece salvar',
+    /function fecharModalRes\(\)[\s\S]{0,260}Deseja salvar a reserva antes de fechar/.test(src), true);
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }
 console.log('TODOS OS TESTES PASSARAM (' + ok + ')');
