@@ -5484,7 +5484,14 @@ html.ambiente-ensaio body{padding-top:28px}
       </div>
       <div class="fg">
         <label>Telefone</label>
-        <input type="text" id="mres-tel" placeholder="(11) 99999-9999">
+        <input type="text" id="mres-tel" placeholder="(11) 99999-9999" oninput="mresTelMudou()">
+        <!-- Só aparece quando o número digitado difere do que está na ficha
+             da pessoa escolhida (ver resTelOfereceCadastro). -->
+        <label class="fg-opcao" id="mres-tel-cad-wrap" style="display:none;flex-wrap:wrap;gap:4px 8px;align-items:flex-start;cursor:pointer;margin-top:7px;
+               background:rgba(232,119,34,0.08);border:1px solid rgba(232,119,34,0.25);border-radius:9px;padding:8px 11px">
+          <input type="checkbox" id="mres-tel-cad" style="accent-color:var(--gold);width:16px;height:16px;flex:none;margin-top:2px">
+          <span id="mres-tel-cad-txt" style="flex:1 1 160px;min-width:0;font-size:12px;line-height:1.5"></span>
+        </label>
       </div>
       <div class="fg">
         <label>N° de Pessoas</label>
@@ -7973,6 +7980,79 @@ function _mresAvisoPessoas(pessoas, lote){
 }
 
 // Ao escolher uma pessoa, preenche nome e telefone automaticamente
+/* Vale oferecer "salvar também no cadastro"?
+
+   Só quando há uma pessoa DO CADASTRO escolhida, o telefone digitado é um
+   número de verdade e ele difere do que está na ficha dela. Comparado por
+   dígitos: "(11) 99999-8888" e "11999998888" são o mesmo número, e perguntar
+   por causa de parênteses seria ruído.
+
+   Campo vazio nunca oferece: apagar o telefone da reserva não é pedido para
+   apagar o da ficha. Quem tem a ficha SEM telefone entra aqui também -- é o
+   caso mais útil, o do cadastro antigo que nunca teve contato. */
+function resTelOfereceCadastro(pessoa, digitado){
+  if(!pessoa || pessoa.origem !== 'cadastro' || !pessoa.cod) return null;
+  var novo = _soDigitos(digitado);
+  if(novo.length < 8) return null;                      // não é telefone
+  var atual = _soDigitos(pessoa.tel);
+  if(novo === atual) return null;                       // já é esse
+  return { nome: pessoa.nome, atual: pessoa.tel || '', novo: String(digitado||'').trim() };
+}
+
+/* Mostra ou esconde a oferta, conforme o que está digitado agora. */
+function mresTelMudou(){
+  var cx=$('mres-tel-cad-wrap'), chk=$('mres-tel-cad'), txt=$('mres-tel-cad-txt');
+  if(!cx||!chk) return;
+  var sel=$('mres-pessoa-sel');
+  var p=(sel && sel.value!=='') ? (window._mresPessoas||[])[+sel.value] : null;
+  var r=resTelOfereceCadastro(p, $('mres-tel') ? $('mres-tel').value : '');
+  if(!r){ cx.style.display='none'; chk.checked=false; return; }
+  if(txt){
+    txt.innerHTML = 'Salvar também no cadastro de <b>'+escU(r.nome)+'</b>'
+      + (r.atual ? ': <b>'+escU(r.atual)+'</b> passa a ser <b>'+escU(r.novo)+'</b>.'
+                 : ' — a ficha dele(a) está <b>sem telefone</b>.');
+  }
+  cx.style.display='';
+}
+
+/* Lê da TELA o que foi pedido, e devolve um pacote que não depende mais dela.
+
+   Tem de ser chamada no começo do salvamento, junto com os outros campos: o
+   seletor de pessoa é repovoado durante o salvar e perde a escolha. Lendo a
+   tela depois, a intenção já tinha evaporado -- a caixinha ficava marcada e
+   nada era gravado, silenciosamente. */
+function mresPedidoTelCadastro(){
+  var chk=$('mres-tel-cad');
+  if(!chk || !chk.checked) return null;
+  var sel=$('mres-pessoa-sel');
+  var p=(sel && sel.value!=='') ? (window._mresPessoas||[])[+sel.value] : null;
+  var r=resTelOfereceCadastro(p, $('mres-tel') ? $('mres-tel').value : '');
+  if(!r) return null;
+  return { cod:p.cod, dep:p.dep, nome:r.nome, novo:r.novo };
+}
+
+/* Grava o telefone na ficha. Recebe o pacote lido antes, e é chamada DEPOIS
+   de a reserva estar salva: se o servidor recusar a reserva, não faz sentido
+   ter mexido no cadastro por causa dela. */
+function mresSalvarTelNoCadastro(pedido){
+  var r = pedido;
+  if(!r || !r.cod) return '';
+  var p = r;
+  var co=getCondominos(), c=co[p.cod];
+  if(!c) return '';
+  if(p.dep >= 0){
+    if(!c.dependentes || !c.dependentes[p.dep]) return '';
+    c.dependentes[p.dep].telefone = r.novo;
+  } else {
+    c.telefone = r.novo;
+    if(Array.isArray(c.telefones) && c.telefones.length) c.telefones[0].numero = r.novo;
+    else c.telefones = [{numero:r.novo, tipo:'Celular'}];
+  }
+  co[p.cod]=c;
+  S('condominos', co);
+  return ' Telefone de '+r.nome+' atualizado no cadastro.';
+}
+
 function mresPessoaSel(){
   var sel=$('mres-pessoa-sel'); if(!sel) return;
   var i=sel.value; if(i==='') return;
@@ -7983,6 +8063,7 @@ function mresPessoaSel(){
   // outro edita o campo — nao se apaga informacao, so se escolhe o padrao
   // mais provavel de estar certo.
   if($('mres-tel'))  $('mres-tel').value = p.telApp || p.tel || '';
+  try{ mresTelMudou(); }catch(_){}
 }
 
 // Fecha ao clicar fora
@@ -10995,14 +11076,18 @@ function encPessoasDaUnidade(uni){
       if(!cod) return;
       var c=conds[cod]; if(!c) return;
       var tel=c.telefone||((c.telefones&&c.telefones[0])?(c.telefones[0].numero||''):'');
+      /* cod e dep dizem ONDE a pessoa está no cadastro: cod é o condômino,
+         dep é a posição dela na lista de dependentes dele (-1 = é o próprio
+         titular). Sem isso não haveria como gravar um telefone corrigido de
+         volta na ficha certa. */
       if(c.nome && !vistos[ch(c.nome)]){
         vistos[ch(c.nome)]=pessoas.length+1;
-        pessoas.push({nome:c.nome, tel:tel, email:c.email||'', origem:'cadastro'});
+        pessoas.push({nome:c.nome, tel:tel, email:c.email||'', origem:'cadastro', cod:cod, dep:-1});
       }
-      (c.dependentes||[]).forEach(function(d){
+      (c.dependentes||[]).forEach(function(d, iDep){
         if(d.nome && !vistos[ch(d.nome)]){
           vistos[ch(d.nome)]=pessoas.length+1;
-          pessoas.push({nome:d.nome, tel:d.telefone||tel, email:d.email||c.email||'', origem:'cadastro'});
+          pessoas.push({nome:d.nome, tel:d.telefone||tel, email:d.email||c.email||'', origem:'cadastro', cod:cod, dep:iDep});
         }
       });
     });
@@ -12577,6 +12662,9 @@ async function salvarRes(){
   // ── Unidade: precisa estar cadastrada (para admin/gestor); morador usa a vinculada ──
   const _nivelRes = window._userNivel||'morador';
   const _isAdminRes = resEhAdministracao(_nivelRes);
+  // Lido AGORA, com o formulário íntegro (ver mresPedidoTelCadastro).
+  var _telCadPedido = null;
+  try{ _telCadPedido = mresPedidoTelCadastro(); }catch(_e){ _telCadPedido = null; }
   let uniSel = ($('mres-lote').value||'').trim() || ($('mres-lote-search')?.value||'').trim().toUpperCase();
   if(!uniSel){ toast('⚠️ Selecione a unidade da reserva.'); return; }
   if(_isAdminRes && !getUnidades()[uniSel]){
@@ -12778,6 +12866,13 @@ async function salvarRes(){
   // por RLS quando um morador salva). Só depois mexe na tela (protegido).
   _enviarNotifsReserva(_novaReserva, _cfgN, obj, statusVal, _dtFmt, _cond);
 
+  /* Telefone de volta no cadastro, se foi pedido. Aqui, DEPOIS de a reserva
+     estar gravada: se o servidor recusasse a reserva, não faria sentido ter
+     mexido na ficha do condômino por causa dela.
+     Lido antes de fechar o modal -- fechado, os campos já não valem nada. */
+  var _telCad='';
+  try{ _telCad = mresSalvarTelNoCadastro(_telCadPedido) || ''; }catch(_e){ console.error('tel no cadastro', _e); }
+
   // Tela depois — se algo aqui falhar, a notificação JÁ foi enviada.
   try{ closeModal('m-res'); renderReservas(); verificarAlertas(); _portRefrescar(); }catch(_e){ console.error('pós-reserva (ignorado):', _e); }
 
@@ -12817,10 +12912,10 @@ async function salvarRes(){
         if(_depois) _depois();
       }
     } else {
-      toast('✓ Reserva salva com sucesso.');
+      toast('✓ Reserva salva com sucesso.' + _telCad);
     }
   } else {
-    toast('✓ Reserva salva com sucesso.');
+    toast('✓ Reserva salva com sucesso.' + _telCad);
   }
 }
 
