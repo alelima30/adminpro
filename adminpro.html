@@ -15365,15 +15365,48 @@ function toggleFinEspaco(cb, chv){
 /* ── Config de reservas: helpers + persistência (Supabase por condomínio) ── */
 const _DIAS_SEM = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']; // domingo-first (bate com getDay())
 function _chvEsp(esp){ return esp.toLowerCase().replace(/[^a-z0-9]/g,'_'); }
-function getCfgRes(){ try{ return JSON.parse(localStorage.getItem('apvc_cfg_reservas')||'{}'); }catch(_){ return {}; } }
+/* A configuração de reservas vem do módulo 'cfg_reservas'. O cache em
+   memória é a fonte preferida: ele é preenchido no login a partir do banco e
+   não depende de haver espaço no aparelho. O localStorage fica como segunda
+   opção, para quando a tela abre antes de a carga terminar. */
+function getCfgRes(){
+  try{
+    var m = (typeof DB_CACHE!=='undefined') ? DB_CACHE['cfg_reservas'] : null;
+    /* Devolve uma CÓPIA. Quem salva monta a configuração nova alterando o que
+       recebe daqui; entregando o objeto do cache, essa alteração já valeria
+       antes de o servidor aceitar -- e, se ele recusasse, não haveria mais
+       estado anterior para restaurar. */
+    if(m && typeof m==='object' && !Array.isArray(m)) return JSON.parse(JSON.stringify(m));
+  }catch(_){}
+  try{ return JSON.parse(localStorage.getItem('apvc_cfg_reservas')||'{}'); }catch(_){ return {}; }
+}
 function setCfgRes(cfg){
   // Guarda o estado anterior para poder desfazer se o servidor recusar.
   var _antes = null;
   try{ _antes = localStorage.getItem('apvc_cfg_reservas'); }catch(_){}
-  try{ localStorage.setItem('apvc_cfg_reservas', JSON.stringify(cfg)); }catch(_){}
+  // Guarda também o cache em memória: ele é a fonte que getCfgRes prefere, e
+  // desfazer só o localStorage deixaria a configuração recusada viva na tela.
+  var _antesMem = null, _tinhaMem = false;
+  try{ _tinhaMem = ('cfg_reservas' in DB_CACHE); _antesMem = DB_CACHE['cfg_reservas']; }catch(_){}
+  /* Guardar no aparelho pode falhar por falta de espaço (as fotos dos
+     espaços e dos condôminos ocupam bastante). Falhar calado aqui fazia a
+     tela continuar mostrando a configuração velha depois de salvar -- de
+     novo, "não salvou" do ponto de vista de quem olha. */
+  var _lsOk = true;
+  try{ localStorage.setItem('apvc_cfg_reservas', JSON.stringify(cfg)); }
+  catch(_){ _lsOk = false; }
+  // O que vale para a tela é isto: o cache em memória, que não tem limite de
+  // espaço. Assim a configuração nova aparece mesmo quando o aparelho está
+  // sem lugar para guardá-la.
+  try{ DB_CACHE['cfg_reservas'] = cfg; }catch(_){}
+  if(!_lsOk && typeof toast==='function'){
+    toast('⚠️ Sem espaço para guardar neste aparelho. Salvo no servidor; se recarregar a página, volta certo.');
+  }
 
+  // Lê sempre por window.SB (e não pelo SB solto) para que a checagem e o uso
+  // apontem para o mesmo objeto, inclusive quando o Supabase não carregou.
   if(window.SB){
-    return SB.from('modulo_dados').upsert({condominio_id:_condAtual, modulo:'cfg_reservas', valor:cfg},{onConflict:'condominio_id,modulo'})
+    return window.SB.from('modulo_dados').upsert({condominio_id:_condAtual, modulo:'cfg_reservas', valor:cfg},{onConflict:'condominio_id,modulo'})
       .then(function(r){
         if(r.error){
           // DESFAZ no aparelho. Configuracao que so existe neste celular e
@@ -15382,6 +15415,10 @@ function setCfgRes(cfg){
           try{
             if(_antes === null) localStorage.removeItem('apvc_cfg_reservas');
             else localStorage.setItem('apvc_cfg_reservas', _antes);
+          }catch(_){}
+          try{
+            if(_tinhaMem) DB_CACHE['cfg_reservas'] = _antesMem;
+            else delete DB_CACHE['cfg_reservas'];
           }catch(_){}
 
           console.warn('cfg_reservas', r.error.message);
@@ -16923,10 +16960,17 @@ function _horaMenos1(hhmm){
   return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
 }
 
-function salvarCfgReservas(){
+async function salvarCfgReservas(){
   const elTermos = $('cfg-reservas-espacos');
   const elFin    = $('cfg-fin-espacos');
-  const cfgRes = JSON.parse(localStorage.getItem('apvc_cfg_reservas')||'{}');
+  /* Parte da configuração EM USO, não de uma leitura crua do localStorage.
+
+     Lendo o localStorage direto, bastava ele estar vazio ou atrasado -- outro
+     computador, dados do site limpos, carregamento do banco ainda em curso --
+     para o salvamento começar de {} e APAGAR tudo o que não está nos campos
+     desta tela: a lista de espaços do condomínio e os horários de todos os
+     outros espaços junto. */
+  const cfgRes = getCfgRes();
 
   // Mensagem pós-reserva (validação)
   if($('cfg-msg-validacao')) cfgRes.msg_validacao = $('cfg-msg-validacao').value.trim();
@@ -17053,7 +17097,17 @@ function salvarCfgReservas(){
   });
   Object.keys(_diasPorChv).forEach(function(c){ cfgRes['disp_'+c+'_dias']=_diasPorChv[c].sort(); });
 
-  setCfgRes(cfgRes);
+  /* ESPERA o servidor antes de dizer que salvou.
+
+     Antes, o "✓ salvas!" aparecia na hora. Quando o servidor recusava,
+     setCfgRes DESFAZIA a gravação no aparelho e mostrava o erro depois -- e a
+     tela voltava ao estado anterior. De quem estava olhando, isso era
+     exatamente "cliquei em salvar e não salvou", com um ✓ verde no caminho. */
+  var _r = await setCfgRes(cfgRes);
+  if(_r && _r.ok === false){
+    // setCfgRes já explicou o motivo e já desfez. Não há sucesso a anunciar.
+    return;
+  }
   if(_cfgFinAvisos && _cfgFinAvisos.length){
     toast('⚠️ Salvo, mas a taxa por horário ficou incompleta — ' + _cfgFinAvisos[0]);
   } else {

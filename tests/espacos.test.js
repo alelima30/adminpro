@@ -237,6 +237,43 @@ bloco('A janela de reserva nao fecha por clique fora', () => {
     /function fecharModalRes\(\)[\s\S]{0,260}Deseja salvar a reserva antes de fechar/.test(src), true);
 });
 
+// ── Salvar a configuracao de reservas ─────────────────────────────────
+bloco('Salvar horarios permitidos nao perde nem minte', () => {
+  const src = lerFonte();
+
+  /* Relato: "quando digito os horários nas quadra de saibro, quadra de tênis
+     não está salvando... eu clico em salvar e não está salvando".
+     Eram tres falhas somadas, todas com a mesma aparencia na tela. */
+
+  // 1. Comecava de uma leitura crua do localStorage. Vazio ou atrasado, o
+  //    salvamento partia de {} e apagava a lista de espacos do condominio e
+  //    os horarios de todos os espacos fora da tela.
+  checa('parte da configuracao em uso, nao do localStorage cru',
+    /async function salvarCfgReservas\(\)[\s\S]{0,900}const cfgRes = getCfgRes\(\);/.test(src), true);
+  checa('nao sobrou a leitura crua no salvamento',
+    /function salvarCfgReservas\(\)[\s\S]{0,900}const cfgRes = JSON\.parse\(localStorage\.getItem/.test(src), false);
+
+  // 2. O "✓ salvas!" aparecia antes da resposta do servidor. Quando ele
+  //    recusava, setCfgRes desfazia tudo depois -- com um visto verde no meio.
+  checa('espera o servidor antes de anunciar',
+    /await setCfgRes\(cfgRes\);/.test(src), true);
+  checa('e nao anuncia sucesso quando o servidor recusa',
+    /_r\.ok === false[\s\S]{0,220}return;[\s\S]{0,420}Configuracoes de reservas salvas|_r\.ok === false[\s\S]{0,220}return;[\s\S]{0,420}Configurações de reservas salvas/.test(src), true);
+
+  // 3. getCfgRes entregava o proprio objeto do cache, que o salvamento altera
+  //    no lugar: a configuracao recusada ficava valendo e o desfazer nao tinha
+  //    mais estado anterior para restaurar.
+  checa('getCfgRes devolve uma copia',
+    /function getCfgRes\(\)[\s\S]{0,700}return JSON\.parse\(JSON\.stringify\(m\)\);/.test(src), true);
+  checa('o desfazer restaura tambem o cache em memoria',
+    /function setCfgRes[\s\S]{0,3000}if\(_tinhaMem\) DB_CACHE\['cfg_reservas'\] = _antesMem;/.test(src), true);
+
+  // Falta de espaco no aparelho tambem nao pode passar calada: a tela
+  // continuaria mostrando a configuracao velha depois de salvar.
+  checa('avisa quando o aparelho esta sem espaco',
+    /_lsOk = false[\s\S]{0,700}Sem espaço para guardar neste aparelho/.test(src), true);
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }
 console.log('TODOS OS TESTES PASSARAM (' + ok + ')');
