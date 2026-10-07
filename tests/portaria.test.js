@@ -14,8 +14,13 @@
 const { carregar, lerFonte } = require('./extrair');
 
 const api = carregar(
-  ['portariaFiltrar', 'portariaJanela', 'portariaAdiante', 'portariaPorEspaco', '_portSoma', 'hrIni'],
-  { PORTARIA_STATUS: ['confirmada', 'realizada', 'concluida'] },
+  ['portariaFiltrar', 'portariaJanela', 'portariaAdiante', 'portariaPorEspaco',
+   'resQuemRegistrouTexto', '_portSoma', 'hrIni'],
+  {
+    PORTARIA_STATUS: ['confirmada', 'realizada', 'concluida'],
+    // var do topo do script: carregar() só extrai funções, então entra aqui.
+    _RES_PAPEL: { admin:'Administrador', gestor:'Gestor', supervisor:'Supervisor', morador:'Morador' },
+  },
 );
 
 let ok = 0, falhas = 0;
@@ -412,6 +417,60 @@ bloco('Perder a sessao tem segunda chance', () => {
   // Uma tentativa por vez: refresh em paralelo briga pelo mesmo token.
   checa('nao tenta reconectar duas vezes ao mesmo tempo',
     /if\(_reconectando \|\| !window\.SB\) return false;/.test(src), true);
+});
+
+// ── Quem registrou a reserva ──────────────────────────────────────────
+// Admin, gestor e supervisor marcam para qualquer unidade. Sem registrar
+// quem marcou, a reserva do L10 aparece sem ninguém por trás — e quando
+// alguém perguntar "quem marcou isso?", não há resposta.
+bloco('A frase de quem registrou', () => {
+  const t = api.resQuemRegistrouTexto;
+  checa('supervisor', t({ registradoPor: 'Zé da Portaria', registradoNivel: 'supervisor' }),
+        'Registrada por Zé da Portaria (Supervisor)');
+  checa('admin', t({ registradoPor: 'Alessandro', registradoNivel: 'admin' }),
+        'Registrada por Alessandro (Administrador)');
+  checa('gestor', t({ registradoPor: 'Fulano', registradoNivel: 'gestor' }),
+        'Registrada por Fulano (Gestor)');
+  // O nome do morador já está em cima no cartão: repetir seria ruído.
+  checa('o próprio morador', t({ registradoPor: 'Ana', registradoNivel: 'morador' }),
+        'Registrada pelo próprio morador');
+  checa('nível que ninguém conhece sai sem o papel',
+        t({ registradoPor: 'Fulano', registradoNivel: 'outro' }), 'Registrada por Fulano');
+});
+
+bloco('Reserva antiga nao ganha autor inventado', () => {
+  const t = api.resQuemRegistrouTexto;
+  // As reservas de antes deste registro existir nao tem o campo. Mostrar
+  // "registrada por" vazio, ou chutar o admin atual, seria pior que calar.
+  checa('sem o campo, nao diz nada', t({ nome: 'Fulano' }), '');
+  checa('campo vazio, nao diz nada', t({ registradoPor: '' }), '');
+  checa('so espacos, nao diz nada', t({ registradoPor: '   ' }), '');
+  checa('reserva nula nao quebra', t(null), '');
+});
+
+bloco('A exibicao e configuravel, e o registro nao', () => {
+  const src = lerFonte();
+  checa('o painel pergunta a configuracao',
+    src.includes("var _mostrarAutor = (getCfgRes().port_autor !== false);"), true);
+  // Nasce ligado: quem administra marca para qualquer unidade, e saber quem
+  // marcou e o que torna isso prestavel.
+  checa('nasce ligado',
+    src.includes("$('cfg-port-autor').checked        = (cfgRes.port_autor !== false);"), true);
+  checa('e o admin pode desligar',
+    src.includes("cfgRes.port_autor          = $('cfg-port-autor').checked;"), true);
+
+  /* O REGISTRO em si nao e configuravel, so a exibicao. Desligar a opcao
+     esconde a linha; nao apaga quem marcou. Senao, bastaria desligar para
+     que as reservas feitas naquele periodo ficassem sem dono para sempre. */
+  checa('grava sempre, independente da configuracao',
+    /registradoPor:\s+\(_resExistente && _resExistente\.registradoPor !== undefined\)/.test(src), true);
+  // Gravado na criacao e preservado na edicao, como o criadoPor.
+  checa('editar nao troca o autor',
+    /\? _resExistente\.registradoPor\s*\n\s*: resQuemRegistra\(\)\.nome/.test(src), true);
+  // Dentro de checklist: jsonb livre que ja carrega outros campos assim.
+  checa('vai no checklist, sem coluna nova no banco',
+    /registradoPor:o\.registradoPor\|\|'', registradoNivel:o\.registradoNivel\|\|''/.test(src), true);
+  checa('e volta do banco', /registradoPor:c\.registradoPor\|\|''/.test(src), true);
 });
 
 console.log('\n' + '-'.repeat(50));
