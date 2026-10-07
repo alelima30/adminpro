@@ -236,8 +236,9 @@ bloco('O relogio cobre a tela da portaria', () => {
 // vai fazer festa no sábado, quem recebe e quem não recebe. A agenda do
 // espaço comum é pública; a vida de quem usa, não.
 bloco('Quem pode ver o nome de quem reservou', () => {
-  const quem = (nivel) => carregar(['resPodeVerNomes'], { window: { _userNivel: nivel } })
-    .resPodeVerNomes();
+  const quem = (nivel) => carregar(
+    ['resPodeVerNomes', 'resEhAdministracao'], { window: { _userNivel: nivel } },
+  ).resPodeVerNomes();
   checa('admin vê', quem('admin'), true);
   checa('gestor vê', quem('gestor'), true);
   checa('supervisor vê', quem('supervisor'), true);

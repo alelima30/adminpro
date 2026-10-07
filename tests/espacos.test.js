@@ -12,12 +12,13 @@
 //    dele virar lixo no salvamento: uma reserva já aprovada voltando para
 //    "pendente" porque alguém corrigiu um telefone.
 
-const { carregar } = require('./extrair');
+const { carregar, lerFonte } = require('./extrair');
 
 const api = carregar(
   ['resStatusAoSalvar', 'espFotosRenomear', 'espFotosExcluir', '_chvEsp', '_espIcone', 'semAcento',
-   'espListaParaForm', 'mresLoteEscolhaTeclado'],
-  {},
+   'espListaParaForm', 'mresLoteEscolhaTeclado', 'resEhAdministracao'],
+  // Sem nível informado, a função olha quem está logado — por isso o window.
+  { window: { _userNivel: 'morador' } },
 );
 
 let ok = 0, falhas = 0;
@@ -65,8 +66,14 @@ bloco('Morador segue a regra do espaço, como antes', () => {
         api.resStatusAoSalvar('morador', { status: 'confirmada' }, true), 'confirmada');
   checa('morador editando reserva ainda pendente continua pela regra',
         api.resStatusAoSalvar('morador', { status: 'pendente' }, true), 'pendente');
-  checa('supervisor não é admin aqui (segue a regra do espaço)',
-        api.resStatusAoSalvar('supervisor', null, true), 'pendente');
+  /* O supervisor MUDOU de lado aqui, a pedido: ele administra as reservas e
+     marca para qualquer unidade, como o admin. Antes caía na regra do morador
+     e a reserva que ele criava nascia pendente -- esperando a aprovação de
+     alguém, sendo que ele é quem aprovaria. */
+  checa('supervisor cria confirmada, como a administração',
+        api.resStatusAoSalvar('supervisor', null, true), 'confirmada');
+  checa('e editando, mantém o status atual',
+        api.resStatusAoSalvar('supervisor', { status: 'realizada' }, true), 'realizada');
 });
 
 // ── A foto do espaço acompanha o espaço ───────────────────────────────
@@ -172,6 +179,44 @@ bloco('Com duvida, nao adivinha', () => {
   checa('lista ausente nao quebra', api.mresLoteEscolhaTeclado('B01', null, -1), '');
   checa('indice fora da lista cai na regra do texto',
         api.mresLoteEscolhaTeclado('B01', L, 99), 'B01');
+});
+
+// ── Supervisor administra as reservas ─────────────────────────────────
+// Ele existe para fazer o trabalho da administração num módulo só. Em
+// Reservas isso quer dizer marcar para qualquer unidade, como o admin. Vinha
+// caindo nas regras de morador em oito lugares diferentes — o seletor de
+// unidade nem abria, a lista mostrava só as reservas dele, o formulário já
+// vinha com o nome dele e a reserva nascia pendente.
+bloco('Quem administra as reservas', () => {
+  const quem = (n) => api.resEhAdministracao(n);
+  checa('admin', quem('admin'), true);
+  checa('gestor', quem('gestor'), true);
+  checa('supervisor', quem('supervisor'), true);
+  checa('morador NÃO', quem('morador'), false);
+  checa('nível desconhecido NÃO', quem('financeiro'), false);
+  // Sem nível informado, vale o de quem está logado (morador, no teste).
+  checa('sem nível informado, olha quem está logado', quem(''), false);
+});
+
+bloco('A regra mora num lugar so', () => {
+  const src = lerFonte();
+  /* Espalhada em oito comparações, bastava esquecer uma para o supervisor
+     voltar a ser morador em algum canto -- que é exatamente o que tinha
+     acontecido. Estes são os pontos do fluxo de reserva. */
+  [
+    ['o seletor de unidade abre',        "if(!resEhAdministracao()) return;"],
+    ['a lista mostra as de todos',       "const isMorador = !resEhAdministracao(nivel);"],
+    ['o formulário deixa escolher',      "const isMorador = !resEhAdministracao(nivel);"],
+    ['o salvamento trata como admin',    "const _isAdminRes = resEhAdministracao(_nivelRes);"],
+    ['o status nasce confirmado',        "var souAdm = resEhAdministracao(nivel);"],
+    ['o intervalo mínimo não barra',     "!resEhAdministracao(_nivelR)"],
+    ['o contador de pendentes conta',    "if(!resEhAdministracao(nivel)) return 0;"],
+  ].forEach(([oque, trecho]) => checa(oque, src.includes(trecho), true));
+
+  // E o painel analítico NÃO entrou: lá o supervisor segue vendo a grade de
+  // números, decisão antiga que "fazer reserva" não é motivo para desfazer.
+  checa('o painel analítico ficou como estava',
+    src.includes("var isMorador = (_nv !== 'admin' && _nv !== 'gestor');"), true);
 });
 
 console.log('\n' + '-'.repeat(50));

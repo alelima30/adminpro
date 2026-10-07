@@ -7506,10 +7506,8 @@ function mresLoteRender(filtro){
 function mresLoteOpen(){
   const dd=$('mres-lote-dd');
   if(!dd) return;
-  // Se morador (lote bloqueado), não abre
-  const nivel=window._userNivel||'morador';
-  const isMorador = nivel!=='admin'&&nivel!=='gestor';
-  if(isMorador) return;
+  // Quem não administra tem o lote travado no seu: a lista nem abre.
+  if(!resEhAdministracao()) return;
   mresLoteRender($('mres-lote-search').value);
   dd.style.display='block';
 }
@@ -9399,7 +9397,7 @@ function hojeLocal(){
 // Conta reservas pendentes (só faz sentido para admin/gestor)
 function _pendentesCount(){
   const nivel=window._userNivel||'morador';
-  if(nivel!=='admin' && nivel!=='gestor') return 0;
+  if(!resEhAdministracao(nivel)) return 0;
   return (G('reservas')||[]).filter(r=>r.status==='pendente').length;
 }
 
@@ -10685,8 +10683,8 @@ function renderReservas(){
 
   // Filtro por nível: morador vê só as próprias reservas
   const nivel = window._userNivel||'morador';
-  // Qualquer nível que não seja admin ou gestor é tratado como morador (inclui 'financeiro', etc.)
-  const isMorador = nivel !== 'admin' && nivel !== 'gestor';
+  // Quem não administra vê apenas as próprias reservas.
+  const isMorador = !resEhAdministracao(nivel);
   const _usrRaw   = JSON.parse(localStorage.getItem('apvc_user')||'{}');
   const usrEmail  = isMorador ? (_usrRaw.email||'').toLowerCase().trim() : '';
   const usrLote   = isMorador ? (_usrRaw.lote||'').toLowerCase().trim()  : '';
@@ -11429,6 +11427,10 @@ function _resAplicarDash(){
   // Mesma regra do resto da tela: so admin e gestor veem o painel
   // analitico. Comparar com 'morador' deixava o supervisor sem numero
   // nenhum — a grade escondida e o painel BI vazio.
+  /* Aqui o supervisor segue como MORADOR de propósito, e isso não mudou com
+     a equiparação em Reservas: ele vê a grade de números, não o painel
+     analítico. É decisão antiga e deliberada (ver o comentário acima), e
+     "fazer reserva para qualquer um" não é motivo para desfazê-la. */
   var _nv = window._userNivel || 'morador';
   var isMorador = (_nv !== 'admin' && _nv !== 'gestor');
   var mostrar   = ligado && !emCal;
@@ -11443,7 +11445,7 @@ function _resAplicarDash(){
      parece defeito. Aqui ele some de vez.
      Regra propositalmente mais larga que isMorador, para o supervisor
      tambem ver — assim como ja acontece nos lembretes em si. */
-  var _lembretesPodem = (_nv==='admin' || _nv==='gestor' || _nv==='supervisor');
+  var _lembretesPodem = resEhAdministracao();
   var bLem = $('res-btn-lembretes');
   if(bLem) bLem.style.display = _lembretesPodem ? '' : 'none';
 
@@ -12423,7 +12425,7 @@ function abrirModalRes(id){
     toast('Para alterar esta reserva, cancele e faça uma nova, ou fale com a administração.');
     return;
   }
-  const isMorador = nivel !== 'admin' && nivel !== 'gestor';
+  const isMorador = !resEhAdministracao(nivel);
   $('mres-t').textContent=r?'Editar Reserva':'Nova Reserva';
   $('mres-id').value=r?.id||'';
 
@@ -12511,7 +12513,7 @@ async function salvarRes(){
   if(!$('mres-data').value){toast('⚠️ Informe a data da reserva.');return;}
   // ── Unidade: precisa estar cadastrada (para admin/gestor); morador usa a vinculada ──
   const _nivelRes = window._userNivel||'morador';
-  const _isAdminRes = _nivelRes==='admin'||_nivelRes==='gestor';
+  const _isAdminRes = resEhAdministracao(_nivelRes);
   let uniSel = ($('mres-lote').value||'').trim() || ($('mres-lote-search')?.value||'').trim().toUpperCase();
   if(!uniSel){ toast('⚠️ Selecione a unidade da reserva.'); return; }
   if(_isAdminRes && !getUnidades()[uniSel]){
@@ -12693,7 +12695,7 @@ async function salvarRes(){
     return;                                              // nao notifica ninguem
   }
 
-  const _isMoradorMsg = !(nivel2==='admin'||nivel2==='gestor');
+  const _isMoradorMsg = !resEhAdministracao(nivel2);
   const _cfgN = getCfgRes();
   const _novaReserva = !id; // só notifica quando é reserva NOVA
   const _dtFmt = obj.data ? new Date(obj.data+'T00:00').toLocaleDateString('pt-BR') : obj.data;
@@ -13609,10 +13611,24 @@ function atualizarReservas(){
 
    Administracao ve: e ela quem resolve conflito, liga para as pessoas e
    remarca -- sem o nome, nao teria como fazer nada disso. */
-function resPodeVerNomes(){
-  var n = window._userNivel || 'morador';
+/* Quem administra as reservas: admin, gestor e SUPERVISOR.
+
+   O supervisor existe para fazer o trabalho da administração num módulo só --
+   e em Reservas isso quer dizer marcar para qualquer unidade, como o admin
+   faz. Ele vinha caindo nas regras de morador em oito lugares diferentes: o
+   seletor de unidade nem abria, a lista mostrava só as reservas dele, o
+   formulário já vinha preenchido com o nome dele e a reserva nascia pendente.
+   Na prática, ele não conseguia marcar para ninguém.
+
+   A condição ficou aqui, num lugar só. Espalhada em oito comparações, bastava
+   esquecer uma para o supervisor voltar a ser morador em algum canto -- que é
+   exatamente o que tinha acontecido. */
+function resEhAdministracao(nivel){
+  var n = nivel || window._userNivel || 'morador';
   return n==='admin' || n==='gestor' || n==='supervisor';
 }
+
+function resPodeVerNomes(){ return resEhAdministracao(); }
 
 // De minuto em minuto, e só quando o painel de Reservas está à vista.
 setInterval(function(){ try{ resLembreteChecar(); }catch(_){} }, 60000);
@@ -15340,7 +15356,7 @@ function resPagamentoAoSalvar(resAnterior, taxa, finBlocoAtivo){
 
    O morador segue a regra do espaço, como sempre seguiu. */
 function resStatusAoSalvar(nivel, resAnterior, exigeAprov){
-  var souAdm = (nivel==='admin' || nivel==='gestor');
+  var souAdm = resEhAdministracao(nivel);
   if(souAdm) return (resAnterior && resAnterior.status) ? resAnterior.status : 'confirmada';
   if(resAnterior && resAnterior.status && resAnterior.status!=='pendente') return resAnterior.status;
   return exigeAprov ? 'pendente' : 'confirmada';
@@ -16565,9 +16581,9 @@ function reservaViolaRegra(espaco, data, horario, lote, idAtual){
   //    limitar o total, e sim espacar o uso.
   //    Medido do FIM da reserva anterior ao INICIO da nova (nos dois
   //    sentidos: tanto faz se a outra reserva e antes ou depois).
-  //    Admin e gestor passam, como nas demais regras.
+  //    Quem administra passa, como nas demais regras.
   var interv = parseFloat(cfg['disp_'+chv+'_interv']);
-  if(interv > 0 && lote && data && horario && _nivelR!=='admin' && _nivelR!=='gestor'){
+  if(interv > 0 && lote && data && horario && !resEhAdministracao(_nivelR)){
     var loteN = String(lote).trim().toUpperCase();
     var novo = _resInstante(data, horario);
     var minutos = interv * 60;
