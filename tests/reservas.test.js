@@ -945,6 +945,11 @@ bloco('Carga falha não apaga o banco', () => {
   const cfg = { tabela: 'condominos', pk: 'cod', hasCond: true,
                 toRow: (k, v) => ({ cod: k, nome: v.nome }) };
 
+  // O codigo le window.SB -- a checagem e o uso tem de apontar para o mesmo
+  // objeto. No Node nao ha window, entao o teste cria um que aponta para o
+  // mesmo lugar que global.SB.
+  if (typeof global.window === 'undefined') global.window = global;
+
   let reg = {};
   global.SB = sbFalso(reg);
   return api._sincronizarTabela(cfg, {}).then(() => {

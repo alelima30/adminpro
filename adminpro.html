@@ -6280,24 +6280,34 @@ function _avisarCargaFalha(k){
 }
 
 // Grava no cache + Supabase
+/* Devolve uma PROMESSA com o que realmente aconteceu: {ok:true} ou
+   {ok:false, erro:'...'}.
+
+   Quem não liga para o resultado continua chamando S(k,v) e ignorando a
+   volta, como sempre -- nada quebra. Mas quem PROMETE algo a quem está
+   olhando ("telefone atualizado no cadastro") agora tem como saber se a
+   promessa foi cumprida. Antes a recusa do servidor morria num
+   console.error e a tela anunciava sucesso de qualquer jeito. */
 const S = (k, v) => {
   // Antes de qualquer coisa: se o que está na memória não veio do banco,
   // não se grava nada em lugar nenhum.
-  if(!_cargaConfiavel(k)){ _avisarCargaFalha(k); return; }
+  if(!_cargaConfiavel(k)){ _avisarCargaFalha(k); return Promise.resolve({ok:false, erro:'os dados não foram lidos do banco nesta sessão'}); }
   DB_CACHE[k] = v;
   try{ localStorage.setItem('apvc_'+k, JSON.stringify(v)); }catch(_){}
-  if(!SB) return;
-  if(k==='reservas') return;   // reservas vao por linha (via _reservaUpsertSB/_reservaDeleteSB)
+  // window.SB, e não o SB solto: a checagem e o uso têm de apontar para o
+  // mesmo objeto (window.SB recebe o cliente assim que ele é criado).
+  if(!window.SB) return Promise.resolve({ok:true, offline:true});
+  if(k==='reservas') return Promise.resolve({ok:true});   // vao por linha (via _reservaUpsertSB/_reservaDeleteSB)
   // Modulos administrativos: morador nao tem permissao (RLS) — nem tenta gravar,
   // evitando 403 no console. Leitura continua normal.
-  if(!_podeGravarModulo(k)) return;
+  if(!_podeGravarModulo(k)) return Promise.resolve({ok:false, permissao:true, erro:'seu perfil não pode alterar este cadastro'});
   const cfg = _NORM[k];
   if(cfg){
-    if(cfg.superOnly && !_isSuper) return;   // so super-admin grava condominios
-    _sincronizarTabela(cfg, v).catch(e=>console.error('sync '+k, e.message||e));
-  } else {
-    _modBlocoGravar(k, v);
+    if(cfg.superOnly && !_isSuper) return Promise.resolve({ok:false, permissao:true, erro:'só o super-admin altera isto'});
+    return _sincronizarTabela(cfg, v).then(function(){ return {ok:true}; })
+      .catch(function(e){ console.error('sync '+k, e.message||e); return {ok:false, erro:(e&&e.message)||String(e)}; });
   }
+  return _modBlocoGravar(k, v);
 };
 
 /* ── Modulos guardados em bloco (Informacoes Gerais, Comunicados,
@@ -6363,7 +6373,7 @@ async function _sincronizarTabela(cfg, obj){
   const rows = Object.entries(obj||{}).map(function(e){ return cfg.toRow(e[0], e[1]); });
   if(!rows.length) return;
   const conflict = cfg.hasCond ? ('condominio_id,'+cfg.pk) : cfg.pk;
-  const up = await SB.from(cfg.tabela).upsert(rows, { onConflict:conflict });
+  const up = await window.SB.from(cfg.tabela).upsert(rows, { onConflict:conflict });
   if(up.error) throw up.error;
 }
 
@@ -8001,6 +8011,13 @@ function _mresAvisoPessoas(pessoas, lote){
    caso mais útil, o do cadastro antigo que nunca teve contato. */
 function resTelOfereceCadastro(pessoa, digitado){
   if(!pessoa || pessoa.origem !== 'cadastro' || !pessoa.cod) return null;
+  /* Quem não pode alterar o cadastro de condôminos não recebe a oferta.
+     O supervisor da portaria faz reserva para qualquer unidade, mas o
+     cadastro é restrito a admin/gestor (RLS no banco). Antes a caixinha
+     aparecia para ele, ele marcava, e a tela dizia "atualizado no cadastro"
+     sem nunca ter tentado gravar: promessa que o sistema não tinha como
+     cumprir. */
+  try{ if(typeof _podeGravarModulo==='function' && !_podeGravarModulo('condominos')) return null; }catch(_){}
   var novo = _soDigitos(digitado);
   if(novo.length < 8) return null;                      // não é telefone
   var atual = _soDigitos(pessoa.tel);
@@ -8059,13 +8076,24 @@ function mresPedidoTelCadastro(){
 
 /* Grava o telefone na ficha. Recebe o pacote lido antes, e é chamada DEPOIS
    de a reserva estar salva: se o servidor recusar a reserva, não faz sentido
-   ter mexido no cadastro por causa dela. */
-function mresSalvarTelNoCadastro(pedido){
+   ter mexido no cadastro por causa dela.
+
+   ESPERA o servidor antes de dizer que gravou, e desfaz se ele recusar.
+   Antes a mensagem saía na hora: a ficha ficava com o telefone novo só neste
+   aparelho, a tela anunciava "atualizado no cadastro", e no próximo acesso o
+   telefone não estava lá -- sem erro, sem aviso, sem pista. */
+async function mresSalvarTelNoCadastro(pedido){
   var r = pedido;
   if(!r || !r.cod) return '';
   var p = r;
   var co=getCondominos(), c=co[p.cod];
   if(!c) return '';
+
+  // Guarda o que havia, para poder voltar atrás.
+  var antes = (p.dep >= 0)
+    ? ((c.dependentes && c.dependentes[p.dep]) ? c.dependentes[p.dep].telefone : undefined)
+    : { telefone:c.telefone, telefones:c.telefones ? JSON.parse(JSON.stringify(c.telefones)) : undefined };
+
   if(p.dep >= 0){
     if(!c.dependentes || !c.dependentes[p.dep]) return '';
     c.dependentes[p.dep].telefone = r.novo;
@@ -8075,7 +8103,17 @@ function mresSalvarTelNoCadastro(pedido){
     else c.telefones = [{numero:r.novo, tipo:'Celular'}];
   }
   co[p.cod]=c;
-  S('condominos', co);
+
+  var res = await S('condominos', co);
+  if(res && res.ok === false){
+    // Desfaz: ficha que só existe neste aparelho é pior do que ficha sem
+    // telefone -- ninguém desconfia dela, e a correção nunca é refeita.
+    if(p.dep >= 0){ c.dependentes[p.dep].telefone = antes; }
+    else { c.telefone = antes.telefone; if(antes.telefones === undefined) delete c.telefones; else c.telefones = antes.telefones; }
+    co[p.cod]=c;
+    try{ DB_CACHE['condominos'] = co; localStorage.setItem('apvc_condominos', JSON.stringify(co)); }catch(_){}
+    return ' ⚠️ O telefone NÃO foi salvo no cadastro de '+r.nome+': '+(res.erro||'o servidor recusou')+'.';
+  }
   return ' Telefone de '+r.nome+' atualizado no cadastro.';
 }
 
@@ -12897,7 +12935,7 @@ async function salvarRes(){
      mexido na ficha do condômino por causa dela.
      Lido antes de fechar o modal -- fechado, os campos já não valem nada. */
   var _telCad='';
-  try{ _telCad = mresSalvarTelNoCadastro(_telCadPedido) || ''; }catch(_e){ console.error('tel no cadastro', _e); }
+  try{ _telCad = (await mresSalvarTelNoCadastro(_telCadPedido)) || ''; }catch(_e){ console.error('tel no cadastro', _e); }
 
   // Tela depois — se algo aqui falhar, a notificação JÁ foi enviada.
   try{ closeModal('m-res'); renderReservas(); verificarAlertas(); _portRefrescar(); }catch(_e){ console.error('pós-reserva (ignorado):', _e); }
