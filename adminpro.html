@@ -6500,19 +6500,43 @@ function _resAppToRow(o){
 }
 // Grava/remove UMA reserva (permite o morador salvar a propria, respeitando o RLS)
 async function _reservaUpsertSB(o){
-  if(!SB) return {ok:true, offline:true};
-  var r=await SB.from('reservas').upsert(_resAppToRow(o), { onConflict:'condominio_id,id' });
+  if(!window.SB) return {ok:true, offline:true};
+  var r=await window.SB.from('reservas').upsert(_resAppToRow(o), { onConflict:'condominio_id,id' });
   if(r.error){
     console.error('reserva upsert', r.error.message);
     return {ok:false, erro:r.error.message};
   }
   return {ok:true};
 }
+/* Remove UMA reserva -- e CONFERE que ela saiu mesmo.
+
+   Um delete que a regra de permissao do banco (RLS) filtra nao da erro: ele
+   simplesmente apaga zero linhas e responde "tudo certo". Era por isso que a
+   reserva sumia da tela e voltava sozinha depois: o app acreditava na
+   resposta, tirava da lista, e a releitura seguinte (a atualizacao do painel,
+   um F5) trazia de volta o que nunca tinha sido apagado.
+
+   Pedindo .select('id'), o banco devolve as linhas que REALMENTE apagou.
+   Voltando vazio, ha dois casos e eles sao opostos: ou a linha ja nao existia
+   (apagada em outro aparelho -- tirar da tela esta certo), ou o banco recusou
+   em silencio (a linha continua la). So o proprio banco sabe qual dos dois,
+   entao perguntamos. */
 async function _reservaDeleteSB(id){
-  if(!SB) return {ok:true, offline:true};
-  var r=await SB.from('reservas').delete().eq('condominio_id',_condAtual).eq('id', id);
+  if(!window.SB) return {ok:true, offline:true};
+  var r=await window.SB.from('reservas').delete().eq('condominio_id',_condAtual).eq('id', id).select('id');
   if(r.error){ console.error('reserva delete', r.error.message); return {ok:false, erro:r.error.message}; }
-  return {ok:true};
+  if(r.data && r.data.length) return {ok:true};
+
+  var ainda = await window.SB.from('reservas').select('id')
+    .eq('condominio_id',_condAtual).eq('id', id).maybeSingle();
+  if(ainda.error){
+    console.error('reserva delete/conferencia', ainda.error.message);
+    return {ok:false, erro:'não deu para confirmar a remoção: '+ainda.error.message};
+  }
+  if(ainda.data){
+    return {ok:false, erro:'o banco não permitiu remover esta reserva (seu perfil não tem essa permissão)'};
+  }
+  return {ok:true, jaNaoExistia:true};
 }
 
 const $=id=>document.getElementById(id);

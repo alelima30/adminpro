@@ -1607,6 +1607,51 @@ bloco('Conflito ao gravar módulo em bloco', () => {
   })();
 });
 
+// ── Excluir reserva: nao sumir e voltar ──────────────────────────────
+bloco('Excluir reserva confere se saiu mesmo', () => {
+  /* Relato: "estou excluindo algumas reservas e desaparecem e aparecem
+     novamente".
+
+     Um delete que a regra de permissao do banco (RLS) filtra NAO da erro: ele
+     apaga zero linhas e responde "tudo certo". O app acreditava, tirava da
+     tela, e a releitura seguinte trazia de volta o que nunca saiu. */
+  if (typeof global.window === 'undefined') global.window = global;
+
+  // apagou: quantas linhas o delete devolveu. existeDepois: se a linha
+  // continua no banco -- e o que separa RLS silencioso de "ja tinha sumido".
+  const banco = (apagou, existeDepois) => ({
+    from: () => ({
+      delete: () => { const q = { eq: () => q,
+        select: () => Promise.resolve({ data: apagou ? [{ id: 1 }] : [], error: null }) }; return q; },
+      select: () => { const q = { eq: () => q,
+        maybeSingle: () => Promise.resolve({ data: existeDepois ? { id: 1 } : null, error: null }) }; return q; },
+    }),
+  });
+  const comBanco = (sb) => { global.window.SB = sb;
+    return carregar(['_reservaDeleteSB'], { _condAtual: 'APVC', console })._reservaDeleteSB(1); };
+
+  return comBanco(banco(true, false)).then((r) => {
+    checa('apagou de verdade: ok', r.ok, true);
+
+    return comBanco(banco(false, true));
+  }).then((r) => {
+    // O caso do relato.
+    checa('zero linhas e a reserva continua la: NAO e sucesso', r.ok, false);
+    checa('e o motivo chega a quem esta olhando',
+      /nao permitiu|não permitiu/.test(r.erro || ''), true);
+
+    return comBanco(banco(false, false));
+  }).then((r) => {
+    /* Zero linhas tambem acontece quando a reserva ja tinha sido removida em
+       outro aparelho. Ai tirar da tela e o certo -- o oposto do caso acima,
+       com a mesma resposta do delete. So uma pergunta ao banco separa os
+       dois. */
+    checa('ja tinha sido removida: tirar da tela e o certo', r.ok, true);
+    checa('e fica registrado que a linha ja nao existia', !!r.jaNaoExistia, true);
+    delete global.window.SB;
+  });
+});
+
 Promise.all(_pendentes).then(() => {
   /* ══════════════════════════════════════════════════════════════════════
    PAGAMENTO AO SALVAR — a proteção contra apagar o que já foi pago
