@@ -158,7 +158,13 @@ const CensoData = (() => {
    * ------------------------------------------------------------------------ */
   function normalizarRegistro(registro) {
     const lote = String(registro.lote || '').toUpperCase();
-    const moradores = (registro.moradores || [])
+    // O campo pode chegar como lista (jsonb) ou como texto JSON — aceita ambos
+    let brutos = registro.moradores;
+    if (typeof brutos === 'string') {
+      try { brutos = JSON.parse(brutos); } catch (_) { brutos = []; }
+    }
+    if (!Array.isArray(brutos)) brutos = [];
+    const moradores = brutos
       .map((m) => {
         const anoNascimento = Number(m.anoNascimento);
         const sexo = generoPorId(m.sexo).id;

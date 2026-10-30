@@ -31,8 +31,11 @@
    * Inicialização
    * ======================================================================== */
   async function init() {
+    let erroLeitura = null;
+    let totalRecebido = 0;
     try {
       const registros = await CensoData.listar();
+      totalRecebido = registros.length;
       // Inclui lotes com moradores e terrenos marcados (ignora linhas vazias
       // sem marcação, que não representam resposta)
       state.registros = registros.filter(
@@ -40,12 +43,27 @@
       );
     } catch (e) {
       console.error('Falha ao carregar dados:', e);
+      erroLeitura = e && e.message ? e.message : String(e);
       state.registros = [];
     }
 
     if (state.registros.length === 0) {
       $('conteudo').classList.add('hidden');
       $('semDados').classList.remove('hidden');
+      // Diferencia "erro de leitura" de "banco realmente vazio"
+      const box = $('semDadosDetalhe');
+      if (box) {
+        if (erroLeitura) {
+          box.className = 'diag-erro';
+          box.textContent = `Não foi possível ler os dados: ${erroLeitura}`;
+        } else if (totalRecebido > 0) {
+          box.className = 'diag-aviso';
+          box.textContent = `O banco retornou ${totalRecebido} registro(s), mas nenhum tem morador ou marcação de terreno.`;
+        } else {
+          box.className = 'diag-aviso';
+          box.textContent = 'O banco de dados respondeu, mas está sem registros.';
+        }
+      }
       if (window.lucide) lucide.createIcons();
       return;
     }
@@ -246,7 +264,8 @@
     $('progressTxt').textContent =
       `${s.lotesRespondidos} de ${s.totalLotes} lotes (${s.percRespondidos.toFixed(1)}%)`;
     $('progressFill').style.width = `${s.percRespondidos}%`;
-    $('legRespondidos').textContent = s.lotesRespondidos;
+    $('legHabitados').textContent = s.lotesComMoradores;
+    $('legTerrenos').textContent = s.totalTerrenos;
     $('legPendentes').textContent = s.lotesPendentes;
   }
 
@@ -268,6 +287,39 @@
 
   function renderGraficos(registros) {
     const s = CensoData.estatisticas(registros);
+
+    // --- Rosca: situação dos lotes (habitados / terrenos / pendentes) ---
+    // Sempre sobre o total geral — os pendentes são de todo o condomínio.
+    destruir('situacao');
+    const geral = CensoData.estatisticas(state.registros);
+    state.charts.situacao = new Chart($('chartSituacao'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Lotes habitados', 'Terrenos', 'Pendentes'],
+        datasets: [{
+          data: [geral.lotesComMoradores, geral.totalTerrenos, geral.lotesPendentes],
+          backgroundColor: ['#2a78d6', '#1e8e5a', '#d7dced'],
+          borderColor: '#fff', borderWidth: 2, hoverOffset: 6
+        }]
+      },
+      options: {
+        ...baseOpts,
+        cutout: '58%',
+        plugins: {
+          ...baseOpts.plugins,
+          legend: { ...baseOpts.plugins.legend, position: 'right' },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const v = ctx.parsed;
+                const perc = geral.totalLotes ? ((v / geral.totalLotes) * 100).toFixed(1) : '0.0';
+                return ` ${ctx.label}: ${v} (${perc}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
 
     // --- Pizza: distribuição por faixa etária ---
     destruir('pizza');
