@@ -945,6 +945,11 @@ bloco('Carga falha não apaga o banco', () => {
   const cfg = { tabela: 'condominos', pk: 'cod', hasCond: true,
                 toRow: (k, v) => ({ cod: k, nome: v.nome }) };
 
+  // O codigo le window.SB -- a checagem e o uso tem de apontar para o mesmo
+  // objeto. No Node nao ha window, entao o teste cria um que aponta para o
+  // mesmo lugar que global.SB.
+  if (typeof global.window === 'undefined') global.window = global;
+
   let reg = {};
   global.SB = sbFalso(reg);
   return api._sincronizarTabela(cfg, {}).then(() => {
@@ -1049,7 +1054,7 @@ bloco('Lembrete "daqui a X tem a reserva do Fulano"', () => {
 
   const api = carregar(
     ['_resComecaEm', '_reslQuando', '_reslChaveLS', '_reslStore', '_reslStoreSalvar',
-     '_reslMarcar', '_reslCalado', '_reslPendentes',
+     '_reslMarcar', '_reslCalado', '_reslPendentes', '_reslJaPassou',
      '_reslFrase', '_reslHojeISO', 'hrIni', 'hrFim', '_minHora'],
     {
       window: JANELA,
@@ -1170,7 +1175,7 @@ bloco('Aviso de pagamento pendente', () => {
   let GUARDADO = {};
 
   const api = carregar(
-    ['_resComecaEm', '_reslChaveLS', '_reslStore', '_reslStoreSalvar', '_reslMarcar', '_reslCalado', '_reslPagamentos',
+    ['_resComecaEm', '_reslChaveLS', '_reslStore', '_reslStoreSalvar', '_reslMarcar', '_reslCalado', '_reslPagamentos', '_reslJaPassou', '_reslHojeISO',
      'hrIni', 'hrFim', '_minHora'],
     {
       window: JANELA,
@@ -1180,7 +1185,6 @@ bloco('Aviso de pagamento pendente', () => {
         setItem: (k, v) => { GUARDADO[k] = v; },
       },
       _condAtual: 'APVC',
-      _RESL_ATRASO_MAX: 60,
       _RESL_AVISO_H: 48,
       _RESL_REPETIR_MIN: 15,
       _RESL_HIST_DIAS: 7,
@@ -1199,11 +1203,24 @@ bloco('Aviso de pagamento pendente', () => {
       horario: p(ini.getHours()) + ':' + p(ini.getMinutes()) + '–23:59',
     }, extra || {});
   }
+  /* Reserva de HOJE que ja comecou. E o unico atraso que ainda vira aviso:
+     a cobranca nao olha mais para dias anteriores, porque repetir todo dia
+     por semanas o lembrete de uma taxa esquecida so fazia a janelinha virar
+     paisagem. Comeca 00:00 de hoje, entao ja passou a qualquer hora. */
+  function hojeCedo(id, nome, extra) {
+    const h = new Date(); const p = (n) => String(n).padStart(2, '0');
+    return Object.assign({
+      id, nome, espaco: 'Salão', lote: 'D17', status: 'confirmada',
+      pgto: 'pendente', taxa: 1500,
+      data: h.getFullYear() + '-' + p(h.getMonth() + 1) + '-' + p(h.getDate()),
+      horario: '00:00–23:59',
+    }, extra || {});
+  }
   const fases = () => api._reslPagamentos().map((x) => x.fase + ':' + x.r.nome);
 
   // ── A janela de cobrança ──
-  RESERVAS = [em(1, 'Lucas', -24)];
-  checa('usou ontem e não pagou: atrasado', fases(), ['atrasado:Lucas']);
+  RESERVAS = [hojeCedo(1, 'Lucas')];
+  checa('comecou hoje cedo e nao pagou: atrasado', fases(), ['atrasado:Lucas']);
 
   RESERVAS = [em(2, 'Ana', 24)];
   checa('usa amanhã e não pagou: a receber', fases(), ['areceber:Ana']);
@@ -1211,8 +1228,11 @@ bloco('Aviso de pagamento pendente', () => {
   RESERVAS = [em(3, 'Bruno', 240)];
   checa('daqui a 10 dias ainda não incomoda', fases(), []);
 
-  RESERVAS = [em(4, 'Carla', -24 * 90)];
-  checa('atraso de 90 dias sai da lista', fases(), []);
+  // Dias anteriores saem da lista -- inclusive o de ontem, nao so o antigo.
+  RESERVAS = [em(4, 'Carla', -24)];
+  checa('o que foi ontem nao cobra mais', fases(), []);
+  RESERVAS = [em(41, 'Nando', -24 * 90)];
+  checa('nem o atraso de 90 dias', fases(), []);
 
   // ── O que não é pendência ──
   RESERVAS = [em(5, 'Diego', -24, { pgto: 'pago' })];
@@ -1228,13 +1248,15 @@ bloco('Aviso de pagamento pendente', () => {
   RESERVAS = [em(10, 'Ines', -24, { data: '' })];
   checa('sem data não quebra', fases(), []);
 
-  // Reserva realizada e não paga CONTINUA sendo cobrada: o serviço foi
-  // prestado, a dívida existe.
-  RESERVAS = [em(11, 'Joao', -24, { status: 'realizada' })];
+  // Reserva realizada e não paga CONTINUA sendo cobrada no mesmo dia: o
+  // serviço foi prestado, a dívida existe e ainda da para cobrar antes de a
+  // pessoa ir embora. A partir de amanha, a divida vive na lista de reservas
+  // (filtro de pagamento), que e consulta -- nao aviso que interrompe.
+  RESERVAS = [hojeCedo(11, 'Joao', { status: 'realizada' })];
   checa('realizada e não paga continua na lista', fases(), ['atrasado:Joao']);
 
   // ── Quem vê ──
-  RESERVAS = [em(12, 'Kelly', -24)];
+  RESERVAS = [hojeCedo(12, 'Kelly')];
   JANELA._userNivel = 'morador';
   checa('morador não vê pendência de pagamento', fases(), []);
   JANELA._userNivel = 'gestor';
@@ -1252,7 +1274,16 @@ bloco('Aviso de pagamento pendente', () => {
 
   // ── Ordem: atrasados na frente, o mais antigo primeiro ──
   GUARDADO = {};
-  RESERVAS = [em(20, 'Novo', 12), em(21, 'Antigo', -240), em(22, 'Recente', -12)];
+  /* Agora os atrasados cabem todos no mesmo dia, entao a ordem se disputa
+     dentro de hoje: quem comecou mais cedo vai na frente, e os dois ficam
+     antes do que ainda nao comecou.
+
+     Rodando antes das 01:00, "Recente" ainda nao comecou e conta como futuro
+     -- mas cai na mesma posicao, porque entre os futuros tambem vale o mais
+     proximo primeiro. A expectativa serve para as duas horas do dia. */
+  RESERVAS = [em(20, 'Novo', 12),
+              hojeCedo(21, 'Antigo', { horario: '00:00-23:59' }),
+              hojeCedo(22, 'Recente', { horario: '01:00-23:59' })];
   checa('atrasados antes dos futuros, mais antigo na frente',
     api._reslPagamentos().map((x) => x.r.nome), ['Antigo', 'Recente', 'Novo']);
 
@@ -1576,6 +1607,51 @@ bloco('Conflito ao gravar módulo em bloco', () => {
   })();
 });
 
+// ── Excluir reserva: nao sumir e voltar ──────────────────────────────
+bloco('Excluir reserva confere se saiu mesmo', () => {
+  /* Relato: "estou excluindo algumas reservas e desaparecem e aparecem
+     novamente".
+
+     Um delete que a regra de permissao do banco (RLS) filtra NAO da erro: ele
+     apaga zero linhas e responde "tudo certo". O app acreditava, tirava da
+     tela, e a releitura seguinte trazia de volta o que nunca saiu. */
+  if (typeof global.window === 'undefined') global.window = global;
+
+  // apagou: quantas linhas o delete devolveu. existeDepois: se a linha
+  // continua no banco -- e o que separa RLS silencioso de "ja tinha sumido".
+  const banco = (apagou, existeDepois) => ({
+    from: () => ({
+      delete: () => { const q = { eq: () => q,
+        select: () => Promise.resolve({ data: apagou ? [{ id: 1 }] : [], error: null }) }; return q; },
+      select: () => { const q = { eq: () => q,
+        maybeSingle: () => Promise.resolve({ data: existeDepois ? { id: 1 } : null, error: null }) }; return q; },
+    }),
+  });
+  const comBanco = (sb) => { global.window.SB = sb;
+    return carregar(['_reservaDeleteSB'], { _condAtual: 'APVC', console })._reservaDeleteSB(1); };
+
+  return comBanco(banco(true, false)).then((r) => {
+    checa('apagou de verdade: ok', r.ok, true);
+
+    return comBanco(banco(false, true));
+  }).then((r) => {
+    // O caso do relato.
+    checa('zero linhas e a reserva continua la: NAO e sucesso', r.ok, false);
+    checa('e o motivo chega a quem esta olhando',
+      /nao permitiu|não permitiu/.test(r.erro || ''), true);
+
+    return comBanco(banco(false, false));
+  }).then((r) => {
+    /* Zero linhas tambem acontece quando a reserva ja tinha sido removida em
+       outro aparelho. Ai tirar da tela e o certo -- o oposto do caso acima,
+       com a mesma resposta do delete. So uma pergunta ao banco separa os
+       dois. */
+    checa('ja tinha sido removida: tirar da tela e o certo', r.ok, true);
+    checa('e fica registrado que a linha ja nao existia', !!r.jaNaoExistia, true);
+    delete global.window.SB;
+  });
+});
+
 Promise.all(_pendentes).then(() => {
   /* ══════════════════════════════════════════════════════════════════════
    PAGAMENTO AO SALVAR — a proteção contra apagar o que já foi pago
@@ -1634,6 +1710,57 @@ bloco('Reserva que deixou de ter taxa', () => {
         resPagamentoAoSalvar({ pgto: 'pendente' }, '', true).pgto, 'isento');
   checa('taxa em texto conta certo',
         resPagamentoAoSalvar({ pgto: 'pendente' }, '150', true).pgto, 'pendente');
+});
+
+// ── Lembrete nao olha para tras ───────────────────────────────────────
+bloco('Lembrete so de hoje em diante', () => {
+  /* Relato: "uma reserva que ja passou nao adianta ficar aparecendo
+     lembretes". Era a cobranca: ela olhava 60 dias para tras, entao uma taxa
+     esquecida repetia o aviso todo dia por dois meses. */
+  let RESERVAS = [];
+  const JANELA = { _userNivel: 'admin' };
+  const api = carregar(
+    ['_resComecaEm', '_reslQuando', '_reslChaveLS', '_reslStore', '_reslCalado',
+     '_reslPagamentos', '_reslPendentes', '_reslJaPassou', '_reslHojeISO',
+     'hrIni', 'hrFim', '_minHora'],
+    { window: JANELA, G: () => RESERVAS, _condAtual: 'APVC',
+      localStorage: { getItem: () => null, setItem: () => {} },
+      _RESL_JANELA: 60, _RESL_REPETIR_MIN: 15, _RESL_AVISO_H: 48 },
+  );
+
+  const dia = (n) => { const d = new Date(Date.now() + n * 86400000);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+         + '-' + String(d.getDate()).padStart(2, '0'); };
+  // Reserva com taxa em aberto: o caso que repetia.
+  const comTaxa = (id, nome, quando) => ({ id, nome, espaco: 'Salao', lote: 'B01',
+    status: 'confirmada', data: quando, horario: '08:00–10:00',
+    taxa: '150', pgto: 'pendente' });
+
+  checa('o corte e o dia, nao a hora', api._reslJaPassou({ data: dia(-1) }), true);
+  checa('hoje ainda vale o dia inteiro', api._reslJaPassou({ data: dia(0) }), false);
+  checa('amanha nao e passado', api._reslJaPassou({ data: dia(1) }), false);
+
+  const cobra = () => api._reslPagamentos(true).map((x) => x.fase + ':' + x.r.nome);
+
+  RESERVAS = [comTaxa(1, 'Ontem', dia(-1))];
+  checa('taxa em aberto de ontem nao cobra mais', cobra(), []);
+
+  RESERVAS = [comTaxa(2, 'Semana', dia(-7)), comTaxa(3, 'Mes', dia(-30))];
+  checa('nem a da semana passada, nem a do mes passado', cobra(), []);
+
+  // O que importa continua passando: hoje de manha, nao pago, ainda da para
+  // cobrar antes de entregar a chave.
+  RESERVAS = [comTaxa(4, 'Hoje', dia(0))];
+  checa('a de hoje continua cobrando', cobra(), ['atrasado:Hoje']);
+
+  RESERVAS = [comTaxa(5, 'Amanha', dia(1))];
+  checa('e a de amanha tambem (dentro das 48h)', cobra(), ['areceber:Amanha']);
+
+  // E o aviso de "vai comecar" nunca olhou para tras; segue assim.
+  RESERVAS = [{ id: 6, nome: 'Velha', espaco: 'Quadra', status: 'confirmada',
+                data: dia(-2), horario: '08:00–10:00' }];
+  checa('reserva antiga nao entra nos lembretes de inicio',
+        api._reslPendentes(true).length, 0);
 });
 
 console.log('\n' + '-'.repeat(50));

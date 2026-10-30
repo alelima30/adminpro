@@ -273,6 +273,47 @@ bloco('A intencao e lida antes, nao depois', () => {
     src.indexOf('mresSalvarTelNoCadastro(_telCadPedido)') > src.indexOf('await _reservaUpsertSB(obj)'), true);
 });
 
+// ── Nao prometer o que nao se pode cumprir ───────────────────────────
+bloco('Telefone no cadastro: so para quem pode gravar', () => {
+  const pessoa = { nome: 'Mabel', origem: 'cadastro', cod: '0001', dep: -1, tel: '' };
+  const comNivel = (pode) => carregar(['resTelOfereceCadastro', '_soDigitos'],
+    { _podeGravarModulo: () => pode }).resTelOfereceCadastro(pessoa, '11988887777');
+
+  /* O supervisor da portaria faz reserva para qualquer unidade, mas o
+     cadastro de condominos e restrito a admin/gestor (RLS no banco). A
+     caixinha aparecia para ele, ele marcava, e a tela dizia "atualizado no
+     cadastro" sem nunca ter TENTADO gravar. */
+  checa('quem nao pode alterar o cadastro nao recebe a oferta', comNivel(false), null);
+  checa('quem pode, recebe', !!comNivel(true), true);
+});
+
+bloco('Telefone no cadastro: so anuncia depois do servidor', () => {
+  const src = lerFonte();
+
+  /* Relato: "coloquei o numero de telefone e nao salvou... apareceu para
+     salvar, mas quando acesso novamente nao vem com o numero". A gravacao
+     ia para o cache e para o localStorage, a mensagem saia na hora, e a
+     recusa do servidor morria num console.error. */
+  checa('a gravacao espera o resultado',
+    /async function mresSalvarTelNoCadastro[\s\S]{0,1400}var res = await S\('condominos', co\);/.test(src), true);
+  checa('e quem chama tambem espera',
+    /await mresSalvarTelNoCadastro\(_telCadPedido\)/.test(src), true);
+  checa('recusa vira aviso, nao sucesso',
+    /res\.ok === false[\s\S]{0,700}O telefone NÃO foi salvo no cadastro/.test(src), true);
+  // Ficha que so existe neste aparelho e pior do que ficha sem telefone:
+  // ninguem desconfia dela, e a correcao nunca e refeita.
+  checa('e a ficha volta ao que era',
+    /res\.ok === false[\s\S]{0,400}delete c\.telefones/.test(src), true);
+
+  // S passou a devolver o que aconteceu, em vez de engolir a recusa.
+  checa('S devolve o resultado da gravacao',
+    /const S = \(k, v\) => \{[\s\S]{0,1800}return _sincronizarTabela\(cfg, v\)\.then/.test(src), true);
+  checa('e a falta de permissao tambem volta como recusa',
+    /_podeGravarModulo\(k\)\) return Promise\.resolve\(\{ok:false, permissao:true/.test(src), true);
+  checa('nao sobrou o engolidor silencioso',
+    /_sincronizarTabela\(cfg, v\)\.catch\(e=>console\.error/.test(src), false);
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }
 console.log('TODOS OS TESTES PASSARAM (' + ok + ')');

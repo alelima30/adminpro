@@ -45,7 +45,7 @@ const stubs = {
 const api = carregar(
   ['_reslChaveLS', '_reslStore', '_reslStoreSalvar', '_reslCalado', '_reslMarcar',
    '_reslRegistrar', '_reslHistLinha', '_reslHistorico', '_reslFraseSimples',
-   '_reslDetalhe', '_reslHojeISO'],
+   '_reslDetalhe', '_reslHojeISO', '_reslJaPassou'],
   stubs,
 );
 
@@ -148,6 +148,29 @@ bloco('Aviso dispensado cala por 15 minutos', () => {
         api._reslCalado(vistos, '77|pgto'), false);
 });
 
+// ── O historico nao reconta o que ja passou ───────────────────────────
+bloco('Historico so de hoje em diante', () => {
+  /* O botao "Lembretes" reconta avisos recentes para quem fechou a janelinha
+     sem ler. Isso fazia a reserva de ontem voltar por aqui mesmo depois de o
+     aviso ter saido sozinho -- e era justamente o que nao adiantava mais ver. */
+  const dia = (n) => { const d = new Date(Date.now() + n * 86400000);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+         + '-' + String(d.getDate()).padStart(2, '0'); };
+  const com = (data) => Object.assign({}, FABRICIO, { data });
+
+  zera([com(dia(-1))], { '99|pgto': Date.now() - 3600000 });
+  checa('cobranca de ontem nao volta no historico',
+        api._reslHistorico().map((x) => x.chave), []);
+
+  zera([com(dia(0))], { '99|pgto': Date.now() - 3600000 });
+  checa('a de hoje continua sendo recontada',
+        api._reslHistorico().map((x) => x.chave), ['99|pgto']);
+
+  zera([com(dia(-1))], { '99|hoje': Date.now() - 3600000 });
+  checa('e o aviso de inicio de ontem tambem nao volta',
+        api._reslHistorico().map((x) => x.chave), []);
+});
+
 // ── Isolamento entre condomínios ──────────────────────────────────────
 // O histórico guarda id de reserva, e id só significa algo dentro do
 // condomínio onde nasceu. Antes as chaves eram únicas do navegador:
@@ -160,7 +183,8 @@ bloco('Cada condomínio tem o seu registro', () => {
   // sem subir a página inteira.
   const paraCond = (cond) => carregar(
     ['_reslChaveLS', '_reslStore', '_reslStoreSalvar', '_reslRegistrar',
-     '_reslHistLinha', '_reslHistorico', '_reslFraseSimples', '_reslDetalhe'],
+     '_reslHistLinha', '_reslHistorico', '_reslFraseSimples', '_reslDetalhe',
+     '_reslJaPassou', '_reslHojeISO'],
     { ...stubs, _condAtual: cond },
   );
   const apvc = paraCond('APVC');

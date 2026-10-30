@@ -5109,7 +5109,10 @@ html.ambiente-ensaio body{padding-top:28px}
             <input type="checkbox" id="cfg-notif-morador" style="width:18px;height:18px;margin-top:1px;accent-color:var(--gold)">
             <span>Avisar o morador quando a reserva for <b>aprovada</b> ou <b>recusada</b>.</span>
           </label>
-          <div style="font-size:12.5px;color:var(--text-2);margin:8px 0 6px">Lembrete antes da reserva:</div>
+          <!-- Diz PARA QUEM: logo abaixo ha outro par de caixinhas, as da
+               equipe, e as duas secoes eram faceis de confundir. Marcada uma
+               achando que era a outra, nao chegava lembrete nenhum. -->
+          <div style="font-size:12.5px;color:var(--text-2);margin:8px 0 6px">Lembrete para <b>o morador</b> antes da reserva:</div>
           <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:6px">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2)"><input type="checkbox" id="cfg-lembrete-24h" style="width:17px;height:17px;accent-color:var(--gold)"> 24 horas antes</label>
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2)"><input type="checkbox" id="cfg-lembrete-1h" style="width:17px;height:17px;accent-color:var(--gold)"> 1 hora antes</label>
@@ -6280,24 +6283,34 @@ function _avisarCargaFalha(k){
 }
 
 // Grava no cache + Supabase
+/* Devolve uma PROMESSA com o que realmente aconteceu: {ok:true} ou
+   {ok:false, erro:'...'}.
+
+   Quem não liga para o resultado continua chamando S(k,v) e ignorando a
+   volta, como sempre -- nada quebra. Mas quem PROMETE algo a quem está
+   olhando ("telefone atualizado no cadastro") agora tem como saber se a
+   promessa foi cumprida. Antes a recusa do servidor morria num
+   console.error e a tela anunciava sucesso de qualquer jeito. */
 const S = (k, v) => {
   // Antes de qualquer coisa: se o que está na memória não veio do banco,
   // não se grava nada em lugar nenhum.
-  if(!_cargaConfiavel(k)){ _avisarCargaFalha(k); return; }
+  if(!_cargaConfiavel(k)){ _avisarCargaFalha(k); return Promise.resolve({ok:false, erro:'os dados não foram lidos do banco nesta sessão'}); }
   DB_CACHE[k] = v;
   try{ localStorage.setItem('apvc_'+k, JSON.stringify(v)); }catch(_){}
-  if(!SB) return;
-  if(k==='reservas') return;   // reservas vao por linha (via _reservaUpsertSB/_reservaDeleteSB)
+  // window.SB, e não o SB solto: a checagem e o uso têm de apontar para o
+  // mesmo objeto (window.SB recebe o cliente assim que ele é criado).
+  if(!window.SB) return Promise.resolve({ok:true, offline:true});
+  if(k==='reservas') return Promise.resolve({ok:true});   // vao por linha (via _reservaUpsertSB/_reservaDeleteSB)
   // Modulos administrativos: morador nao tem permissao (RLS) — nem tenta gravar,
   // evitando 403 no console. Leitura continua normal.
-  if(!_podeGravarModulo(k)) return;
+  if(!_podeGravarModulo(k)) return Promise.resolve({ok:false, permissao:true, erro:'seu perfil não pode alterar este cadastro'});
   const cfg = _NORM[k];
   if(cfg){
-    if(cfg.superOnly && !_isSuper) return;   // so super-admin grava condominios
-    _sincronizarTabela(cfg, v).catch(e=>console.error('sync '+k, e.message||e));
-  } else {
-    _modBlocoGravar(k, v);
+    if(cfg.superOnly && !_isSuper) return Promise.resolve({ok:false, permissao:true, erro:'só o super-admin altera isto'});
+    return _sincronizarTabela(cfg, v).then(function(){ return {ok:true}; })
+      .catch(function(e){ console.error('sync '+k, e.message||e); return {ok:false, erro:(e&&e.message)||String(e)}; });
   }
+  return _modBlocoGravar(k, v);
 };
 
 /* ── Modulos guardados em bloco (Informacoes Gerais, Comunicados,
@@ -6363,7 +6376,7 @@ async function _sincronizarTabela(cfg, obj){
   const rows = Object.entries(obj||{}).map(function(e){ return cfg.toRow(e[0], e[1]); });
   if(!rows.length) return;
   const conflict = cfg.hasCond ? ('condominio_id,'+cfg.pk) : cfg.pk;
-  const up = await SB.from(cfg.tabela).upsert(rows, { onConflict:conflict });
+  const up = await window.SB.from(cfg.tabela).upsert(rows, { onConflict:conflict });
   if(up.error) throw up.error;
 }
 
@@ -6490,19 +6503,43 @@ function _resAppToRow(o){
 }
 // Grava/remove UMA reserva (permite o morador salvar a propria, respeitando o RLS)
 async function _reservaUpsertSB(o){
-  if(!SB) return {ok:true, offline:true};
-  var r=await SB.from('reservas').upsert(_resAppToRow(o), { onConflict:'condominio_id,id' });
+  if(!window.SB) return {ok:true, offline:true};
+  var r=await window.SB.from('reservas').upsert(_resAppToRow(o), { onConflict:'condominio_id,id' });
   if(r.error){
     console.error('reserva upsert', r.error.message);
     return {ok:false, erro:r.error.message};
   }
   return {ok:true};
 }
+/* Remove UMA reserva -- e CONFERE que ela saiu mesmo.
+
+   Um delete que a regra de permissao do banco (RLS) filtra nao da erro: ele
+   simplesmente apaga zero linhas e responde "tudo certo". Era por isso que a
+   reserva sumia da tela e voltava sozinha depois: o app acreditava na
+   resposta, tirava da lista, e a releitura seguinte (a atualizacao do painel,
+   um F5) trazia de volta o que nunca tinha sido apagado.
+
+   Pedindo .select('id'), o banco devolve as linhas que REALMENTE apagou.
+   Voltando vazio, ha dois casos e eles sao opostos: ou a linha ja nao existia
+   (apagada em outro aparelho -- tirar da tela esta certo), ou o banco recusou
+   em silencio (a linha continua la). So o proprio banco sabe qual dos dois,
+   entao perguntamos. */
 async function _reservaDeleteSB(id){
-  if(!SB) return {ok:true, offline:true};
-  var r=await SB.from('reservas').delete().eq('condominio_id',_condAtual).eq('id', id);
+  if(!window.SB) return {ok:true, offline:true};
+  var r=await window.SB.from('reservas').delete().eq('condominio_id',_condAtual).eq('id', id).select('id');
   if(r.error){ console.error('reserva delete', r.error.message); return {ok:false, erro:r.error.message}; }
-  return {ok:true};
+  if(r.data && r.data.length) return {ok:true};
+
+  var ainda = await window.SB.from('reservas').select('id')
+    .eq('condominio_id',_condAtual).eq('id', id).maybeSingle();
+  if(ainda.error){
+    console.error('reserva delete/conferencia', ainda.error.message);
+    return {ok:false, erro:'não deu para confirmar a remoção: '+ainda.error.message};
+  }
+  if(ainda.data){
+    return {ok:false, erro:'o banco não permitiu remover esta reserva (seu perfil não tem essa permissão)'};
+  }
+  return {ok:true, jaNaoExistia:true};
 }
 
 const $=id=>document.getElementById(id);
@@ -8001,6 +8038,13 @@ function _mresAvisoPessoas(pessoas, lote){
    caso mais útil, o do cadastro antigo que nunca teve contato. */
 function resTelOfereceCadastro(pessoa, digitado){
   if(!pessoa || pessoa.origem !== 'cadastro' || !pessoa.cod) return null;
+  /* Quem não pode alterar o cadastro de condôminos não recebe a oferta.
+     O supervisor da portaria faz reserva para qualquer unidade, mas o
+     cadastro é restrito a admin/gestor (RLS no banco). Antes a caixinha
+     aparecia para ele, ele marcava, e a tela dizia "atualizado no cadastro"
+     sem nunca ter tentado gravar: promessa que o sistema não tinha como
+     cumprir. */
+  try{ if(typeof _podeGravarModulo==='function' && !_podeGravarModulo('condominos')) return null; }catch(_){}
   var novo = _soDigitos(digitado);
   if(novo.length < 8) return null;                      // não é telefone
   var atual = _soDigitos(pessoa.tel);
@@ -8059,13 +8103,24 @@ function mresPedidoTelCadastro(){
 
 /* Grava o telefone na ficha. Recebe o pacote lido antes, e é chamada DEPOIS
    de a reserva estar salva: se o servidor recusar a reserva, não faz sentido
-   ter mexido no cadastro por causa dela. */
-function mresSalvarTelNoCadastro(pedido){
+   ter mexido no cadastro por causa dela.
+
+   ESPERA o servidor antes de dizer que gravou, e desfaz se ele recusar.
+   Antes a mensagem saía na hora: a ficha ficava com o telefone novo só neste
+   aparelho, a tela anunciava "atualizado no cadastro", e no próximo acesso o
+   telefone não estava lá -- sem erro, sem aviso, sem pista. */
+async function mresSalvarTelNoCadastro(pedido){
   var r = pedido;
   if(!r || !r.cod) return '';
   var p = r;
   var co=getCondominos(), c=co[p.cod];
   if(!c) return '';
+
+  // Guarda o que havia, para poder voltar atrás.
+  var antes = (p.dep >= 0)
+    ? ((c.dependentes && c.dependentes[p.dep]) ? c.dependentes[p.dep].telefone : undefined)
+    : { telefone:c.telefone, telefones:c.telefones ? JSON.parse(JSON.stringify(c.telefones)) : undefined };
+
   if(p.dep >= 0){
     if(!c.dependentes || !c.dependentes[p.dep]) return '';
     c.dependentes[p.dep].telefone = r.novo;
@@ -8075,7 +8130,17 @@ function mresSalvarTelNoCadastro(pedido){
     else c.telefones = [{numero:r.novo, tipo:'Celular'}];
   }
   co[p.cod]=c;
-  S('condominos', co);
+
+  var res = await S('condominos', co);
+  if(res && res.ok === false){
+    // Desfaz: ficha que só existe neste aparelho é pior do que ficha sem
+    // telefone -- ninguém desconfia dela, e a correção nunca é refeita.
+    if(p.dep >= 0){ c.dependentes[p.dep].telefone = antes; }
+    else { c.telefone = antes.telefone; if(antes.telefones === undefined) delete c.telefones; else c.telefones = antes.telefones; }
+    co[p.cod]=c;
+    try{ DB_CACHE['condominos'] = co; localStorage.setItem('apvc_condominos', JSON.stringify(co)); }catch(_){}
+    return ' ⚠️ O telefone NÃO foi salvo no cadastro de '+r.nome+': '+(res.erro||'o servidor recusou')+'.';
+  }
   return ' Telefone de '+r.nome+' atualizado no cadastro.';
 }
 
@@ -12897,7 +12962,7 @@ async function salvarRes(){
      mexido na ficha do condômino por causa dela.
      Lido antes de fechar o modal -- fechado, os campos já não valem nada. */
   var _telCad='';
-  try{ _telCad = mresSalvarTelNoCadastro(_telCadPedido) || ''; }catch(_e){ console.error('tel no cadastro', _e); }
+  try{ _telCad = (await mresSalvarTelNoCadastro(_telCadPedido)) || ''; }catch(_e){ console.error('tel no cadastro', _e); }
 
   // Tela depois — se algo aqui falhar, a notificação JÁ foi enviada.
   try{ closeModal('m-res'); renderReservas(); verificarAlertas(); _portRefrescar(); }catch(_e){ console.error('pós-reserva (ignorado):', _e); }
@@ -13476,6 +13541,20 @@ function _reslRegistrar(chaves){
   if(mudou) _reslStoreSalvar(s);
 }
 
+/* Lembrete é sobre o que ainda dá para fazer alguma coisa a respeito.
+
+   Reserva de ontem não tem o que lembrar: ninguém vai entregar a chave, nem
+   conferir o espaço, nem avisar o morador. O aviso vira paisagem -- e aviso
+   que vira paisagem deixa de ser lido, levando junto o que importava.
+
+   O corte é o DIA, não a hora: uma reserva das 9h continua valendo às 15h
+   do mesmo dia (a cobrança ainda cabe, o espaço ainda vai ser conferido).
+   Vira passado só quando o dia vira. */
+function _reslJaPassou(r){
+  if(!r || !r.data) return false;
+  return String(r.data) < _reslHojeISO();
+}
+
 function _reslPendentes(ignorarVistos){
   var nivel = window._userNivel||'morador';
   if(nivel!=='admin' && nivel!=='gestor' && nivel!=='supervisor') return [];
@@ -13484,6 +13563,7 @@ function _reslPendentes(ignorarVistos){
   var out = [];
   (G('reservas')||[]).forEach(function(r){
     if(!r.data || r.status==='cancelada' || r.status==='realizada') return;
+    if(_reslJaPassou(r)) return;
     var q = _reslQuando(r); if(!q) return;
     var minsPara = (q.ini.getTime() - agora)/60000;
     var fase;
@@ -13506,14 +13586,19 @@ function _reslPendentes(ignorarVistos){
 
 /* Reservas com taxa e pagamento não confirmado.
 
-   Só entram as que pedem ação: as que já começaram e não foram pagas
-   (dinheiro que devia ter entrado) e as que começam nas próximas 48h
-   (dá para cobrar antes de entregar a chave). Uma reserva com taxa para
-   daqui a dois meses não é problema de hoje, e listar tudo faria a lista
-   virar paisagem — que é como um aviso deixa de ser lido.
+   Só entram as que pedem ação: as de HOJE que já começaram e não foram pagas
+   (ainda dá para cobrar antes de entregar a chave) e as que começam nas
+   próximas 48h. Uma reserva com taxa para daqui a dois meses não é problema
+   de hoje, e listar tudo faria a lista virar paisagem — que é como um aviso
+   deixa de ser lido.
+
+   Reserva de dias anteriores NÃO entra, mesmo em aberto: era por aqui que o
+   passado voltava: a cobrança olhava 60 dias para trás, então uma taxa
+   esquecida ficava repetindo o lembrete todo dia por dois meses. Cobrança
+   atrasada continua existindo e continua visível na lista de reservas, pelo
+   filtro de pagamento — mas lá é consulta, não aviso que interrompe.
 
    "Isento" não é pendência: é uma decisão que já foi tomada. */
-var _RESL_ATRASO_MAX = 60;   // dias para trás que ainda cobramos
 var _RESL_AVISO_H    = 48;   // horas para frente
 
 function _reslPagamentos(ignorarVistos){
@@ -13524,6 +13609,7 @@ function _reslPagamentos(ignorarVistos){
   var out = [];
   (G('reservas')||[]).forEach(function(r){
     if(!r.data || r.status==='cancelada') return;
+    if(_reslJaPassou(r)) return;
     if((r.pgto||'') !== 'pendente') return;
     var taxa = parseFloat(r.taxa);
     if(!(taxa > 0)) return;                       // sem taxa, nada a cobrar
@@ -13531,8 +13617,7 @@ function _reslPagamentos(ignorarVistos){
     var horas = (ini.getTime() - agora)/3600000;
     var fase;
     if(horas <= 0){
-      if(horas < -(_RESL_ATRASO_MAX*24)) return;  // velho demais, some da lista
-      fase = 'atrasado';
+      fase = 'atrasado';          // comecou hoje mais cedo e nao foi pago
     } else if(horas <= _RESL_AVISO_H){
       fase = 'areceber';
     } else return;
@@ -13599,6 +13684,10 @@ function _reslHistLinha(chave, ts){
 
   var r = todas.find(function(x){ return String(x.id) === rid; });
   if(!r) return null;
+
+  // O histórico reconta avisos recentes para quem fechou a janelinha sem ler.
+  // Reserva que já passou não volta nem por aí.
+  if(_reslJaPassou(r)) return null;
 
   if(fase === 'pgto'){
     if(r.status === 'cancelada') return null;
@@ -15365,15 +15454,48 @@ function toggleFinEspaco(cb, chv){
 /* ── Config de reservas: helpers + persistência (Supabase por condomínio) ── */
 const _DIAS_SEM = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']; // domingo-first (bate com getDay())
 function _chvEsp(esp){ return esp.toLowerCase().replace(/[^a-z0-9]/g,'_'); }
-function getCfgRes(){ try{ return JSON.parse(localStorage.getItem('apvc_cfg_reservas')||'{}'); }catch(_){ return {}; } }
+/* A configuração de reservas vem do módulo 'cfg_reservas'. O cache em
+   memória é a fonte preferida: ele é preenchido no login a partir do banco e
+   não depende de haver espaço no aparelho. O localStorage fica como segunda
+   opção, para quando a tela abre antes de a carga terminar. */
+function getCfgRes(){
+  try{
+    var m = (typeof DB_CACHE!=='undefined') ? DB_CACHE['cfg_reservas'] : null;
+    /* Devolve uma CÓPIA. Quem salva monta a configuração nova alterando o que
+       recebe daqui; entregando o objeto do cache, essa alteração já valeria
+       antes de o servidor aceitar -- e, se ele recusasse, não haveria mais
+       estado anterior para restaurar. */
+    if(m && typeof m==='object' && !Array.isArray(m)) return JSON.parse(JSON.stringify(m));
+  }catch(_){}
+  try{ return JSON.parse(localStorage.getItem('apvc_cfg_reservas')||'{}'); }catch(_){ return {}; }
+}
 function setCfgRes(cfg){
   // Guarda o estado anterior para poder desfazer se o servidor recusar.
   var _antes = null;
   try{ _antes = localStorage.getItem('apvc_cfg_reservas'); }catch(_){}
-  try{ localStorage.setItem('apvc_cfg_reservas', JSON.stringify(cfg)); }catch(_){}
+  // Guarda também o cache em memória: ele é a fonte que getCfgRes prefere, e
+  // desfazer só o localStorage deixaria a configuração recusada viva na tela.
+  var _antesMem = null, _tinhaMem = false;
+  try{ _tinhaMem = ('cfg_reservas' in DB_CACHE); _antesMem = DB_CACHE['cfg_reservas']; }catch(_){}
+  /* Guardar no aparelho pode falhar por falta de espaço (as fotos dos
+     espaços e dos condôminos ocupam bastante). Falhar calado aqui fazia a
+     tela continuar mostrando a configuração velha depois de salvar -- de
+     novo, "não salvou" do ponto de vista de quem olha. */
+  var _lsOk = true;
+  try{ localStorage.setItem('apvc_cfg_reservas', JSON.stringify(cfg)); }
+  catch(_){ _lsOk = false; }
+  // O que vale para a tela é isto: o cache em memória, que não tem limite de
+  // espaço. Assim a configuração nova aparece mesmo quando o aparelho está
+  // sem lugar para guardá-la.
+  try{ DB_CACHE['cfg_reservas'] = cfg; }catch(_){}
+  if(!_lsOk && typeof toast==='function'){
+    toast('⚠️ Sem espaço para guardar neste aparelho. Salvo no servidor; se recarregar a página, volta certo.');
+  }
 
+  // Lê sempre por window.SB (e não pelo SB solto) para que a checagem e o uso
+  // apontem para o mesmo objeto, inclusive quando o Supabase não carregou.
   if(window.SB){
-    return SB.from('modulo_dados').upsert({condominio_id:_condAtual, modulo:'cfg_reservas', valor:cfg},{onConflict:'condominio_id,modulo'})
+    return window.SB.from('modulo_dados').upsert({condominio_id:_condAtual, modulo:'cfg_reservas', valor:cfg},{onConflict:'condominio_id,modulo'})
       .then(function(r){
         if(r.error){
           // DESFAZ no aparelho. Configuracao que so existe neste celular e
@@ -15382,6 +15504,10 @@ function setCfgRes(cfg){
           try{
             if(_antes === null) localStorage.removeItem('apvc_cfg_reservas');
             else localStorage.setItem('apvc_cfg_reservas', _antes);
+          }catch(_){}
+          try{
+            if(_tinhaMem) DB_CACHE['cfg_reservas'] = _antesMem;
+            else delete DB_CACHE['cfg_reservas'];
           }catch(_){}
 
           console.warn('cfg_reservas', r.error.message);
@@ -16923,10 +17049,17 @@ function _horaMenos1(hhmm){
   return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
 }
 
-function salvarCfgReservas(){
+async function salvarCfgReservas(){
   const elTermos = $('cfg-reservas-espacos');
   const elFin    = $('cfg-fin-espacos');
-  const cfgRes = JSON.parse(localStorage.getItem('apvc_cfg_reservas')||'{}');
+  /* Parte da configuração EM USO, não de uma leitura crua do localStorage.
+
+     Lendo o localStorage direto, bastava ele estar vazio ou atrasado -- outro
+     computador, dados do site limpos, carregamento do banco ainda em curso --
+     para o salvamento começar de {} e APAGAR tudo o que não está nos campos
+     desta tela: a lista de espaços do condomínio e os horários de todos os
+     outros espaços junto. */
+  const cfgRes = getCfgRes();
 
   // Mensagem pós-reserva (validação)
   if($('cfg-msg-validacao')) cfgRes.msg_validacao = $('cfg-msg-validacao').value.trim();
@@ -17053,7 +17186,17 @@ function salvarCfgReservas(){
   });
   Object.keys(_diasPorChv).forEach(function(c){ cfgRes['disp_'+c+'_dias']=_diasPorChv[c].sort(); });
 
-  setCfgRes(cfgRes);
+  /* ESPERA o servidor antes de dizer que salvou.
+
+     Antes, o "✓ salvas!" aparecia na hora. Quando o servidor recusava,
+     setCfgRes DESFAZIA a gravação no aparelho e mostrava o erro depois -- e a
+     tela voltava ao estado anterior. De quem estava olhando, isso era
+     exatamente "cliquei em salvar e não salvou", com um ✓ verde no caminho. */
+  var _r = await setCfgRes(cfgRes);
+  if(_r && _r.ok === false){
+    // setCfgRes já explicou o motivo e já desfez. Não há sucesso a anunciar.
+    return;
+  }
   if(_cfgFinAvisos && _cfgFinAvisos.length){
     toast('⚠️ Salvo, mas a taxa por horário ficou incompleta — ' + _cfgFinAvisos[0]);
   } else {

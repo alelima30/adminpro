@@ -45,6 +45,46 @@ function inicioMs(data: string, horario: string) {
   return new Date(iso).getTime();
 }
 
+/* Devolve se o envio deu certo, e por que nao deu.
+
+   Antes esta funcao engolia tudo: nao olhava a resposta e nao avisava o
+   chamador. Um numero recusado pela Meta, um modelo reprovado, um segredo
+   faltando no projeto -- tudo isso virava silencio, e o lembrete era marcado
+   como enviado do mesmo jeito. Nao chegava, e nao sobrava pista. */
+/* Quais avisos esta configuracao pede, e para quem.
+
+   Um aviso existe se o morador OU a equipe quiser recebe-lo, e cada um
+   carrega quem deve recebe-lo. Antes a lista saia so das caixinhas do
+   morador: com o lembrete dele desligado, a equipe nao recebia nada mesmo
+   com as caixinhas dela marcadas. */
+export function avisosDe(cfg: Record<string, unknown>) {
+  const mor24 = !!(cfg.notif_lembrete_24h || cfg.notif_lembrete_ativo);
+  const mor1 = !!cfg.notif_lembrete_1h;
+  const eq24 = !!cfg.notif_lembrete_eq_24h;
+  const eq1 = !!cfg.notif_lembrete_eq_1h;
+  const leads: { m: number; tag: string; morador: boolean; equipe: boolean }[] = [];
+  if (mor24 || eq24) leads.push({ m: 1440, tag: "24h", morador: mor24, equipe: eq24 });
+  if (mor1 || eq1) leads.push({ m: 60, tag: "1h", morador: mor1, equipe: eq1 });
+  return leads;
+}
+
+/* A regra de quando avisar, isolada para poder ser testada.
+
+   minAte = minutos que faltam para a reserva comecar. A janela vai de
+   "faltam lead minutos" ate o piso do proximo aviso: o de 24h para no limite
+   de 1 hora, onde o de 1h assume; o de 1h vai ate a hora de comecar. */
+export function janelaLembrete(minAte: number, tag: string, lead: number): boolean {
+  const piso = tag === "1h" ? 0 : 60;
+  return minAte <= lead && minAte > piso;
+}
+
+/* "amanha" so quando for mesmo amanha: dentro de 24 horas a reserva cai hoje
+   ou amanha, e o aviso de 24h pode sair no mesmo dia. */
+export function quandoTexto(tag: string, dataReserva: string, hojeBR: string): string {
+  if (tag === "1h") return "em 1 hora";
+  return dataReserva > hojeBR ? "amanha" : "hoje";
+}
+
 async function enviar(
   to: string,
   subject: string,
@@ -52,13 +92,24 @@ async function enviar(
   whatsapp: boolean,
   template?: string,
   params?: unknown[],
-) {
+): Promise<{ ok: boolean; erro?: string }> {
   const body = whatsapp
     ? { channel: "whatsapp", to, message, template, params }
     : { to, subject, message };
   try {
-    await fetch(NOTIFICAR, { method: "POST", headers: H, body: JSON.stringify(body) });
-  } catch (_) { /* ignora falha individual */ }
+    const r = await fetch(NOTIFICAR, { method: "POST", headers: H, body: JSON.stringify(body) });
+    if (r.ok) return { ok: true };
+    let detalhe = "";
+    try {
+      const j = await r.json();
+      detalhe = (j && (j.error || j.message)) || JSON.stringify(j);
+    } catch (_) {
+      try { detalhe = await r.text(); } catch (_2) { detalhe = ""; }
+    }
+    return { ok: false, erro: `${r.status} ${String(detalhe).slice(0, 300)}`.trim() };
+  } catch (e) {
+    return { ok: false, erro: (e as Error).message };
+  }
 }
 
 serve(async () => {
@@ -76,32 +127,62 @@ serve(async () => {
       `reservas?status=eq.confirmada&data=gte.${hoje}&select=id,condominio_id,espaco,data,horario,tel,criado_por,nome,unidade`,
     );
 
-    // 3) Chaves ja enviadas
-    const jaEnv = await rest("lembretes_enviados?select=chave");
+    // 3) Chaves ja enviadas -- so as recentes.
+    //    A lista inteira cresce para sempre e, passando do limite de linhas da
+    //    API, voltaria CORTADA. Chave que nao volta e lembrete repetido. Tres
+    //    dias cobrem com folga a maior distancia entre criar a chave (24h
+    //    antes) e a ultima chance de reenviar (1h antes).
+    const corte = new Date(Date.now() - 3 * 86400 * 1000).toISOString();
+    const jaEnv = await rest(`lembretes_enviados?select=chave&criado_em=gte.${corte}`);
     const enviados = new Set<string>((jaEnv || []).map((x: any) => x.chave));
 
     const agora = Date.now();
     const novas: string[] = [];
+    const problemas: unknown[] = [];
     let contador = 0;
 
     for (const r of reservas) {
       const cfg = cfgMap[r.condominio_id] || {};
-      const leads: { m: number; tag: string }[] = [];
-      if (cfg.notif_lembrete_24h || cfg.notif_lembrete_ativo) leads.push({ m: 1440, tag: "24h" });
-      if (cfg.notif_lembrete_1h) leads.push({ m: 60, tag: "1h" });
+      /* Um aviso existe se o morador OU a equipe quiser recebe-lo.
+
+         Antes a lista saia so das caixinhas do MORADOR, e "sem lead" pulava a
+         reserva inteira. Resultado: com o lembrete do morador desligado, a
+         equipe nao recebia nada -- mesmo com as duas caixinhas dela marcadas.
+         A tela promete "Independente do aviso de nova reserva", e de fato era
+         independente DAQUELE aviso, mas ficava presa ao lembrete do morador.
+         Agora cada aviso carrega quem deve recebe-lo. */
+      const leads = avisosDe(cfg);
       if (!leads.length) continue;
 
       const email = (r.criado_por || "").trim();
       const tel = (r.tel || "").trim();
-      if (!email && !tel) continue;
+      /* Reserva sem contato do morador NAO e pulada: a equipe tem os contatos
+         dela e nao pode perder o lembrete por causa de um dado que nao e seu.
+         Quem nao tem para quem mandar e tratado aviso a aviso, mais abaixo. */
 
       const minAte = (inicioMs(r.data, r.horario) - agora) / 60000;
       for (const lead of leads) {
-        if (minAte > lead.m || minAte < lead.m - 20) continue;
+        /* A janela vai de "faltam lead.m minutos" ate o piso do proximo aviso.
+
+           Antes era uma faixa de 20 minutos. Com o cron a cada 15 min, UMA
+           passada que falhasse ou atrasasse dentro dessa faixa perdia o
+           lembrete PARA SEMPRE: na passada seguinte minAte ja estava abaixo
+           do piso e a reserva nunca mais era olhada. Era silencioso e nao
+           deixava rastro -- o lembrete simplesmente nao chegava.
+
+           Com a janela larga, uma passada perdida atrasa o lembrete em 15
+           minutos em vez de cancela-lo. Nao repete, porque quem impede a
+           repeticao e a chave em lembretes_enviados, nao o tamanho da faixa. */
+        if (!janelaLembrete(minAte, lead.tag, lead.m)) continue;
         const chave = `${r.id}|${r.data}|${lead.tag}`;
         if (enviados.has(chave)) continue;
 
-        const quando = lead.tag === "1h" ? "em 1 hora" : "amanha";
+        /* "amanha" so quando for mesmo amanha. Dentro de 24 horas a reserva
+           cai hoje ou amanha, e com a janela larga o aviso de 24h pode sair
+           no mesmo dia (reserva marcada em cima da hora, ou passada perdida
+           mais cedo). Dizer "amanha" nesse caso mandaria a pessoa no dia
+           errado. */
+        const quando = quandoTexto(lead.tag, r.data, hoje);
         const dataBR = r.data.split("-").reverse().join("/");
         const msg =
           `\u23F0 Lembrete de reserva\n\nVoce tem uma reserva ${quando}.\n\n` +
@@ -111,31 +192,69 @@ serve(async () => {
         // Variaveis: {{1}} quando, {{2}} espaco, {{3}} data, {{4}} horario, {{5}} unidade
         const paramsLembrete = [quando, r.espaco || "", dataBR, r.horario || "", r.unidade || ""];
 
-        if (tel) await enviar(tel, "", msg, true, "lembrete_reserva", paramsLembrete);
-        if (email) await enviar(email, `Lembrete de reserva - ${r.espaco}`, msg, false);
+        /* Marcar como enviado so vale se alguem recebeu. Antes a chave era
+           gravada de qualquer jeito: falhando o envio, a reserva ficava com
+           o lembrete "ja enviado" e nunca mais era tentada. */
+        let algumOk = false;
+        let alguemParaAvisar = false;
+        const falhas: string[] = [];
+        if (lead.morador) {
+          if (tel) {
+            alguemParaAvisar = true;
+            const x = await enviar(tel, "", msg, true, "lembrete_reserva", paramsLembrete);
+            if (x.ok) algumOk = true; else falhas.push(`whatsapp ${tel}: ${x.erro}`);
+          }
+          if (email) {
+            alguemParaAvisar = true;
+            const x = await enviar(email, `Lembrete de reserva - ${r.espaco}`, msg, false);
+            if (x.ok) algumOk = true; else falhas.push(`email ${email}: ${x.erro}`);
+          }
+          if (!tel && !email) falhas.push("morador sem telefone e sem e-mail");
+        }
 
         // EQUIPE/ADMIN: controle PROPRIO, separado do aviso de nova reserva.
         //   notif_lembrete_eq_1h / _24h  -> quais lembretes a equipe recebe
         //   lembrete_eq_espacos          -> lista de espacos (vazio = todos)
-        const eqLead = lead.tag === "1h" ? cfg.notif_lembrete_eq_1h : cfg.notif_lembrete_eq_24h;
         const filtro = String(cfg.lembrete_eq_espacos || "").trim();
         const eqEspaco = !filtro || filtro.split(",")
           .map((x: string) => x.trim().toLowerCase())
           .filter(Boolean)
           .includes(String(r.espaco || "").trim().toLowerCase());
-        if (eqLead && eqEspaco) {
+        if (lead.equipe && eqEspaco) {
           const destinos = Array.isArray(cfg.alert_destinos) ? cfg.alert_destinos : [];
+          if (!destinos.length) falhas.push("equipe marcada, mas sem nenhum destino cadastrado");
           for (const d of destinos) {
+            /* Nao repete para quem ja recebeu como morador -- mas so quando o
+               morador foi mesmo avisado. Se o aviso dele esta desligado, o
+               mesmo numero na lista da equipe PRECISA receber. */
             const w = (d?.whats || "").trim();
-            if (w && w !== tel) {
-              await enviar(w, "", msg, true, "lembrete_reserva", paramsLembrete);
+            if (w && !(lead.morador && w === tel)) {
+              alguemParaAvisar = true;
+              const x = await enviar(w, "", msg, true, "lembrete_reserva", paramsLembrete);
+              if (x.ok) algumOk = true; else falhas.push(`equipe whatsapp ${w}: ${x.erro}`);
             }
             const em = (d?.email || "").trim();
-            if (em && em !== email) {
-              await enviar(em, `Lembrete de reserva - ${r.espaco}`, msg, false);
+            if (em && !(lead.morador && em === email)) {
+              alguemParaAvisar = true;
+              const x = await enviar(em, `Lembrete de reserva - ${r.espaco}`, msg, false);
+              if (x.ok) algumOk = true; else falhas.push(`equipe email ${em}: ${x.erro}`);
             }
           }
         }
+
+        /* Ninguem para avisar neste aviso (ex.: so a equipe quer, mas o
+           espaco esta fora do filtro dela). Nao e falha nem envio: segue. */
+        if (!alguemParaAvisar) continue;
+
+        if (!algumOk) {
+          /* Nada foi marcado: a proxima passada tenta de novo, enquanto a
+             janela durar. Preferimos insistir a perder o aviso -- e os
+             motivos saem na resposta, para dar para ver o que o provedor
+             esta recusando em vez de adivinhar. */
+          problemas.push({ reserva: r.id, aviso: lead.tag, falhas });
+          continue;
+        }
+        if (falhas.length) problemas.push({ reserva: r.id, aviso: lead.tag, falhas, parcial: true });
 
         enviados.add(chave);
         novas.push(chave);
@@ -153,7 +272,14 @@ serve(async () => {
     }
 
     // "versao" serve para conferir, pelo Test, se o deploy pegou o codigo novo.
-    return new Response(JSON.stringify({ ok: true, versao: "v4-equipe-config", enviados: contador }), {
+    return new Response(JSON.stringify({
+      ok: true,
+      versao: "v6-equipe-independente",
+      enviados: contador,
+      reservas_olhadas: reservas.length,
+      condominios_configurados: Object.keys(cfgMap),
+      problemas,
+    }), {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
