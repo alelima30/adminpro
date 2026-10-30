@@ -29,6 +29,13 @@ function pegar(nome) {
   return eval('(' + corpo + ')');
 }
 const janelaLembrete = pegar('janelaLembrete');
+const avisosDe = (() => {
+  const m = src.match(/export function avisosDe\(([\s\S]*?)\n\}/m);
+  const corpo = ('function avisosDe(' + m[1] + '\n}')
+    .replace(/: Record<string, unknown>/g, '')
+    .replace(/const leads: \{[^}]*\}\[\] = \[\];/, 'const leads = [];');
+  return eval('(' + corpo + ')');
+})();
 const quandoTexto = pegar('quandoTexto');
 
 // ── A janela do aviso de 24h ──────────────────────────────────────────
@@ -67,6 +74,47 @@ bloco('"amanha" so quando for amanha', () => {
   checa('reserva de amanha', quandoTexto('24h', '2026-11-01', '2026-10-31'), 'amanha');
   checa('reserva de hoje', quandoTexto('24h', '2026-10-31', '2026-10-31'), 'hoje');
   checa('o de 1 hora nao muda', quandoTexto('1h', '2026-10-31', '2026-10-31'), 'em 1 hora');
+});
+
+// ── O lembrete da equipe nao pode depender do lembrete do morador ─────
+bloco('Equipe recebe mesmo com o aviso do morador desligado', () => {
+  /* Relato, com print: as duas caixinhas de "LEMBRETE PARA A EQUIPE"
+     marcadas, as de "Lembrete antes da reserva" (morador) vazias -- e nada
+     chegando.
+
+     A lista de avisos saia so das caixinhas do MORADOR, e "sem aviso" pulava
+     a reserva inteira. A equipe nunca era alcancada. A tela promete
+     "Independente do aviso de nova reserva", e era independente DAQUELE --
+     mas ficava presa ao lembrete do morador. */
+  const papeis = (cfg) => avisosDe(cfg).map(
+    (l) => l.tag + ':' + (l.morador ? 'mor' : '-') + '/' + (l.equipe ? 'eq' : '-'));
+
+  const soEquipe = { notif_lembrete_eq_24h: true, notif_lembrete_eq_1h: true };
+  checa('so a equipe marcada: os dois avisos existem', avisosDe(soEquipe).length, 2);
+  checa('e vao para a equipe, nao para o morador', papeis(soEquipe), ['24h:-/eq', '1h:-/eq']);
+
+  checa('so o morador marcado: so o aviso dele',
+        papeis({ notif_lembrete_24h: true }), ['24h:mor/-']);
+  checa('os dois marcados: um aviso so, para os dois',
+        papeis({ notif_lembrete_24h: true, notif_lembrete_eq_24h: true }), ['24h:mor/eq']);
+
+  checa('nada marcado: nenhum aviso', avisosDe({}).length, 0);
+  // Configuracao antiga, de antes de o aviso ser separado em 24h e 1h.
+  checa('notif_lembrete_ativo ainda liga o de 24h do morador',
+        papeis({ notif_lembrete_ativo: true }), ['24h:mor/-']);
+
+  // Reserva sem contato do morador nao pode mais pular a reserva inteira:
+  // a equipe tem os contatos dela.
+  checa('sem contato do morador, a reserva nao e mais pulada',
+    /if \(!email && !tel\) continue;/.test(src), false);
+  // E o mesmo numero na lista da equipe precisa receber quando o aviso do
+  // morador esta desligado.
+  checa('nao se cala o numero da equipe por ser igual ao do morador',
+    /!\(lead\.morador && w === tel\)/.test(src), true);
+  // Equipe marcada e nenhum destino cadastrado e um caso real: aparece na
+  // resposta em vez de sumir.
+  checa('equipe sem destino vira aviso visivel',
+    /equipe marcada, mas sem nenhum destino cadastrado/.test(src), true);
 });
 
 // ── Falha de envio nao pode virar silencio ────────────────────────────

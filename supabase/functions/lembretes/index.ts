@@ -51,6 +51,23 @@ function inicioMs(data: string, horario: string) {
    chamador. Um numero recusado pela Meta, um modelo reprovado, um segredo
    faltando no projeto -- tudo isso virava silencio, e o lembrete era marcado
    como enviado do mesmo jeito. Nao chegava, e nao sobrava pista. */
+/* Quais avisos esta configuracao pede, e para quem.
+
+   Um aviso existe se o morador OU a equipe quiser recebe-lo, e cada um
+   carrega quem deve recebe-lo. Antes a lista saia so das caixinhas do
+   morador: com o lembrete dele desligado, a equipe nao recebia nada mesmo
+   com as caixinhas dela marcadas. */
+export function avisosDe(cfg: Record<string, unknown>) {
+  const mor24 = !!(cfg.notif_lembrete_24h || cfg.notif_lembrete_ativo);
+  const mor1 = !!cfg.notif_lembrete_1h;
+  const eq24 = !!cfg.notif_lembrete_eq_24h;
+  const eq1 = !!cfg.notif_lembrete_eq_1h;
+  const leads: { m: number; tag: string; morador: boolean; equipe: boolean }[] = [];
+  if (mor24 || eq24) leads.push({ m: 1440, tag: "24h", morador: mor24, equipe: eq24 });
+  if (mor1 || eq1) leads.push({ m: 60, tag: "1h", morador: mor1, equipe: eq1 });
+  return leads;
+}
+
 /* A regra de quando avisar, isolada para poder ser testada.
 
    minAte = minutos que faltam para a reserva comecar. A janela vai de
@@ -126,14 +143,22 @@ serve(async () => {
 
     for (const r of reservas) {
       const cfg = cfgMap[r.condominio_id] || {};
-      const leads: { m: number; tag: string }[] = [];
-      if (cfg.notif_lembrete_24h || cfg.notif_lembrete_ativo) leads.push({ m: 1440, tag: "24h" });
-      if (cfg.notif_lembrete_1h) leads.push({ m: 60, tag: "1h" });
+      /* Um aviso existe se o morador OU a equipe quiser recebe-lo.
+
+         Antes a lista saia so das caixinhas do MORADOR, e "sem lead" pulava a
+         reserva inteira. Resultado: com o lembrete do morador desligado, a
+         equipe nao recebia nada -- mesmo com as duas caixinhas dela marcadas.
+         A tela promete "Independente do aviso de nova reserva", e de fato era
+         independente DAQUELE aviso, mas ficava presa ao lembrete do morador.
+         Agora cada aviso carrega quem deve recebe-lo. */
+      const leads = avisosDe(cfg);
       if (!leads.length) continue;
 
       const email = (r.criado_por || "").trim();
       const tel = (r.tel || "").trim();
-      if (!email && !tel) continue;
+      /* Reserva sem contato do morador NAO e pulada: a equipe tem os contatos
+         dela e nao pode perder o lembrete por causa de um dado que nao e seu.
+         Quem nao tem para quem mandar e tratado aviso a aviso, mais abaixo. */
 
       const minAte = (inicioMs(r.data, r.horario) - agora) / 60000;
       for (const lead of leads) {
@@ -171,38 +196,55 @@ serve(async () => {
            gravada de qualquer jeito: falhando o envio, a reserva ficava com
            o lembrete "ja enviado" e nunca mais era tentada. */
         let algumOk = false;
+        let alguemParaAvisar = false;
         const falhas: string[] = [];
-        if (tel) {
-          const x = await enviar(tel, "", msg, true, "lembrete_reserva", paramsLembrete);
-          if (x.ok) algumOk = true; else falhas.push(`whatsapp ${tel}: ${x.erro}`);
-        }
-        if (email) {
-          const x = await enviar(email, `Lembrete de reserva - ${r.espaco}`, msg, false);
-          if (x.ok) algumOk = true; else falhas.push(`email ${email}: ${x.erro}`);
+        if (lead.morador) {
+          if (tel) {
+            alguemParaAvisar = true;
+            const x = await enviar(tel, "", msg, true, "lembrete_reserva", paramsLembrete);
+            if (x.ok) algumOk = true; else falhas.push(`whatsapp ${tel}: ${x.erro}`);
+          }
+          if (email) {
+            alguemParaAvisar = true;
+            const x = await enviar(email, `Lembrete de reserva - ${r.espaco}`, msg, false);
+            if (x.ok) algumOk = true; else falhas.push(`email ${email}: ${x.erro}`);
+          }
+          if (!tel && !email) falhas.push("morador sem telefone e sem e-mail");
         }
 
         // EQUIPE/ADMIN: controle PROPRIO, separado do aviso de nova reserva.
         //   notif_lembrete_eq_1h / _24h  -> quais lembretes a equipe recebe
         //   lembrete_eq_espacos          -> lista de espacos (vazio = todos)
-        const eqLead = lead.tag === "1h" ? cfg.notif_lembrete_eq_1h : cfg.notif_lembrete_eq_24h;
         const filtro = String(cfg.lembrete_eq_espacos || "").trim();
         const eqEspaco = !filtro || filtro.split(",")
           .map((x: string) => x.trim().toLowerCase())
           .filter(Boolean)
           .includes(String(r.espaco || "").trim().toLowerCase());
-        if (eqLead && eqEspaco) {
+        if (lead.equipe && eqEspaco) {
           const destinos = Array.isArray(cfg.alert_destinos) ? cfg.alert_destinos : [];
+          if (!destinos.length) falhas.push("equipe marcada, mas sem nenhum destino cadastrado");
           for (const d of destinos) {
+            /* Nao repete para quem ja recebeu como morador -- mas so quando o
+               morador foi mesmo avisado. Se o aviso dele esta desligado, o
+               mesmo numero na lista da equipe PRECISA receber. */
             const w = (d?.whats || "").trim();
-            if (w && w !== tel) {
-              await enviar(w, "", msg, true, "lembrete_reserva", paramsLembrete);
+            if (w && !(lead.morador && w === tel)) {
+              alguemParaAvisar = true;
+              const x = await enviar(w, "", msg, true, "lembrete_reserva", paramsLembrete);
+              if (x.ok) algumOk = true; else falhas.push(`equipe whatsapp ${w}: ${x.erro}`);
             }
             const em = (d?.email || "").trim();
-            if (em && em !== email) {
-              await enviar(em, `Lembrete de reserva - ${r.espaco}`, msg, false);
+            if (em && !(lead.morador && em === email)) {
+              alguemParaAvisar = true;
+              const x = await enviar(em, `Lembrete de reserva - ${r.espaco}`, msg, false);
+              if (x.ok) algumOk = true; else falhas.push(`equipe email ${em}: ${x.erro}`);
             }
           }
         }
+
+        /* Ninguem para avisar neste aviso (ex.: so a equipe quer, mas o
+           espaco esta fora do filtro dela). Nao e falha nem envio: segue. */
+        if (!alguemParaAvisar) continue;
 
         if (!algumOk) {
           /* Nada foi marcado: a proxima passada tenta de novo, enquanto a
@@ -232,7 +274,7 @@ serve(async () => {
     // "versao" serve para conferir, pelo Test, se o deploy pegou o codigo novo.
     return new Response(JSON.stringify({
       ok: true,
-      versao: "v5-janela-larga-e-falhas-visiveis",
+      versao: "v6-equipe-independente",
       enviados: contador,
       reservas_olhadas: reservas.length,
       condominios_configurados: Object.keys(cfgMap),
