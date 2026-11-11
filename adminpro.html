@@ -5443,6 +5443,30 @@ html.ambiente-ensaio body{padding-top:28px}
                 onclick="mresAbrirNovaPessoa()">
           <i class="fa-solid fa-user-plus"></i> Não está na lista? Cadastrar agora
         </button>
+        <!-- Tirar quem saiu da unidade, sem precisar ir ate Unidades: quem
+             marca a reserva e quem percebe que o morador mudou. -->
+        <button type="button" class="btn btn-ghost btn-sm" id="mres-gerir-btn"
+                style="margin-top:8px;align-self:flex-start;display:none"
+                onclick="mresAbrirGerir()">
+          <i class="fa-solid fa-user-xmark"></i> Alguém saiu? Gerenciar pessoas da unidade
+        </button>
+      </div>
+      <div class="fg" id="mres-gerir-wrap" style="grid-column:1/-1;display:none;
+           background:var(--ink-3);border:1px solid rgba(224,82,82,0.25);border-radius:11px;padding:13px 14px;gap:10px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:700;color:var(--gold)">
+            <i class="fa-solid fa-user-xmark"></i> Pessoas do <span id="mres-gerir-uni">—</span>
+          </span>
+          <button type="button" class="btn btn-ghost btn-sm" style="margin-left:auto"
+                  onclick="mresFecharGerir()"><i class="fa-solid fa-xmark"></i> Fechar</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-3);line-height:1.5">
+          <b>Tirar da unidade</b> é o normal numa troca de inquilino: a pessoa sai do lote
+          e continua no cadastro do condomínio, com o histórico dela.
+          <b>Excluir do cadastro</b> apaga a ficha e os dependentes dela, em todas as unidades —
+          só para quem não tem mais nenhuma relação com o condomínio.
+        </div>
+        <div id="mres-gerir-lista" style="display:flex;flex-direction:column;gap:8px"></div>
       </div>
       <div class="fg" id="mres-novo-wrap" style="grid-column:1/-1;display:none;
            background:var(--ink-3);border:1px solid rgba(232,119,34,0.25);border-radius:11px;padding:13px 14px;gap:10px">
@@ -7904,6 +7928,68 @@ function mresSalvarNovaPessoa(){
   _mresDepoisDeCadastrar(uni, nome);
 }
 
+/* ── Gerir as pessoas da unidade, de dentro da reserva ────────────────
+
+   Quem marca reserva e quem percebe que o morador mudou: a lista de pessoas
+   da unidade e onde o antigo inquilino aparece. Obrigar a sair da tela, abrir
+   Unidades e voltar fazia a correcao ficar para depois -- e "para depois"
+   quer dizer que o nome errado continua na lista.
+
+   Sao TRES acoes diferentes, e confundi-las apaga o que nao devia:
+
+   - TIRAR DA UNIDADE: limpa o campo (proprietario ou morador) do lote. A
+     pessoa continua no cadastro do condominio. E o certo para troca de
+     inquilino: o historico dela nao se perde, e ela pode ser dona de outro
+     lote.
+
+   - EXCLUIR DO CADASTRO: apaga a ficha, com os dependentes dentro dela, e
+     limpa os vinculos em TODAS as unidades. So para quem nao tem mais
+     nenhuma relacao com o condominio.
+
+   - BLOQUEAR O ACESSO: a conta do aplicativo. E independente do cadastro: a
+     lista da unidade tem duas fontes, e so mexer no vinculo deixa o antigo
+     morador aparecendo (e reservando) pela conta dele. */
+
+/* Em quais unidades esta pessoa esta vinculada, e como. Usado para avisar
+   ANTES de excluir e para limpar os vinculos depois -- excluir sem limpar
+   deixava a unidade apontando para um codigo que nao existe mais, e a tela
+   passava a mostrar "0042" no lugar do nome. */
+function condominoVinculos(cod, unidades){
+  var out = [];
+  if(!cod) return out;
+  var us = unidades || {};
+  Object.keys(us).forEach(function(uni){
+    var u = us[uni] || {};
+    if(u.proprietario === cod) out.push({ unidade:uni, papel:'proprietario' });
+    if(u.morador === cod)      out.push({ unidade:uni, papel:'morador' });
+  });
+  return out;
+}
+
+/* Remove a pessoa de todos os campos de unidade que apontam para ela.
+   Devolve o objeto novo e quais vinculos sairam -- quem chama precisa dos
+   dois: um para gravar, outro para contar o que aconteceu. */
+function unidadesSemCondomino(cod, unidades){
+  var us = JSON.parse(JSON.stringify(unidades || {}));
+  var limpos = [];
+  Object.keys(us).forEach(function(uni){
+    if(us[uni].proprietario === cod){ us[uni].proprietario = ''; limpos.push(uni+' (proprietário)'); }
+    if(us[uni].morador === cod){ us[uni].morador = ''; limpos.push(uni+' (morador)'); }
+  });
+  return { unidades:us, limpos:limpos };
+}
+
+/* Quem pode gerir as pessoas por aqui. 'condominos' e 'unidades' sao modulos
+   de administracao (RLS no banco), entao supervisor NAO entra -- oferecer o
+   botao a ele seria prometer o que o banco recusa, que foi exatamente o bug
+   da caixinha de telefone. */
+function mresPodeGerirPessoas(){
+  try{
+    if(typeof _podeGravarModulo !== 'function') return false;
+    return _podeGravarModulo('condominos') && _podeGravarModulo('unidades');
+  }catch(_){ return false; }
+}
+
 /* Vincula na unidade. Trocar o proprietario ou o morador de um lote nao e
    coisa que se faca em silencio: se o lugar ja esta ocupado, pergunta. */
 function _mresVincularNaUnidade(uni, cod, papel){
@@ -7923,6 +8009,176 @@ function _mresVincularNaUnidade(uni, cod, papel){
   us[uni]=un;
   S('unidades', us);
   return true;
+}
+
+/* ── Painel "Pessoas da unidade" ─────────────────────────────────── */
+
+function mresAbrirGerir(){
+  var uni = ($('mres-lote') ? $('mres-lote').value : '').trim().toUpperCase();
+  if(!uni){ toast('⚠️ Escolha a unidade primeiro.'); return; }
+  try{ mresFecharNovaPessoa(); }catch(_){}
+  if($('mres-gerir-uni')) $('mres-gerir-uni').textContent = uni;
+  if($('mres-gerir-wrap')) $('mres-gerir-wrap').style.display = '';
+  mresRenderGerir();
+}
+function mresFecharGerir(){
+  if($('mres-gerir-wrap')) $('mres-gerir-wrap').style.display = 'none';
+}
+
+function _mresGerirRotulo(p){
+  if(p.papel === 'proprietario') return 'Proprietário';
+  if(p.papel === 'morador')      return 'Morador / inquilino';
+  if(p.papel === 'dependente')   return 'Dependente de ' + escU(p.titular || '—');
+  return 'Conta no aplicativo';
+}
+
+function mresRenderGerir(){
+  var alvo = $('mres-gerir-lista'); if(!alvo) return;
+  var lista = window._mresPessoas || [];
+  if(!lista.length){ alvo.innerHTML = '<div style="font-size:12px;color:var(--text-3)">Nenhuma pessoa cadastrada nesta unidade.</div>'; return; }
+
+  alvo.innerHTML = lista.map(function(p, i){
+    var acoes = '';
+    if(p.papel === 'proprietario' || p.papel === 'morador'){
+      acoes = '<button type="button" class="btn btn-ghost btn-sm" onclick="mresTirarDaUnidade('+i+')">Tirar da unidade</button>'
+            + '<button type="button" class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="mresExcluirDoCadastro('+i+')">Excluir do cadastro</button>';
+    } else if(p.papel === 'dependente'){
+      acoes = '<button type="button" class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="mresExcluirDependente('+i+')">Excluir dependente</button>';
+    }
+    /* A conta do aplicativo e a SEGUNDA fonte da lista. Sem bloquea-la, o
+       antigo morador continua aparecendo aqui e reservando pela unidade,
+       mesmo depois de tirado do cadastro -- era a armadilha da troca. */
+    if(p.temConta || p.papel === 'app'){
+      acoes += '<button type="button" class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="mresBloquearAcesso('+i+')">Bloquear acesso</button>';
+    }
+    return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;'
+      + 'background:var(--ink-2);border:1px solid var(--border);border-radius:9px;padding:8px 10px">'
+      + '<div style="min-width:0;flex:1 1 180px">'
+      + '<div style="font-size:13px;font-weight:600">' + escU(p.nome || '—') + '</div>'
+      + '<div style="font-size:11px;color:var(--text-3)">' + _mresGerirRotulo(p)
+      + (p.temConta && p.papel !== 'app' ? ' · tem conta no app' : '') + '</div></div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap">' + acoes + '</div></div>';
+  }).join('');
+}
+
+// Depois de qualquer mudanca: a lista da unidade tem de refletir o que ficou.
+function _mresRecarregarPessoas(uni){
+  try{ mresPreencherPessoas(uni); }catch(_){}
+  try{ mresRenderGerir(); }catch(_){}
+  try{ renderCondominos(); }catch(_){}
+  try{ renderUnidades(); }catch(_){}
+}
+
+/* Tira do lote, mantendo a ficha. O caso normal da troca de inquilino. */
+async function mresTirarDaUnidade(i){
+  var p = (window._mresPessoas||[])[i]; if(!p || !p.cod) return;
+  var uni = ($('mres-lote') ? $('mres-lote').value : '').trim().toUpperCase();
+  var us = getUnidades(), un = us[uni];
+  if(!un){ toast('⚠️ Unidade não encontrada.'); return; }
+  var slot = (p.papel === 'proprietario') ? 'proprietario' : 'morador';
+  var rotulo = (slot === 'proprietario') ? 'proprietário' : 'morador';
+  if(!confirm('Tirar ' + (p.nome||'') + ' de ' + rotulo + ' do ' + uni + '?\n\n'
+            + 'A ficha dele(a) CONTINUA no cadastro do condomínio, com os dependentes — '
+            + 'só deixa de aparecer nesta unidade.')) return;
+
+  var antes = un[slot];
+  un[slot] = '';
+  us[uni] = un;
+  var r = await S('unidades', us);
+  if(r && r.ok === false){
+    un[slot] = antes; us[uni] = un;
+    try{ DB_CACHE['unidades'] = us; localStorage.setItem('apvc_unidades', JSON.stringify(us)); }catch(_){}
+    toast('⚠️ Não foi possível: ' + (r.erro || 'o servidor recusou') + '.');
+    return;
+  }
+  _mresRecarregarPessoas(uni);
+  toast('✓ ' + (p.nome||'') + ' não é mais ' + rotulo + ' do ' + uni + '.');
+}
+
+/* Apaga a ficha inteira e limpa os vinculos em TODAS as unidades. */
+async function mresExcluirDoCadastro(i){
+  var p = (window._mresPessoas||[])[i]; if(!p || !p.cod) return;
+  var uni = ($('mres-lote') ? $('mres-lote').value : '').trim().toUpperCase();
+  var co = getCondominos(), ficha = co[p.cod];
+  if(!ficha){ toast('⚠️ Ficha não encontrada.'); return; }
+
+  var deps = (ficha.dependentes || []).length;
+  var vinc = condominoVinculos(p.cod, getUnidades());
+  if(!confirm('EXCLUIR ' + (ficha.nome||p.cod) + ' do cadastro do condomínio?\n\n'
+            + (deps ? '• Apaga também ' + deps + ' dependente(s) da ficha.\n' : '')
+            + (vinc.length ? '• Desvincula de: ' + vinc.map(function(v){ return v.unidade; }).join(', ') + '.\n' : '')
+            + '\nIsto não tem volta. Para troca de inquilino, use "Tirar da unidade".')) return;
+
+  // Limpa os vinculos ANTES de apagar a ficha: unidade apontando para um
+  // codigo que nao existe mais passa a mostrar o codigo no lugar do nome.
+  var lim = unidadesSemCondomino(p.cod, getUnidades());
+  if(lim.limpos.length){
+    var ru = await S('unidades', lim.unidades);
+    if(ru && ru.ok === false){ toast('⚠️ Não foi possível: ' + (ru.erro || 'o servidor recusou') + '.'); return; }
+  }
+
+  delete co[p.cod];
+  var rc = await S('condominos', co);
+  if(rc && rc.ok === false){
+    co[p.cod] = ficha;
+    try{ DB_CACHE['condominos'] = co; localStorage.setItem('apvc_condominos', JSON.stringify(co)); }catch(_){}
+    toast('⚠️ Não foi possível: ' + (rc.erro || 'o servidor recusou') + '.');
+    _mresRecarregarPessoas(uni);
+    return;
+  }
+  // S() apenas acrescenta e atualiza, nunca apaga linha: a remocao no banco e
+  // um pedido proprio.
+  var rd = await _excluirLinhaSB('condominos', p.cod);
+  if(rd && rd.ok === false){ toast('⚠️ Removido da tela, mas o banco recusou apagar: ' + rd.erro); }
+
+  _mresRecarregarPessoas(uni);
+  toast('🗑️ ' + (ficha.nome||p.cod) + ' excluído do cadastro.'
+        + (lim.limpos.length ? ' Desvinculado de ' + lim.limpos.length + ' unidade(s).' : ''));
+}
+
+/* Apaga UM dependente de dentro da ficha do titular. */
+async function mresExcluirDependente(i){
+  var p = (window._mresPessoas||[])[i]; if(!p || !p.cod || !(p.dep >= 0)) return;
+  var uni = ($('mres-lote') ? $('mres-lote').value : '').trim().toUpperCase();
+  var co = getCondominos(), ficha = co[p.cod];
+  if(!ficha || !ficha.dependentes || !ficha.dependentes[p.dep]){ toast('⚠️ Dependente não encontrado.'); return; }
+  if(!confirm('Excluir o dependente ' + (p.nome||'') + ', da ficha de ' + (ficha.nome||'') + '?')) return;
+
+  var antes = JSON.parse(JSON.stringify(ficha.dependentes));
+  ficha.dependentes.splice(p.dep, 1);
+  co[p.cod] = ficha;
+  var r = await S('condominos', co);
+  if(r && r.ok === false){
+    ficha.dependentes = antes; co[p.cod] = ficha;
+    try{ DB_CACHE['condominos'] = co; localStorage.setItem('apvc_condominos', JSON.stringify(co)); }catch(_){}
+    toast('⚠️ Não foi possível: ' + (r.erro || 'o servidor recusou') + '.');
+    return;
+  }
+  _mresRecarregarPessoas(uni);
+  toast('🗑️ Dependente ' + (p.nome||'') + ' excluído.');
+}
+
+/* Bloqueia a conta do aplicativo. Sem isto, tirar do cadastro nao basta. */
+async function mresBloquearAcesso(i){
+  var p = (window._mresPessoas||[])[i]; if(!p) return;
+  var uni = ($('mres-lote') ? $('mres-lote').value : '').trim().toUpperCase();
+  if(!p.usuarioId){
+    toast('⚠️ Não achei a conta. Bloqueie em Sistema → Usuários.');
+    return;
+  }
+  if(!confirm('Bloquear o acesso de ' + (p.nome||'') + ' ao aplicativo?\n\n'
+            + 'Ele(a) deixa de entrar e some da lista desta unidade. '
+            + 'O cadastro do condomínio não é alterado.')) return;
+  if(!window.SB){ toast('⚠️ Sem conexão com o servidor.'); return; }
+  var r = await window.SB.from('usuarios').update({status:'bloqueado'}).eq('id', p.usuarioId).select('id');
+  if(r.error){ toast('⚠️ Não foi possível: ' + r.error.message); return; }
+  if(!r.data || !r.data.length){
+    toast('⚠️ O banco não permitiu bloquear esta conta (seu perfil não tem essa permissão).');
+    return;
+  }
+  try{ await carregarContasApp(true); }catch(_){}
+  _mresRecarregarPessoas(uni);
+  toast('✓ Acesso de ' + (p.nome||'') + ' bloqueado.');
 }
 
 function _mresDepoisDeCadastrar(uni, nome){
@@ -7971,12 +8227,23 @@ function mresPreencherPessoas(lote){
   // e deixa-lo aberto com o lote antigo no titulo cadastraria no lugar errado.
   try{ mresFecharNovaPessoa(); }catch(_){}
   var btnNovo=$('mres-novo-btn');
+  var btnGerir=$('mres-gerir-btn');
+  // Trocar de unidade fecha o painel de pessoas pelo mesmo motivo do cadastro
+  // rapido: ele e sempre de UMA unidade.
+  try{ mresFecharGerir(); }catch(_){}
   if(!isAdm){
     wrap.style.display='none';
     if(btnNovo) btnNovo.style.display='none';
+    if(btnGerir) btnGerir.style.display='none';
     return;
   }
   if(btnNovo) btnNovo.style.display = String(lote||'').trim() ? '' : 'none';
+  /* O botao de gerir sai para quem NAO pode gravar o cadastro -- o supervisor
+     faz reserva para qualquer unidade, mas 'condominos' e 'unidades' sao
+     restritos a admin/gestor. Mostrar o botao a ele seria oferecer o que o
+     banco recusa. */
+  if(btnGerir) btnGerir.style.display =
+    (String(lote||'').trim() && mresPodeGerirPessoas()) ? '' : 'none';
   if(!String(lote||'').trim()){
     sel.innerHTML='<option value="">— selecione a unidade acima —</option>';
     wrap.style.display=''; return;
@@ -11163,9 +11430,13 @@ function encPessoasDaUnidade(uni){
   var conds=G('condominos')||{};
   var ch=function(n){ return _musrNorm(n); };
   if(u){
-    [u.proprietario,u.morador].forEach(function(cod){
+    [u.proprietario,u.morador].forEach(function(cod, iSlot){
       if(!cod) return;
       var c=conds[cod]; if(!c) return;
+      /* papel diz O QUE a pessoa e na unidade. Sem isso nao da para oferecer
+         "tirar da unidade": seria preciso adivinhar qual dos dois campos
+         limpar, e limpar o errado trocaria o proprietario por engano. */
+      var papel = iSlot===0 ? 'proprietario' : 'morador';
       var tel=c.telefone||((c.telefones&&c.telefones[0])?(c.telefones[0].numero||''):'');
       /* cod e dep dizem ONDE a pessoa está no cadastro: cod é o condômino,
          dep é a posição dela na lista de dependentes dele (-1 = é o próprio
@@ -11173,12 +11444,13 @@ function encPessoasDaUnidade(uni){
          volta na ficha certa. */
       if(c.nome && !vistos[ch(c.nome)]){
         vistos[ch(c.nome)]=pessoas.length+1;
-        pessoas.push({nome:c.nome, tel:tel, email:c.email||'', origem:'cadastro', cod:cod, dep:-1});
+        pessoas.push({nome:c.nome, tel:tel, email:c.email||'', origem:'cadastro', cod:cod, dep:-1, papel:papel});
       }
       (c.dependentes||[]).forEach(function(d, iDep){
         if(d.nome && !vistos[ch(d.nome)]){
           vistos[ch(d.nome)]=pessoas.length+1;
-          pessoas.push({nome:d.nome, tel:d.telefone||tel, email:d.email||c.email||'', origem:'cadastro', cod:cod, dep:iDep});
+          pessoas.push({nome:d.nome, tel:d.telefone||tel, email:d.email||c.email||'', origem:'cadastro',
+                        cod:cod, dep:iDep, papel:'dependente', titular:c.nome});
         }
       });
     });
@@ -11196,9 +11468,11 @@ function encPessoasDaUnidade(uni){
       if(a.tel && _soDigitos(a.tel) !== _soDigitos(ja.tel)) ja.telApp=a.tel;
       if(a.email && a.email !== ja.email) ja.emailApp=a.email;
       ja.temConta=true;
+      ja.usuarioId=a.id||'';
     } else {
       vistos[ch(nome)]=pessoas.length+1;
-      pessoas.push({nome:nome, tel:a.tel||'', email:a.email||'', origem:'app', temConta:true});
+      pessoas.push({nome:nome, tel:a.tel||'', email:a.email||'', origem:'app', temConta:true,
+                    papel:'app', usuarioId:a.id||''});
     }
   });
   return pessoas;
@@ -11222,7 +11496,8 @@ function _usrDaUnidade(uni){
 function carregarContasApp(forcar){
   if(Array.isArray(_usrCache) && !forcar) return Promise.resolve(_usrCache);
   if(!window.SB){ _usrCache = []; return Promise.resolve(_usrCache); }
-  return SB.from('usuarios').select('nome,email,tel,unidade,status')
+  // id tambem: e o que permite bloquear o acesso de quem saiu da unidade.
+  return window.SB.from('usuarios').select('id,nome,email,tel,unidade,status')
     .eq('condominio_id', _condAtual)
     .then(function(r){
       _usrCache = (r.data||[]).filter(function(u){ return (u.status||'ativo')==='ativo'; });

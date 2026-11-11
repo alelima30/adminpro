@@ -314,6 +314,81 @@ bloco('Telefone no cadastro: so anuncia depois do servidor', () => {
     /_sincronizarTabela\(cfg, v\)\.catch\(e=>console\.error/.test(src), false);
 });
 
+// ── Gerir as pessoas da unidade, de dentro da reserva ────────────────
+bloco('Papel de cada pessoa na unidade', () => {
+  /* Sem saber se a pessoa e proprietario ou morador, "tirar da unidade"
+     teria de adivinhar qual campo limpar -- e limpar o errado trocaria o
+     proprietario por engano. */
+  let CONTAS = [];
+  const api = carregar(
+    ['encPessoasDaUnidade', '_soDigitos', '_usrDaUnidade', '_musrNorm',
+     'condominoVinculos', 'unidadesSemCondomino'],
+    { getUnidades: () => ({ J11: { proprietario: 'C3', morador: 'C1' }, K09: { proprietario: 'C1' } }),
+      G: () => ({
+        C3: { nome: 'Dono Carlos' },
+        C1: { nome: 'Joao Antigo', dependentes: [{ nome: 'Filho do Joao' }] },
+      }),
+      _usrCache: [] },
+  );
+  const pessoas = (uni) => { global._usrCache = CONTAS; return api.encPessoasDaUnidade(uni); };
+
+  checa('cada pessoa diz o que e na unidade',
+    pessoas('J11').map((p) => p.papel + ':' + p.nome),
+    ['proprietario:Dono Carlos', 'morador:Joao Antigo', 'dependente:Filho do Joao']);
+  checa('e o dependente diz de quem',
+    pessoas('J11').filter((p) => p.papel === 'dependente')[0].titular, 'Joao Antigo');
+
+  // ── Vinculos: achar e limpar ──
+  const UNI = { J11: { proprietario: 'C3', morador: 'C1' }, K09: { proprietario: 'C1' } };
+  checa('acha a pessoa em todas as unidades',
+    api.condominoVinculos('C1', UNI).map((v) => v.unidade + '/' + v.papel),
+    ['J11/morador', 'K09/proprietario']);
+  checa('quem nao esta em lugar nenhum', api.condominoVinculos('C9', UNI).length, 0);
+
+  /* Excluir sem limpar os vinculos deixava a unidade apontando para um
+     codigo que nao existe mais, e a tela mostrava "C1" no lugar do nome. */
+  const lim = api.unidadesSemCondomino('C1', UNI);
+  checa('limpa os dois vinculos', lim.limpos, ['J11 (morador)', 'K09 (proprietário)']);
+  checa('e nao encosta no proprietario do J11', lim.unidades.J11.proprietario, 'C3');
+  checa('o original nao e alterado', UNI.J11.morador, 'C1');
+});
+
+bloco('Quem pode tirar pessoa da unidade', () => {
+  const src = lerFonte();
+  /* 'condominos' e 'unidades' sao modulos restritos a admin/gestor (RLS no
+     banco). O supervisor faz reserva para qualquer unidade, mas oferecer o
+     botao a ele seria prometer o que o banco recusa -- o mesmo erro da
+     caixinha de telefone. */
+  const pode = (resp) => carregar(['mresPodeGerirPessoas'],
+    { _podeGravarModulo: () => resp }).mresPodeGerirPessoas();
+  checa('quem grava o cadastro pode', pode(true), true);
+  checa('quem nao grava, nao pode', pode(false), false);
+  checa('e o botao segue a regra',
+    /btnGerir\.style\.display =\s*\n?\s*\(String\(lote\|\|''\)\.trim\(\) && mresPodeGerirPessoas\(\)\)/.test(src), true);
+
+  // Excluir limpa os vinculos ANTES de apagar a ficha.
+  checa('limpa os vinculos antes de apagar',
+    src.indexOf('var lim = unidadesSemCondomino(p.cod, getUnidades());')
+      < src.indexOf('delete co[p.cod];'), true);
+  // S() so acrescenta e atualiza: apagar no banco e um pedido proprio.
+  checa('e pede ao banco para apagar a linha',
+    /_excluirLinhaSB\('condominos', p\.cod\)/.test(src), true);
+
+  // Cada acao espera o servidor e desfaz se ele recusar.
+  ['mresTirarDaUnidade', 'mresExcluirDoCadastro', 'mresExcluirDependente'].forEach((f) => {
+    checa(f + ' espera o servidor', new RegExp('async function ' + f).test(src), true);
+  });
+  checa('tirar da unidade desfaz quando o servidor recusa',
+    /r\.ok === false[\s\S]{0,260}un\[slot\] = antes;/.test(src), true);
+
+  /* Bloquear a conta do app: um update que o RLS filtra nao da erro, so
+     atualiza zero linhas -- o mesmo caso da exclusao de reserva. */
+  checa('bloquear confere se mudou alguma linha',
+    /update\(\{status:'bloqueado'\}\)[\s\S]{0,120}\.select\('id'\)/.test(src), true);
+  checa('e zero linhas nao conta como sucesso',
+    /!r\.data \|\| !r\.data\.length[\s\S]{0,200}não permitiu bloquear/.test(src), true);
+});
+
 console.log('\n' + '-'.repeat(50));
 if (falhas) { console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }
 console.log('TODOS OS TESTES PASSARAM (' + ok + ')');
