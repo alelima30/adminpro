@@ -104,19 +104,27 @@ jobs:
           fi
           echo "Segredos encontrados. Seguindo para a publicacao."
 
+      # ATENCAO: "latest" significa que uma mudanca no CLI do Supabase vira
+      # falha aqui sem ninguem ter mexido no projeto -- foi o que aconteceu em
+      # 11/11/2026 (ver o --yes abaixo). Fixar uma versao conhecida evita isso,
+      # mas exige escolher o numero e conferir que o deploy passa com ela.
       - uses: supabase/setup-cli@v1
         with:
           version: latest
 
       # A pasta do codigo chama "notificar", mas a funcao publicada
       # tem o slug "dynamic-handler" — por isso a copia antes.
+      # --yes em todos: a partir de 11/11/2026 o CLI pede confirmacao antes de
+      # publicar e, sem terminal, aborta com "Confirmation required ... Nothing
+      # was changed" e derruba o job. Nada era publicado, e o erro so aparecia
+      # no log do GitHub Actions.
       - name: Publicar funcao dynamic-handler (notificar)
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           mkdir -p supabase/functions/dynamic-handler
           cp supabase/functions/notificar/index.ts supabase/functions/dynamic-handler/index.ts
-          supabase functions deploy dynamic-handler --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+          supabase functions deploy dynamic-handler --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" --yes
 
       # Mesma coisa: a pasta e "lembretes" (plural), a funcao e "lembrete".
       - name: Publicar funcao lembrete
@@ -125,13 +133,13 @@ jobs:
         run: |
           mkdir -p supabase/functions/lembrete
           cp supabase/functions/lembretes/index.ts supabase/functions/lembrete/index.ts
-          supabase functions deploy lembrete --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+          supabase functions deploy lembrete --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" --yes
 
       # Assistente Condominio: pasta e slug tem o mesmo nome.
       - name: Publicar funcao assistente
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: supabase functions deploy assistente --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+        run: supabase functions deploy assistente --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" --yes
 
       - name: Resumo
         run: echo "Funcoes publicadas. Confira em Supabase -> Edge Functions."
