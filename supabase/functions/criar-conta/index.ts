@@ -42,21 +42,31 @@ const LIMITE_POR_IP = 3;
 
    Ligar TUDO assusta: o menu vira uma parede de telas vazias, e quem esta
    avaliando o sistema em sete dias nao sabe por onde comecar. Deixar tudo
-   desligado e pior ainda -- parece quebrado. Entao entra o caminho que o
-   sistema faz melhor hoje (reservas, com os espacos e o painel) mais o
-   cadastro, que e o que ele precisa preencher primeiro. O resto ele liga
-   quando quiser. */
+   desligado e pior ainda -- parece quebrado.
+
+   Entao entra o caminho completo do que o sistema faz melhor hoje: o cadastro
+   (unidades, localizacoes, condominos, classificacoes) e as reservas. O resto
+   fica escondido, e o dono liga por condominio quando quiser.
+
+   'reservas' ja traz junto as telas de Relatorios e Criar espacos -- elas nao
+   sao modulos proprios, sao paineis daquele modulo (ver painelModulo).
+   'portaria' e o Painel de Reservas.
+
+   CONFIGURACOES e USUARIOS ficam ligados por serem o painel de controle do
+   que esta acima, nao recursos a parte: sem Configuracoes nao ha como definir
+   horario, taxa nem Pix das reservas, e sem Usuarios nao ha como aprovar o
+   morador que se cadastrou pelo link do convite. Desligados, os modulos da
+   lista existiriam sem poder ser operados. */
 const MODULOS_INICIAIS: Record<string, boolean> = {
   dashboard: true,
-  reservas: true,
-  portaria: true,
-  condominos: true,
   unidades: true,
   localizacoes: true,
-  comunicados: true,
-  infogerais: true,
-  usuarios: true,
+  condominos: true,
+  classificacoes: true,
+  reservas: true,
+  portaria: true,
   configuracoes: true,
+  usuarios: true,
 };
 
 function J(corpo: unknown, status = 200) {

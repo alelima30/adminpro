@@ -159,9 +159,24 @@ bloco('Criar conta: o que nao pode dar errado', () => {
     /já tem acesso ao AdminPro[\s\S]{0,80}Esqueci minha senha/.test(FUNC), true);
 
   // Nem tudo ligado, nem tudo desligado.
-  checa('o condominio novo nasce com modulos escolhidos',
-    /MODULOS_INICIAIS/.test(FUNC) && /reservas: true/.test(FUNC) && /unidades: true/.test(FUNC), true);
-  checa('e a escolha esta explicada', /Ligar TUDO assusta/.test(FUNC), true);
+  const ligados = (FUNC.match(/^const MODULOS_INICIAIS[\s\S]*?^\};/m) || [''])[0]
+    .split('\n').map((l) => (l.match(/^\s*([a-z_]+): true,/) || [])[1]).filter(Boolean);
+  checa('o condominio novo nasce com o cadastro e as reservas',
+    ligados,
+    ['dashboard', 'unidades', 'localizacoes', 'condominos', 'classificacoes',
+     'reservas', 'portaria', 'configuracoes', 'usuarios']);
+  /* Relatorios e Criar espacos NAO entram na lista: nao sao modulos, sao
+     telas do modulo reservas (ver painelModulo). Lista-las aqui criaria
+     chaves que o sistema ignora, e alguem perderia tempo procurando o
+     defeito. */
+  checa('relatorios e espacos nao viram modulo',
+    /relatorios: true|espacos: true/.test(FUNC), false);
+  /* Configuracoes e Usuarios sao o painel de controle do resto: sem eles nao
+     ha como definir horario e taxa das reservas, nem aprovar o morador que
+     se cadastrou pelo link. */
+  checa('e o painel de controle vem junto, senao o resto nao opera',
+    /CONFIGURACOES e USUARIOS ficam ligados/.test(FUNC), true);
+  checa('a escolha esta explicada', /Ligar TUDO assusta/.test(FUNC), true);
 });
 
 // ── A pagina publica ──────────────────────────────────────────────────
