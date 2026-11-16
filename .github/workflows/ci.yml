@@ -42,6 +42,9 @@ jobs:
       - name: Testes do autoatendimento
         run: node tests/autoatendimento.test.js
 
+      - name: Testes da importacao em massa
+        run: node tests/importacao.test.js
+
       - name: Assinaturas (a conta que vira nota fiscal)
         run: node tests/assinaturas.test.js
 

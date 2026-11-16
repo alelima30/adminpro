@@ -3225,7 +3225,8 @@ html.ambiente-ensaio body{padding-top:28px}
           </div>
           <div class="ph-actions">
             <span id="uni-count" style="font-size:12px;color:var(--text-3);margin-right:8px"></span>
-            <!-- BOTÃO TEMPORÁRIO DE IMPORTAÇÃO (remover após importar) -->
+            <button class="btn btn-ghost" data-acesso="admin,gestor"
+                    onclick="impAbrir('unidades')"><i class="fa-solid fa-file-import"></i> Importar</button>
             <button class="btn btn-gold" id="uni-btn-novo" onclick="uniNovaUnidade()">+ Nova Unidade</button>
           </div>
         </div>
@@ -3622,6 +3623,8 @@ html.ambiente-ensaio body{padding-top:28px}
           </div>
           <div class="ph-actions">
             <span id="con-count" style="font-size:12px;color:var(--text-3)"></span>
+            <button class="btn btn-ghost" data-acesso="admin,gestor"
+                    onclick="impAbrir('pessoas')"><i class="fa-solid fa-file-import"></i> Importar</button>
           </div>
         </div>
 
@@ -5431,6 +5434,62 @@ html.ambiente-ensaio body{padding-top:28px}
 
      Sai pelo X ou salvando. O evento é parado aqui para que o clique também
      não vaze para a tela atrás da janela. -->
+<!-- Importação em massa. Um modal só para unidades e pessoas: o que muda
+     entre os dois é o texto e as regras, não o caminho (colar → conferir →
+     gravar). Dois modais iguais seriam duas chances de corrigir um e
+     esquecer o outro. -->
+<div class="modal-ov" id="m-import" onclick="event.stopPropagation()">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-head">
+      <div class="modal-title"><i class="fa-solid fa-file-import" style="color:var(--gold)"></i>
+        <span id="imp-titulo">Importar</span></div>
+      <button class="modal-close-x" onclick="impFechar()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Gerador: só para unidades -->
+      <div id="imp-gerador" style="display:none;background:var(--ink-3);border:1px solid var(--border);
+           border-radius:11px;padding:13px 14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:4px">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar por padrão</div>
+        <div style="font-size:11.5px;color:var(--text-3);line-height:1.5;margin-bottom:10px">
+          A maior parte dos condomínios é assim. Preencha e clique em Gerar —
+          os códigos caem na caixa abaixo, onde você ainda pode mexer.
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+          <div class="fg" style="flex:1 1 90px"><label>Prefixo</label>
+            <input type="text" id="imp-g-pre" placeholder="A" maxlength="6"></div>
+          <div class="fg" style="flex:1 1 70px"><label>De</label>
+            <input type="number" id="imp-g-de" value="1" min="0"></div>
+          <div class="fg" style="flex:1 1 70px"><label>Até</label>
+            <input type="number" id="imp-g-ate" value="20" min="0"></div>
+          <div class="fg" style="flex:1 1 80px"><label>Dígitos</label>
+            <input type="number" id="imp-g-dig" value="2" min="1" max="5"></div>
+          <div class="fg" style="flex:1 1 90px"><label>Sufixo</label>
+            <input type="text" id="imp-g-suf" placeholder="(nenhum)" maxlength="6"></div>
+          <button class="btn btn-ghost btn-sm" onclick="impGerar()" style="margin-bottom:2px">Gerar</button>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label id="imp-label">Cole a lista</label>
+        <textarea id="imp-texto" rows="9" oninput="impConferir()"
+                  style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6"
+                  placeholder="uma por linha"></textarea>
+        <div id="imp-ajuda" style="font-size:11.5px;color:var(--text-3);margin-top:6px;line-height:1.6"></div>
+      </div>
+
+      <!-- O que VAI acontecer, antes de acontecer -->
+      <div id="imp-previa" style="display:none;margin-top:14px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="impFechar()">Cancelar</button>
+      <button class="btn btn-gold" id="imp-btn-gravar" onclick="impGravar()" disabled>
+        <i class="fa-solid fa-check"></i> <span id="imp-btn-txt">Importar</span></button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-ov" id="m-res" onclick="event.stopPropagation()">
   <div class="modal" style="max-width:680px" onclick="event.stopPropagation()">
     <button class="modal-close-x" onclick="fecharModalRes()" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
@@ -9028,6 +9087,419 @@ function renderUnidades(){
 /* importarDadosIniciais() saiu junto com os dados que ela importava.
    Nenhum botao a chamava — era a rotina de carga inicial de 2026, ja
    executada. Sem ela e sem o bloco, nada mais depende daquele JSON. */
+
+/* ══════════════════════════════════════════════════════════════════════
+   IMPORTACAO EM MASSA — unidades e pessoas
+
+   Um condominio de 300 unidades nao vai preencher 300 formularios. Sem isto,
+   quem se cadastra sozinho abandona o sistema no primeiro dia -- a tela de
+   cadastro publica nao serve de nada se o que vem depois e inviavel.
+
+   A regra que atravessa tudo aqui: IMPORTAR NUNCA SOBRESCREVE EM SILENCIO.
+   Quem cola uma lista nao sabe o que ja existe no sistema. Entao a leitura e
+   o PLANO sao separados da gravacao: primeiro mostramos o que vai acontecer
+   (quantas entram, quantas ja existem, o que esta errado e em qual linha), e
+   so depois, com a pessoa ciente, grava.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Linhas uteis: sem vazias, sem espaco sobrando, e sem o cabecalho que vem
+   junto quando a lista sai de uma planilha. */
+function impLinhas(texto){
+  return String(texto||'').split(/\r?\n/)
+    .map(function(l){ return l.trim(); })
+    .filter(function(l){ return l.length > 0; })
+    .filter(function(l, i){
+      if(i > 0) return true;
+      // Cabecalho: a primeira linha falando dos campos em vez de ser um deles.
+      return !/^(cod|codigo|unidade|nome)\s*[;,\t]/i.test(l);
+    });
+}
+
+/* Ponto e virgula, virgula ou tabulacao -- quem cola de planilha traz
+   qualquer um dos tres, e exigir um so seria exigir que a pessoa soubesse
+   qual. Vazio no fim nao conta como campo. */
+function impCampos(linha){
+  return String(linha||'').split(/[;,\t]/).map(function(c){ return c.trim(); });
+}
+
+// ── Unidades ─────────────────────────────────────────────────────────
+
+/* Codigo de unidade: letras e numeros, sem espaco. "J 11" vira "J11", que e
+   o que a pessoa quis dizer; "Casa do Zé" nao e codigo e vira erro. */
+function impUnidadeCod(v){
+  return String(v||'').toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9-]/g,'');
+}
+
+function impUnidadesLer(texto){
+  var itens = [], erros = [];
+  impLinhas(texto).forEach(function(linha, i){
+    var c = impCampos(linha);
+    var cod = impUnidadeCod(c[0]);
+    if(!cod){ erros.push({ linha:i+1, texto:linha, motivo:'sem código de unidade' }); return; }
+    if(cod.length > 20){ erros.push({ linha:i+1, texto:linha, motivo:'código longo demais' }); return; }
+    itens.push({ cod:cod, rua:(c[1]||'').trim(), tipo:(c[2]||'').trim() });
+  });
+  return { itens:itens, erros:erros };
+}
+
+/* Gerador por padrao: "A", de 1 a 20, com 2 digitos -> A01..A20.
+
+   Existe porque a maior parte dos condominios e assim, e ditar 300 codigos
+   um por um e justamente o trabalho que esta tela veio evitar. */
+function impUnidadesGerar(prefixo, de, ate, digitos, sufixo){
+  var p = String(prefixo||'').toUpperCase().trim();
+  var s = String(sufixo||'').toUpperCase().trim();
+  var a = parseInt(de,10), b = parseInt(ate,10);
+  var d = parseInt(digitos,10); if(!(d >= 1)) d = 2;
+  if(!(a >= 0) || !(b >= 0) || b < a) return { cods:[], erro:'Informe um intervalo válido (de/até).' };
+  if(b - a > 2000) return { cods:[], erro:'Intervalo grande demais (máximo 2000 por vez).' };
+  var cods = [];
+  for(var n = a; n <= b; n++) cods.push(p + String(n).padStart(d,'0') + s);
+  return { cods:cods, erro:'' };
+}
+
+/* O plano: o que cada linha vai causar, ANTES de causar.
+
+   Unidade que ja existe nao e tocada. Poderia atualizar o endereco, mas
+   atualizar em massa um cadastro que alguem conferiu a mao e o jeito mais
+   rapido de perder trabalho de verdade -- e a pessoa nem saberia o que mudou. */
+function impUnidadesPlano(itens, atuais){
+  var existentes = atuais || {};
+  var vistos = {}, novas = [], jaExistem = [], repetidas = [];
+  (itens||[]).forEach(function(it){
+    if(vistos[it.cod]){ repetidas.push(it.cod); return; }
+    vistos[it.cod] = true;
+    if(existentes[it.cod]) jaExistem.push(it.cod);
+    else novas.push(it);
+  });
+  return { novas:novas, jaExistem:jaExistem, repetidas:repetidas };
+}
+
+/* Aplica o plano sobre uma copia, e devolve o objeto novo. Nao grava: quem
+   grava e quem sabe esperar o servidor e desfazer. */
+function impUnidadesAplicar(novas, atuais){
+  var out = JSON.parse(JSON.stringify(atuais || {}));
+  (novas||[]).forEach(function(it){
+    out[it.cod] = { tipo:it.tipo||'Casa', rua:it.rua||'', numero:'', bairro:'',
+                    cidade:'', estado:'', proprietario:'', morador:'' };
+  });
+  return out;
+}
+
+// ── Pessoas ──────────────────────────────────────────────────────────
+
+/* Papel escrito como a pessoa escreveria. "Inquilino" e "morador" sao a
+   mesma coisa aqui: o campo `morador` da unidade e quem MORA, dono ou nao. */
+function impPapel(v){
+  var t = _musrNorm(v || '');
+  if(/propriet|dono|titular/.test(t)) return 'proprietario';
+  if(/depend|filho|filha|conjuge|esposa|marido/.test(t)) return 'dependente';
+  if(/morador|inquilin|locatar|resid/.test(t)) return 'morador';
+  return '';
+}
+
+function impPessoasLer(texto){
+  var itens = [], erros = [];
+  impLinhas(texto).forEach(function(linha, i){
+    var c = impCampos(linha);
+    var nome = (c[0]||'').trim();
+    var uni  = impUnidadeCod(c[1]);
+    var papel = impPapel(c[2]);
+    if(!nome){ erros.push({ linha:i+1, texto:linha, motivo:'sem nome' }); return; }
+    if(nome.length < 3){ erros.push({ linha:i+1, texto:linha, motivo:'nome curto demais' }); return; }
+    if(!uni){ erros.push({ linha:i+1, texto:linha, motivo:'sem unidade' }); return; }
+    if(!papel){ erros.push({ linha:i+1, texto:linha, motivo:'papel não reconhecido (use proprietário, inquilino ou dependente)' }); return; }
+    itens.push({ nome:nome, unidade:uni, papel:papel,
+                 cpf:_soDigitos(c[3]||''), tel:(c[4]||'').trim(), email:(c[5]||'').trim().toLowerCase() });
+  });
+  return { itens:itens, erros:erros };
+}
+
+/* O plano das pessoas. Mais delicado que o das unidades, porque aqui uma
+   linha errada nao cria so um registro a mais: ela pode trocar o dono de um
+   lote, ou pendurar um dependente na familia errada.
+
+   Por isso tudo o que nao for obvio vira CONFLITO e fica de fora, listado
+   com o motivo, em vez de ser resolvido por adivinhacao. */
+function impPessoasPlano(itens, condominos, unidades){
+  var conds = condominos || {}, unis = unidades || {};
+  var novas = [], dependentes = [], conflitos = [];
+
+  // Quem ja esta no cadastro, por nome e por CPF.
+  var porNome = {}, porCpf = {};
+  Object.keys(conds).forEach(function(cod){
+    var c = conds[cod] || {};
+    if(c.nome) porNome[_musrNorm(c.nome)] = cod;
+    var cp = _soDigitos(c.cpf);
+    if(cp) porCpf[cp] = cod;
+  });
+
+  // Titulares primeiro: o dependente precisa de alguem em quem se pendurar,
+  // e esse alguem pode estar na mesma lista, logo abaixo dele.
+  var titulares = (itens||[]).filter(function(i){ return i.papel !== 'dependente'; });
+  var deps      = (itens||[]).filter(function(i){ return i.papel === 'dependente'; });
+
+  var ocupado = {};   // unidade|papel -> nome que vai ficar
+  titulares.forEach(function(it){
+    if(!unis[it.unidade]){
+      conflitos.push({ nome:it.nome, motivo:'a unidade ' + it.unidade + ' não existe no cadastro' });
+      return;
+    }
+    if(it.cpf && it.cpf.length !== 11){
+      conflitos.push({ nome:it.nome, motivo:'CPF inválido' });
+      return;
+    }
+    var jaCpf = it.cpf && porCpf[it.cpf];
+    if(jaCpf && _musrNorm((conds[jaCpf]||{}).nome) !== _musrNorm(it.nome)){
+      conflitos.push({ nome:it.nome, motivo:'o CPF já está em ' + (conds[jaCpf]||{}).nome });
+      return;
+    }
+    var chave = it.unidade + '|' + it.papel;
+    if(ocupado[chave]){
+      conflitos.push({ nome:it.nome, motivo:'a lista põe duas pessoas como ' + it.papel + ' do ' + it.unidade });
+      return;
+    }
+    // Lote que ja tem gente nesse papel: a importacao NAO troca por conta
+    // propria. Trocar morador e uma decisao, e tem tela propria para isso.
+    var atual = unis[it.unidade][it.papel];
+    if(atual && _musrNorm((conds[atual]||{}).nome) !== _musrNorm(it.nome)){
+      conflitos.push({ nome:it.nome,
+                       motivo:'o ' + it.unidade + ' já tem ' + ((conds[atual]||{}).nome || atual) + ' como ' + it.papel });
+      return;
+    }
+    ocupado[chave] = it.nome;
+    novas.push({ it:it, reaproveita: porNome[_musrNorm(it.nome)] || jaCpf || '' });
+  });
+
+  deps.forEach(function(it){
+    if(!unis[it.unidade]){
+      conflitos.push({ nome:it.nome, motivo:'a unidade ' + it.unidade + ' não existe no cadastro' });
+      return;
+    }
+    // Titular da unidade: quem mora manda; sem morador, o proprietario.
+    var cod = unis[it.unidade].morador || unis[it.unidade].proprietario || '';
+    var naLista = ocupado[it.unidade + '|morador'] || ocupado[it.unidade + '|proprietario'] || '';
+    if(!cod && !naLista){
+      conflitos.push({ nome:it.nome,
+                       motivo:'o ' + it.unidade + ' não tem morador nem proprietário para pendurar o dependente' });
+      return;
+    }
+    dependentes.push({ it:it, titularCod:cod, titularNome:naLista });
+  });
+
+  return { novas:novas, dependentes:dependentes, conflitos:conflitos };
+}
+
+/* ── A tela da importacao ─────────────────────────────────────────── */
+
+var _impModo = 'unidades';   // 'unidades' | 'pessoas'
+var _impPlano = null;        // o que a conferencia apurou
+
+function impAbrir(modo){
+  if(!mresPodeGerirPessoas()){
+    toast('⚠️ Só administrador ou gestor pode importar cadastros.');
+    return;
+  }
+  _impModo = (modo === 'pessoas') ? 'pessoas' : 'unidades';
+  _impPlano = null;
+  if($('imp-texto')) $('imp-texto').value = '';
+  if($('imp-previa')) $('imp-previa').style.display = 'none';
+  if($('imp-btn-gravar')) $('imp-btn-gravar').disabled = true;
+
+  var ehUni = _impModo === 'unidades';
+  $('imp-titulo').textContent = ehUni ? 'Importar unidades' : 'Importar pessoas';
+  $('imp-gerador').style.display = ehUni ? '' : 'none';
+  $('imp-label').textContent = ehUni ? 'Cole a lista de unidades' : 'Cole a lista de pessoas';
+  $('imp-btn-txt').textContent = ehUni ? 'Importar unidades' : 'Importar pessoas';
+  $('imp-texto').placeholder = ehUni
+    ? 'A01;Alameda das Flores\nA02;Alameda das Flores\nA03'
+    : 'Carlos Dono;A01;proprietário;52998224725;11988887777\nAna Lima;A01;inquilino\nLara Dono;A01;filha';
+  $('imp-ajuda').innerHTML = ehUni
+    ? 'Uma por linha: <b>código</b> e, se quiser, <b>rua</b>. '
+      + 'Serve ponto e vírgula, vírgula ou o que vier colado da planilha.'
+    : 'Uma por linha: <b>nome</b>; <b>unidade</b>; <b>papel</b>; e, se quiser, '
+      + '<b>CPF</b>; <b>WhatsApp</b>; <b>e-mail</b>.<br>'
+      + 'Papel pode ser proprietário, inquilino (ou morador) ou dependente. '
+      + '<b>As unidades precisam existir antes</b> — importe as unidades primeiro.';
+  // O padrao da casa: a classe 'open' mais o recalculo da trava de rolagem.
+  $('m-import').classList.add('open');
+  try{ _sincronizarTravaRolagem(); }catch(_){}
+  setTimeout(function(){ try{ $('imp-texto').focus(); }catch(_){} }, 120);
+}
+function impFechar(){ closeModal('m-import'); }
+
+function impGerar(){
+  var r = impUnidadesGerar($('imp-g-pre').value, $('imp-g-de').value,
+                           $('imp-g-ate').value, $('imp-g-dig').value, $('imp-g-suf').value);
+  if(r.erro){ toast('⚠️ ' + r.erro); return; }
+  // Acrescenta ao que ja esta la: um condominio com blocos A e B gera duas
+  // vezes, e apagar o primeiro resultado seria um susto.
+  var atual = ($('imp-texto').value || '').trim();
+  $('imp-texto').value = (atual ? atual + '\n' : '') + r.cods.join('\n');
+  impConferir();
+}
+
+/* Conferencia ao vivo: a pessoa ve o que vai acontecer enquanto digita, em
+   vez de descobrir depois de mandar. */
+function impConferir(){
+  var texto = $('imp-texto') ? $('imp-texto').value : '';
+  var previa = $('imp-previa'), botao = $('imp-btn-gravar');
+  if(!previa || !botao) return;
+  if(!String(texto).trim()){
+    previa.style.display = 'none'; botao.disabled = true; _impPlano = null; return;
+  }
+
+  var html = '', podeGravar = false;
+  var caixa = function(cor, titulo, corpo){
+    return '<div style="border-left:3px solid ' + cor + ';background:var(--ink-3);border-radius:8px;'
+         + 'padding:9px 12px;margin-bottom:8px">'
+         + '<div style="font-size:12.5px;font-weight:700">' + titulo + '</div>'
+         + (corpo ? '<div style="font-size:11.5px;color:var(--text-2);margin-top:4px;line-height:1.6">' + corpo + '</div>' : '')
+         + '</div>';
+  };
+  var lista = function(arr, limite){
+    var l = arr.slice(0, limite || 12).map(escU).join(', ');
+    return l + (arr.length > (limite || 12) ? ' … (+' + (arr.length - (limite || 12)) + ')' : '');
+  };
+
+  if(_impModo === 'unidades'){
+    var lido = impUnidadesLer(texto);
+    var p = impUnidadesPlano(lido.itens, getUnidades());
+    _impPlano = { tipo:'unidades', plano:p };
+    if(p.novas.length) html += caixa('var(--green-l)', p.novas.length + ' unidade(s) serão criadas',
+                                     lista(p.novas.map(function(n){ return n.cod; })));
+    if(p.jaExistem.length) html += caixa('var(--text-3)', p.jaExistem.length + ' já existem e não serão alteradas',
+                                         lista(p.jaExistem));
+    if(p.repetidas.length) html += caixa('var(--amber)', p.repetidas.length + ' repetida(s) na lista — entram uma vez',
+                                         lista(p.repetidas));
+    if(lido.erros.length) html += caixa('var(--red)', lido.erros.length + ' linha(s) com problema',
+      lido.erros.slice(0, 8).map(function(e){ return 'linha ' + e.linha + ': ' + escU(e.motivo); }).join('<br>'));
+    podeGravar = p.novas.length > 0;
+  } else {
+    var lidoP = impPessoasLer(texto);
+    var pp = impPessoasPlano(lidoP.itens, getCondominos(), getUnidades());
+    _impPlano = { tipo:'pessoas', plano:pp };
+    if(pp.novas.length) html += caixa('var(--green-l)', pp.novas.length + ' pessoa(s) serão vinculadas',
+      pp.novas.map(function(n){
+        return escU(n.it.nome) + ' — ' + (n.it.papel === 'proprietario' ? 'proprietário' : 'morador')
+             + ' do ' + escU(n.it.unidade) + (n.reaproveita ? ' <i>(já no cadastro)</i>' : '');
+      }).slice(0, 12).join('<br>'));
+    if(pp.dependentes.length) html += caixa('var(--green-l)', pp.dependentes.length + ' dependente(s)',
+      pp.dependentes.map(function(d){
+        return escU(d.it.nome) + ' — de ' + escU(d.titularNome || condominoNome(d.titularCod));
+      }).slice(0, 12).join('<br>'));
+    if(pp.conflitos.length) html += caixa('var(--amber)', pp.conflitos.length + ' ficam de fora',
+      pp.conflitos.map(function(c){ return escU(c.nome) + ': ' + escU(c.motivo); }).slice(0, 10).join('<br>'));
+    if(lidoP.erros.length) html += caixa('var(--red)', lidoP.erros.length + ' linha(s) com problema',
+      lidoP.erros.slice(0, 8).map(function(e){ return 'linha ' + e.linha + ': ' + escU(e.motivo); }).join('<br>'));
+    podeGravar = (pp.novas.length + pp.dependentes.length) > 0;
+  }
+
+  previa.innerHTML = html || caixa('var(--text-3)', 'Nada a importar nesta lista.', '');
+  previa.style.display = '';
+  botao.disabled = !podeGravar;
+}
+
+/* Grava. Espera o servidor e desfaz se ele recusar -- importacao que mente e
+   pior que formulario: sao centenas de registros de uma vez. */
+async function impGravar(){
+  if(!_impPlano){ return; }
+  var botao = $('imp-btn-gravar');
+  botao.disabled = true;
+  var txtAntes = $('imp-btn-txt').textContent;
+  $('imp-btn-txt').textContent = 'Gravando...';
+  try{
+    if(_impPlano.tipo === 'unidades') await _impGravarUnidades(_impPlano.plano);
+    else                              await _impGravarPessoas(_impPlano.plano);
+  }catch(e){
+    console.error('importacao', e);
+    toast('⚠️ Não consegui importar: ' + (e && e.message ? e.message : 'erro inesperado'));
+  }finally{
+    $('imp-btn-txt').textContent = txtAntes;
+    botao.disabled = false;
+  }
+}
+
+async function _impGravarUnidades(p){
+  if(!p.novas.length){ toast('Nada a importar.'); return; }
+  var antes = getUnidades();
+  var depois = impUnidadesAplicar(p.novas, antes);
+  var r = await S('unidades', depois);
+  if(r && r.ok === false){
+    try{ DB_CACHE['unidades'] = antes; localStorage.setItem('apvc_unidades', JSON.stringify(antes)); }catch(_){}
+    toast('⚠️ O servidor recusou: ' + (r.erro || 'erro') + '. Nada foi importado.');
+    return;
+  }
+  try{ renderUnidades(); popUnidadeSelects(); }catch(_){}
+  impFechar();
+  toast('✓ ' + p.novas.length + ' unidade(s) importada(s).');
+}
+
+async function _impGravarPessoas(p){
+  var condsAntes = getCondominos(), unisAntes = getUnidades();
+  var conds = JSON.parse(JSON.stringify(condsAntes));
+  var unis  = JSON.parse(JSON.stringify(unisAntes));
+  var proxNum = conProximoCodigoNum();
+  var criadas = 0, vinculadas = 0, deps = 0;
+  var codPorNome = {};
+
+  // Titulares. Reaproveita a ficha quando a pessoa ja esta no cadastro --
+  // criar outra seria exatamente a duplicata que o CPF veio evitar.
+  p.novas.forEach(function(n){
+    var it = n.it, cod = n.reaproveita;
+    if(!cod){
+      cod = conFormatCodigo(proxNum++);
+      conds[cod] = { nome:it.nome, cpf:it.cpf||'', telefone:it.tel||'', email:it.email||'',
+                     tipoPessoa:'fisica', rg:'', cnpj:'', ie:'', nascimento:'', sexo:'',
+                     nacionalidade:'', profissao:'', classificacao:'', foto:'',
+                     telefones: it.tel ? [{numero:it.tel, tipo:'Celular'}] : [],
+                     dependentes:[] };
+      criadas++;
+    }
+    codPorNome[_musrNorm(it.nome)] = cod;
+    if(unis[it.unidade]){ unis[it.unidade][it.papel] = cod; vinculadas++; }
+  });
+
+  // Dependentes, dentro da ficha do titular.
+  p.dependentes.forEach(function(d){
+    var cod = d.titularCod || codPorNome[_musrNorm(d.titularNome||'')] || '';
+    if(!cod || !conds[cod]) return;
+    if(!Array.isArray(conds[cod].dependentes)) conds[cod].dependentes = [];
+    var ja = conds[cod].dependentes.some(function(x){ return _musrNorm(x.nome) === _musrNorm(d.it.nome); });
+    if(ja) return;
+    conds[cod].dependentes.push({
+      codigo: cod + '-' + String(conds[cod].dependentes.length + 1).padStart(2,'0'),
+      nome: d.it.nome, parentesco:'', cpf: d.it.cpf||'', rg:'', nascimento:'',
+      telefone: d.it.tel||'', email: d.it.email||'', foto:''
+    });
+    deps++;
+  });
+
+  if(!criadas && !vinculadas && !deps){ toast('Nada a importar.'); return; }
+
+  /* Duas gravacoes, e a segunda pode falhar depois de a primeira dar certo.
+     Por isso os condominos vao primeiro: unidade apontando para uma ficha que
+     nao existe mostra o codigo no lugar do nome -- o mesmo fantasma de antes.
+     Ficha sem vinculo, ao contrario, e so uma pessoa cadastrada. */
+  var r1 = await S('condominos', conds);
+  if(r1 && r1.ok === false){
+    try{ DB_CACHE['condominos'] = condsAntes; localStorage.setItem('apvc_condominos', JSON.stringify(condsAntes)); }catch(_){}
+    toast('⚠️ O servidor recusou: ' + (r1.erro || 'erro') + '. Nada foi importado.');
+    return;
+  }
+  var r2 = await S('unidades', unis);
+  if(r2 && r2.ok === false){
+    try{ DB_CACHE['unidades'] = unisAntes; localStorage.setItem('apvc_unidades', JSON.stringify(unisAntes)); }catch(_){}
+    toast('⚠️ As pessoas entraram, mas o vínculo com as unidades foi recusado: '
+        + (r2.erro || 'erro') + '. Refaça a importação para vincular.');
+    try{ renderCondominos(); }catch(_){}
+    return;
+  }
+
+  try{ renderCondominos(); renderUnidades(); popUnidadeSelects(); }catch(_){}
+  impFechar();
+  toast('✓ ' + criadas + ' ficha(s) nova(s), ' + vinculadas + ' vínculo(s) e ' + deps + ' dependente(s).');
+}
 
 function salvarUnidade(){
   popUnidadeSelects();
