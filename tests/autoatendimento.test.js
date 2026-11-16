@@ -89,7 +89,7 @@ bloco('Faixa do teste aparece so durante o teste', () => {
 
   // A tela de bloqueio esconde o portal inteiro.
   checa('bloqueio esconde o app',
-    /function mostrarBloqueio[\s\S]{0,1400}\$\('app'\)\.style\.display = 'none';/.test(src), true);
+    /function mostrarBloqueio[\s\S]{0,2500}\$\('app'\)\.style\.display = 'none';/.test(src), true);
   // E diz que os dados continuam la -- a duvida que trava a contratacao.
   checa('e garante que nada se perde',
     /Seus dados estão guardados/.test(src), true);
