@@ -45,6 +45,9 @@ jobs:
       - name: Testes da importacao em massa
         run: node tests/importacao.test.js
 
+      - name: Testes do painel analitico
+        run: node tests/dashboard.test.js
+
       - name: Assinaturas (a conta que vira nota fiscal)
         run: node tests/assinaturas.test.js
 
