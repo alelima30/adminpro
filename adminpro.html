@@ -2925,7 +2925,18 @@ html.ambiente-ensaio body{padding-top:28px}
       </p>
 
       <p style="margin-top:10px;font-size:13px;color:#7B90B5;text-align:center">
-        Não tem conta? <a href="cadastro.html" style="color:#E87722;text-decoration:none;font-weight:600">Solicite seu acesso →</a>
+        Já é de um condomínio que usa o AdminPro?
+        <a href="cadastro.html" style="color:#E87722;text-decoration:none;font-weight:600">Solicite seu acesso →</a>
+      </p>
+
+      <!-- A porta de entrada de um condomínio NOVO. Separada da de cima de
+           propósito: "solicitar acesso" é para o morador de quem já é
+           cliente; esta é para quem ainda não é e vem conhecer. -->
+      <p style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);
+                font-size:13px;color:#7B90B5;text-align:center">
+        Seu condomínio ainda não usa o AdminPro?<br>
+        <a href="comecar.html" style="color:#E87722;text-decoration:none;font-weight:700">
+          Criar conta — 7 dias grátis, sem cartão →</a>
       </p>
 
       <p class="login-copy">
@@ -2938,6 +2949,30 @@ html.ambiente-ensaio body{padding-top:28px}
 </div>
 
 <!-- ═══ APP ═══ -->
+<!-- Teste acabou: ocupa o lugar do portal inteiro. -->
+<div id="bloqueio-screen" style="display:none;position:fixed;inset:0;z-index:99999;
+     background:linear-gradient(160deg,#1B2B5E,#0D1629);align-items:center;justify-content:center;padding:28px 16px">
+  <div style="width:100%;max-width:440px;background:#1A2847;border:1px solid rgba(255,255,255,0.10);
+              border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,0.45);padding:34px 30px;text-align:center">
+    <div style="font-size:42px;color:#E87722;margin-bottom:12px"><i class="fa-solid fa-hourglass-end"></i></div>
+    <div style="font-size:22px;font-weight:800;margin-bottom:8px">Admin<span style="color:#E87722">Pro</span></div>
+    <div id="bloqueio-texto" style="font-size:14px;color:#8A9BBB;line-height:1.6;margin-bottom:16px"></div>
+    <div style="font-size:13px;color:#8A9BBB;line-height:1.6;background:rgba(40,200,130,0.10);
+                border:1px solid rgba(40,200,130,0.28);border-radius:10px;padding:12px 14px;text-align:left">
+      <b style="color:#28C882">Seus dados estão guardados.</b> Unidades, moradores e reservas continuam
+      exatamente como você deixou. Assim que a contratação for concluída, tudo volta no mesmo lugar.
+    </div>
+    <a id="bloqueio-whats" href="#" target="_blank" rel="noopener"
+       style="display:block;margin-top:20px;padding:13px;border-radius:10px;text-decoration:none;
+              background:linear-gradient(135deg,#B85E0F,#E87722 60%,#FF9A40);color:#fff;
+              font-size:15px;font-weight:700;box-shadow:0 8px 20px rgba(232,119,34,0.3)">
+      <i class="fa-brands fa-whatsapp"></i> Falar sobre a contratação
+    </a>
+    <a href="#" onclick="doLogout();return false;"
+       style="display:inline-block;margin-top:14px;font-size:13px;color:#7B90B5;text-decoration:none">Sair</a>
+  </div>
+</div>
+
 <div id="app">
   <!-- SIDEBAR -->
   <nav class="sidebar">
@@ -3102,6 +3137,11 @@ html.ambiente-ensaio body{padding-top:28px}
     </div>
 
     <div class="content">
+      <!-- Dias restantes do teste. Fica no topo do conteudo, nao numa tela
+           so: o prazo precisa ser visto por quem esta trabalhando. -->
+      <div id="faixa-teste" style="display:none;margin:0 0 14px;padding:10px 14px;border-radius:10px;
+           border:1px solid rgba(232,119,34,0.30);background:rgba(232,119,34,0.10);
+           color:var(--gold);font-size:12.5px;font-weight:600;line-height:1.55"></div>
 
       <!-- ████ P0: DASHBOARD ████ -->
       <div class="panel active" id="panel-inicio">
@@ -6572,6 +6612,11 @@ const charts={};
 // E-mail do admin — apenas para identificar nível de acesso, não autentica
 const ADMIN_EMAIL = 'alessandro.lima30@outlook.com.br';
 
+/* Para onde vai quem quer contratar depois do teste. So digitos, com DDI:
+   '5511999998888'. Em branco, a tela de bloqueio cai no e-mail acima -- que
+   funciona, mas responde mais devagar do que um WhatsApp. */
+const SUPORTE_WHATS = '';
+
 /* ══════════════════════════
    CAMADA SAAS — condomínios, módulos e super-admin
 ══════════════════════════ */
@@ -7502,6 +7547,17 @@ async function _aplicarSessao(session){
   window._userNivel = me.nivel || 'morador';
   localStorage.setItem('apvc_user', JSON.stringify({ nome:me.nome, email:me.email, tel:me.tel||'', nivel:me.nivel||'morador', lote:me.unidade||'', condominio:_condAtual, super:_isSuper }));
   salvarExpiracao();
+
+  /* Acesso ANTES de carregar os dados: com o teste vencido a RLS devolve
+     tudo vazio, e carregar primeiro pintaria o portal inteiro em branco
+     antes de a explicacao aparecer. */
+  await carregarAcesso();
+  if(acessoBloqueado()){
+    mostrarBloqueio();
+    _sessaoOcupada = false;
+    return;
+  }
+
   try { await loadAllFromFirestore(); } catch (err) { console.error(err); }
   entrarNoPortal(me.nome || me.email);
   _sessaoOcupada = false;
@@ -8460,6 +8516,103 @@ function aplicarAcesso(nivel){
   window._userNivel = real;
 }
 
+/* ── Teste gratis: quanto falta, e o que acontece quando acaba ────────
+
+   A regra de verdade mora no BANCO (ver supabase/13_autoatendimento.sql):
+   com o teste vencido, auth_condominio() devolve nulo e a RLS fecha todas as
+   tabelas de uma vez. O que esta aqui e a EXPLICACAO -- sem ela, a pessoa
+   veria telas vazias e acharia que o sistema quebrou, em vez de entender que
+   o prazo acabou.
+
+   Por isso a tela nunca decide sozinha que esta liberado: na duvida (servidor
+   fora do ar, funcao ainda nao criada no banco), ela deixa passar e quem
+   barra e o banco. Tela que bloqueia por conta propria vira cliente pagante
+   trancado do lado de fora por um erro de rede. */
+var _ACESSO = null;   // o que meu_acesso() devolveu nesta sessao
+
+async function carregarAcesso(){
+  _ACESSO = null;
+  if(!window.SB) return null;
+  try{
+    var r = await window.SB.rpc('meu_acesso');
+    if(r.error){
+      // Banco sem a funcao ainda (migracao nao rodada): nao bloqueia nada.
+      console.warn('meu_acesso', r.error.message);
+      return null;
+    }
+    _ACESSO = (r.data && r.data[0]) || null;
+  }catch(e){ console.warn('meu_acesso', e && e.message); }
+  return _ACESSO;
+}
+
+function acessoBloqueado(){
+  return !!(_ACESSO && _ACESSO.liberado === false);
+}
+
+/* Faixa no topo contando os dias. So aparece durante o teste: num cliente
+   pagante ela seria barulho, e barulho constante e o que faz as pessoas
+   pararem de ler os avisos. */
+function renderFaixaTeste(){
+  var el = $('faixa-teste');
+  if(!el) return;
+  if(!_ACESSO || _ACESSO.situacao !== 'teste' || _ACESSO.dias_restantes === null
+     || _ACESSO.dias_restantes === undefined){
+    el.style.display = 'none';
+    return;
+  }
+  var d = _ACESSO.dias_restantes;
+  if(d < 0){ el.style.display = 'none'; return; }   // vencido: quem fala e a tela de bloqueio
+  var texto = d === 0 ? 'Seu teste termina <b>hoje</b>.'
+            : d === 1 ? 'Seu teste termina <b>amanhã</b>.'
+            : 'Seu teste termina em <b>' + d + ' dias</b>.';
+  // Os ultimos dois dias ficam em vermelho: ate ali e informacao, dali em
+  // diante e decisao a tomar.
+  var urgente = d <= 2;
+  el.style.background = urgente ? 'rgba(224,82,82,0.12)' : 'rgba(232,119,34,0.10)';
+  el.style.borderColor = urgente ? 'rgba(224,82,82,0.35)' : 'rgba(232,119,34,0.30)';
+  el.style.color = urgente ? 'var(--red)' : 'var(--gold)';
+  el.innerHTML = '<i class="fa-solid fa-clock"></i> ' + texto
+    + ' <span style="color:var(--text-2);font-weight:400">Depois disso o acesso pausa até a contratação — '
+    + 'nada do que você cadastrou é perdido.</span>';
+  el.style.display = '';
+}
+
+/* Tela de bloqueio. Ocupa o lugar do portal inteiro: deixar o menu navegável
+   com tudo vazio por tras seria pior do que uma porta fechada com recado. */
+function mostrarBloqueio(){
+  var el = $('bloqueio-screen');
+  if(!el) return;
+  var nome = (_ACESSO && _ACESSO.nome) || '';
+  var venceu = (_ACESSO && _ACESSO.teste_ate)
+    ? _ACESSO.teste_ate.split('-').reverse().join('/') : '';
+  var alvo = $('bloqueio-texto');
+  if(alvo){
+    alvo.innerHTML = _ACESSO && _ACESSO.situacao === 'teste'
+      ? 'O teste gratuito de <b>' + escU(nome) + '</b> terminou'
+        + (venceu ? ' em <b>' + venceu + '</b>' : '') + '.'
+      : 'O acesso de <b>' + escU(nome) + '</b> está pausado no momento.';
+  }
+  var botao = $('bloqueio-whats');
+  if(botao){
+    var msg = encodeURIComponent(
+      'Olá! Sou ' + (nome || 'de um condomínio') + ' e quero contratar o AdminPro.');
+    if(SUPORTE_WHATS){
+      botao.href = 'https://wa.me/' + SUPORTE_WHATS + '?text=' + msg;
+    } else {
+      // Sem WhatsApp configurado, o e-mail ainda resolve -- e um botao que
+      // nao leva a lugar nenhum seria pior do que um caminho mais lento.
+      botao.href = 'mailto:' + ADMIN_EMAIL
+        + '?subject=' + encodeURIComponent('Contratar o AdminPro — ' + (nome || ''))
+        + '&body=' + msg;
+      botao.innerHTML = '<i class="fa-solid fa-envelope"></i> Falar sobre a contratação';
+      botao.removeAttribute('target');
+    }
+  }
+  $('login-screen').style.display = 'none';
+  $('app').style.display = 'none';
+  el.style.display = 'flex';
+}
+
 function entrarNoPortal(nome){
   salvarExpiracao(); // registra expiração de 8h a partir deste momento
   $('login-screen').style.display='none';
@@ -8471,6 +8624,7 @@ function entrarNoPortal(nome){
   const usr = JSON.parse(localStorage.getItem('apvc_user')||'{}');
   aplicarAcesso(usr.nivel);
   aplicarSaas();
+  try{ renderFaixaTeste(); }catch(_){}
   initApp();
   try{ atualizarBadgePendentes(); }catch(_){}
 }
