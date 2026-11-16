@@ -6677,7 +6677,7 @@ const ADMIN_EMAIL = 'alessandro.lima30@outlook.com.br';
 /* Para onde vai quem quer contratar depois do teste. So digitos, com DDI:
    '5511999998888'. Em branco, a tela de bloqueio cai no e-mail acima -- que
    funciona, mas responde mais devagar do que um WhatsApp. */
-const SUPORTE_WHATS = '';
+const SUPORTE_WHATS = '5511997301462';
 
 /* ══════════════════════════
    CAMADA SAAS — condomínios, módulos e super-admin
@@ -8656,8 +8656,13 @@ function mostrarBloqueio(){
   }
   var botao = $('bloqueio-whats');
   if(botao){
+    /* A mensagem ja chega identificando o cliente: com o codigo, da para
+       achar o condominio no painel sem precisar perguntar quem e. */
+    var cod = (_ACESSO && _ACESSO.condominio) || '';
     var msg = encodeURIComponent(
-      'Olá! Sou ' + (nome || 'de um condomínio') + ' e quero contratar o AdminPro.');
+      'Olá! Sou do condomínio ' + (nome || '(sem nome)')
+      + (cod ? ' (código ' + cod + ')' : '')
+      + ' e quero contratar o AdminPro.');
     if(SUPORTE_WHATS){
       botao.href = 'https://wa.me/' + SUPORTE_WHATS + '?text=' + msg;
     } else {

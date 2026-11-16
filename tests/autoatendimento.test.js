@@ -183,6 +183,19 @@ bloco('A porta de entrada', () => {
     /Já é de um condomínio que usa o AdminPro\?/.test(src), true);
 });
 
+// ── O caminho do cliente ate voce ─────────────────────────────────────
+bloco('A tela de bloqueio leva o cliente ao WhatsApp', () => {
+  const src = lerFonte();
+  /* Sem pagamento automatico, este botao E o caminho do cliente ate a
+     contratacao. Um botao que nao leva a lugar nenhum seria pior do que um
+     caminho mais lento, entao sem WhatsApp configurado ele cai no e-mail. */
+  checa('o numero esta configurado', /const SUPORTE_WHATS = '55\d{10,11}';/.test(src), true);
+  checa('e a mensagem identifica o condominio e o codigo',
+    /Sou do condomínio[\s\S]{0,120}código/.test(src), true);
+  checa('sem numero, cai no e-mail em vez de nao levar a nada',
+    /if\(SUPORTE_WHATS\)\{[\s\S]{0,200}\} else \{[\s\S]{0,200}mailto:/.test(src), true);
+});
+
 // ── Primeiros passos ──────────────────────────────────────────────────
 bloco('A trilha pergunta aos dados, nao a um registro proprio', () => {
   const api2 = carregar(['onbPassos'], {});
