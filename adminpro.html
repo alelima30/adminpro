@@ -4325,6 +4325,15 @@ html.ambiente-ensaio body{padding-top:28px}
 
         <!-- Dashboard analítico estilo BI (admin/gestor) -->
         <div id="res-dash" style="display:none">
+          <!-- Período dos rankings. O gráfico de 12 meses NÃO obedece a ele:
+               é tendência, e tendência recortada deixa de ser tendência. -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+            <span style="font-size:11.5px;color:var(--text-3);font-weight:700;letter-spacing:.5px">RANKINGS DE</span>
+            <div id="res-dash-periodo" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+            <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="dashExportar()">
+              <i class="fa-solid fa-file-csv"></i> Exportar</button>
+          </div>
+
           <!-- Cards KPI com gradiente -->
           <div id="res-bi-kpis" class="bikpi-grid"></div>
 
@@ -4355,6 +4364,32 @@ html.ambiente-ensaio body{padding-top:28px}
                 <thead><tr><th style="width:34px">#</th><th>Solicitante</th><th>Reservas</th><th>Receita</th><th>Tendência</th></tr></thead>
                 <tbody></tbody>
               </table></div>
+            </div>
+          </div>
+
+          <!-- Blocos novos: a unidade, quando enche, e quanto tempo de uso -->
+          <div class="bi-row">
+            <div class="chart-card">
+              <div class="chart-title"><i class="fa-solid fa-house-chimney" style="color:var(--gold)"></i>
+                Unidades que mais reservam</div>
+              <div id="res-rk-unidades"></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title"><i class="fa-solid fa-calendar-week" style="color:var(--gold)"></i>
+                Dia da semana mais procurado</div>
+              <div id="res-rk-dias"></div>
+            </div>
+          </div>
+          <div class="bi-row">
+            <div class="chart-card">
+              <div class="chart-title"><i class="fa-solid fa-clock" style="color:var(--gold)"></i>
+                Faixa de horário</div>
+              <div id="res-rk-faixas"></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-title"><i class="fa-solid fa-hourglass-half" style="color:var(--gold)"></i>
+                Horas de uso por espaço</div>
+              <div id="res-rk-horas"></div>
             </div>
           </div>
         </div>
@@ -11813,6 +11848,245 @@ function _resChartTheme(){
   };
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   PAINEL ANALITICO — o periodo e os rankings
+
+   O painel ja existia, mas respondia sempre sobre TODO o historico: o
+   ranking de espacos e o de pessoas somavam desde a primeira reserva. Para
+   montar o relatorio do mes -- que e para o que a administracao usa isto --
+   nao servia: "quem mais usou" respondia "quem mais usou desde sempre".
+
+   Agora todos os rankings respondem sobre um PERIODO escolhido, e o periodo
+   aparece escrito em cima, para o numero nunca ficar sem contexto. O grafico
+   dos 12 meses fica de fora disso de proposito: ele e a tendencia, e
+   tendencia recortada por mes deixa de ser tendencia.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Comeco e fim do periodo, em texto ISO -- a data da reserva e texto
+   'AAAA-MM-DD', entao comparar texto com texto evita fuso, horario de verao
+   e o mes que vira sozinho a meia-noite. */
+function dashPeriodo(chave, hoje){
+  var d = hoje ? new Date(hoje) : new Date();
+  var iso = function(x){
+    return x.getFullYear() + '-' + String(x.getMonth()+1).padStart(2,'0')
+         + '-' + String(x.getDate()).padStart(2,'0');
+  };
+  var primeiro = function(ano, mes){ return iso(new Date(ano, mes, 1)); };
+  var ultimo   = function(ano, mes){ return iso(new Date(ano, mes+1, 0)); };
+  var A = d.getFullYear(), M = d.getMonth();
+
+  if(chave === 'mes')      return { ini:primeiro(A,M),    fim:ultimo(A,M),    rotulo:'este mês' };
+  if(chave === 'anterior') return { ini:primeiro(A,M-1),  fim:ultimo(A,M-1),  rotulo:'mês passado' };
+  if(chave === 'tri')      return { ini:primeiro(A,M-2),  fim:ultimo(A,M),    rotulo:'últimos 3 meses' };
+  if(chave === 'ano')      return { ini:A+'-01-01',       fim:A+'-12-31',     rotulo:'este ano' };
+  return { ini:'', fim:'', rotulo:'desde o início' };   // 'tudo'
+}
+
+/* As reservas do periodo. Cancelada nao conta em ranking nenhum: ela nao
+   usou o espaco, e conta-la premiaria quem mais desmarca. */
+function dashNoPeriodo(reservas, per){
+  var p = per || { ini:'', fim:'' };
+  return (reservas||[]).filter(function(r){
+    if(!r || !r.data) return false;
+    if(r.status === 'cancelada') return false;
+    if(p.ini && r.data < p.ini) return false;
+    if(p.fim && r.data > p.fim) return false;
+    return true;
+  });
+}
+
+/* Ranking generico: agrupa por uma chave e conta, somando a receita paga.
+   Serve para espaco, pessoa e unidade -- sao a mesma pergunta feita sobre
+   campos diferentes, e tres funcoes iguais seriam tres lugares para
+   corrigir o mesmo erro. */
+function dashRanking(reservas, chaveFn, rotuloFn){
+  var por = {};
+  (reservas||[]).forEach(function(r){
+    var k = chaveFn(r);
+    if(k === null || k === undefined || k === '') return;
+    if(!por[k]) por[k] = { chave:k, rotulo:(rotuloFn ? rotuloFn(r) : k), n:0, receita:0, horas:0 };
+    por[k].n++;
+    if(r.pgto === 'pago') por[k].receita += (parseFloat(r.taxa) || 0);
+    por[k].horas += (typeof _horasReserva === 'function') ? (_horasReserva(r.horario) || 0) : 0;
+  });
+  return Object.keys(por).map(function(k){ return por[k]; })
+    .sort(function(a,b){ return b.n - a.n || b.receita - a.receita
+                              || String(a.rotulo).localeCompare(String(b.rotulo),'pt-BR'); });
+}
+
+var DASH_DIAS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+
+/* Qual dia da semana enche mais. Saber que a procura e no sabado muda
+   decisao de verdade: quantos espacos liberar, quando fazer manutencao. */
+function dashPorDiaSemana(reservas){
+  var cont = [0,0,0,0,0,0,0];
+  (reservas||[]).forEach(function(r){
+    if(!r.data) return;
+    // 'AAAA-MM-DD' montado como data LOCAL. Passando a string direta ao
+    // construtor, o navegador le como UTC e a reserva da meia-noite cai no
+    // dia anterior -- o sabado vira sexta no relatorio.
+    var p = String(r.data).split('-');
+    var d = new Date(+p[0], (+p[1]||1)-1, +p[2]||1);
+    if(isNaN(d.getTime())) return;
+    cont[d.getDay()]++;
+  });
+  return cont.map(function(n, i){ return { dia:DASH_DIAS[i], n:n }; });
+}
+
+/* Faixas do dia, pela hora de INICIO. Horario cheio nao e o mesmo que dia
+   cheio: um espaco pode viver lotado so a noite. */
+function dashPorFaixa(reservas){
+  var faixas = [
+    { rotulo:'Manhã (6h–12h)',  de:6,  ate:12, n:0 },
+    { rotulo:'Tarde (12h–18h)', de:12, ate:18, n:0 },
+    { rotulo:'Noite (18h–24h)', de:18, ate:24, n:0 },
+    { rotulo:'Madrugada',       de:0,  ate:6,  n:0 },
+  ];
+  (reservas||[]).forEach(function(r){
+    /* Horario em branco NAO e meia-noite. hrIni('') devolve 0, e sem esta
+       linha toda reserva sem horario entrava em "Madrugada" -- o relatorio
+       passaria a mostrar movimento de madrugada que nunca existiu. */
+    if(!String(r && r.horario || '').trim()) return;
+    var ini = (typeof hrIni === 'function') ? hrIni(r.horario) : null;
+    if(ini === null || ini === undefined || isNaN(ini)) return;
+    var h = Math.floor(ini / 60) % 24;
+    for(var i=0;i<faixas.length;i++){
+      if(h >= faixas[i].de && h < faixas[i].ate){ faixas[i].n++; return; }
+    }
+  });
+  return faixas;
+}
+
+/* ── O periodo escolhido, e os blocos que dependem dele ──────────── */
+
+var DASH_PERIODOS = [
+  ['mes','Este mês'], ['anterior','Mês passado'], ['tri','3 meses'],
+  ['ano','Este ano'], ['tudo','Tudo'],
+];
+
+function dashPeriodoAtual(){
+  try{ return localStorage.getItem('apvc_res_dash_periodo') || 'mes'; }
+  catch(_){ return 'mes'; }
+}
+function dashTrocarPeriodo(k){
+  try{ localStorage.setItem('apvc_res_dash_periodo', k); }catch(_){}
+  try{ renderReservas(); }catch(_){}
+}
+
+function dashRenderChips(){
+  var alvo = $('res-dash-periodo'); if(!alvo) return;
+  var atual = dashPeriodoAtual();
+  alvo.innerHTML = DASH_PERIODOS.map(function(p){
+    var on = p[0] === atual;
+    return '<button class="btn btn-sm ' + (on ? 'btn-gold' : 'btn-ghost') + '" '
+      + 'style="padding:5px 11px;font-size:12px" onclick="dashTrocarPeriodo(\'' + p[0] + '\')">'
+      + escU(p[1]) + '</button>';
+  }).join('');
+}
+
+/* Barra simples, igual a dos rankings que ja existiam -- a tela nao ganha
+   nada com um quarto jeito de desenhar a mesma coisa. */
+function _dashBarras(itens, formatar){
+  if(!itens.length){
+    return '<div style="color:var(--text-3);font-size:12px;padding:12px 0">Sem reservas no período.</div>';
+  }
+  var max = Math.max.apply(null, itens.map(function(i){ return i.n; })) || 1;
+  var tot = itens.reduce(function(s,i){ return s + i.n; }, 0) || 1;
+  /* So destaca o primeiro quando ele GANHA de verdade. Num empate -- cinco
+     dias com uma reserva cada -- o dourado no primeiro da lista afirmaria
+     que domingo e o dia mais procurado, quando a resposta honesta e "nenhum
+     se destaca". O painel existe para informar decisao; apontar um vencedor
+     que nao existe e pior do que nao apontar nenhum. */
+  var lidera = itens.length > 0 && itens[0].n > 0
+               && (itens.length < 2 || itens[0].n > itens[1].n);
+  return itens.map(function(it, i){
+    var top = lidera && i === 0;
+    var cor = top ? 'linear-gradient(90deg,#B85E0F,#FF9A40)' : 'rgba(138,155,187,0.45)';
+    return '<div class="bi-rank-item">'
+      + '<div class="br-top"><span class="br-name">' + escU(it.rotulo) + '</span>'
+      + '<span class="br-val"' + (top ? ' style="color:#FF9A40;border-color:rgba(232,119,34,0.4)"' : '') + '>'
+      + (formatar ? formatar(it) : (it.n + ' · ' + Math.round(it.n/tot*100) + '%')) + '</span></div>'
+      + '<div class="br-bar"><div class="br-fill" style="width:' + Math.round(it.n/max*100) + '%;background:' + cor + '"></div></div>'
+      + '</div>';
+  }).join('');
+}
+
+/* Guarda o que esta na tela para a exportacao -- montar tudo de novo na hora
+   de exportar abriria espaco para a planilha e a tela discordarem. */
+var _dashUltimo = null;
+
+function dashRenderBlocos(todas){
+  var per = dashPeriodo(dashPeriodoAtual());
+  var base = dashNoPeriodo(todas, per);
+
+  var unidades = dashRanking(base, function(r){ return (r.lote||'').trim(); }).slice(0, 8);
+  var pessoas  = dashRanking(base, function(r){ return _musrNorm(r.nome||''); },
+                             function(r){ return r.nome || '—'; }).slice(0, 10);
+  var espacos  = dashRanking(base, function(r){ return (r.espaco||'').trim(); });
+  var dias     = dashPorDiaSemana(base).map(function(d){ return { rotulo:d.dia, n:d.n }; })
+                   .sort(function(a,b){ return b.n - a.n; });
+  var faixas   = dashPorFaixa(base).map(function(f){ return { rotulo:f.rotulo, n:f.n }; })
+                   .sort(function(a,b){ return b.n - a.n; });
+  var horas    = espacos.slice(0, 8).map(function(e){
+                   return { rotulo:e.rotulo, n:Math.round(e.horas) }; })
+                   .sort(function(a,b){ return b.n - a.n; });
+
+  if($('res-rk-unidades')) $('res-rk-unidades').innerHTML = _dashBarras(unidades);
+  if($('res-rk-dias'))     $('res-rk-dias').innerHTML     = _dashBarras(dias);
+  if($('res-rk-faixas'))   $('res-rk-faixas').innerHTML   = _dashBarras(faixas);
+  if($('res-rk-horas'))    $('res-rk-horas').innerHTML    =
+    _dashBarras(horas, function(it){ return it.n + 'h'; });
+
+  _dashUltimo = { per:per, base:base, unidades:unidades, pessoas:pessoas,
+                  espacos:espacos, dias:dias, faixas:faixas };
+  dashRenderChips();
+}
+
+/* Planilha com TUDO o que o painel mostra, para quem precisa montar o
+   relatorio por fora. Uma aba so, com secoes separadas -- o Excel abre
+   direto, e nao se perde nada no caminho. */
+function dashExportar(){
+  if(!_dashUltimo){ toast('⚠️ Abra o painel de números antes de exportar.'); return; }
+  var d = _dashUltimo, L = [], esc = _csvCelula;
+  var sec = function(titulo, cab, linhas){
+    L.push(''); L.push(esc(titulo));
+    L.push(cab.map(esc).join(';'));
+    if(!linhas.length) L.push(esc('(sem dados no período)'));
+    linhas.forEach(function(l){ L.push(l.map(esc).join(';')); });
+  };
+  var dataBR = function(iso){ return iso ? iso.split('-').reverse().join('/') : ''; };
+  /* Decimal com VIRGULA. Com ponto, o Excel em portugues le "450.00" como
+     texto (ou como quarenta e cinco mil), e a coluna de receita para de
+     somar -- numa planilha feita para montar relatorio, isso inutiliza
+     justamente a coluna que interessa. */
+  var moeda = function(v){ return (Number(v)||0).toFixed(2).replace('.', ','); };
+
+  L.push(esc('Relatório de reservas — ' + nomeCondominioAtual()));
+  L.push(esc('Período: ' + d.per.rotulo + (d.per.ini ? ' (' + dataBR(d.per.ini) + ' a ' + dataBR(d.per.fim) + ')' : '')));
+  L.push(esc('Reservas no período: ' + d.base.length) );
+  L.push(esc('Gerado em ' + new Date().toLocaleString('pt-BR')));
+
+  sec('ESPAÇOS MAIS USADOS', ['Espaço','Reservas','Horas','Receita paga (R$)'],
+    d.espacos.map(function(e){ return [e.rotulo, e.n, Math.round(e.horas), moeda(e.receita)]; }));
+  sec('QUEM MAIS RESERVA', ['Pessoa','Reservas','Receita paga (R$)'],
+    d.pessoas.map(function(p){ return [p.rotulo, p.n, moeda(p.receita)]; }));
+  sec('UNIDADES QUE MAIS RESERVAM', ['Unidade','Reservas','Receita paga (R$)'],
+    d.unidades.map(function(u){ return [u.rotulo, u.n, moeda(u.receita)]; }));
+  sec('DIA DA SEMANA', ['Dia','Reservas'], d.dias.map(function(x){ return [x.rotulo, x.n]; }));
+  sec('FAIXA DE HORÁRIO', ['Faixa','Reservas'], d.faixas.map(function(x){ return [x.rotulo, x.n]; }));
+
+  /* '\ufeff' escrito como escape, nao como o caractere invisivel: um BOM
+     solto no meio da linha e apagado por acidente sem ninguem ver, e ai os
+     acentos quebram no Excel sem explicacao. */
+  var blob = new Blob(['\ufeff' + L.join('\r\n')], { type:'text/csv;charset=utf-8;' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'relatorio-reservas-' + (d.per.ini || 'tudo') + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  toast('✓ Planilha gerada.');
+}
+
 // Painel analítico de Reservas — estilo BI (cards gradiente, barras com variação, rankings, top solicitantes)
 function renderResDashboard(base){
   const T=_resChartTheme();
@@ -12031,7 +12305,10 @@ function renderReservas(){
   // painel analitico. Se a pessoa desligou o painel, nao se monta grafico
   // nenhum — desenhar para esconder em seguida so gasta processamento do
   // aparelho, que no celular custa caro.
-  if(!isMorador && _resDashVisivel()) renderResDashboard(kpiBase);
+  if(!isMorador && _resDashVisivel()){
+    renderResDashboard(kpiBase);
+    try{ dashRenderBlocos(kpiBase); }catch(e){ console.error('painel', e); }
+  }
   _resAplicarDash();
 
   const lista=$('res-lista'); lista.innerHTML='';
