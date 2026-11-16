@@ -174,8 +174,27 @@ function montarSelectCondominios(lista){
   if(lista.length===1) sel.value=lista[0].c;
 }
 
+/* ?c=CODIGO deixa o condominio ja escolhido. O administrador manda esse
+   link no grupo; sem ele, o morador cai numa lista e pode escolher o
+   condominio errado -- e o pedido vai parar na administracao de outra
+   pessoa, que nao conhece o nome e recusa. */
+function condDoLink(){
+  try{ return (new URLSearchParams(location.search).get('c') || '').toUpperCase().trim(); }
+  catch(_){ return ''; }
+}
+
+function aplicarCondDoLink(){
+  var c = condDoLink(); if(!c) return;
+  var sel = $('c-cond'); if(!sel) return;
+  var tem = Array.prototype.some.call(sel.options, function(o){ return o.value === c; });
+  if(!tem) return;              // codigo que nao existe: deixa a pessoa escolher
+  sel.value = c;
+  try{ condSelecionado(); }catch(_){}
+}
+
 async function carregarCondominios(){
   montarSelectCondominios(CONDOMINIOS_FALLBACK.slice());
+  aplicarCondDoLink();
   if(!SB) return; // sem Supabase: fica com a lista embutida
   try{
     const { data } = await SB.from('condominios_publicos').select('codigo,nome');
@@ -183,6 +202,9 @@ async function carregarCondominios(){
       const atual=$('c-cond').value;
       montarSelectCondominios(data.map(c=>({c:c.codigo, n:c.nome||c.codigo})));
       if(atual)$('c-cond').value=atual;
+      // A lista embutida so tem o condominio original; o do link pode estar
+      // so na lista do servidor, que chega agora.
+      aplicarCondDoLink();
     }
   }catch(e){ /* mantém fallback */ }
 }

@@ -183,6 +183,49 @@ bloco('A porta de entrada', () => {
     /Já é de um condomínio que usa o AdminPro\?/.test(src), true);
 });
 
+// ── Primeiros passos ──────────────────────────────────────────────────
+bloco('A trilha pergunta aos dados, nao a um registro proprio', () => {
+  const api2 = carregar(['onbPassos'], {});
+  const passos = (d) => api2.onbPassos(d).map((p) => (p.feito ? '[x]' : '[ ]') + p.id);
+
+  checa('condominio recem-criado: nada feito',
+    passos({}), ['[ ]unidades', '[ ]condominos', '[ ]espacos', '[ ]regras', '[ ]convite']);
+
+  checa('uma unidade ja marca o primeiro',
+    api2.onbPassos({ unidades: { A01: {} } })[0].feito, true);
+  checa('e o resumo diz quantas',
+    api2.onbPassos({ unidades: { A01: {}, A02: {} } })[0].resumo, '2 unidade(s)');
+
+  // Horario em QUALQUER espaco conta: configurar um e entender o mecanismo.
+  checa('horario de um espaco ja vale',
+    api2.onbPassos({ cfg: { disp_salao_slots: '08:00-12:00' } })[3].feito, true);
+  checa('mas chave vazia nao conta',
+    api2.onbPassos({ cfg: { disp_salao_slots: '  ' } })[3].feito, false);
+
+  /* So a conta do proprio administrador nao e "convidou os moradores" -- ela
+     existe desde o cadastro, e marcar o passo por causa dela seria a trilha
+     mentindo logo no primeiro minuto. */
+  checa('so o admin nao conta como convite',
+    api2.onbPassos({ contas: [{ id: 1 }] })[4].feito, false);
+  checa('o segundo morador conta',
+    api2.onbPassos({ contas: [{ id: 1 }, { id: 2 }] })[4].feito, true);
+
+  /* O estado vem dos dados. Lista com marcacao propria sai do ar no primeiro
+     imprevisto: alguem apaga as unidades e o passo continua "feito". */
+  const src = lerFonte();
+  checa('nada e guardado como "passo cumprido"',
+    /onb_feito|passo_concluido|localStorage\.setItem\('apvc_onb_passo/.test(src), false);
+  checa('some sozinha quando tudo esta pronto',
+    /if\(e\.completo\)\{ alvo\.style\.display = 'none'; return; \}/.test(src), true);
+  checa('e morador nao ve a trilha',
+    /!\(nivel === 'admin' \|\| nivel === 'gestor'\) \|\| onbOculto\(\)/.test(src), true);
+
+  // O link do convite leva o codigo: sem ele o morador escolhe o condominio
+  // errado e o pedido vai parar na administracao de outra pessoa.
+  checa('o convite ja vem com o condominio',
+    /cadastro\.html\?c=' \+ encodeURIComponent\(_condAtual/.test(src), true);
+});
+
 Promise.all(pendentes).then(() => {
   console.log('\n' + '-'.repeat(50));
   if (falhas) { console.error('FALHARAM ' + falhas + ' DE ' + (ok + falhas)); process.exit(1); }

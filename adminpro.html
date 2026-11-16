@@ -3153,6 +3153,9 @@ html.ambiente-ensaio body{padding-top:28px}
           <div id="inicio-nome" style="font-size:26px;font-weight:800;color:var(--text)"></div>
           <div style="font-size:14px;color:var(--text-3)">Bem-vindo ao portal! Use o menu ao lado para acessar os tópicos.</div>
         </div>
+        <!-- Trilha de quem acabou de criar o condomínio. Some sozinha quando
+             os cinco passos estão feitos. -->
+        <div class="card" id="onb-card" style="display:none;max-width:680px;margin:0 auto 24px"></div>
       </div>
 
       <div class="panel" id="panel-dashboard">
@@ -8684,6 +8687,10 @@ function entrarNoPortal(nome){
   aplicarAcesso(usr.nivel);
   aplicarSaas();
   try{ renderFaixaTeste(); }catch(_){}
+  try{ renderOnboarding(); }catch(_){}
+  /* As contas do app chegam depois, sem travar a tela. Quando chegam, o
+     passo "convide os moradores" pode ter mudado de estado. */
+  try{ carregarContasApp().then(function(){ try{ renderOnboarding(); }catch(_){} }); }catch(_){}
   initApp();
   try{ atualizarBadgePendentes(); }catch(_){}
 }
@@ -9288,6 +9295,150 @@ function impPessoasPlano(itens, condominos, unidades){
   });
 
   return { novas:novas, dependentes:dependentes, conflitos:conflitos };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PRIMEIROS PASSOS
+
+   Quem acaba de criar o condominio entra num sistema vazio e nao sabe a
+   ordem: unidades antes das pessoas, pessoas antes das reservas. Sem uma
+   trilha, o teste de sete dias vira uma semana de tentativa e erro.
+
+   O estado de cada passo e DERIVADO dos dados de verdade, nunca guardado
+   num registro proprio. Lista de tarefas com marcacao propria sai do ar
+   junto com o primeiro imprevisto -- alguem apaga as unidades e o passo
+   continua "feito", e a trilha passa a mentir. Perguntando aos dados, ela
+   nao tem como mentir.
+   ══════════════════════════════════════════════════════════════════════ */
+
+function onbPassos(dados){
+  var d = dados || {};
+  var unidades = d.unidades || {};
+  var condominos = d.condominos || {};
+  var cfg = d.cfg || {};
+  var contas = d.contas || [];
+
+  var nUni = Object.keys(unidades).length;
+  var nCon = Object.keys(condominos).length;
+  var espacos = Array.isArray(cfg.espacos) ? cfg.espacos : [];
+  // Horarios definidos em QUALQUER espaco ja contam: configurar um e
+  // entender o mecanismo, e e isso que o passo quer ensinar.
+  var temHorario = Object.keys(cfg).some(function(k){
+    return /^disp_.+_slots$/.test(k) && String(cfg[k]||'').trim();
+  });
+
+  return [
+    { id:'unidades', feito: nUni > 0,
+      titulo:'Cadastre as unidades',
+      porque:'Tudo no sistema se apoia nelas: morador, reserva e aviso são sempre de uma unidade.',
+      acao:'Importar lista', fn:"impAbrir('unidades')", tela:'unidades',
+      resumo: nUni ? nUni + ' unidade(s)' : '' },
+
+    { id:'condominos', feito: nCon > 0,
+      titulo:'Cadastre os moradores',
+      porque:'Proprietários, inquilinos e dependentes. Dá para colar a lista inteira de uma vez.',
+      acao:'Importar lista', fn:"impAbrir('pessoas')", tela:'condominos',
+      resumo: nCon ? nCon + ' ficha(s)' : '' },
+
+    { id:'espacos', feito: espacos.length > 0,
+      titulo:'Crie os espaços que podem ser reservados',
+      porque:'Salão, quadra, churrasqueira — o que o seu condomínio tiver.',
+      acao:'Criar espaços', fn:"showPanel('espacos')", tela:'espacos',
+      resumo: espacos.length ? espacos.length + ' espaço(s)' : '' },
+
+    { id:'regras', feito: temHorario,
+      titulo:'Defina os horários e as regras',
+      porque:'Quais dias e horários cada espaço aceita, taxa e antecedência mínima.',
+      acao:'Configurar', fn:"showPanel('configuracoes')", tela:'configuracoes',
+      resumo: temHorario ? 'horários definidos' : '' },
+
+    { id:'convite', feito: contas.length > 1,
+      titulo:'Convide os moradores',
+      porque:'Eles se cadastram sozinhos pelo link e você só aprova.',
+      acao:'Copiar o link', fn:'onbCopiarConvite()', tela:'',
+      resumo: contas.length > 1 ? (contas.length - 1) + ' já entraram' : '' },
+  ];
+}
+
+function onbEstado(){
+  var passos = onbPassos({
+    unidades: (typeof getUnidades === 'function') ? getUnidades() : {},
+    condominos: (typeof getCondominos === 'function') ? getCondominos() : {},
+    cfg: (typeof getCfgRes === 'function') ? getCfgRes() : {},
+    contas: Array.isArray(_usrCache) ? _usrCache : [],
+  });
+  var feitos = passos.filter(function(p){ return p.feito; }).length;
+  return { passos:passos, feitos:feitos, total:passos.length, completo: feitos === passos.length };
+}
+
+/* O link que o morador usa para pedir acesso, ja com o condominio escolhido.
+   Sem o codigo na ponta, ele cai numa lista de condominios e pode escolher o
+   errado -- e o pedido vai parar na administracao de outra pessoa. */
+function onbLinkConvite(){
+  var base = location.href.split('#')[0].replace(/[^/]*$/, '');
+  return base + 'cadastro.html?c=' + encodeURIComponent(_condAtual || '');
+}
+
+function onbCopiarConvite(){
+  var link = onbLinkConvite();
+  var ok = function(){ toast('✓ Link copiado. Mande no grupo do condomínio.'); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(ok).catch(function(){ prompt('Copie o link:', link); });
+  } else {
+    prompt('Copie o link:', link);
+  }
+}
+
+function onbDispensar(){
+  try{ localStorage.setItem('apvc_onb_oculto_' + _condAtual, '1'); }catch(_){}
+  renderOnboarding();
+}
+function onbOculto(){
+  try{ return localStorage.getItem('apvc_onb_oculto_' + _condAtual) === '1'; }catch(_){ return false; }
+}
+
+function renderOnboarding(){
+  var alvo = $('onb-card'); if(!alvo) return;
+
+  // So para quem pode fazer os passos. Morador nao cadastra unidade.
+  var nivel = window._userNivel || 'morador';
+  if(!(nivel === 'admin' || nivel === 'gestor') || onbOculto()){
+    alvo.style.display = 'none'; return;
+  }
+  var e = onbEstado();
+  // Tudo pronto: a trilha some sozinha. Cartaz que fica depois de cumprido
+  // vira moldura, e moldura ninguem le.
+  if(e.completo){ alvo.style.display = 'none'; return; }
+
+  var pct = Math.round((e.feitos / e.total) * 100);
+  var linhas = e.passos.map(function(p){
+    var ic = p.feito
+      ? '<i class="fa-solid fa-circle-check" style="color:var(--green-l)"></i>'
+      : '<i class="fa-regular fa-circle" style="color:var(--text-3)"></i>';
+    return '<div style="display:flex;gap:11px;align-items:flex-start;padding:10px 0;'
+      + 'border-top:1px solid var(--border)">'
+      + '<div style="font-size:16px;line-height:1.3;flex:none">' + ic + '</div>'
+      + '<div style="flex:1 1 auto;min-width:0">'
+      + '<div style="font-size:13.5px;font-weight:600;' + (p.feito ? 'color:var(--text-3);text-decoration:line-through' : '') + '">'
+      + escU(p.titulo) + (p.resumo ? ' <span style="font-weight:400;color:var(--text-3);text-decoration:none">· ' + escU(p.resumo) + '</span>' : '')
+      + '</div>'
+      + (p.feito ? '' : '<div style="font-size:11.5px;color:var(--text-2);margin-top:3px;line-height:1.5">' + escU(p.porque) + '</div>')
+      + '</div>'
+      + (p.feito ? '' : '<button class="btn btn-ghost btn-sm" style="flex:none" onclick="' + p.fn + '">'
+                      + escU(p.acao) + '</button>')
+      + '</div>';
+  }).join('');
+
+  alvo.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">'
+    + '<div style="font-size:15px;font-weight:700"><i class="fa-solid fa-flag-checkered" style="color:var(--gold)"></i> Primeiros passos</div>'
+    + '<div style="font-size:12px;color:var(--text-3)">' + e.feitos + ' de ' + e.total + '</div>'
+    + '<button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="onbDispensar()">Esconder</button>'
+    + '</div>'
+    + '<div style="height:5px;border-radius:4px;background:rgba(255,255,255,0.08);overflow:hidden;margin-bottom:6px">'
+    + '<div style="height:100%;width:' + pct + '%;background:var(--gold);transition:width .3s"></div></div>'
+    + linhas;
+  alvo.style.display = '';
 }
 
 /* ── A tela da importacao ─────────────────────────────────────────── */
