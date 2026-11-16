@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AdminPro · Criar conta do condomínio</title>
+<meta name="theme-color" content="#132040">
+<meta name="color-scheme" content="dark">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root{
+    --ink:#0D1629; --card:#1A2847; --card-2:#1F2D52;
+    --border:rgba(255,255,255,0.10); --border-h:rgba(255,255,255,0.20);
+    --gold:#E87722; --gold-l:#FF9A40; --green-l:#28C882; --red:#E05252;
+    --text:#EEF1F8; --text-2:#8A9BBB; --text-3:#4E6080;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    background:linear-gradient(160deg,#1B2B5E,#0D1629);
+    color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    display:flex;align-items:center;justify-content:center;padding:28px 16px;min-height:100vh;
+  }
+  .box{
+    width:100%;max-width:470px;background:var(--card);
+    border:1px solid var(--border);border-radius:18px;
+    box-shadow:0 24px 60px rgba(0,0,0,0.45);padding:32px 30px;
+  }
+  .brand{text-align:center;margin-bottom:4px;font-size:26px;font-weight:800;letter-spacing:.5px}
+  .brand b{color:var(--gold)}
+  .sub{text-align:center;color:var(--text-2);font-size:13.5px;margin-bottom:6px}
+
+  /* Promessa do topo: o que a pessoa ganha e o que NAO precisa dar. Dizer
+     "sem cartao" aqui adianta a pergunta que todo mundo faz antes de
+     comecar a digitar. */
+  .selo{
+    display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin:14px 0 20px;
+  }
+  .selo span{
+    font-size:11px;font-weight:600;color:var(--green-l);
+    background:rgba(40,200,130,0.10);border:1px solid rgba(40,200,130,0.28);
+    border-radius:20px;padding:4px 11px;
+  }
+
+  .passos{display:flex;gap:6px;margin-bottom:20px}
+  .passos div{height:4px;flex:1;border-radius:3px;background:rgba(255,255,255,0.09);transition:background .25s}
+  .passos div.on{background:var(--gold)}
+
+  .etapa{display:none}
+  .etapa.on{display:block}
+  .etapa-tit{font-size:15px;font-weight:700;margin-bottom:2px}
+  .etapa-sub{font-size:12.5px;color:var(--text-2);margin-bottom:4px}
+
+  label{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin:14px 0 6px;letter-spacing:.3px}
+  .req::after{content:' *';color:var(--gold)}
+  .iw{position:relative}
+  .iw i{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--gold);font-size:13px;opacity:.85}
+  input,select{
+    width:100%;padding:11px 14px 11px 38px;border-radius:10px;
+    border:1px solid var(--border);background:var(--ink);color:var(--text);
+    font-size:14px;outline:none;transition:border-color .15s;
+  }
+  select{cursor:pointer}
+  input:focus,select:focus{border-color:var(--gold)}
+  .hint{font-size:11px;color:var(--text-3);margin-top:5px;line-height:1.5}
+
+  .btn{
+    width:100%;margin-top:20px;padding:13px;border:none;border-radius:10px;
+    background:linear-gradient(135deg,#B85E0F,#E87722 60%,#FF9A40);
+    color:#fff;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;
+    box-shadow:0 8px 20px rgba(232,119,34,0.3);transition:filter .15s;
+  }
+  .btn:hover{filter:brightness(1.06)}
+  .btn:disabled{filter:grayscale(.5) brightness(.8);cursor:not-allowed}
+  .btn-ghost{
+    background:none;border:1px solid var(--border-h);box-shadow:none;
+    color:var(--text-2);font-weight:600;margin-top:10px;
+  }
+  .btn-ghost:hover{filter:none;border-color:var(--gold);color:var(--text)}
+
+  .aceite{display:flex;gap:9px;align-items:flex-start;margin-top:18px;font-size:11.5px;
+          color:var(--text-2);line-height:1.55;cursor:pointer}
+  .aceite input{width:17px;height:17px;padding:0;flex:none;margin-top:1px;accent-color:var(--gold)}
+
+  .msg{margin-top:16px;padding:12px 14px;border-radius:10px;font-size:13px;display:none;line-height:1.5}
+  .msg.ok{display:block;background:rgba(40,200,130,0.12);border:1px solid rgba(40,200,130,0.35);color:var(--green-l)}
+  .msg.err{display:block;background:rgba(224,82,82,0.12);border:1px solid rgba(224,82,82,0.35);color:#ff9b9b}
+
+  .foot{text-align:center;margin-top:20px;font-size:13px;color:var(--text-3)}
+  .foot a{color:var(--gold);text-decoration:none;font-weight:600}
+
+  /* Tela de "pronto" */
+  #pronto{display:none;text-align:center}
+  #pronto .ok-ic{font-size:44px;color:var(--green-l);margin-bottom:10px}
+  .codigo{
+    display:inline-block;margin:12px 0 4px;padding:9px 18px;border-radius:10px;
+    background:var(--ink);border:1px dashed var(--gold);
+    font-size:22px;font-weight:800;letter-spacing:2px;color:var(--gold);
+  }
+</style>
+</head>
+<body>
+
+<form class="box" id="form" onsubmit="return false">
+
+  <div id="cadastro">
+    <div class="brand">Admin<b>Pro</b></div>
+    <div class="sub">Crie a conta do seu condomínio</div>
+    <div class="selo">
+      <span><i class="fa-solid fa-check"></i> 7 dias grátis</span>
+      <span><i class="fa-solid fa-check"></i> sem cartão</span>
+      <span><i class="fa-solid fa-check"></i> acesso na hora</span>
+    </div>
+
+    <div class="passos"><div id="p1" class="on"></div><div id="p2"></div></div>
+
+    <!-- ETAPA 1 — o condomínio -->
+    <div class="etapa on" id="e1">
+      <div class="etapa-tit">Sobre o condomínio</div>
+      <div class="etapa-sub">Dá para mudar tudo isso depois.</div>
+
+      <label class="req">Nome do condomínio</label>
+      <div class="iw"><i class="fa-solid fa-city"></i>
+        <input type="text" id="f-cond" placeholder="Ex: Residencial Jardim das Acácias"
+               autocomplete="organization" maxlength="80"></div>
+
+      <label>Quantas unidades, mais ou menos?</label>
+      <div class="iw"><i class="fa-solid fa-house"></i>
+        <input type="number" id="f-unid" placeholder="Ex: 120" min="1" max="20000" inputmode="numeric"></div>
+      <div class="hint">Só para a gente saber o tamanho. Você cadastra as unidades de verdade lá dentro.</div>
+
+      <button class="btn" id="btn-1" onclick="irParaDois()">Continuar <i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+
+    <!-- ETAPA 2 — a pessoa -->
+    <div class="etapa" id="e2">
+      <div class="etapa-tit">Seu acesso</div>
+      <div class="etapa-sub">Você entra como administrador do condomínio.</div>
+
+      <label class="req">Seu nome completo</label>
+      <div class="iw"><i class="fa-solid fa-user"></i>
+        <input type="text" id="f-nome" placeholder="Nome e sobrenome" autocomplete="name" maxlength="80"></div>
+
+      <label class="req">E-mail</label>
+      <div class="iw"><i class="fa-solid fa-envelope"></i>
+        <input type="email" id="f-email" placeholder="voce@exemplo.com" autocomplete="email"></div>
+      <div class="hint">É com ele que você entra no sistema e recupera a senha.</div>
+
+      <label class="req">WhatsApp</label>
+      <div class="iw"><i class="fa-brands fa-whatsapp"></i>
+        <input type="text" id="f-tel" placeholder="(11) 99999-9999" inputmode="tel"
+               oninput="mascaraTel(this)" maxlength="16"></div>
+
+      <label class="req">Crie uma senha</label>
+      <div class="iw"><i class="fa-solid fa-lock"></i>
+        <input type="password" id="f-senha" placeholder="Pelo menos 8 caracteres"
+               autocomplete="new-password"></div>
+
+      <label class="aceite">
+        <input type="checkbox" id="f-aceite">
+        <span>Li e aceito os termos de uso e o tratamento dos meus dados conforme a
+          <b>Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)</b>.
+          Os dados do condomínio são usados apenas para operar o sistema e não
+          são compartilhados com terceiros.</span>
+      </label>
+
+      <button class="btn" id="btn-2" onclick="criar()">Criar conta e entrar</button>
+      <button class="btn btn-ghost" onclick="irParaUm()"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
+    </div>
+
+    <div class="msg" id="msg"></div>
+    <div class="foot">Já tem conta? <a href="adminpro.html">Entrar</a></div>
+  </div>
+
+  <!-- PRONTO -->
+  <div id="pronto">
+    <div class="ok-ic"><i class="fa-solid fa-circle-check"></i></div>
+    <div class="brand" style="font-size:21px">Condomínio criado!</div>
+    <div class="sub" id="pronto-nome"></div>
+    <div class="codigo" id="pronto-cod">—</div>
+    <div class="hint" style="margin-bottom:16px">Este é o código do seu condomínio. Guarde — ele aparece no sistema.</div>
+    <div class="msg ok" style="display:block;text-align:left" id="pronto-teste"></div>
+    <button class="btn" onclick="location.href='adminpro.html'">Entrar no AdminPro <i class="fa-solid fa-arrow-right"></i></button>
+  </div>
+
+</form>
+
+<script>
+const SB_URL='https://lusibpbafbkyygxrxvzr.supabase.co';
+const SB_KEY='sb_publishable_w0CUYP7hq4okx5cdyL_zZw_JponH6bU';
+
+const $ = id => document.getElementById(id);
+
+function aviso(texto, tipo){
+  const m = $('msg');
+  m.className = 'msg ' + (tipo || 'err');
+  m.innerHTML = texto;
+  m.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+function limpaAviso(){ $('msg').className = 'msg'; $('msg').innerHTML = ''; }
+
+/* Telefone com a mascara brasileira. Nao e enfeite: numero digitado solto
+   chega torto no WhatsApp e o aviso nunca sai. */
+function mascaraTel(el){
+  let v = el.value.replace(/\D/g, '').slice(0, 11);
+  if(v.length > 6)      el.value = '(' + v.slice(0,2) + ') ' + v.slice(2,7) + '-' + v.slice(7);
+  else if(v.length > 2) el.value = '(' + v.slice(0,2) + ') ' + v.slice(2);
+  else if(v.length)     el.value = '(' + v;
+  else                  el.value = '';
+}
+
+function irParaDois(){
+  limpaAviso();
+  if(($('f-cond').value || '').trim().length < 3){
+    aviso('Informe o nome do condomínio.'); $('f-cond').focus(); return;
+  }
+  $('e1').classList.remove('on'); $('e2').classList.add('on');
+  $('p2').classList.add('on');
+  $('f-nome').focus();
+}
+function irParaUm(){
+  limpaAviso();
+  $('e2').classList.remove('on'); $('e1').classList.add('on');
+  $('p2').classList.remove('on');
+}
+
+// Enter avanca em vez de recarregar a pagina.
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  if($('e1').classList.contains('on')) irParaDois();
+  else criar();
+});
+
+const soDigitos = v => String(v || '').replace(/\D/g, '');
+
+async function criar(){
+  limpaAviso();
+  const dados = {
+    condominio: ($('f-cond').value || '').trim(),
+    unidades:   ($('f-unid').value || '').trim(),
+    nome:       ($('f-nome').value || '').trim(),
+    email:      ($('f-email').value || '').trim().toLowerCase(),
+    telefone:   ($('f-tel').value || '').trim(),
+    senha:      $('f-senha').value || '',
+    aceite:     $('f-aceite').checked ? 'sim' : 'nao',
+  };
+
+  /* Confere aqui o que a funcao confere la. Nao e desconfianca da funcao --
+     e para a pessoa ver o erro no campo, na hora, em vez de esperar a volta
+     do servidor para descobrir que faltava um digito no telefone. */
+  // Nome E sobrenome: este nome vai para a assinatura e para a nota fiscal,
+  // e "Ana" sozinho passa num  length < 3  mas nao serve para emitir nada.
+  if(dados.nome.split(/\s+/).filter(function(p){ return p.length > 1; }).length < 2)
+    return aviso('Informe nome e sobrenome.');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(dados.email))
+                                          return aviso('Informe um e-mail válido.');
+  if(soDigitos(dados.telefone).length < 10) return aviso('Informe um WhatsApp com DDD.');
+  if(dados.senha.length < 8)              return aviso('A senha precisa de pelo menos 8 caracteres.');
+  if(dados.aceite !== 'sim')              return aviso('É preciso aceitar os termos para continuar.');
+
+  const btn = $('btn-2');
+  btn.disabled = true; btn.textContent = 'Criando...';
+  try{
+    const r = await fetch(SB_URL + '/functions/v1/criar-conta', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY },
+      body: JSON.stringify(dados),
+    });
+    const corpo = await r.json().catch(() => ({}));
+    if(!r.ok || !corpo.ok){
+      aviso(corpo.error || 'Não consegui criar a conta agora. Tente de novo em instantes.');
+      return;
+    }
+    mostrarPronto(corpo);
+  }catch(e){
+    aviso('Sem conexão com o servidor. Verifique a internet e tente de novo.');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Criar conta e entrar';
+  }
+}
+
+function mostrarPronto(c){
+  $('cadastro').style.display = 'none';
+  $('pronto').style.display = 'block';
+  $('pronto-nome').textContent = c.condominio || '';
+  $('pronto-cod').textContent  = c.codigo || '—';
+  const ate = c.teste_ate ? c.teste_ate.split('-').reverse().join('/') : '';
+  $('pronto-teste').innerHTML =
+    '<b>Seu teste de ' + (c.dias || 7) + ' dias começou.</b><br>' +
+    'Você usa tudo até <b>' + ate + '</b>, sem pagar nada. ' +
+    'Depois dessa data o acesso pausa até a contratação — nada do que você cadastrar é perdido.';
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+</script>
+</body>
+</html>

@@ -2925,7 +2925,18 @@ html.ambiente-ensaio body{padding-top:28px}
       </p>
 
       <p style="margin-top:10px;font-size:13px;color:#7B90B5;text-align:center">
-        Não tem conta? <a href="cadastro.html" style="color:#E87722;text-decoration:none;font-weight:600">Solicite seu acesso →</a>
+        Já é de um condomínio que usa o AdminPro?
+        <a href="cadastro.html" style="color:#E87722;text-decoration:none;font-weight:600">Solicite seu acesso →</a>
+      </p>
+
+      <!-- A porta de entrada de um condomínio NOVO. Separada da de cima de
+           propósito: "solicitar acesso" é para o morador de quem já é
+           cliente; esta é para quem ainda não é e vem conhecer. -->
+      <p style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);
+                font-size:13px;color:#7B90B5;text-align:center">
+        Seu condomínio ainda não usa o AdminPro?<br>
+        <a href="comecar.html" style="color:#E87722;text-decoration:none;font-weight:700">
+          Criar conta — 7 dias grátis, sem cartão →</a>
       </p>
 
       <p class="login-copy">
@@ -2938,6 +2949,30 @@ html.ambiente-ensaio body{padding-top:28px}
 </div>
 
 <!-- ═══ APP ═══ -->
+<!-- Teste acabou: ocupa o lugar do portal inteiro. -->
+<div id="bloqueio-screen" style="display:none;position:fixed;inset:0;z-index:99999;
+     background:linear-gradient(160deg,#1B2B5E,#0D1629);align-items:center;justify-content:center;padding:28px 16px">
+  <div style="width:100%;max-width:440px;background:#1A2847;border:1px solid rgba(255,255,255,0.10);
+              border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,0.45);padding:34px 30px;text-align:center">
+    <div style="font-size:42px;color:#E87722;margin-bottom:12px"><i class="fa-solid fa-hourglass-end"></i></div>
+    <div style="font-size:22px;font-weight:800;margin-bottom:8px">Admin<span style="color:#E87722">Pro</span></div>
+    <div id="bloqueio-texto" style="font-size:14px;color:#8A9BBB;line-height:1.6;margin-bottom:16px"></div>
+    <div style="font-size:13px;color:#8A9BBB;line-height:1.6;background:rgba(40,200,130,0.10);
+                border:1px solid rgba(40,200,130,0.28);border-radius:10px;padding:12px 14px;text-align:left">
+      <b style="color:#28C882">Seus dados estão guardados.</b> Unidades, moradores e reservas continuam
+      exatamente como você deixou. Assim que a contratação for concluída, tudo volta no mesmo lugar.
+    </div>
+    <a id="bloqueio-whats" href="#" target="_blank" rel="noopener"
+       style="display:block;margin-top:20px;padding:13px;border-radius:10px;text-decoration:none;
+              background:linear-gradient(135deg,#B85E0F,#E87722 60%,#FF9A40);color:#fff;
+              font-size:15px;font-weight:700;box-shadow:0 8px 20px rgba(232,119,34,0.3)">
+      <i class="fa-brands fa-whatsapp"></i> Falar sobre a contratação
+    </a>
+    <a href="#" onclick="doLogout();return false;"
+       style="display:inline-block;margin-top:14px;font-size:13px;color:#7B90B5;text-decoration:none">Sair</a>
+  </div>
+</div>
+
 <div id="app">
   <!-- SIDEBAR -->
   <nav class="sidebar">
@@ -3102,6 +3137,11 @@ html.ambiente-ensaio body{padding-top:28px}
     </div>
 
     <div class="content">
+      <!-- Dias restantes do teste. Fica no topo do conteudo, nao numa tela
+           so: o prazo precisa ser visto por quem esta trabalhando. -->
+      <div id="faixa-teste" style="display:none;margin:0 0 14px;padding:10px 14px;border-radius:10px;
+           border:1px solid rgba(232,119,34,0.30);background:rgba(232,119,34,0.10);
+           color:var(--gold);font-size:12.5px;font-weight:600;line-height:1.55"></div>
 
       <!-- ████ P0: DASHBOARD ████ -->
       <div class="panel active" id="panel-inicio">
@@ -3113,6 +3153,9 @@ html.ambiente-ensaio body{padding-top:28px}
           <div id="inicio-nome" style="font-size:26px;font-weight:800;color:var(--text)"></div>
           <div style="font-size:14px;color:var(--text-3)">Bem-vindo ao portal! Use o menu ao lado para acessar os tópicos.</div>
         </div>
+        <!-- Trilha de quem acabou de criar o condomínio. Some sozinha quando
+             os cinco passos estão feitos. -->
+        <div class="card" id="onb-card" style="display:none;max-width:680px;margin:0 auto 24px"></div>
       </div>
 
       <div class="panel" id="panel-dashboard">
@@ -3185,7 +3228,8 @@ html.ambiente-ensaio body{padding-top:28px}
           </div>
           <div class="ph-actions">
             <span id="uni-count" style="font-size:12px;color:var(--text-3);margin-right:8px"></span>
-            <!-- BOTÃO TEMPORÁRIO DE IMPORTAÇÃO (remover após importar) -->
+            <button class="btn btn-ghost" data-acesso="admin,gestor"
+                    onclick="impAbrir('unidades')"><i class="fa-solid fa-file-import"></i> Importar</button>
             <button class="btn btn-gold" id="uni-btn-novo" onclick="uniNovaUnidade()">+ Nova Unidade</button>
           </div>
         </div>
@@ -3582,6 +3626,8 @@ html.ambiente-ensaio body{padding-top:28px}
           </div>
           <div class="ph-actions">
             <span id="con-count" style="font-size:12px;color:var(--text-3)"></span>
+            <button class="btn btn-ghost" data-acesso="admin,gestor"
+                    onclick="impAbrir('pessoas')"><i class="fa-solid fa-file-import"></i> Importar</button>
           </div>
         </div>
 
@@ -5391,6 +5437,62 @@ html.ambiente-ensaio body{padding-top:28px}
 
      Sai pelo X ou salvando. O evento é parado aqui para que o clique também
      não vaze para a tela atrás da janela. -->
+<!-- Importação em massa. Um modal só para unidades e pessoas: o que muda
+     entre os dois é o texto e as regras, não o caminho (colar → conferir →
+     gravar). Dois modais iguais seriam duas chances de corrigir um e
+     esquecer o outro. -->
+<div class="modal-ov" id="m-import" onclick="event.stopPropagation()">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-head">
+      <div class="modal-title"><i class="fa-solid fa-file-import" style="color:var(--gold)"></i>
+        <span id="imp-titulo">Importar</span></div>
+      <button class="modal-close-x" onclick="impFechar()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Gerador: só para unidades -->
+      <div id="imp-gerador" style="display:none;background:var(--ink-3);border:1px solid var(--border);
+           border-radius:11px;padding:13px 14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:4px">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar por padrão</div>
+        <div style="font-size:11.5px;color:var(--text-3);line-height:1.5;margin-bottom:10px">
+          A maior parte dos condomínios é assim. Preencha e clique em Gerar —
+          os códigos caem na caixa abaixo, onde você ainda pode mexer.
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+          <div class="fg" style="flex:1 1 90px"><label>Prefixo</label>
+            <input type="text" id="imp-g-pre" placeholder="A" maxlength="6"></div>
+          <div class="fg" style="flex:1 1 70px"><label>De</label>
+            <input type="number" id="imp-g-de" value="1" min="0"></div>
+          <div class="fg" style="flex:1 1 70px"><label>Até</label>
+            <input type="number" id="imp-g-ate" value="20" min="0"></div>
+          <div class="fg" style="flex:1 1 80px"><label>Dígitos</label>
+            <input type="number" id="imp-g-dig" value="2" min="1" max="5"></div>
+          <div class="fg" style="flex:1 1 90px"><label>Sufixo</label>
+            <input type="text" id="imp-g-suf" placeholder="(nenhum)" maxlength="6"></div>
+          <button class="btn btn-ghost btn-sm" onclick="impGerar()" style="margin-bottom:2px">Gerar</button>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label id="imp-label">Cole a lista</label>
+        <textarea id="imp-texto" rows="9" oninput="impConferir()"
+                  style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.6"
+                  placeholder="uma por linha"></textarea>
+        <div id="imp-ajuda" style="font-size:11.5px;color:var(--text-3);margin-top:6px;line-height:1.6"></div>
+      </div>
+
+      <!-- O que VAI acontecer, antes de acontecer -->
+      <div id="imp-previa" style="display:none;margin-top:14px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="impFechar()">Cancelar</button>
+      <button class="btn btn-gold" id="imp-btn-gravar" onclick="impGravar()" disabled>
+        <i class="fa-solid fa-check"></i> <span id="imp-btn-txt">Importar</span></button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-ov" id="m-res" onclick="event.stopPropagation()">
   <div class="modal" style="max-width:680px" onclick="event.stopPropagation()">
     <button class="modal-close-x" onclick="fecharModalRes()" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
@@ -6572,6 +6674,11 @@ const charts={};
 // E-mail do admin — apenas para identificar nível de acesso, não autentica
 const ADMIN_EMAIL = 'alessandro.lima30@outlook.com.br';
 
+/* Para onde vai quem quer contratar depois do teste. So digitos, com DDI:
+   '5511999998888'. Em branco, a tela de bloqueio cai no e-mail acima -- que
+   funciona, mas responde mais devagar do que um WhatsApp. */
+const SUPORTE_WHATS = '5511997301462';
+
 /* ══════════════════════════
    CAMADA SAAS — condomínios, módulos e super-admin
 ══════════════════════════ */
@@ -7502,6 +7609,17 @@ async function _aplicarSessao(session){
   window._userNivel = me.nivel || 'morador';
   localStorage.setItem('apvc_user', JSON.stringify({ nome:me.nome, email:me.email, tel:me.tel||'', nivel:me.nivel||'morador', lote:me.unidade||'', condominio:_condAtual, super:_isSuper }));
   salvarExpiracao();
+
+  /* Acesso ANTES de carregar os dados: com o teste vencido a RLS devolve
+     tudo vazio, e carregar primeiro pintaria o portal inteiro em branco
+     antes de a explicacao aparecer. */
+  await carregarAcesso();
+  if(acessoBloqueado()){
+    mostrarBloqueio();
+    _sessaoOcupada = false;
+    return;
+  }
+
   try { await loadAllFromFirestore(); } catch (err) { console.error(err); }
   entrarNoPortal(me.nome || me.email);
   _sessaoOcupada = false;
@@ -8460,6 +8578,108 @@ function aplicarAcesso(nivel){
   window._userNivel = real;
 }
 
+/* ── Teste gratis: quanto falta, e o que acontece quando acaba ────────
+
+   A regra de verdade mora no BANCO (ver supabase/13_autoatendimento.sql):
+   com o teste vencido, auth_condominio() devolve nulo e a RLS fecha todas as
+   tabelas de uma vez. O que esta aqui e a EXPLICACAO -- sem ela, a pessoa
+   veria telas vazias e acharia que o sistema quebrou, em vez de entender que
+   o prazo acabou.
+
+   Por isso a tela nunca decide sozinha que esta liberado: na duvida (servidor
+   fora do ar, funcao ainda nao criada no banco), ela deixa passar e quem
+   barra e o banco. Tela que bloqueia por conta propria vira cliente pagante
+   trancado do lado de fora por um erro de rede. */
+var _ACESSO = null;   // o que meu_acesso() devolveu nesta sessao
+
+async function carregarAcesso(){
+  _ACESSO = null;
+  if(!window.SB) return null;
+  try{
+    var r = await window.SB.rpc('meu_acesso');
+    if(r.error){
+      // Banco sem a funcao ainda (migracao nao rodada): nao bloqueia nada.
+      console.warn('meu_acesso', r.error.message);
+      return null;
+    }
+    _ACESSO = (r.data && r.data[0]) || null;
+  }catch(e){ console.warn('meu_acesso', e && e.message); }
+  return _ACESSO;
+}
+
+function acessoBloqueado(){
+  return !!(_ACESSO && _ACESSO.liberado === false);
+}
+
+/* Faixa no topo contando os dias. So aparece durante o teste: num cliente
+   pagante ela seria barulho, e barulho constante e o que faz as pessoas
+   pararem de ler os avisos. */
+function renderFaixaTeste(){
+  var el = $('faixa-teste');
+  if(!el) return;
+  if(!_ACESSO || _ACESSO.situacao !== 'teste' || _ACESSO.dias_restantes === null
+     || _ACESSO.dias_restantes === undefined){
+    el.style.display = 'none';
+    return;
+  }
+  var d = _ACESSO.dias_restantes;
+  if(d < 0){ el.style.display = 'none'; return; }   // vencido: quem fala e a tela de bloqueio
+  var texto = d === 0 ? 'Seu teste termina <b>hoje</b>.'
+            : d === 1 ? 'Seu teste termina <b>amanhã</b>.'
+            : 'Seu teste termina em <b>' + d + ' dias</b>.';
+  // Os ultimos dois dias ficam em vermelho: ate ali e informacao, dali em
+  // diante e decisao a tomar.
+  var urgente = d <= 2;
+  el.style.background = urgente ? 'rgba(224,82,82,0.12)' : 'rgba(232,119,34,0.10)';
+  el.style.borderColor = urgente ? 'rgba(224,82,82,0.35)' : 'rgba(232,119,34,0.30)';
+  el.style.color = urgente ? 'var(--red)' : 'var(--gold)';
+  el.innerHTML = '<i class="fa-solid fa-clock"></i> ' + texto
+    + ' <span style="color:var(--text-2);font-weight:400">Depois disso o acesso pausa até a contratação — '
+    + 'nada do que você cadastrou é perdido.</span>';
+  el.style.display = '';
+}
+
+/* Tela de bloqueio. Ocupa o lugar do portal inteiro: deixar o menu navegável
+   com tudo vazio por tras seria pior do que uma porta fechada com recado. */
+function mostrarBloqueio(){
+  var el = $('bloqueio-screen');
+  if(!el) return;
+  var nome = (_ACESSO && _ACESSO.nome) || '';
+  var venceu = (_ACESSO && _ACESSO.teste_ate)
+    ? _ACESSO.teste_ate.split('-').reverse().join('/') : '';
+  var alvo = $('bloqueio-texto');
+  if(alvo){
+    alvo.innerHTML = _ACESSO && _ACESSO.situacao === 'teste'
+      ? 'O teste gratuito de <b>' + escU(nome) + '</b> terminou'
+        + (venceu ? ' em <b>' + venceu + '</b>' : '') + '.'
+      : 'O acesso de <b>' + escU(nome) + '</b> está pausado no momento.';
+  }
+  var botao = $('bloqueio-whats');
+  if(botao){
+    /* A mensagem ja chega identificando o cliente: com o codigo, da para
+       achar o condominio no painel sem precisar perguntar quem e. */
+    var cod = (_ACESSO && _ACESSO.condominio) || '';
+    var msg = encodeURIComponent(
+      'Olá! Sou do condomínio ' + (nome || '(sem nome)')
+      + (cod ? ' (código ' + cod + ')' : '')
+      + ' e quero contratar o AdminPro.');
+    if(SUPORTE_WHATS){
+      botao.href = 'https://wa.me/' + SUPORTE_WHATS + '?text=' + msg;
+    } else {
+      // Sem WhatsApp configurado, o e-mail ainda resolve -- e um botao que
+      // nao leva a lugar nenhum seria pior do que um caminho mais lento.
+      botao.href = 'mailto:' + ADMIN_EMAIL
+        + '?subject=' + encodeURIComponent('Contratar o AdminPro — ' + (nome || ''))
+        + '&body=' + msg;
+      botao.innerHTML = '<i class="fa-solid fa-envelope"></i> Falar sobre a contratação';
+      botao.removeAttribute('target');
+    }
+  }
+  $('login-screen').style.display = 'none';
+  $('app').style.display = 'none';
+  el.style.display = 'flex';
+}
+
 function entrarNoPortal(nome){
   salvarExpiracao(); // registra expiração de 8h a partir deste momento
   $('login-screen').style.display='none';
@@ -8471,6 +8691,11 @@ function entrarNoPortal(nome){
   const usr = JSON.parse(localStorage.getItem('apvc_user')||'{}');
   aplicarAcesso(usr.nivel);
   aplicarSaas();
+  try{ renderFaixaTeste(); }catch(_){}
+  try{ renderOnboarding(); }catch(_){}
+  /* As contas do app chegam depois, sem travar a tela. Quando chegam, o
+     passo "convide os moradores" pode ter mudado de estado. */
+  try{ carregarContasApp().then(function(){ try{ renderOnboarding(); }catch(_){} }); }catch(_){}
   initApp();
   try{ atualizarBadgePendentes(); }catch(_){}
 }
@@ -8874,6 +9099,563 @@ function renderUnidades(){
 /* importarDadosIniciais() saiu junto com os dados que ela importava.
    Nenhum botao a chamava — era a rotina de carga inicial de 2026, ja
    executada. Sem ela e sem o bloco, nada mais depende daquele JSON. */
+
+/* ══════════════════════════════════════════════════════════════════════
+   IMPORTACAO EM MASSA — unidades e pessoas
+
+   Um condominio de 300 unidades nao vai preencher 300 formularios. Sem isto,
+   quem se cadastra sozinho abandona o sistema no primeiro dia -- a tela de
+   cadastro publica nao serve de nada se o que vem depois e inviavel.
+
+   A regra que atravessa tudo aqui: IMPORTAR NUNCA SOBRESCREVE EM SILENCIO.
+   Quem cola uma lista nao sabe o que ja existe no sistema. Entao a leitura e
+   o PLANO sao separados da gravacao: primeiro mostramos o que vai acontecer
+   (quantas entram, quantas ja existem, o que esta errado e em qual linha), e
+   so depois, com a pessoa ciente, grava.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Linhas uteis: sem vazias, sem espaco sobrando, e sem o cabecalho que vem
+   junto quando a lista sai de uma planilha. */
+function impLinhas(texto){
+  return String(texto||'').split(/\r?\n/)
+    .map(function(l){ return l.trim(); })
+    .filter(function(l){ return l.length > 0; })
+    .filter(function(l, i){
+      if(i > 0) return true;
+      // Cabecalho: a primeira linha falando dos campos em vez de ser um deles.
+      return !/^(cod|codigo|unidade|nome)\s*[;,\t]/i.test(l);
+    });
+}
+
+/* Ponto e virgula, virgula ou tabulacao -- quem cola de planilha traz
+   qualquer um dos tres, e exigir um so seria exigir que a pessoa soubesse
+   qual. Vazio no fim nao conta como campo. */
+function impCampos(linha){
+  return String(linha||'').split(/[;,\t]/).map(function(c){ return c.trim(); });
+}
+
+// ── Unidades ─────────────────────────────────────────────────────────
+
+/* Codigo de unidade: letras e numeros, sem espaco. "J 11" vira "J11", que e
+   o que a pessoa quis dizer; "Casa do Zé" nao e codigo e vira erro. */
+function impUnidadeCod(v){
+  return String(v||'').toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9-]/g,'');
+}
+
+function impUnidadesLer(texto){
+  var itens = [], erros = [];
+  impLinhas(texto).forEach(function(linha, i){
+    var c = impCampos(linha);
+    var cod = impUnidadeCod(c[0]);
+    if(!cod){ erros.push({ linha:i+1, texto:linha, motivo:'sem código de unidade' }); return; }
+    if(cod.length > 20){ erros.push({ linha:i+1, texto:linha, motivo:'código longo demais' }); return; }
+    itens.push({ cod:cod, rua:(c[1]||'').trim(), tipo:(c[2]||'').trim() });
+  });
+  return { itens:itens, erros:erros };
+}
+
+/* Gerador por padrao: "A", de 1 a 20, com 2 digitos -> A01..A20.
+
+   Existe porque a maior parte dos condominios e assim, e ditar 300 codigos
+   um por um e justamente o trabalho que esta tela veio evitar. */
+function impUnidadesGerar(prefixo, de, ate, digitos, sufixo){
+  var p = String(prefixo||'').toUpperCase().trim();
+  var s = String(sufixo||'').toUpperCase().trim();
+  var a = parseInt(de,10), b = parseInt(ate,10);
+  var d = parseInt(digitos,10); if(!(d >= 1)) d = 2;
+  if(!(a >= 0) || !(b >= 0) || b < a) return { cods:[], erro:'Informe um intervalo válido (de/até).' };
+  if(b - a > 2000) return { cods:[], erro:'Intervalo grande demais (máximo 2000 por vez).' };
+  var cods = [];
+  for(var n = a; n <= b; n++) cods.push(p + String(n).padStart(d,'0') + s);
+  return { cods:cods, erro:'' };
+}
+
+/* O plano: o que cada linha vai causar, ANTES de causar.
+
+   Unidade que ja existe nao e tocada. Poderia atualizar o endereco, mas
+   atualizar em massa um cadastro que alguem conferiu a mao e o jeito mais
+   rapido de perder trabalho de verdade -- e a pessoa nem saberia o que mudou. */
+function impUnidadesPlano(itens, atuais){
+  var existentes = atuais || {};
+  var vistos = {}, novas = [], jaExistem = [], repetidas = [];
+  (itens||[]).forEach(function(it){
+    if(vistos[it.cod]){ repetidas.push(it.cod); return; }
+    vistos[it.cod] = true;
+    if(existentes[it.cod]) jaExistem.push(it.cod);
+    else novas.push(it);
+  });
+  return { novas:novas, jaExistem:jaExistem, repetidas:repetidas };
+}
+
+/* Aplica o plano sobre uma copia, e devolve o objeto novo. Nao grava: quem
+   grava e quem sabe esperar o servidor e desfazer. */
+function impUnidadesAplicar(novas, atuais){
+  var out = JSON.parse(JSON.stringify(atuais || {}));
+  (novas||[]).forEach(function(it){
+    out[it.cod] = { tipo:it.tipo||'Casa', rua:it.rua||'', numero:'', bairro:'',
+                    cidade:'', estado:'', proprietario:'', morador:'' };
+  });
+  return out;
+}
+
+// ── Pessoas ──────────────────────────────────────────────────────────
+
+/* Papel escrito como a pessoa escreveria. "Inquilino" e "morador" sao a
+   mesma coisa aqui: o campo `morador` da unidade e quem MORA, dono ou nao. */
+function impPapel(v){
+  var t = _musrNorm(v || '');
+  if(/propriet|dono|titular/.test(t)) return 'proprietario';
+  if(/depend|filho|filha|conjuge|esposa|marido/.test(t)) return 'dependente';
+  if(/morador|inquilin|locatar|resid/.test(t)) return 'morador';
+  return '';
+}
+
+function impPessoasLer(texto){
+  var itens = [], erros = [];
+  impLinhas(texto).forEach(function(linha, i){
+    var c = impCampos(linha);
+    var nome = (c[0]||'').trim();
+    var uni  = impUnidadeCod(c[1]);
+    var papel = impPapel(c[2]);
+    if(!nome){ erros.push({ linha:i+1, texto:linha, motivo:'sem nome' }); return; }
+    if(nome.length < 3){ erros.push({ linha:i+1, texto:linha, motivo:'nome curto demais' }); return; }
+    if(!uni){ erros.push({ linha:i+1, texto:linha, motivo:'sem unidade' }); return; }
+    if(!papel){ erros.push({ linha:i+1, texto:linha, motivo:'papel não reconhecido (use proprietário, inquilino ou dependente)' }); return; }
+    itens.push({ nome:nome, unidade:uni, papel:papel,
+                 cpf:_soDigitos(c[3]||''), tel:(c[4]||'').trim(), email:(c[5]||'').trim().toLowerCase() });
+  });
+  return { itens:itens, erros:erros };
+}
+
+/* O plano das pessoas. Mais delicado que o das unidades, porque aqui uma
+   linha errada nao cria so um registro a mais: ela pode trocar o dono de um
+   lote, ou pendurar um dependente na familia errada.
+
+   Por isso tudo o que nao for obvio vira CONFLITO e fica de fora, listado
+   com o motivo, em vez de ser resolvido por adivinhacao. */
+function impPessoasPlano(itens, condominos, unidades){
+  var conds = condominos || {}, unis = unidades || {};
+  var novas = [], dependentes = [], conflitos = [];
+
+  // Quem ja esta no cadastro, por nome e por CPF.
+  var porNome = {}, porCpf = {};
+  Object.keys(conds).forEach(function(cod){
+    var c = conds[cod] || {};
+    if(c.nome) porNome[_musrNorm(c.nome)] = cod;
+    var cp = _soDigitos(c.cpf);
+    if(cp) porCpf[cp] = cod;
+  });
+
+  // Titulares primeiro: o dependente precisa de alguem em quem se pendurar,
+  // e esse alguem pode estar na mesma lista, logo abaixo dele.
+  var titulares = (itens||[]).filter(function(i){ return i.papel !== 'dependente'; });
+  var deps      = (itens||[]).filter(function(i){ return i.papel === 'dependente'; });
+
+  var ocupado = {};   // unidade|papel -> nome que vai ficar
+  titulares.forEach(function(it){
+    if(!unis[it.unidade]){
+      conflitos.push({ nome:it.nome, motivo:'a unidade ' + it.unidade + ' não existe no cadastro' });
+      return;
+    }
+    if(it.cpf && it.cpf.length !== 11){
+      conflitos.push({ nome:it.nome, motivo:'CPF inválido' });
+      return;
+    }
+    var jaCpf = it.cpf && porCpf[it.cpf];
+    if(jaCpf && _musrNorm((conds[jaCpf]||{}).nome) !== _musrNorm(it.nome)){
+      conflitos.push({ nome:it.nome, motivo:'o CPF já está em ' + (conds[jaCpf]||{}).nome });
+      return;
+    }
+    var chave = it.unidade + '|' + it.papel;
+    if(ocupado[chave]){
+      conflitos.push({ nome:it.nome, motivo:'a lista põe duas pessoas como ' + it.papel + ' do ' + it.unidade });
+      return;
+    }
+    // Lote que ja tem gente nesse papel: a importacao NAO troca por conta
+    // propria. Trocar morador e uma decisao, e tem tela propria para isso.
+    var atual = unis[it.unidade][it.papel];
+    if(atual && _musrNorm((conds[atual]||{}).nome) !== _musrNorm(it.nome)){
+      conflitos.push({ nome:it.nome,
+                       motivo:'o ' + it.unidade + ' já tem ' + ((conds[atual]||{}).nome || atual) + ' como ' + it.papel });
+      return;
+    }
+    ocupado[chave] = it.nome;
+    novas.push({ it:it, reaproveita: porNome[_musrNorm(it.nome)] || jaCpf || '' });
+  });
+
+  deps.forEach(function(it){
+    if(!unis[it.unidade]){
+      conflitos.push({ nome:it.nome, motivo:'a unidade ' + it.unidade + ' não existe no cadastro' });
+      return;
+    }
+    // Titular da unidade: quem mora manda; sem morador, o proprietario.
+    var cod = unis[it.unidade].morador || unis[it.unidade].proprietario || '';
+    var naLista = ocupado[it.unidade + '|morador'] || ocupado[it.unidade + '|proprietario'] || '';
+    if(!cod && !naLista){
+      conflitos.push({ nome:it.nome,
+                       motivo:'o ' + it.unidade + ' não tem morador nem proprietário para pendurar o dependente' });
+      return;
+    }
+    dependentes.push({ it:it, titularCod:cod, titularNome:naLista });
+  });
+
+  return { novas:novas, dependentes:dependentes, conflitos:conflitos };
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PRIMEIROS PASSOS
+
+   Quem acaba de criar o condominio entra num sistema vazio e nao sabe a
+   ordem: unidades antes das pessoas, pessoas antes das reservas. Sem uma
+   trilha, o teste de sete dias vira uma semana de tentativa e erro.
+
+   O estado de cada passo e DERIVADO dos dados de verdade, nunca guardado
+   num registro proprio. Lista de tarefas com marcacao propria sai do ar
+   junto com o primeiro imprevisto -- alguem apaga as unidades e o passo
+   continua "feito", e a trilha passa a mentir. Perguntando aos dados, ela
+   nao tem como mentir.
+   ══════════════════════════════════════════════════════════════════════ */
+
+function onbPassos(dados){
+  var d = dados || {};
+  var unidades = d.unidades || {};
+  var condominos = d.condominos || {};
+  var cfg = d.cfg || {};
+  var contas = d.contas || [];
+
+  var nUni = Object.keys(unidades).length;
+  var nCon = Object.keys(condominos).length;
+  var espacos = Array.isArray(cfg.espacos) ? cfg.espacos : [];
+  // Horarios definidos em QUALQUER espaco ja contam: configurar um e
+  // entender o mecanismo, e e isso que o passo quer ensinar.
+  var temHorario = Object.keys(cfg).some(function(k){
+    return /^disp_.+_slots$/.test(k) && String(cfg[k]||'').trim();
+  });
+
+  return [
+    { id:'unidades', feito: nUni > 0,
+      titulo:'Cadastre as unidades',
+      porque:'Tudo no sistema se apoia nelas: morador, reserva e aviso são sempre de uma unidade.',
+      acao:'Importar lista', fn:"impAbrir('unidades')", tela:'unidades',
+      resumo: nUni ? nUni + ' unidade(s)' : '' },
+
+    { id:'condominos', feito: nCon > 0,
+      titulo:'Cadastre os moradores',
+      porque:'Proprietários, inquilinos e dependentes. Dá para colar a lista inteira de uma vez.',
+      acao:'Importar lista', fn:"impAbrir('pessoas')", tela:'condominos',
+      resumo: nCon ? nCon + ' ficha(s)' : '' },
+
+    { id:'espacos', feito: espacos.length > 0,
+      titulo:'Crie os espaços que podem ser reservados',
+      porque:'Salão, quadra, churrasqueira — o que o seu condomínio tiver.',
+      acao:'Criar espaços', fn:"showPanel('espacos')", tela:'espacos',
+      resumo: espacos.length ? espacos.length + ' espaço(s)' : '' },
+
+    { id:'regras', feito: temHorario,
+      titulo:'Defina os horários e as regras',
+      porque:'Quais dias e horários cada espaço aceita, taxa e antecedência mínima.',
+      acao:'Configurar', fn:"showPanel('configuracoes')", tela:'configuracoes',
+      resumo: temHorario ? 'horários definidos' : '' },
+
+    { id:'convite', feito: contas.length > 1,
+      titulo:'Convide os moradores',
+      porque:'Eles se cadastram sozinhos pelo link e você só aprova.',
+      acao:'Copiar o link', fn:'onbCopiarConvite()', tela:'',
+      resumo: contas.length > 1 ? (contas.length - 1) + ' já entraram' : '' },
+  ];
+}
+
+function onbEstado(){
+  var passos = onbPassos({
+    unidades: (typeof getUnidades === 'function') ? getUnidades() : {},
+    condominos: (typeof getCondominos === 'function') ? getCondominos() : {},
+    cfg: (typeof getCfgRes === 'function') ? getCfgRes() : {},
+    contas: Array.isArray(_usrCache) ? _usrCache : [],
+  });
+  var feitos = passos.filter(function(p){ return p.feito; }).length;
+  return { passos:passos, feitos:feitos, total:passos.length, completo: feitos === passos.length };
+}
+
+/* O link que o morador usa para pedir acesso, ja com o condominio escolhido.
+   Sem o codigo na ponta, ele cai numa lista de condominios e pode escolher o
+   errado -- e o pedido vai parar na administracao de outra pessoa. */
+function onbLinkConvite(){
+  var base = location.href.split('#')[0].replace(/[^/]*$/, '');
+  return base + 'cadastro.html?c=' + encodeURIComponent(_condAtual || '');
+}
+
+function onbCopiarConvite(){
+  var link = onbLinkConvite();
+  var ok = function(){ toast('✓ Link copiado. Mande no grupo do condomínio.'); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(link).then(ok).catch(function(){ prompt('Copie o link:', link); });
+  } else {
+    prompt('Copie o link:', link);
+  }
+}
+
+function onbDispensar(){
+  try{ localStorage.setItem('apvc_onb_oculto_' + _condAtual, '1'); }catch(_){}
+  renderOnboarding();
+}
+function onbOculto(){
+  try{ return localStorage.getItem('apvc_onb_oculto_' + _condAtual) === '1'; }catch(_){ return false; }
+}
+
+function renderOnboarding(){
+  var alvo = $('onb-card'); if(!alvo) return;
+
+  // So para quem pode fazer os passos. Morador nao cadastra unidade.
+  var nivel = window._userNivel || 'morador';
+  if(!(nivel === 'admin' || nivel === 'gestor') || onbOculto()){
+    alvo.style.display = 'none'; return;
+  }
+  var e = onbEstado();
+  // Tudo pronto: a trilha some sozinha. Cartaz que fica depois de cumprido
+  // vira moldura, e moldura ninguem le.
+  if(e.completo){ alvo.style.display = 'none'; return; }
+
+  var pct = Math.round((e.feitos / e.total) * 100);
+  var linhas = e.passos.map(function(p){
+    var ic = p.feito
+      ? '<i class="fa-solid fa-circle-check" style="color:var(--green-l)"></i>'
+      : '<i class="fa-regular fa-circle" style="color:var(--text-3)"></i>';
+    return '<div style="display:flex;gap:11px;align-items:flex-start;padding:10px 0;'
+      + 'border-top:1px solid var(--border)">'
+      + '<div style="font-size:16px;line-height:1.3;flex:none">' + ic + '</div>'
+      + '<div style="flex:1 1 auto;min-width:0">'
+      + '<div style="font-size:13.5px;font-weight:600;' + (p.feito ? 'color:var(--text-3);text-decoration:line-through' : '') + '">'
+      + escU(p.titulo) + (p.resumo ? ' <span style="font-weight:400;color:var(--text-3);text-decoration:none">· ' + escU(p.resumo) + '</span>' : '')
+      + '</div>'
+      + (p.feito ? '' : '<div style="font-size:11.5px;color:var(--text-2);margin-top:3px;line-height:1.5">' + escU(p.porque) + '</div>')
+      + '</div>'
+      + (p.feito ? '' : '<button class="btn btn-ghost btn-sm" style="flex:none" onclick="' + p.fn + '">'
+                      + escU(p.acao) + '</button>')
+      + '</div>';
+  }).join('');
+
+  alvo.innerHTML =
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">'
+    + '<div style="font-size:15px;font-weight:700"><i class="fa-solid fa-flag-checkered" style="color:var(--gold)"></i> Primeiros passos</div>'
+    + '<div style="font-size:12px;color:var(--text-3)">' + e.feitos + ' de ' + e.total + '</div>'
+    + '<button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="onbDispensar()">Esconder</button>'
+    + '</div>'
+    + '<div style="height:5px;border-radius:4px;background:rgba(255,255,255,0.08);overflow:hidden;margin-bottom:6px">'
+    + '<div style="height:100%;width:' + pct + '%;background:var(--gold);transition:width .3s"></div></div>'
+    + linhas;
+  alvo.style.display = '';
+}
+
+/* ── A tela da importacao ─────────────────────────────────────────── */
+
+var _impModo = 'unidades';   // 'unidades' | 'pessoas'
+var _impPlano = null;        // o que a conferencia apurou
+
+function impAbrir(modo){
+  if(!mresPodeGerirPessoas()){
+    toast('⚠️ Só administrador ou gestor pode importar cadastros.');
+    return;
+  }
+  _impModo = (modo === 'pessoas') ? 'pessoas' : 'unidades';
+  _impPlano = null;
+  if($('imp-texto')) $('imp-texto').value = '';
+  if($('imp-previa')) $('imp-previa').style.display = 'none';
+  if($('imp-btn-gravar')) $('imp-btn-gravar').disabled = true;
+
+  var ehUni = _impModo === 'unidades';
+  $('imp-titulo').textContent = ehUni ? 'Importar unidades' : 'Importar pessoas';
+  $('imp-gerador').style.display = ehUni ? '' : 'none';
+  $('imp-label').textContent = ehUni ? 'Cole a lista de unidades' : 'Cole a lista de pessoas';
+  $('imp-btn-txt').textContent = ehUni ? 'Importar unidades' : 'Importar pessoas';
+  $('imp-texto').placeholder = ehUni
+    ? 'A01;Alameda das Flores\nA02;Alameda das Flores\nA03'
+    : 'Carlos Dono;A01;proprietário;52998224725;11988887777\nAna Lima;A01;inquilino\nLara Dono;A01;filha';
+  $('imp-ajuda').innerHTML = ehUni
+    ? 'Uma por linha: <b>código</b> e, se quiser, <b>rua</b>. '
+      + 'Serve ponto e vírgula, vírgula ou o que vier colado da planilha.'
+    : 'Uma por linha: <b>nome</b>; <b>unidade</b>; <b>papel</b>; e, se quiser, '
+      + '<b>CPF</b>; <b>WhatsApp</b>; <b>e-mail</b>.<br>'
+      + 'Papel pode ser proprietário, inquilino (ou morador) ou dependente. '
+      + '<b>As unidades precisam existir antes</b> — importe as unidades primeiro.';
+  // O padrao da casa: a classe 'open' mais o recalculo da trava de rolagem.
+  $('m-import').classList.add('open');
+  try{ _sincronizarTravaRolagem(); }catch(_){}
+  setTimeout(function(){ try{ $('imp-texto').focus(); }catch(_){} }, 120);
+}
+function impFechar(){ closeModal('m-import'); }
+
+function impGerar(){
+  var r = impUnidadesGerar($('imp-g-pre').value, $('imp-g-de').value,
+                           $('imp-g-ate').value, $('imp-g-dig').value, $('imp-g-suf').value);
+  if(r.erro){ toast('⚠️ ' + r.erro); return; }
+  // Acrescenta ao que ja esta la: um condominio com blocos A e B gera duas
+  // vezes, e apagar o primeiro resultado seria um susto.
+  var atual = ($('imp-texto').value || '').trim();
+  $('imp-texto').value = (atual ? atual + '\n' : '') + r.cods.join('\n');
+  impConferir();
+}
+
+/* Conferencia ao vivo: a pessoa ve o que vai acontecer enquanto digita, em
+   vez de descobrir depois de mandar. */
+function impConferir(){
+  var texto = $('imp-texto') ? $('imp-texto').value : '';
+  var previa = $('imp-previa'), botao = $('imp-btn-gravar');
+  if(!previa || !botao) return;
+  if(!String(texto).trim()){
+    previa.style.display = 'none'; botao.disabled = true; _impPlano = null; return;
+  }
+
+  var html = '', podeGravar = false;
+  var caixa = function(cor, titulo, corpo){
+    return '<div style="border-left:3px solid ' + cor + ';background:var(--ink-3);border-radius:8px;'
+         + 'padding:9px 12px;margin-bottom:8px">'
+         + '<div style="font-size:12.5px;font-weight:700">' + titulo + '</div>'
+         + (corpo ? '<div style="font-size:11.5px;color:var(--text-2);margin-top:4px;line-height:1.6">' + corpo + '</div>' : '')
+         + '</div>';
+  };
+  var lista = function(arr, limite){
+    var l = arr.slice(0, limite || 12).map(escU).join(', ');
+    return l + (arr.length > (limite || 12) ? ' … (+' + (arr.length - (limite || 12)) + ')' : '');
+  };
+
+  if(_impModo === 'unidades'){
+    var lido = impUnidadesLer(texto);
+    var p = impUnidadesPlano(lido.itens, getUnidades());
+    _impPlano = { tipo:'unidades', plano:p };
+    if(p.novas.length) html += caixa('var(--green-l)', p.novas.length + ' unidade(s) serão criadas',
+                                     lista(p.novas.map(function(n){ return n.cod; })));
+    if(p.jaExistem.length) html += caixa('var(--text-3)', p.jaExistem.length + ' já existem e não serão alteradas',
+                                         lista(p.jaExistem));
+    if(p.repetidas.length) html += caixa('var(--amber)', p.repetidas.length + ' repetida(s) na lista — entram uma vez',
+                                         lista(p.repetidas));
+    if(lido.erros.length) html += caixa('var(--red)', lido.erros.length + ' linha(s) com problema',
+      lido.erros.slice(0, 8).map(function(e){ return 'linha ' + e.linha + ': ' + escU(e.motivo); }).join('<br>'));
+    podeGravar = p.novas.length > 0;
+  } else {
+    var lidoP = impPessoasLer(texto);
+    var pp = impPessoasPlano(lidoP.itens, getCondominos(), getUnidades());
+    _impPlano = { tipo:'pessoas', plano:pp };
+    if(pp.novas.length) html += caixa('var(--green-l)', pp.novas.length + ' pessoa(s) serão vinculadas',
+      pp.novas.map(function(n){
+        return escU(n.it.nome) + ' — ' + (n.it.papel === 'proprietario' ? 'proprietário' : 'morador')
+             + ' do ' + escU(n.it.unidade) + (n.reaproveita ? ' <i>(já no cadastro)</i>' : '');
+      }).slice(0, 12).join('<br>'));
+    if(pp.dependentes.length) html += caixa('var(--green-l)', pp.dependentes.length + ' dependente(s)',
+      pp.dependentes.map(function(d){
+        return escU(d.it.nome) + ' — de ' + escU(d.titularNome || condominoNome(d.titularCod));
+      }).slice(0, 12).join('<br>'));
+    if(pp.conflitos.length) html += caixa('var(--amber)', pp.conflitos.length + ' ficam de fora',
+      pp.conflitos.map(function(c){ return escU(c.nome) + ': ' + escU(c.motivo); }).slice(0, 10).join('<br>'));
+    if(lidoP.erros.length) html += caixa('var(--red)', lidoP.erros.length + ' linha(s) com problema',
+      lidoP.erros.slice(0, 8).map(function(e){ return 'linha ' + e.linha + ': ' + escU(e.motivo); }).join('<br>'));
+    podeGravar = (pp.novas.length + pp.dependentes.length) > 0;
+  }
+
+  previa.innerHTML = html || caixa('var(--text-3)', 'Nada a importar nesta lista.', '');
+  previa.style.display = '';
+  botao.disabled = !podeGravar;
+}
+
+/* Grava. Espera o servidor e desfaz se ele recusar -- importacao que mente e
+   pior que formulario: sao centenas de registros de uma vez. */
+async function impGravar(){
+  if(!_impPlano){ return; }
+  var botao = $('imp-btn-gravar');
+  botao.disabled = true;
+  var txtAntes = $('imp-btn-txt').textContent;
+  $('imp-btn-txt').textContent = 'Gravando...';
+  try{
+    if(_impPlano.tipo === 'unidades') await _impGravarUnidades(_impPlano.plano);
+    else                              await _impGravarPessoas(_impPlano.plano);
+  }catch(e){
+    console.error('importacao', e);
+    toast('⚠️ Não consegui importar: ' + (e && e.message ? e.message : 'erro inesperado'));
+  }finally{
+    $('imp-btn-txt').textContent = txtAntes;
+    botao.disabled = false;
+  }
+}
+
+async function _impGravarUnidades(p){
+  if(!p.novas.length){ toast('Nada a importar.'); return; }
+  var antes = getUnidades();
+  var depois = impUnidadesAplicar(p.novas, antes);
+  var r = await S('unidades', depois);
+  if(r && r.ok === false){
+    try{ DB_CACHE['unidades'] = antes; localStorage.setItem('apvc_unidades', JSON.stringify(antes)); }catch(_){}
+    toast('⚠️ O servidor recusou: ' + (r.erro || 'erro') + '. Nada foi importado.');
+    return;
+  }
+  try{ renderUnidades(); popUnidadeSelects(); }catch(_){}
+  impFechar();
+  toast('✓ ' + p.novas.length + ' unidade(s) importada(s).');
+}
+
+async function _impGravarPessoas(p){
+  var condsAntes = getCondominos(), unisAntes = getUnidades();
+  var conds = JSON.parse(JSON.stringify(condsAntes));
+  var unis  = JSON.parse(JSON.stringify(unisAntes));
+  var proxNum = conProximoCodigoNum();
+  var criadas = 0, vinculadas = 0, deps = 0;
+  var codPorNome = {};
+
+  // Titulares. Reaproveita a ficha quando a pessoa ja esta no cadastro --
+  // criar outra seria exatamente a duplicata que o CPF veio evitar.
+  p.novas.forEach(function(n){
+    var it = n.it, cod = n.reaproveita;
+    if(!cod){
+      cod = conFormatCodigo(proxNum++);
+      conds[cod] = { nome:it.nome, cpf:it.cpf||'', telefone:it.tel||'', email:it.email||'',
+                     tipoPessoa:'fisica', rg:'', cnpj:'', ie:'', nascimento:'', sexo:'',
+                     nacionalidade:'', profissao:'', classificacao:'', foto:'',
+                     telefones: it.tel ? [{numero:it.tel, tipo:'Celular'}] : [],
+                     dependentes:[] };
+      criadas++;
+    }
+    codPorNome[_musrNorm(it.nome)] = cod;
+    if(unis[it.unidade]){ unis[it.unidade][it.papel] = cod; vinculadas++; }
+  });
+
+  // Dependentes, dentro da ficha do titular.
+  p.dependentes.forEach(function(d){
+    var cod = d.titularCod || codPorNome[_musrNorm(d.titularNome||'')] || '';
+    if(!cod || !conds[cod]) return;
+    if(!Array.isArray(conds[cod].dependentes)) conds[cod].dependentes = [];
+    var ja = conds[cod].dependentes.some(function(x){ return _musrNorm(x.nome) === _musrNorm(d.it.nome); });
+    if(ja) return;
+    conds[cod].dependentes.push({
+      codigo: cod + '-' + String(conds[cod].dependentes.length + 1).padStart(2,'0'),
+      nome: d.it.nome, parentesco:'', cpf: d.it.cpf||'', rg:'', nascimento:'',
+      telefone: d.it.tel||'', email: d.it.email||'', foto:''
+    });
+    deps++;
+  });
+
+  if(!criadas && !vinculadas && !deps){ toast('Nada a importar.'); return; }
+
+  /* Duas gravacoes, e a segunda pode falhar depois de a primeira dar certo.
+     Por isso os condominos vao primeiro: unidade apontando para uma ficha que
+     nao existe mostra o codigo no lugar do nome -- o mesmo fantasma de antes.
+     Ficha sem vinculo, ao contrario, e so uma pessoa cadastrada. */
+  var r1 = await S('condominos', conds);
+  if(r1 && r1.ok === false){
+    try{ DB_CACHE['condominos'] = condsAntes; localStorage.setItem('apvc_condominos', JSON.stringify(condsAntes)); }catch(_){}
+    toast('⚠️ O servidor recusou: ' + (r1.erro || 'erro') + '. Nada foi importado.');
+    return;
+  }
+  var r2 = await S('unidades', unis);
+  if(r2 && r2.ok === false){
+    try{ DB_CACHE['unidades'] = unisAntes; localStorage.setItem('apvc_unidades', JSON.stringify(unisAntes)); }catch(_){}
+    toast('⚠️ As pessoas entraram, mas o vínculo com as unidades foi recusado: '
+        + (r2.erro || 'erro') + '. Refaça a importação para vincular.');
+    try{ renderCondominos(); }catch(_){}
+    return;
+  }
+
+  try{ renderCondominos(); renderUnidades(); popUnidadeSelects(); }catch(_){}
+  impFechar();
+  toast('✓ ' + criadas + ' ficha(s) nova(s), ' + vinculadas + ' vínculo(s) e ' + deps + ' dependente(s).');
+}
 
 function salvarUnidade(){
   popUnidadeSelects();
