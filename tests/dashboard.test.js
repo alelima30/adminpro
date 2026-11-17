@@ -140,6 +140,29 @@ bloco('A planilha abre certo no Excel brasileiro', () => {
   checa('exporta o que a tela mostra', /if\(!_dashUltimo\)\{/.test(src), true);
 });
 
+// ── O chip precisa mesmo mover os rankings ────────────────────────────
+bloco('Do clique no chip ate o ranking mudar', () => {
+  const src = lerFonte();
+  /* A matematica das datas ja esta coberta acima. O que este bloco trava e a
+     LIGACAO: chip -> guarda a escolha -> redesenha -> os rankings leem a
+     escolha. Qualquer elo solto faz o filtro virar enfeite -- clica, o chip
+     acende, e os numeros nao mudam. */
+  checa('o chip chama a troca',
+    /onclick="dashTrocarPeriodo\(/.test(src), true);
+  checa('a troca guarda e redesenha',
+    /function dashTrocarPeriodo[\s\S]{0,260}apvc_res_dash_periodo[\s\S]{0,160}renderReservas\(\)/.test(src), true);
+  checa('os blocos leem a escolha, nao um valor fixo',
+    /function dashRenderBlocos[\s\S]{0,160}dashPeriodo\(dashPeriodoAtual\(\)\)/.test(src), true);
+  checa('e recortam as reservas por ela',
+    /function dashRenderBlocos[\s\S]{0,260}dashNoPeriodo\(todas, per\)/.test(src), true);
+  // Sem esta chamada, o painel nasceria vazio e so reagiria ao segundo clique.
+  checa('desenhar a tela de reservas desenha os blocos',
+    /dashRenderBlocos\(kpiBase\)/.test(src), true);
+  // O chip aceso tem de ser o escolhido, senao a tela mente sobre o recorte.
+  checa('o chip aceso e o escolhido',
+    /var on = p\[0\] === atual;[\s\S]{0,160}on \? 'btn-gold' : 'btn-ghost'/.test(src), true);
+});
+
 // ── A tela ────────────────────────────────────────────────────────────
 bloco('O numero nunca aparece sem o periodo', () => {
   const src = lerFonte();

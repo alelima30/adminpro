@@ -63,10 +63,18 @@ const viola = (api, ...args) => !!api.reservaViolaRegra(...args);
 // que a pessoa lê antes de decidir — precisa dizer o que está errado.
 const reservaViolaRegraCom = (api, ...args) => api.reservaViolaRegra(...args);
 
+/* Data em hora LOCAL, como o sistema faz (ver _reslHojeISO).
+
+   Usava toISOString(), que e UTC. A noite nas Americas o UTC ja virou o dia,
+   entao "ontem" para o teste era "hoje" para o sistema -- e testes de data
+   passavam ou falhavam conforme a hora e o fuso de quem rodasse. Pior que a
+   falha intermitente: no outro sentido, o teste passaria pelo motivo errado
+   e deixaria um defeito de verdade escondido. */
 function dataDaqui(dias) {
   const d = new Date();
   d.setDate(d.getDate() + dias);
-  return d.toISOString().slice(0, 10);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+       + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 bloco('Antecedência mínima (ex.: salão exige 15 dias)', () => {
@@ -1732,8 +1740,8 @@ bloco('Lembrete so de hoje em diante', () => {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
          + '-' + String(d.getDate()).padStart(2, '0'); };
   // Reserva com taxa em aberto: o caso que repetia.
-  const comTaxa = (id, nome, quando) => ({ id, nome, espaco: 'Salao', lote: 'B01',
-    status: 'confirmada', data: quando, horario: '08:00–10:00',
+  const comTaxa = (id, nome, quando, horario) => ({ id, nome, espaco: 'Salao', lote: 'B01',
+    status: 'confirmada', data: quando, horario: horario || '08:00–10:00',
     taxa: '150', pgto: 'pendente' });
 
   checa('o corte e o dia, nao a hora', api._reslJaPassou({ data: dia(-1) }), true);
@@ -1748,9 +1756,16 @@ bloco('Lembrete so de hoje em diante', () => {
   RESERVAS = [comTaxa(2, 'Semana', dia(-7)), comTaxa(3, 'Mes', dia(-30))];
   checa('nem a da semana passada, nem a do mes passado', cobra(), []);
 
-  // O que importa continua passando: hoje de manha, nao pago, ainda da para
-  // cobrar antes de entregar a chave.
-  RESERVAS = [comTaxa(4, 'Hoje', dia(0))];
+  /* O que importa continua passando: comecou hoje, nao foi pago, e ainda da
+     para cobrar antes de entregar a chave.
+
+     Comeca 00:00 de proposito. Com o 08:00 padrao, este teste so passava
+     DEPOIS das 8h: antes disso a reserva ainda nao comecou, e "a receber" e
+     a resposta certa. Como o CI roda em UTC, ele falharia em toda entrega
+     feita entre meia-noite e 8h -- um terco do dia -- e a falha pareceria
+     um defeito no sistema. Teste que depende da hora do relogio treina as
+     pessoas a ignorar o CI vermelho. */
+  RESERVAS = [comTaxa(4, 'Hoje', dia(0), '00:00–23:59')];
   checa('a de hoje continua cobrando', cobra(), ['atrasado:Hoje']);
 
   RESERVAS = [comTaxa(5, 'Amanha', dia(1))];

@@ -48,6 +48,20 @@ jobs:
       - name: Testes do painel analitico
         run: node tests/dashboard.test.js
 
+      # O runner roda em UTC. Teste que depende da hora local so quebra para
+      # quem esta noutro fuso -- ou numa entrega de madrugada -- e a falha
+      # parece defeito do sistema. Aqui a suite roda nos dois extremos do
+      # planeta (+14 e -11), que juntos cobrem o dia inteiro.
+      - name: Testes nos extremos de fuso horario
+        run: |
+          for tz in Pacific/Kiritimati Pacific/Niue America/Sao_Paulo; do
+            echo "── $tz ($(TZ=$tz date '+%H:%M')) ──"
+            for f in tests/*.js; do TZ=$tz node "$f" > /dev/null || {
+              echo "::error::$f falhou em $tz"; TZ=$tz node "$f"; exit 1; }
+            done
+          done
+          echo "Suite verde em todos os fusos testados.
+
       - name: Assinaturas (a conta que vira nota fiscal)
         run: node tests/assinaturas.test.js
 
